@@ -12,8 +12,14 @@
     <meta property="og:description" content="Study.com is a trusted educational resource for K–12 students. Providing interactive worksheets, practice questions, and study guides." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">    <link href="https://fonts.googleapis.com/css2?family=Sixtyfour&display=swap" rel="stylesheet">    <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
+    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">    <link href="https://fonts.googleapis.com/css2?family=Sixtyfour&display=swap" rel="stylesheet">    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">    <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
     <style>
+@property --border-angle {
+    syntax: '<angle>';
+    initial-value: 0deg;
+    inherits: false;
+}
+
 :root {
     --bg: #1a1216;
     --text: #ffb8d9;
@@ -77,21 +83,40 @@ html, body {
 
 .library-home-title {
     font-size: 3.5rem;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.03em;
     color: var(--text);
+    margin-bottom: 8px;
+    text-align: center;
+    font-family: "Rajdhani", sans-serif !important;
+    font-optical-sizing: auto !important;    
+    font-weight: 700 !important;
+    font-style: normal !important;
+    text-transform: uppercase;
+    display: inline-flex;
+    transform: skewX(-10deg);
+    gap: 1px;
+}
+
+.library-home-title span {
+    display: inline-block;
+    opacity: 0;
+    transform: translateX(-60px) translateY(-10px) skewX(10deg);
     background: linear-gradient(135deg, var(--text), rgba(255, 184, 217, 0.65));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 8px;
-    text-align: center;
     filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.4));
-    font-family: "Sixtyfour", sans-serif !important;
-    font-optical-sizing: auto !important;    
-    font-weight: bold !important;
-    font-style: normal !important;
-    font-variation-settings:
-    "BLED" 0,
-    "SCAN" 0 !important;
+    animation: letter-slide-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes letter-slide-in {
+    60% {
+        opacity: 1;
+        transform: translateX(4px) translateY(0) skewX(10deg);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0) translateY(0) skewX(10deg);
+    }
 }
 
 .library-home-quote {
@@ -107,6 +132,8 @@ html, body {
 }
 
 .library-search-container {
+    position: relative;
+    z-index: 0;
     display: flex;
     align-items: center;
     background-color: var(--card);
@@ -120,6 +147,25 @@ html, body {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.library-search-container::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    z-index: -1;
+    border-radius: 14px;
+    padding: 2px;
+    background: conic-gradient(from var(--border-angle), transparent 0%, transparent 82%, var(--text) 92%, transparent 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    animation: border-spin 3.5s linear infinite;
+    pointer-events: none;
+}
+
+@keyframes border-spin {
+    to { --border-angle: 360deg; }
 }
 
 .library-search-container:focus-within {
@@ -475,7 +521,15 @@ html, body {
 
     <div class="campus-viewport" id="campus-viewport">
         <div class="library-home-page" id="library-home">
-            <h1 class="library-home-title">K-STUFF</h1>
+            <h1 class="library-home-title" id="logo-title">
+                <span style="animation-delay:0.05s">K</span>
+                <span style="animation-delay:0.13s">-</span>
+                <span style="animation-delay:0.21s">S</span>
+                <span style="animation-delay:0.29s">T</span>
+                <span style="animation-delay:0.37s">U</span>
+                <span style="animation-delay:0.45s">F</span>
+                <span style="animation-delay:0.53s">F</span>
+            </h1>
             <p class="library-home-quote"></p>
             <div class="library-search-container">
                 <input type="text" class="library-search-input" id="library-search-input" placeholder="Search or enter URL..." />
