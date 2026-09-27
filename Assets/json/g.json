@@ -37,7 +37,7 @@
   },
   {
     "title": "60 Seconds",
-    "url": "${truffled}/games/60/index.html",
+    "url": "${static}https://truffled.lol/games/60/index.html",
     "category": "Strategy",
     "image": ""
   },
@@ -55,7 +55,7 @@
   },
   {
     "title": "A Game About Feeding A Blackhole",
-    "url": "${truffled}/gamefile/blackhole.html",
+    "url": "${static}https://truffled.lol/gamefile/blackhole.html",
     "category": "Arcade",
     "image": ""
   },
@@ -73,13 +73,13 @@
   },
   {
     "title": "Academytale",
-    "url": "${truffled}/games/academytale/index.html",
+    "url": "${static}https://truffled.lol/games/academytale/index.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "AdVenture Capatalist",
-    "url": "${truffled}/games/adventure/index.html",
+    "url": "${static}https://truffled.lol/games/adventure/index.html",
     "category": "Idle",
     "image": "https://tse3.mm.bing.net/th/id/OIP.LR4KzCF5uJVoHZd2qHMJ6QAAAA?cb=12&rs=1&pid=ImgDetMain&o=7"
   },
@@ -91,13 +91,13 @@
   },
   {
     "title": "Amanda The Adventurer",
-    "url": "${truffled}/games/amanda-the-adventurer/index.html",
+    "url": "${static}https://truffled.lol/games/amanda-the-adventurer/index.html",
     "category": "Horror",
     "image": "https://assets-prd.ignimgs.com/2023/10/23/amanda1-1698094066372.jpg"
   },
   {
     "title": "Amaze",
-    "url": "${truffled}/games/amaze/index.html",
+    "url": "${static}https://truffled.lol/games/amaze/index.html",
     "category": "Puzzle",
     "image": ""
   },
@@ -127,7 +127,7 @@
   },
   {
     "title": "Angry Birds Online",
-    "url": "${truffled}/gamefile/angrybirdsonline.html",
+    "url": "${static}https://truffled.lol/gamefile/angrybirdsonline.html",
     "category": "Puzzle",
     "image": ""
   },
@@ -139,13 +139,13 @@
   },
   {
     "title": "Animal Crossing Population: Growing!",
-    "url": "${truffled}/games/slider/index.html",
+    "url": "${static}https://truffled.lol/games/slider/index.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Animal Crossing Wild World",
-    "url": "${truffled}/gamefile/acww.html",
+    "url": "${static}https://truffled.lol/gamefile/acww.html",
     "category": "Simulation",
     "image": ""
   },
@@ -157,7 +157,7 @@
   },
   {
     "title": "Antonblast 64",
-    "url": "${truffled}/games/antonblast64/index.html",
+    "url": "${static}https://truffled.lol/games/antonblast64/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -186,67 +186,67 @@
   },
   {
     "title": "Bad Parenting",
-    "url": "${truffled}/games/bad/index.html",
+    "url": "${static}https://truffled.lol/games/bad/index.html",
     "category": "Horror",
     "image": "https://img.tapimg.net/market/images/5d968568b46ddc878df8521d2389c02f.jpg"
   },
   {
     "title": "Bad Piggies",
-    "url": "${truffled}/gamefile/piggies.html",
+    "url": "${static}https://truffled.lol/gamefile/piggies.html",
     "category": "Puzzle",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTclmySjSLNua4e0reW0mo3OIUKkIUQ2wos1Q&s"
   },
   {
     "title": "Balatro",
-    "url": "${truffled}/games/balatro/index.html",
+    "url": "${static}https://truffled.lol/games/balatro/index.html",
     "category": "Cards",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS63YgK5AFm3MZJTuBdcYV4dx0dM9wm2_rqTw&s"
   },
   {
     "title": "Balatro Modded",
-    "url": "${truffled}/games/balatromodded/",
+    "url": "${static}https://truffled.lol/games/balatromodded/",
     "category": "Cards",
     "image": ""
   },
   {
     "title": "Baldi's Basics Birthday Bash",
-    "url": "${truffled}/games/bday/index.html",
+    "url": "${static}https://truffled.lol/games/bday/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Baldi's Basics Ultra Decompile",
-    "url": "${truffled}/gamefile/baldidecomp.html",
+    "url": "${static}https://truffled.lol/gamefile/baldidecomp.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Baldi's Fun New School Plus Ultimate Edition",
-    "url": "${truffled}/games/bfs/",
+    "url": "${static}https://truffled.lol/games/bfs/",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Baldurs Gate 2",
-    "url": "${truffled}/games/baldurs-gate-2/index.html",
+    "url": "${static}https://truffled.lol/games/baldurs-gate-2/index.html",
     "category": "RPG",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTYdelP221WauXMgvWb0QoRX9r4vW0JohaEfg&s"
   },
   {
     "title": "Banjo Kazooie",
-    "url": "${truffled}/gamefile/banjokazooie.html",
+    "url": "${static}https://truffled.lol/gamefile/banjokazooie.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Basket Random",
-    "url": "${truffled}/games/basket-random/index.html",
+    "url": "${static}https://truffled.lol/games/basket-random/index.html",
     "category": "Sports",
     "image": "https://images.sftcdn.net/images/t_app-icon-m/p/7aae58f2-284c-4343-807a-c3820029e5d9/378063004/basket-random-game-logo"
   },
   {
     "title": "Bee Movie Game",
-    "url": "${truffled}/games/beemovie/index.html",
+    "url": "${static}https://truffled.lol/games/beemovie/index.html",
     "category": "Adventure",
     "image": ""
   },
@@ -256,7 +256,7 @@
   },
   {
     "title": "Bfdia 5b",
-    "url": "${truffled}/games/bfdia 5b/index.html",
+    "url": "${static}https://truffled.lol/games/bfdia 5b/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -268,7 +268,7 @@
   },
   {
     "title": "Bitlife",
-    "url": "${truffled}/games/bitlife/index.html",
+    "url": "${static}https://truffled.lol/games/bitlife/index.html",
     "category": "Simulation",
     "image": ""
   },
@@ -284,7 +284,7 @@
   },
   {
     "title": "Bloons TD6",
-    "url": "${truffled}/games/btd6/index.html",
+    "url": "${static}https://truffled.lol/games/btd6/index.html",
     "category": "Strategy",
     "image": ""
   },
@@ -306,13 +306,13 @@
   },
   {
     "title": "Bombmerman",
-    "url": "${truffled}/gamefile/bomberman.html",
+    "url": "${static}https://truffled.lol/gamefile/bomberman.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Bombmerman 2",
-    "url": "${truffled}/gamefile/bomberman2.html",
+    "url": "${static}https://truffled.lol/gamefile/bomberman2.html",
     "category": "Arcade",
     "image": ""
   },
@@ -324,7 +324,7 @@
   },
   {
     "title": "Boxing Random",
-    "url": "${truffled}/gamefile/boxing.html",
+    "url": "${static}https://truffled.lol/gamefile/boxing.html",
     "category": "Sports",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQv93G25T2p0tri2NI_jYph4M4cUyEPunltvw&s"
   },
@@ -334,13 +334,13 @@
   },
   {
     "title": "Burrito Bison",
-    "url": "${truffled}/games/burrito/index.html",
+    "url": "${static}https://truffled.lol/games/burrito/index.html",
     "category": "Arcade",
     "image": "https://cdn6.aptoide.com/imgs/f/9/1/f912df6d248f0ab44ee96e2f3116b8a9_icon.png"
   },
   {
     "title": "Burrito Bison Revenge",
-    "url": "${truffled}/gamefile/bbe.html",
+    "url": "${static}https://truffled.lol/gamefile/bbe.html",
     "category": "Arcade",
     "image": ""
   },
@@ -356,7 +356,7 @@
   },
   {
     "title": "Capuchin",
-    "url": "${truffled}/games/CapuchinBog/index.html",
+    "url": "${static}https://truffled.lol/games/CapuchinBog/index.html",
     "category": "Action",
     "image": ""
   },
@@ -378,7 +378,7 @@
   },
   {
     "title": "Celeste",
-    "url": "${truffled}/games/celeste/index.html",
+    "url": "${static}https://truffled.lol/games/celeste/index.html",
     "category": "Platformer",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSlC55oke5bjGPN9_zlHxN-Rarl8nL5ygOEDQ&amp;s"
   },
@@ -390,7 +390,7 @@
   },
   {
     "title": "Celeste 64",
-    "url": "${truffled}/games/celeste64/index.html",
+    "url": "${static}https://truffled.lol/games/celeste64/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -402,7 +402,7 @@
   },
   {
     "title": "Christmas Massacre",
-    "url": "${truffled}/gamefile/christmas.html",
+    "url": "${static}https://truffled.lol/gamefile/christmas.html",
     "category": "Horror",
     "image": ""
   },
@@ -420,19 +420,19 @@
   },
   {
     "title": "Class of 09",
-    "url": "${truffled}/extra/co09loader/index.html",
+    "url": "${static}https://truffled.lol/extra/co09loader/index.html",
     "category": "Adventure",
     "image": "https://e.snmc.io/lk/o/x/f32f7845aadd79ec99c22ece60bb2b88/11265542"
   },
   {
     "title": "Class Of 09 Flipside",
-    "url": "${truffled}/games/C09FS/index.html",
+    "url": "${static}https://truffled.lol/games/C09FS/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Class Of 09 Re-Up",
-    "url": "${truffled}/games/C09RU/index.html",
+    "url": "${static}https://truffled.lol/games/C09RU/index.html",
     "category": "Adventure",
     "image": ""
   },
@@ -444,25 +444,25 @@
   },
   {
     "title": "Clover Pit",
-    "url": "${truffled}/gamefile/cloverpit.html",
+    "url": "${static}https://truffled.lol/gamefile/cloverpit.html",
     "category": "Cards",
     "image": ""
   },
   {
     "title": "Cluster Rush",
-    "url": "${truffled}/games/cluster/index.html",
+    "url": "${static}https://truffled.lol/games/cluster/index.html",
     "category": "Platformer",
     "image": "https://tse3.mm.bing.net/th/id/OIP.vRUwrzYqTxcuD1nx3soIJgAAAA?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Coffee Talk",
-    "url": "${truffled}/games/coffee/index.html",
+    "url": "${static}https://truffled.lol/games/coffee/index.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Cookie Clicker",
-    "url": "${truffled}/games/cookie-clicker/index.html",
+    "url": "${static}https://truffled.lol/games/cookie-clicker/index.html",
     "category": "Clicker",
     "image": "https://play-lh.googleusercontent.com/Z1MOuuiD05ZN5LkVmMEvKF0mqAc-FknaQ2j8s4dZiO-LSPQX4EEA3RVJdlQEtxe96ok"
   },
@@ -474,19 +474,19 @@
   },
   {
     "title": "Cooking Mama",
-    "url": "${truffled}/gamefile/cookingmama.html",
+    "url": "${static}https://truffled.lol/gamefile/cookingmama.html",
     "category": "Cooking",
     "image": ""
   },
   {
     "title": "Cooking Mama 2",
-    "url": "${truffled}/gamefile/cookingmama2.html",
+    "url": "${static}https://truffled.lol/gamefile/cookingmama2.html",
     "category": "Cooking",
     "image": ""
   },
   {
     "title": "Cooking Mama 3",
-    "url": "${truffled}/gamefile/cookingmama3.html",
+    "url": "${static}https://truffled.lol/gamefile/cookingmama3.html",
     "category": "Cooking",
     "image": ""
   },
@@ -498,37 +498,37 @@
   },
   {
     "title": "Counter Stike 0.8",
-    "url": "${truffled}/games/psp/cs/index.html",
+    "url": "${static}https://truffled.lol/games/psp/cs/index.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Crash Bandicoot 1",
-    "url": "${truffled}/gamefile/crash1.html",
+    "url": "${static}https://truffled.lol/gamefile/crash1.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Crash Bandicoot 2",
-    "url": "${truffled}/gamefile/crash2.html",
+    "url": "${static}https://truffled.lol/gamefile/crash2.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Crash Bandicoot 3",
-    "url": "${truffled}/gamefile/crash3.html",
+    "url": "${static}https://truffled.lol/gamefile/crash3.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Crazy Balls",
-    "url": "${truffled}/gamefile/balls.html",
+    "url": "${static}https://truffled.lol/gamefile/balls.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Crazy Cattle 3D",
-    "url": "${truffled}/games/cattle3dplus/index.html",
+    "url": "${static}https://truffled.lol/games/cattle3dplus/index.html",
     "category": "Action",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT1ewQBpy6JY8DkGTmr9yXkpTzjGCqTO3ig6g&s"
   },
@@ -540,19 +540,19 @@
   },
   {
     "title": "CrazyCattle3D",
-    "url": "${truffled}/games/cattle3d/index.html",
+    "url": "${static}https://truffled.lol/games/cattle3d/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Crossy Road",
-    "url": "${truffled}/gamefile/crossy.html",
+    "url": "${static}https://truffled.lol/gamefile/crossy.html",
     "category": "Arcade",
     "image": "https://cdn.jim-nielsen.com/ios/512/crossy-road-endless-arcade-2014-12-02.png?rf=1024"
   },
   {
     "title": "Cruelty Squad",
-    "url": "${truffled}/games/cruelty/index.html",
+    "url": "${static}https://truffled.lol/games/cruelty/index.html",
     "category": "FPS",
     "image": ""
   },
@@ -564,91 +564,91 @@
   },
   {
     "title": "Csgo Clicker",
-    "url": "${truffled}/games/csgo-clicker/index.html",
+    "url": "${static}https://truffled.lol/games/csgo-clicker/index.html",
     "category": "Clicker",
     "image": ""
   },
   {
     "title": "Cuphead",
-    "url": "${truffled}/games/Cuphead/index.html",
+    "url": "${static}https://truffled.lol/games/Cuphead/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Customer Support",
-    "url": "${truffled}/games/CustomerSupport/index.html",
+    "url": "${static}https://truffled.lol/games/CustomerSupport/index.html",
     "category": "Simulation",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTHXC2dZbbzsOOy6f8R63U3_0S5hf7MhCoUzA&s"
   },
   {
     "title": "Cut The Rope",
-    "url": "${truffled}/gamefile/cut.html",
+    "url": "${static}https://truffled.lol/gamefile/cut.html",
     "category": "Puzzle",
     "image": "https://img.utdstc.com/icon/4da/1bd/4da1bd68bf9e86fd35c877e52ce6d4ffdd3e26dd16e17085be8d6d0b4eee23f5:200"
   },
   {
     "title": "Cut The Rope : Time Travel",
-    "url": "${truffled}/gamefile/time.html",
+    "url": "${static}https://truffled.lol/gamefile/time.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Cut The Rope Holiday",
-    "url": "${truffled}/gamefile/hol.html",
+    "url": "${static}https://truffled.lol/gamefile/hol.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Dadish",
-    "url": "${truffled}/gamefile/dadish.html",
+    "url": "${static}https://truffled.lol/gamefile/dadish.html",
     "category": "Platformer",
     "image": "https://tse2.mm.bing.net/th/id/OIP.kbn-RmUAvVyt1ytXJtu2_AHaHa?cb=ucfimg2ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Dadish 2",
-    "url": "${truffled}/gamefile/dadish2.html",
+    "url": "${static}https://truffled.lol/gamefile/dadish2.html",
     "category": "Platformer",
     "image": "https://tse2.mm.bing.net/th/id/OIP.LLifMHF-MvvHmiDNJZa_ngHaHa?cb=ucfimg2ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Dadish 3",
-    "url": "${truffled}/gamefile/dadish3.html",
+    "url": "${static}https://truffled.lol/gamefile/dadish3.html",
     "category": "Platformer",
     "image": "https://tse4.mm.bing.net/th/id/OIP.zAGBvxFv4YRUtwWg2nvSLwHaHa?cb=ucfimg2ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Dadish 3d",
-    "url": "${truffled}/gamefile/dadish3d.html",
+    "url": "${static}https://truffled.lol/gamefile/dadish3d.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Dadish Daily",
-    "url": "${truffled}/gamefile/daily.html",
+    "url": "${static}https://truffled.lol/gamefile/daily.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Danganronpa",
-    "url": "${truffled}/games/danganronpa/index.html",
+    "url": "${static}https://truffled.lol/games/danganronpa/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "DEAD PLATE",
-    "url": "${truffled}/gamefile/dead.html",
+    "url": "${static}https://truffled.lol/gamefile/dead.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Dead Tapes",
-    "url": "${truffled}/games/deadtapesfinal/index.html",
+    "url": "${static}https://truffled.lol/games/deadtapesfinal/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Deadseat",
-    "url": "${truffled}/games/deadseat/index.html",
+    "url": "${static}https://truffled.lol/games/deadseat/index.html",
     "category": "Horror",
     "image": ""
   },
@@ -666,7 +666,7 @@
   },
   {
     "title": "Death Run 3D",
-    "url": "${truffled}/games/death-run-3d/index.html",
+    "url": "${static}https://truffled.lol/games/death-run-3d/index.html",
     "category": "Arcade",
     "image": "https://tse2.mm.bing.net/th/id/OIP.LgHHwU8cHS6wJOADKi85jQHaGq?cb=ucfimg2ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
@@ -684,25 +684,25 @@
   },
   {
     "title": "DeltaRune",
-    "url": "${truffled}/games/deltarune/index.html",
+    "url": "${static}https://truffled.lol/games/deltarune/index.html",
     "category": "RPG",
     "image": "https://encrypted-tbn1.gstatic.com/images?q=tbn:ANd9GcTFbJ6zpawFpZAAUO1UHfgoLBb6liCKV12_mVb4MVio7wIVeQ1k9gSemC9Ar7PYsiFtdYzf_w"
   },
   {
     "title": "Deltatraveler",
-    "url": "${truffled}/gamefile/deltatr.html",
+    "url": "${static}https://truffled.lol/gamefile/deltatr.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Diablo",
-    "url": "${truffled}/games/diablo/index.html",
+    "url": "${static}https://truffled.lol/games/diablo/index.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Dice A Million",
-    "url": "${truffled}/gamefile/diceamillion.html",
+    "url": "${static}https://truffled.lol/gamefile/diceamillion.html",
     "category": "Puzzle",
     "image": ""
   },
@@ -714,25 +714,25 @@
   },
   {
     "title": "Dinosaur",
-    "url": "${truffled}/games/dinosaur/index.html",
+    "url": "${static}https://truffled.lol/games/dinosaur/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Do Not Take This Cat Home",
-    "url": "${truffled}/games/donottakethiscathome/index.html",
+    "url": "${static}https://truffled.lol/games/donottakethiscathome/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Doge Miner",
-    "url": "${truffled}/gamefile/Doge Miner.html",
+    "url": "${static}https://truffled.lol/gamefile/Doge Miner.html",
     "category": "Clicker",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGntHHqFclT8bV5iA4tLmY8jjX19KZMxvhhw&s"
   },
   {
     "title": "Doge Miner 2",
-    "url": "${truffled}/gamefile/dm2.html",
+    "url": "${static}https://truffled.lol/gamefile/dm2.html",
     "category": "Clicker",
     "image": ""
   },
@@ -744,121 +744,121 @@
   },
   {
     "title": "Dome Keeper",
-    "url": "${truffled}/games/domekeeper/index.html",
+    "url": "${static}https://truffled.lol/games/domekeeper/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Doodle Jump",
-    "url": "${truffled}/gamefile/Doodle Jump.html",
+    "url": "${static}https://truffled.lol/gamefile/Doodle Jump.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Doom",
-    "url": "${truffled}/games/doom/index.html",
+    "url": "${static}https://truffled.lol/games/doom/index.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Doom 2",
-    "url": "${truffled}/gamefile/doom2.html",
+    "url": "${static}https://truffled.lol/gamefile/doom2.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Doom 3",
-    "url": "${truffled}/games/doom3/index.html",
+    "url": "${static}https://truffled.lol/games/doom3/index.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Doom 64",
-    "url": "${truffled}/gamefile/doom64.html",
+    "url": "${static}https://truffled.lol/gamefile/doom64.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Dr. Mario",
-    "url": "${truffled}/gamefile/drmario.html",
+    "url": "${static}https://truffled.lol/gamefile/drmario.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Dreadhead Parkour",
-    "url": "${truffled}/gamefile/dread.html",
+    "url": "${static}https://truffled.lol/gamefile/dread.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Drift Boss",
-    "url": "${truffled}/games/drift-boss/index.html",
+    "url": "${static}https://truffled.lol/games/drift-boss/index.html",
     "category": "Driving",
     "image": "https://tse3.mm.bing.net/th/id/OIP.3YI1VVsAQSv9M3YReZjvpgHaHa?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Drift Hunters",
-    "url": "${truffled}/gamefile/drift.html",
+    "url": "${static}https://truffled.lol/gamefile/drift.html",
     "category": "Racing",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSzXAsHGMgY86yJR_xgQkNIOaStkpNgY0jIRw&s"
   },
   {
     "title": "Drive Mad",
-    "url": "${truffled}/games/drive-mad/index.html",
+    "url": "${static}https://truffled.lol/games/drive-mad/index.html",
     "category": "Driving",
     "image": "https://play-lh.googleusercontent.com/zGApa4C91zfSXuPMVHvBzzgVLhs_ABHv9fybDQ2m86QmArR3sejpOoRjBMq4ZNZrhg"
   },
   {
     "title": "Duck Life 1",
-    "url": "${truffled}/games/ducklife1/index.html",
+    "url": "${static}https://truffled.lol/games/ducklife1/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Duck Life 2",
-    "url": "${truffled}/games/ducklife2/index.html",
+    "url": "${static}https://truffled.lol/games/ducklife2/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Duck Life 3",
-    "url": "${truffled}/games/ducklife3/index.html",
+    "url": "${static}https://truffled.lol/games/ducklife3/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Duck Life 4",
-    "url": "${truffled}/games/ducklife4/index.html",
+    "url": "${static}https://truffled.lol/games/ducklife4/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Duck Life 5",
-    "url": "${truffled}/games/ducklife5/index.html",
+    "url": "${static}https://truffled.lol/games/ducklife5/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Duck Life 6",
-    "url": "${truffled}/games/ducklife6/index.html",
+    "url": "${static}https://truffled.lol/games/ducklife6/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Duck Life 7",
-    "url": "${truffled}/games/ducklife7/index.html",
+    "url": "${static}https://truffled.lol/games/ducklife7/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Duck Life 8",
-    "url": "${truffled}/games/ducklifeadv/",
+    "url": "${static}https://truffled.lol/games/ducklifeadv/",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Dumb Ways To Die",
-    "url": "${truffled}/games/dumb/index.html",
+    "url": "${static}https://truffled.lol/games/dumb/index.html",
     "category": "Arcade",
     "image": ""
   },
@@ -876,7 +876,7 @@
   },
   {
     "title": "Eggy Car",
-    "url": "${truffled}/gamefile/eggycar.html",
+    "url": "${static}https://truffled.lol/gamefile/eggycar.html",
     "category": "Driving",
     "image": ""
   },
@@ -888,31 +888,31 @@
   },
   {
     "title": "Emily Is Away",
-    "url": "${truffled}/games/emily/index.html",
+    "url": "${static}https://truffled.lol/games/emily/index.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Escape Road",
-    "url": "${truffled}/gamefile/escape.html",
+    "url": "${static}https://truffled.lol/gamefile/escape.html",
     "category": "Driving",
     "image": ""
   },
   {
     "title": "Escape Road 2",
-    "url": "${truffled}/gamefile/road2.html",
+    "url": "${static}https://truffled.lol/gamefile/road2.html",
     "category": "Driving",
     "image": ""
   },
   {
     "title": "Escape Road 3",
-    "url": "${truffled}/gamefile/escape3.html",
+    "url": "${static}https://truffled.lol/gamefile/escape3.html",
     "category": "Driving",
     "image": ""
   },
   {
     "title": "Escape Road City 2",
-    "url": "${truffled}/gamefile/roadcity2.html",
+    "url": "${static}https://truffled.lol/gamefile/roadcity2.html",
     "category": "Driving",
     "image": ""
   },
@@ -924,49 +924,49 @@
   },
   {
     "title": "Falling Fred",
-    "url": "${truffled}/games/falling/index.html",
+    "url": "${static}https://truffled.lol/games/falling/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Fallout 1",
-    "url": "${truffled}/gamefile/falloutt.html",
+    "url": "${static}https://truffled.lol/gamefile/falloutt.html",
     "category": "RPG",
     "image": "https://upload.wikimedia.org/wikipedia/en/a/af/Fallout.jpg"
   },
   {
     "title": "Fallout 2",
-    "url": "${truffled}/games/fo2/index.html",
+    "url": "${static}https://truffled.lol/games/fo2/index.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Fancy Pants Adventures",
-    "url": "${truffled}/games/fancypantsadventures/index.html",
+    "url": "${static}https://truffled.lol/games/fancypantsadventures/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Fancy Pants Adventures 2",
-    "url": "${truffled}/games/fancypantsadventures2/index.html",
+    "url": "${static}https://truffled.lol/games/fancypantsadventures2/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Fancy Pants Adventures 3",
-    "url": "${truffled}/gamefile/fpa3.html",
+    "url": "${static}https://truffled.lol/gamefile/fpa3.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Fears to Fathom",
-    "url": "${truffled}/games/ftf/index.html",
+    "url": "${static}https://truffled.lol/games/ftf/index.html",
     "category": "Horror",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRxTwJ0iANOdzD7Z3JmN99hnw0u_YvGiyFfA&s"
   },
   {
     "title": "FEZ",
-    "url": "${truffled}/games/FEZ/index.html",
+    "url": "${static}https://truffled.lol/games/FEZ/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -978,31 +978,31 @@
   },
   {
     "title": "Final Fantasy VII",
-    "url": "${truffled}/gamefile/ffvii.html",
+    "url": "${static}https://truffled.lol/gamefile/ffvii.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Fireboy and Watergirl",
-    "url": "${truffled}/games/watergirl-1/index.html",
+    "url": "${static}https://truffled.lol/games/watergirl-1/index.html",
     "category": "Puzzle",
     "image": "https://th.bing.com/th/id/R.06ba3c94b714554a8922254b078705a1?rik=8oWl66sOeNsNiQ&riu=http%3a%2f%2fwww.y9gamer.com%2ffiles%2fimages%2f00%2f007f7f81fda753de6f682a4f5c4046df.jpg&ehk=fAAlEfOO%2bFvlu%2fQ6ko3K8TInJh6BkKcRLT4Hak3CZ3w%3d&risl=&pid=ImgRaw&r=0"
   },
   {
     "title": "Fireboy and Watergirl 2",
-    "url": "${truffled}/games/watergirl-2/index.html",
+    "url": "${static}https://truffled.lol/games/watergirl-2/index.html",
     "category": "Puzzle",
     "image": "https://cdn-1.webcatalog.io/catalog/poki-fireboy-and-watergirl-2/poki-fireboy-and-watergirl-2-icon-filled-256.png?v=1674453358090"
   },
   {
     "title": "Fireboy and Watergirl 3",
-    "url": "${truffled}/games/watergirl-3/index.html",
+    "url": "${static}https://truffled.lol/games/watergirl-3/index.html",
     "category": "Puzzle",
     "image": "https://cdn-1.webcatalog.io/catalog/poki-fireboy-and-watergirl-3/poki-fireboy-and-watergirl-3-icon-filled-256.png?v=1714778367359"
   },
   {
     "title": "Fireboy and Watergirl 4",
-    "url": "${truffled}/games/watergirl-4/index.html",
+    "url": "${static}https://truffled.lol/games/watergirl-4/index.html",
     "category": "Puzzle",
     "image": "https://tse4.mm.bing.net/th/id/OIP.TOE6-sKhVAI9xBDZPckKCwAAAA?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
@@ -1020,31 +1020,31 @@
   },
   {
     "title": "FISH",
-    "url": "${truffled}/gamefile/fish.html",
+    "url": "${static}https://truffled.lol/gamefile/fish.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Fister",
-    "url": "${truffled}https://fister.fun",
+    "url": "${static}https://truffled.lolhttps://fister.fun",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Five Night At Epstein's",
-    "url": "${truffled}/gamefile/fnae.html",
+    "url": "${static}https://truffled.lol/gamefile/fnae.html",
     "category": "Horror",
-    "image": "${truffled}/png/games/fnae.webp"
+    "image": "${static}https://truffled.lol/png/games/fnae.webp"
   },
   {
     "title": "Five Nights At Candys",
-    "url": "${truffled}/gamefile/fnac.html",
+    "url": "${static}https://truffled.lol/gamefile/fnac.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Five Nights At Candys 2",
-    "url": "${truffled}/gamefile/fnac2.html",
+    "url": "${static}https://truffled.lol/gamefile/fnac2.html",
     "category": "Horror",
     "image": ""
   },
@@ -1056,31 +1056,31 @@
   },
   {
     "title": "Five Nights at Freddy's",
-    "url": "${truffled}/games/fnaf/index.html",
+    "url": "${static}https://truffled.lol/games/fnaf/index.html",
     "category": "Horror",
     "image": "https://images-wixmp-ed30a86b8c4ca887773594c2.wixmp.com/f/cc2672ed-3c69-461c-9f44-7e36253f90e1/de31r8t-7d562ba5-6084-4b77-98c2-82c94ed15ab4.png/v1/fill/w_1024,h_1024,q_80,strp/fnaf_1_icon_recreation_by_zerodigitalartsymore_de31r8t-fullview.jpg?token=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ1cm46YXBwOjdlMGQxODg5ODIyNjQzNzNhNWYwZDQxNWVhMGQyNmUwIiwiaXNzIjoidXJuOmFwcDo3ZTBkMTg4OTgyMjY0MzczYTVmMGQ0MTVlYTBkMjZlMCIsIm9iaiI6W1t7ImhlaWdodCI6Ijw9MTAyNCIsInBhdGgiOiJcL2ZcL2NjMjY3MmVkLTNjNjktNDYxYy05ZjQ0LTdlMzYyNTNmOTBlMVwvZGUzMXI4dC03ZDU2MmJhNS02MDg0LTRiNzctOThjMi04MmM5NGVkMTVhYjQucG5nIiwid2lkdGgiOiI8PTEwMjQifV1dLCJhdWQiOlsidXJuOnNlcnZpY2U6aW1hZ2Uub3BlcmF0aW9ucyJdfQ.vJJ5YCBFEGVeE0ryRHAxq0b6_JBACf9dPENoez1H0Is"
   },
   {
     "title": "Five Nights at Freddy's 2",
-    "url": "${truffled}/games/2/index.html",
+    "url": "${static}https://truffled.lol/games/2/index.html",
     "category": "Horror",
     "image": "https://play-lh.googleusercontent.com/GYcyLlHWoZumcal0WmDJJo2rCFyl3Y0mwXm0zaD-C9gC0PJGQMhzOKHfDUVlqSDlag=w240-h480-rw"
   },
   {
     "title": "Five Nights at Freddy's 3",
-    "url": "${truffled}/games/3/index.html",
+    "url": "${static}https://truffled.lol/games/3/index.html",
     "category": "Horror",
     "image": "https://play-lh.googleusercontent.com/A9kng-j9BLaA2dhRGsPExmjy9E4vfG-GHefvmyywT0J67ZEPGONIsFYlIokL5EUNfiHF=w240-h480-rw"
   },
   {
     "title": "Five Nights at Freddy's 4",
-    "url": "${truffled}/games/fnaf4/index.html",
+    "url": "${static}https://truffled.lol/games/fnaf4/index.html",
     "category": "Horror",
     "image": "https://play-lh.googleusercontent.com/od7MI1uOFMjj2Kvtk4Tc1Rt-YdDFmgLjE33yZlVINjhbj_NZ5ikZGT_YWpCP0LAGMg"
   },
   {
     "title": "Five Nights at Freddy's 4: Halloween",
-    "url": "${truffled}/gamefile/ween.html",
+    "url": "${static}https://truffled.lol/gamefile/ween.html",
     "category": "Horror",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSFVvr2qvzSRX0-bUjevle0r72ciZydG8fJ2g&s"
   },
@@ -1092,49 +1092,49 @@
   },
   {
     "title": "Five Nights at Freddy's: Sister Location",
-    "url": "${truffled}/gamefile/fnafs.html",
+    "url": "${static}https://truffled.lol/gamefile/fnafs.html",
     "category": "Horror",
     "image": "https://vignette.wikia.nocookie.net/venturiantale/images/1/18/Five_nights_at_freddy_s_sister_location_full_icon_by_prettyjianachica-dace3ko.jpg/revision/latest"
   },
   {
     "title": "Five Nights at Freddy's: World",
-    "url": "${truffled}/gamefile/fnafw.html",
+    "url": "${static}https://truffled.lol/gamefile/fnafw.html",
     "category": "RPG",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSQ4aXQb7ab14NFxtfCOjHT2SutBR5R1Hd8lA&s"
   },
   {
     "title": "Five Nights At Frickbears 3",
-    "url": "${truffled}/games/fb3/index.html",
+    "url": "${static}https://truffled.lol/games/fb3/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Five Nights At Last Breath",
-    "url": "${truffled}/gamefile/breath.html",
+    "url": "${static}https://truffled.lol/gamefile/breath.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Flappy bird",
-    "url": "${truffled}/games/flappybird/index.html",
+    "url": "${static}https://truffled.lol/games/flappybird/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Flying Gorilla",
-    "url": "${truffled}/gamefile/gorilla.html",
+    "url": "${static}https://truffled.lol/gamefile/gorilla.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "FNAF World Refreshed",
-    "url": "${truffled}/games/fnw/index.html",
+    "url": "${static}https://truffled.lol/games/fnw/index.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "FNAW",
-    "url": "${truffled}/gamefile/fnaw.html",
+    "url": "${static}https://truffled.lol/gamefile/fnaw.html",
     "category": "Horror",
     "image": ""
   },
@@ -1146,13 +1146,13 @@
   },
   {
     "title": "FNF, Friday Night Funkin",
-    "url": "${truffled}/games/fnf/fnfog.html",
+    "url": "${static}https://truffled.lol/games/fnf/fnfog.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Football Bros",
-    "url": "${truffled}/games/footballbros/index.html",
+    "url": "${static}https://truffled.lol/games/footballbros/index.html",
     "category": "Sports",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjZAXMQNxlgehXAPfDI_ozbklUn2tWt3Hgaw&s"
   },
@@ -1176,163 +1176,163 @@
   },
   {
     "title": "Fire Fox",
-    "url": "${truffled}/tools/firefox/index.html",
+    "url": "${static}https://truffled.lol/tools/firefox/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Aethos",
-    "url": "${truffled}/games/fnf/aethos.html",
+    "url": "${static}https://truffled.lol/games/fnf/aethos.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Atrocity",
-    "url": "${truffled}/games/fnf/atrocity.html",
+    "url": "${static}https://truffled.lol/games/fnf/atrocity.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin BFDI 26",
-    "url": "${truffled}/games/fnf/bfdi26.html",
+    "url": "${static}https://truffled.lol/games/fnf/bfdi26.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Bop City",
-    "url": "${truffled}/games/fnf/bopcity.html",
+    "url": "${static}https://truffled.lol/games/fnf/bopcity.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin For A BFDI",
-    "url": "${truffled}/games/fnf/ffabfdi.html",
+    "url": "${static}https://truffled.lol/games/fnf/ffabfdi.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Garcello",
-    "url": "${truffled}/games/fnf/garcello.html",
+    "url": "${static}https://truffled.lol/games/fnf/garcello.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Get Digging",
-    "url": "${truffled}/games/fnf/getdigging.html",
+    "url": "${static}https://truffled.lol/games/fnf/getdigging.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Golden Apple",
-    "url": "${truffled}/games/fnf/goldenapple.html",
+    "url": "${static}https://truffled.lol/games/fnf/goldenapple.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Hatsune Miku",
-    "url": "${truffled}/games/fnf/miku.html",
+    "url": "${static}https://truffled.lol/games/fnf/miku.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Hex",
-    "url": "${truffled}/games/fnf/hex.html",
+    "url": "${static}https://truffled.lol/games/fnf/hex.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Horkglorpgloop",
-    "url": "${truffled}/games/fnf/horkglorpgloop.html",
+    "url": "${static}https://truffled.lol/games/fnf/horkglorpgloop.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Infinite Irida",
-    "url": "${truffled}/games/fnf/infiniteiridra.html",
+    "url": "${static}https://truffled.lol/games/fnf/infiniteiridra.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Kapi",
-    "url": "${truffled}/games/fnf/kapi.html",
+    "url": "${static}https://truffled.lol/games/fnf/kapi.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Mario Madness",
-    "url": "${truffled}/games/fnf/mariomadness.html",
+    "url": "${static}https://truffled.lol/games/fnf/mariomadness.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Nonsense",
-    "url": "${truffled}/games/fnf/nonsense.html",
+    "url": "${static}https://truffled.lol/games/fnf/nonsense.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Rewrite",
-    "url": "${truffled}/games/fnf/rewrite.html",
+    "url": "${static}https://truffled.lol/games/fnf/rewrite.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Rewrite 2",
-    "url": "${truffled}/games/fnf/rewrite2.html",
+    "url": "${static}https://truffled.lol/games/fnf/rewrite2.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Ron",
-    "url": "${truffled}/games/fnf/ron.html",
+    "url": "${static}https://truffled.lol/games/fnf/ron.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Shaggy",
-    "url": "${truffled}/games/fnf/shaggy.html",
+    "url": "${static}https://truffled.lol/games/fnf/shaggy.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Shaggy X Matt",
-    "url": "${truffled}/games/fnf/shaggyxmatt.html",
+    "url": "${static}https://truffled.lol/games/fnf/shaggyxmatt.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Shucks V2",
-    "url": "${truffled}/games/fnf/shucksv2.html",
+    "url": "${static}https://truffled.lol/games/fnf/shucksv2.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Tricky",
-    "url": "${truffled}/games/fnf/tricky.html",
+    "url": "${static}https://truffled.lol/games/fnf/tricky.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin TWIDDLEFINGER",
-    "url": "${truffled}/games/fnf/TWIDDLEFINGER.html",
+    "url": "${static}https://truffled.lol/games/fnf/TWIDDLEFINGER.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Vs. Tord",
-    "url": "${truffled}/games/fnf/tord.html",
+    "url": "${static}https://truffled.lol/games/fnf/tord.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Whitty",
-    "url": "${truffled}/games/fnf/whitty.html",
+    "url": "${static}https://truffled.lol/games/fnf/whitty.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Friday Night Funkin Zardy",
-    "url": "${truffled}/games/fnf/zardy.html",
+    "url": "${static}https://truffled.lol/games/fnf/zardy.html",
     "category": "Rhythm",
     "image": ""
   },
@@ -1344,7 +1344,7 @@
   },
   {
     "title": "Fruit Ninja",
-    "url": "${truffled}/games/fruitninja/index.html",
+    "url": "${static}https://truffled.lol/games/fruitninja/index.html",
     "category": "Arcade",
     "image": "https://cdn.jim-nielsen.com/ios/1024/fruit-ninja-2020-08-31.png"
   },
@@ -1362,25 +1362,25 @@
   },
   {
     "title": "Fused240",
-    "url": "${truffled}/games/fused240/index.html",
+    "url": "${static}https://truffled.lol/games/fused240/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Gabriel's Awesome Schoolhouse",
-    "url": "${truffled}/gamefile/gash.html",
+    "url": "${static}https://truffled.lol/gamefile/gash.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Gacha Life",
-    "url": "${truffled}/gamefile/life.html",
+    "url": "${static}https://truffled.lol/gamefile/life.html",
     "category": "Simulation",
     "image": "https://play-lh.googleusercontent.com/Yma8Znj3IENI76qh6VC2cFgzoUwFdt4c2xXMYfK2VUaRZArjqsicFj4zCpUIZRwbdJ_b"
   },
   {
     "title": "Gacha Verse",
-    "url": "${truffled}/gamefile/verse.html",
+    "url": "${static}https://truffled.lol/gamefile/verse.html",
     "category": "Simulation",
     "image": ""
   },
@@ -1398,13 +1398,13 @@
   },
   {
     "title": "Getaway Shootout!",
-    "url": "${truffled}/games/getaway-shootout/index.html",
+    "url": "${static}https://truffled.lol/games/getaway-shootout/index.html",
     "category": "Action",
     "image": "https://img.tapimg.net/market/images/832bbcf504d743688514bf880199a3a7.png?imageView2/0/w/1080/h/608/format/jpg/interlace/1/ignore-error/1&t=1"
   },
   {
     "title": "Getting Over It",
-    "url": "${truffled}/gamefile/goi.html",
+    "url": "${static}https://truffled.lol/gamefile/goi.html",
     "category": "Action",
     "image": ""
   },
@@ -1428,13 +1428,13 @@
   },
   {
     "title": "Gang Beasts, Webport",
-    "url": "${truffled}/games/gangbeasts/index.html",
+    "url": "${static}https://truffled.lol/games/gangbeasts/index.html",
     "category": "Action",
     "image":""
   },
   {
     "title": "GO TO BED",
-    "url": "${truffled}/games/GTB/index.html",
+    "url": "${static}https://truffled.lol/games/GTB/index.html",
     "category": "Horror",
     "image": "https://img.itch.zone/aW1nLzEzNTMyNDk4LnBuZw==/original/yRSrjd.png"
   },
@@ -1452,43 +1452,43 @@
   },
   {
     "title": "Google Baseball",
-    "url": "${truffled}/gamefile/gbase.html",
+    "url": "${static}https://truffled.lol/gamefile/gbase.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Gorilla Tag",
-    "url": "${truffled}/games/gtag/index.html",
+    "url": "${static}https://truffled.lol/games/gtag/index.html",
     "category": "Multiplayer",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR_0nSKDWNuyP93hopRGgVBXxOANvspk8dMZg&s"
   },
   {
     "title": "Granny",
-    "url": "${truffled}/gamefile/granny.html",
+    "url": "${static}https://truffled.lol/gamefile/granny.html",
     "category": "Horror",
     "image": "https://play-lh.googleusercontent.com/yT_LBq_tyKeIDohKDsqN_Qt18jGIPUYIxY2C-1-E2YA9Qd60uZW08pua17qBmIiDPA"
   },
   {
     "title": "Granny 2",
-    "url": "${truffled}/gamefile/Granny 2.html",
+    "url": "${static}https://truffled.lol/gamefile/Granny 2.html",
     "category": "Horror",
     "image": "https://assets-prd.ignimgs.com/2025/07/23/untitled-1-1753293223681.png"
   },
   {
     "title": "Granny 3",
-    "url": "${truffled}/games/granny3/index.html",
+    "url": "${static}https://truffled.lol/games/granny3/index.html",
     "category": "Horror",
     "image": "https://play-lh.googleusercontent.com/QvKhAg9SyqVZ24DdjJCkuwPVpO4kz7cdbNO3bUxGALrlaeVTxJLLL9zHyaFq-NJ6eLg7"
   },
   {
     "title": "Gravity run",
-    "url": "${truffled}/games/gravity-run/index.html",
+    "url": "${static}https://truffled.lol/games/gravity-run/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Greybox",
-    "url": "${truffled}/games/graybox/index.html",
+    "url": "${static}https://truffled.lol/games/graybox/index.html",
     "category": "Puzzle",
     "image": ""
   },
@@ -1500,37 +1500,37 @@
   },
   {
     "title": "GTA I",
-    "url": "${truffled}/games/gta/index.html",
+    "url": "${static}https://truffled.lol/games/gta/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "GTA II",
-    "url": "${truffled}/games/gta2/index.html",
+    "url": "${static}https://truffled.lol/games/gta2/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "GTA III",
-    "url": "${truffled}/gamefile/gta3.html",
+    "url": "${static}https://truffled.lol/gamefile/gta3.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "GTA San Andreas",
-    "url": "${truffled}/games/gtasan/index.html",
+    "url": "${static}https://truffled.lol/games/gtasan/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "GTA: 3",
-    "url": "${truffled}/games/gta3/index.html",
+    "url": "${static}https://truffled.lol/games/gta3/index.html",
     "category": "Action",
     "image": "https://tse4.mm.bing.net/th/id/OIP.ojYlo0gz2XHCKxS9YCONZgHaEK?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "GTA: Vice City",
-    "url": "${truffled}/games/vicecity/index.html",
+    "url": "${static}https://truffled.lol/games/vicecity/index.html",
     "category": "Action",
     "image": "https://upload.wikimedia.org/wikipedia/en/c/ce/Vice-city-cover.jpg"
   },
@@ -1542,49 +1542,49 @@
   },
   {
     "title": "Gun Mayhem",
-    "url": "${truffled}/games/funmayhem/index.html",
+    "url": "${static}https://truffled.lol/games/funmayhem/index.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Gun Mayhem 2",
-    "url": "${truffled}/games/funmayhem2/index.html",
+    "url": "${static}https://truffled.lol/games/funmayhem2/index.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Gun Mayhem Redux",
-    "url": "${truffled}/games/funmayhemredux/index.html",
+    "url": "${static}https://truffled.lol/games/funmayhemredux/index.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Gunspin",
-    "url": "${truffled}/games/gunspin/index.html",
+    "url": "${static}https://truffled.lol/games/gunspin/index.html",
     "category": "Arcade",
     "image": "https://play-lh.googleusercontent.com/fLqvWSVq5rENEvu32xl0hf96wwSHVwQm-_9xc6KZg9Vgv9PbAtf1CyBYW7i1mlAXoSA"
   },
   {
     "title": "Half Life",
-    "url": "${truffled}/games/hl-main/index.html",
+    "url": "${static}https://truffled.lol/games/hl-main/index.html",
     "category": "FPS",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTnxSCpxbn9B6cd2nDNvYJBQaT2ZDeD8ndWmQ&s"
   },
   {
     "title": "Half life: Opposing Force",
-    "url": "${truffled}/gamefile/hlof.html",
+    "url": "${static}https://truffled.lol/gamefile/hlof.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Happy Wheels",
-    "url": "${truffled}/games/happywheels/index.html",
+    "url": "${static}https://truffled.lol/games/happywheels/index.html",
     "category": "Action",
     "image": "https://play-lh.googleusercontent.com/SV8RsV5udSeeONjatT5SwleP6lzV6PjtNPs2VvyohJXWSG9fFLNOfslDEHbpDN337wQ"
   },
   {
     "title": "Helltaker",
-    "url": "${truffled}/gamefile/helltaker.html",
+    "url": "${static}https://truffled.lol/gamefile/helltaker.html",
     "category": "Puzzle",
     "image": ""
   },
@@ -1626,55 +1626,55 @@
   },
   {
     "title": "Hobo 1",
-    "url": "${truffled}/gamefile/hobo1.html",
+    "url": "${static}https://truffled.lol/gamefile/hobo1.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Hobo 2",
-    "url": "${truffled}/gamefile/hobo2.html",
+    "url": "${static}https://truffled.lol/gamefile/hobo2.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Hobo 3",
-    "url": "${truffled}/gamefile/hobo3.html",
+    "url": "${static}https://truffled.lol/gamefile/hobo3.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Hobo 4",
-    "url": "${truffled}/gamefile/hobo4.html",
+    "url": "${static}https://truffled.lol/gamefile/hobo4.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Hobo 5",
-    "url": "${truffled}/gamefile/hobo5.html",
+    "url": "${static}https://truffled.lol/gamefile/hobo5.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Hobo 6",
-    "url": "${truffled}/gamefile/hobo6.html",
+    "url": "${static}https://truffled.lol/gamefile/hobo6.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Hobo 7",
-    "url": "${truffled}/gamefile/hobo7.html",
+    "url": "${static}https://truffled.lol/gamefile/hobo7.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Hollow Knight",
-    "url": "${truffled}/games/hollowknight/index.html",
+    "url": "${static}https://truffled.lol/games/hollowknight/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Honkai: Star Rail",
-    "url": "${truffled}https://nowgg.fun/apps/cognosphere-pte-ltd/1591/honkai-star-rail.html",
+    "url": "${static}https://truffled.lolhttps://nowgg.fun/apps/cognosphere-pte-ltd/1591/honkai-star-rail.html",
     "category": "RPG",
     "image": ""
   },
@@ -1686,25 +1686,25 @@
   },
   {
     "title": "House Of Hazards",
-    "url": "${truffled}/games/houseofhazards/index.html",
+    "url": "${static}https://truffled.lol/games/houseofhazards/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "HUMAN EXPENDITURE PROGRAM",
-    "url": "${truffled}/gamefile/human.html",
+    "url": "${static}https://truffled.lol/gamefile/human.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Ice Baby Quest 2",
-    "url": "${truffled}/games/icebaby2/index.html",
+    "url": "${static}https://truffled.lol/games/icebaby2/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Idle Breakout",
-    "url": "${truffled}/games/idle-breakout/index.html",
+    "url": "${static}https://truffled.lol/games/idle-breakout/index.html",
     "category": "Idle",
     "image": "https://play-lh.googleusercontent.com/e5jzYTn7Mjh9Ghn-DFpVedkOlRfSOyCS2AFgXdTrADIuuUbjx6vP6r_YOM2j5m7uLQ"
   },
@@ -1728,7 +1728,7 @@
   },
   {
     "title": "Iron Lung",
-    "url": "${truffled}/games/ironlung/index.html",
+    "url": "${static}https://truffled.lol/games/ironlung/index.html",
     "category": "Horror",
     "image": ""
   },
@@ -1740,13 +1740,13 @@
   },
   {
     "title": "Jeffrey Epstein Basics In Education And Kidnapping",
-    "url": "${truffled}/gamefile/jeb.html",
+    "url": "${static}https://truffled.lol/gamefile/jeb.html",
     "category": "Horror",
-    "image": "${truffled}/png/games/jeb.web"
+    "image": "${static}https://truffled.lol/png/games/jeb.web"
   },
   {
     "title": "Jeffys Basics",
-    "url": "${truffled}/games/JeffysBasicsBog/index.html",
+    "url": "${static}https://truffled.lol/games/JeffysBasicsBog/index.html",
     "category": "Horror",
     "image": ""
   },
@@ -1758,19 +1758,19 @@
   },
   {
     "title": "Jelly Drift",
-    "url": "${truffled}/gamefile/jelly.html",
+    "url": "${static}https://truffled.lol/gamefile/jelly.html",
     "category": "Racing",
     "image": ""
   },
   {
     "title": "Jetpack Joyride",
-    "url": "${truffled}/games/jetpackjoyride/index.html",
+    "url": "${static}https://truffled.lol/games/jetpackjoyride/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Jumbo Mario",
-    "url": "${truffled}/games/JumboMario/index.html",
+    "url": "${static}https://truffled.lol/games/JumboMario/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -1782,13 +1782,13 @@
   },
   {
     "title": "Karlson",
-    "url": "${truffled}/gamefile/Karlson.html",
+    "url": "${static}https://truffled.lol/gamefile/Karlson.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Karlson2D",
-    "url": "${truffled}/games/karlson2d/truffledkarlson2d/index.html",
+    "url": "${static}https://truffled.lol/games/karlson2d/truffledkarlson2d/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -1800,91 +1800,91 @@
   },
   {
     "title": "Kick The Buddy",
-    "url": "${truffled}/games/kickthebuddy/index.html",
+    "url": "${static}https://truffled.lol/games/kickthebuddy/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Kindergarten",
-    "url": "${truffled}/games/kindergarten/1/index.html",
+    "url": "${static}https://truffled.lol/games/kindergarten/1/index.html",
     "category": "Adventure",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRAHarnNZTQfKXH5VFMhTyJjg1b5aMMso2o3w&s"
   },
   {
     "title": "Kindergarten 2",
-    "url": "${truffled}/games/kindergarten/2/index.html",
+    "url": "${static}https://truffled.lol/games/kindergarten/2/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Kindergarten 3",
-    "url": "${truffled}/games/Kindergarten3/index.html",
+    "url": "${static}https://truffled.lol/games/Kindergarten3/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Kinito Pet",
-    "url": "${truffled}/games/kinitopet/index.html",
+    "url": "${static}https://truffled.lol/games/kinitopet/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Kirby Soft And Wet",
-    "url": "${truffled}/gamefile/kirbysoftandwet.html",
+    "url": "${static}https://truffled.lol/gamefile/kirbysoftandwet.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Klifur",
-    "url": "${truffled}/games/kilfur/index.html",
+    "url": "${static}https://truffled.lol/games/kilfur/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Krunker",
-    "url": "${truffled}/games/krunker/index.html",
+    "url": "${static}https://truffled.lol/games/krunker/index.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Lacey's Flash Games",
-    "url": "${truffled}/gamefile/lacy.html",
+    "url": "${static}https://truffled.lol/gamefile/lacy.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Learn to Fly",
-    "url": "${truffled}/games/learntofly/index.html",
+    "url": "${static}https://truffled.lol/games/learntofly/index.html",
     "category": "Arcade",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSs_lUVoJ2I2ufCyp78V48Fqy7eK5HA5qCMqg&s"
   },
   {
     "title": "Learn to Fly 2",
-    "url": "${truffled}/games/learntofly2/index.html",
+    "url": "${static}https://truffled.lol/games/learntofly2/index.html",
     "category": "Arcade",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTMyxZYx2b0DTNbtUr-ee-Ue9oaQ8ne_PLsBA&s"
   },
   {
     "title": "Learn to Fly 3",
-    "url": "${truffled}/games/ltf3/index.html",
+    "url": "${static}https://truffled.lol/games/ltf3/index.html",
     "category": "Arcade",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRKW8c1gOXNWJzyGR25Z6sHMBWvDwN-dJrIaejMF-hdTYc7diH-nSuAQVFWgPfmv-2GWCM&usqp=CAU"
   },
   {
     "title": "Learn to Fly Idle",
-    "url": "${truffled}/games/learntoflyidle/index.html",
+    "url": "${static}https://truffled.lol/games/learntoflyidle/index.html",
     "category": "Idle",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTfmnECNgakvXxc6OHREZA0fZSFf80aTgRVsg&s"
   },
   {
     "title": "Lego Star Wars",
-    "url": "${truffled}/gamefile/legostarwars.html",
+    "url": "${static}https://truffled.lol/gamefile/legostarwars.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Level Devil",
-    "url": "${truffled}/games/lvldevil/index.html",
+    "url": "${static}https://truffled.lol/games/lvldevil/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -1896,25 +1896,25 @@
   },
   {
     "title": "Line Rider",
-    "url": "${truffled}/games/linerider/index.html",
+    "url": "${static}https://truffled.lol/games/linerider/index.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Little Alchemy",
-    "url": "${truffled}/games/littlealchemy/index.html",
+    "url": "${static}https://truffled.lol/games/littlealchemy/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Little Alchemy 2",
-    "url": "${truffled}/gamefile/little2.html",
+    "url": "${static}https://truffled.lol/gamefile/little2.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Little Big Planet",
-    "url": "${truffled}/games/lbp/index.html",
+    "url": "${static}https://truffled.lol/games/lbp/index.html",
     "category": "Platformer",
     "image": "https://www.92.38.177.16.nip.io/assets/img/lbp.webp"
   },
@@ -1926,7 +1926,7 @@
   },
   {
     "title": "Lobotomy Corporation",
-    "url": "${truffled}/games/lobcorp/index.html",
+    "url": "${static}https://truffled.lol/games/lobcorp/index.html",
     "category": "Simulation",
     "image": ""
   },
@@ -1938,79 +1938,79 @@
   },
   {
     "title": "Madden NFL 24 Mobile Football",
-    "url": "${truffled}https://nowgg.fun/apps/electronic-arts/1731/madden-nfl-24-mobile-football.html",
+    "url": "${static}https://truffled.lolhttps://nowgg.fun/apps/electronic-arts/1731/madden-nfl-24-mobile-football.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Madness Accelerant",
-    "url": "${truffled}/gamefile/madnessaccelerant.html",
+    "url": "${static}https://truffled.lol/gamefile/madnessaccelerant.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Madness Ambulation",
-    "url": "${truffled}/games/madnessambulation/madnessambulation.html",
+    "url": "${static}https://truffled.lol/games/madnessambulation/madnessambulation.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Madness Combat Defense",
-    "url": "${truffled}/gamefile/madnesscombatdefense.html",
+    "url": "${static}https://truffled.lol/gamefile/madnesscombatdefense.html",
     "category": "Strategy",
     "image": ""
   },
   {
     "title": "Madness Combat FPS Fueled by Hot Dogs",
-    "url": "${truffled}/gamefile/madnesscfpsfbhd.html",
+    "url": "${static}https://truffled.lol/gamefile/madnesscfpsfbhd.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Madness Gemini",
-    "url": "${truffled}/gamefile/madnessgemini.html",
+    "url": "${static}https://truffled.lol/gamefile/madnessgemini.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Madness Hydraulic",
-    "url": "${truffled}/gamefile/madnesshydraulic.html",
+    "url": "${static}https://truffled.lol/gamefile/madnesshydraulic.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Madness Interactive",
-    "url": "${truffled}/gamefile/madnessinteractive.html",
+    "url": "${static}https://truffled.lol/gamefile/madnessinteractive.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Madness Melee",
-    "url": "${truffled}/games/bogtruffled/index.html",
+    "url": "${static}https://truffled.lol/games/bogtruffled/index.html",
     "category": "Action",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ_DHRnN-vAVDlN8HgScueQe91j69GnjrVN5w&s"
   },
   {
     "title": "Madness Off Color",
-    "url": "${truffled}/gamefile/madnessoffcolor.html",
+    "url": "${static}https://truffled.lol/gamefile/madnessoffcolor.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Madness Premediation",
-    "url": "${truffled}/gamefile/madnesspremediation.html",
+    "url": "${static}https://truffled.lol/gamefile/madnesspremediation.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Madness Project Nexus",
-    "url": "${truffled}/gamefile/madnesscombatnexus.html",
+    "url": "${static}https://truffled.lol/gamefile/madnesscombatnexus.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Madness Retaliation",
-    "url": "${truffled}/gamefile/madnessretaliation.html",
+    "url": "${static}https://truffled.lol/gamefile/madnessretaliation.html",
     "category": "Strategy",
     "image": ""
   },
@@ -2028,79 +2028,79 @@
   },
   {
     "title": "Mario Kart 64",
-    "url": "${truffled}/games/mk64/index.html",
+    "url": "${static}https://truffled.lol/games/mk64/index.html",
     "category": "Racing",
     "image": ""
   },
   {
     "title": "Mario Kart 7",
-    "url": "${truffled}/games/mk7/index.html",
+    "url": "${static}https://truffled.lol/games/mk7/index.html",
     "category": "Racing",
     "image": ""
   },
   {
     "title": "Mario Kart DS",
-    "url": "${truffled}/games/mkds/index.html",
+    "url": "${static}https://truffled.lol/games/mkds/index.html",
     "category": "Racing",
     "image": ""
   },
   {
     "title": "Mario Party 1",
-    "url": "${truffled}/gamefile/marioparty.html",
+    "url": "${static}https://truffled.lol/gamefile/marioparty.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Mario Party 2",
-    "url": "${truffled}/gamefile/marioparty2.html",
+    "url": "${static}https://truffled.lol/gamefile/marioparty2.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Mario Party 3",
-    "url": "${truffled}/gamefile/marioparty3.html",
+    "url": "${static}https://truffled.lol/gamefile/marioparty3.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Megaman",
-    "url": "${truffled}/gamefile/megaman.html",
+    "url": "${static}https://truffled.lol/gamefile/megaman.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Melon Playground",
-    "url": "${truffled}/games/melon-playground/index.html",
+    "url": "${static}https://truffled.lol/games/melon-playground/index.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Merge Rot",
-    "url": "${truffled}/games/mergerot/index.html",
+    "url": "${static}https://truffled.lol/games/mergerot/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Milkman karlson",
-    "url": "${truffled}/games/milk/index.html",
+    "url": "${static}https://truffled.lol/games/milk/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Minecraft",
-    "url": "${truffled}/games/wispcraft/eag.html",
+    "url": "${static}https://truffled.lol/games/wispcraft/eag.html",
     "category": "Adventure",
     "image": "https://images.dwncdn.net/images/t_app-icon-l/p/b276c62c-96bf-11e6-ad7b-00163ec9f5fa/2418235042/minecraft-logo"
   },
   {
     "title": "Minecraft 1.12.2",
-    "url": "${truffled}/games/eglar/1dot12dot2/index.html",
+    "url": "${static}https://truffled.lol/games/eglar/1dot12dot2/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Minecraft 1.8.8",
-    "url": "${truffled}/games/eglar/EaglercraftX_1dot8_Web/index.html",
+    "url": "${static}https://truffled.lol/games/eglar/EaglercraftX_1dot8_Web/index.html",
     "category": "Adventure",
     "image": ""
   },
@@ -2118,37 +2118,37 @@
   },
   {
     "title": "Minecraft Legacy Console Edition",
-    "url": "${truffled}/games/lce/index.html",
+    "url": "${static}https://truffled.lol/games/lce/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Minecraft Pocket Edition",
-    "url": "${truffled}/games/mcpe/index.html",
+    "url": "${static}https://truffled.lol/games/mcpe/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Minecraft Wurst",
-    "url": "${truffled}/games/eglar/clwurst.html",
+    "url": "${static}https://truffled.lol/games/eglar/clwurst.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Minesweeper Mania",
-    "url": "${truffled}/gamefile/minesweepermania.html",
+    "url": "${static}https://truffled.lol/gamefile/minesweepermania.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Minesweeper Plus",
-    "url": "${truffled}/gamefile/mineplus.html",
+    "url": "${static}https://truffled.lol/gamefile/mineplus.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Miside",
-    "url": "${truffled}/gamefile/miside.html",
+    "url": "${static}https://truffled.lol/gamefile/miside.html",
     "category": "Horror",
     "image": ""
   },
@@ -2160,13 +2160,13 @@
   },
   {
     "title": "Monster Tracks",
-    "url": "${truffled}/games/monster-tracks/index.html",
+    "url": "${static}https://truffled.lol/games/monster-tracks/index.html",
     "category": "Driving",
     "image": ""
   },
   {
     "title": "Moto X3M",
-    "url": "${truffled}/games/motox3m/index.html",
+    "url": "${static}https://truffled.lol/games/motox3m/index.html",
     "category": "Racing",
     "image": "https://img.utdstc.com/icon/d58/2cc/d582ccb74f259ec7c126fc55b61b13e0856d37b2f8ca70507521273bea0b8950:200"
   },
@@ -2190,13 +2190,13 @@
   },
   {
     "title": "My teardrop, daniel",
-    "url": "${truffled}/gamefile/mytear.html",
+    "url": "${static}https://truffled.lol/gamefile/mytear.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "N-Gon",
-    "url": "${truffled}/games/n-gon/index.html",
+    "url": "${static}https://truffled.lol/games/n-gon/index.html",
     "category": "Action",
     "image": "https://tse3.mm.bing.net/th/id/OIP.OZiB83fgWXpCjKpIl3W6gQHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
@@ -2208,7 +2208,7 @@
   },
   {
     "title": "Needy Streamer Overload",
-    "url": "${truffled}/games/nso/index.html",
+    "url": "${static}https://truffled.lol/games/nso/index.html",
     "category": "Simulation",
     "image": ""
   },
@@ -2220,43 +2220,43 @@
   },
   {
     "title": "New Super Mario Bros",
-    "url": "${truffled}/games/nsmb/index.html",
+    "url": "${static}https://truffled.lol/games/nsmb/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Node Buster",
-    "url": "${truffled}/games/nodebuster/index.html",
+    "url": "${static}https://truffled.lol/games/nodebuster/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Nubbys Number Factory",
-    "url": "${truffled}/gamefile/nubby.html",
+    "url": "${static}https://truffled.lol/gamefile/nubby.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Om Nom Run",
-    "url": "${truffled}/gamefile/omnomrun.html",
+    "url": "${static}https://truffled.lol/gamefile/omnomrun.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "OMORI",
-    "url": "${truffled}/gamefile/OMORI.html",
+    "url": "${static}https://truffled.lol/gamefile/OMORI.html",
     "category": "RPG",
     "image": "https://encrypted-tbn3.gstatic.com/images?q=tbn:ANd9GcSoWYMETCPjUHGlMVjTYstDHDHRPvU8gYDJyerSl5-83dhsLW6gnCPWXnL92n9LVGp1bDp32H3hn2eV4OxHFvcxuoCN_DDWvkloJoz2OQ"
   },
   {
     "title": "Oneshot World Machine Edition",
-    "url": "${truffled}/games/worldmachine/index.html",
+    "url": "${static}https://truffled.lol/games/worldmachine/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Oneshot",
-    "url": "${truffled}/gamefile/oneshot.html",
+    "url": "${static}https://truffled.lol/gamefile/oneshot.html",
     "category": "Puzzle",
     "image": ""
   },
@@ -2274,67 +2274,67 @@
   },
   {
     "title": "Orange Roulette",
-    "url": "${truffled}/gamefile/orange.html",
+    "url": "${static}https://truffled.lol/gamefile/orange.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Oshi Oshi Punch",
-    "url": "${truffled}/gamefile/onshi.html",
+    "url": "${static}https://truffled.lol/gamefile/onshi.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "OSU!",
-    "url": "${truffled}/games/osu!/index.html",
+    "url": "${static}https://truffled.lol/games/osu!/index.html",
     "category": "Rhythm",
     "image": "https://hone.gg/images/character-osu-2.webp"
   },
   {
     "title": "Overburden",
-    "url": "${truffled}/gamefile/overburden.html",
+    "url": "${static}https://truffled.lol/gamefile/overburden.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "OvO",
-    "url": "${truffled}/games/ovo/index.html",
+    "url": "${static}https://truffled.lol/games/ovo/index.html",
     "category": "Platformer",
     "image": "https://play-lh.googleusercontent.com/v7KwGdPjJGjJjRXn46sck4DwDBdKSeRzGN44CjiXUtKV0jjOi51Bt4wcXud0m-SkXg"
   },
   {
     "title": "OvO 2",
-    "url": "${truffled}/games/OvO2/index.html",
+    "url": "${static}https://truffled.lol/games/OvO2/index.html",
     "category": "Platformer",
     "image": "https://tse4.mm.bing.net/th/id/OIP.IcpOgFm0SwM57q8Yak66LwAAAA?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "OvO 3 Dimensions",
-    "url": "${truffled}/games/OvoDimensions/index.html",
+    "url": "${static}https://truffled.lol/games/OvoDimensions/index.html",
     "category": "Platformer",
     "image": "https://tse2.mm.bing.net/th/id/OIP.uX8AD8UmJI4HVA_1VHhiugHaHa?cb=12&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Pacman",
-    "url": "${truffled}/games/pacman/index.html",
+    "url": "${static}https://truffled.lol/games/pacman/index.html",
     "category": "Arcade",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQqBsd5KR0IgKULgvVX5TruqpG_gZjT2SLPGg&s"
   },
   {
     "title": "Pacman World",
-    "url": "${truffled}/gamefile/pacmanw.html",
+    "url": "${static}https://truffled.lol/gamefile/pacmanw.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Pacman World 2",
-    "url": "${truffled}/gamefile/pacmanw2.html",
+    "url": "${static}https://truffled.lol/gamefile/pacmanw2.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Paint Gal Adventures",
-    "url": "${truffled}/games/paintbog/Paint Gal Adventures.html",
+    "url": "${static}https://truffled.lol/games/paintbog/Paint Gal Adventures.html",
     "category": "Adventure",
     "image": ""
   },
@@ -2376,67 +2376,67 @@
   },
   {
     "title": "Papas Bakeria",
-    "url": "${truffled}/games/papasbakeria/index.html",
+    "url": "${static}https://truffled.lol/games/papasbakeria/index.html",
     "category": "Cooking",
     "image": ""
   },
   {
     "title": "Papas Burgeria",
-    "url": "${truffled}/games/papasburgeria/index.html",
+    "url": "${static}https://truffled.lol/games/papasburgeria/index.html",
     "category": "Cooking",
     "image": ""
   },
   {
     "title": "Papas Cheeseria",
-    "url": "${truffled}/games/papascheeseria/index.html",
+    "url": "${static}https://truffled.lol/games/papascheeseria/index.html",
     "category": "Cooking",
     "image": ""
   },
   {
     "title": "Papas Donuteria",
-    "url": "${truffled}/games/papasdonuteria/index.html",
+    "url": "${static}https://truffled.lol/games/papasdonuteria/index.html",
     "category": "Cooking",
     "image": ""
   },
   {
     "title": "Papas Freezeria",
-    "url": "${truffled}/games/papasfreezeria/index.html",
+    "url": "${static}https://truffled.lol/games/papasfreezeria/index.html",
     "category": "Cooking",
     "image": ""
   },
   {
     "title": "Papas Pizzaeria",
-    "url": "${truffled}/games/papaspizza/index.html",
+    "url": "${static}https://truffled.lol/games/papaspizza/index.html",
     "category": "Cooking",
     "image": ""
   },
   {
     "title": "Paper Mario",
-    "url": "${truffled}/gamefile/papermario.html",
+    "url": "${static}https://truffled.lol/gamefile/papermario.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Paper.io 2",
-    "url": "${truffled}/games/paperio2/index.html",
+    "url": "${static}https://truffled.lol/games/paperio2/index.html",
     "category": "Multiplayer",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTbOYDL-XogArpPn5yhnKk4E0pRDmWTIRXnxA&s"
   },
   {
     "title": "Papers, Please",
-    "url": "${truffled}/gamefile/papers.html",
+    "url": "${static}https://truffled.lol/gamefile/papers.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Parappa The Rapper",
-    "url": "${truffled}/games/paps/index.html",
+    "url": "${static}https://truffled.lol/games/paps/index.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Parappa The Rapper 2",
-    "url": "${truffled}/games/parappa2/index.html",
+    "url": "${static}https://truffled.lol/games/parappa2/index.html",
     "category": "Rhythm",
     "image": ""
   },
@@ -2460,49 +2460,49 @@
   },
   {
     "title": "Peaks of Yore",
-    "url": "${truffled}/gamefile/peaksofyore.html",
+    "url": "${static}https://truffled.lol/gamefile/peaksofyore.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Peggle",
-    "url": "${truffled}/gamefile/Peggle.html",
+    "url": "${static}https://truffled.lol/gamefile/Peggle.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "People Playground",
-    "url": "${truffled}/games/ppg/index.html",
+    "url": "${static}https://truffled.lol/games/ppg/index.html",
     "category": "Simulation",
     "image": "https://thvnext.bing.com/th/id/OIP.dSrF6xgpKVDxfuHX3H4K2AAAAA?cb=ucfimg2ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Pikuniku",
-    "url": "${truffled}/games/pikubog/index.html",
+    "url": "${static}https://truffled.lol/games/pikubog/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Pixel Gun 3D",
-    "url": "${truffled}/games/pixl/index.html",
+    "url": "${static}https://truffled.lol/games/pixl/index.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Pizza Tower",
-    "url": "${truffled}/games/NoiseUpdate/index.html",
+    "url": "${static}https://truffled.lol/games/NoiseUpdate/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Pizza Tower: Scoutdigo",
-    "url": "${truffled}/gamefile/pts.html",
+    "url": "${static}https://truffled.lol/gamefile/pts.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Pizzatron 3000",
-    "url": "${truffled}/games/pizza/index.html",
+    "url": "${static}https://truffled.lol/games/pizza/index.html",
     "category": "Cooking",
     "image": ""
   },
@@ -2512,7 +2512,7 @@
   },
   {
     "title": "Plauge Inc",
-    "url": "${truffled}/games/PlagueInc/index.html",
+    "url": "${static}https://truffled.lol/games/PlagueInc/index.html",
     "category": "Strategy",
     "image": ""
   },
@@ -2524,31 +2524,31 @@
   },
   {
     "title": "Pokemon Academy Life Forever",
-    "url": "${truffled}/gamefile/pokemonacademy.html",
+    "url": "${static}https://truffled.lol/gamefile/pokemonacademy.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Pokemon Blue",
-    "url": "${truffled}/gamefile/blue.html",
+    "url": "${static}https://truffled.lol/gamefile/blue.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Pokemon Crystal",
-    "url": "${truffled}/gamefile/blob.html",
+    "url": "${static}https://truffled.lol/gamefile/blob.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Pokemon Emerald",
-    "url": "${truffled}/gamefile/em.html",
+    "url": "${static}https://truffled.lol/gamefile/em.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Pokemon Gold",
-    "url": "${truffled}/gamefile/red.html",
+    "url": "${static}https://truffled.lol/gamefile/red.html",
     "category": "RPG",
     "image": ""
   },
@@ -2566,13 +2566,13 @@
   },
   {
     "title": "Pokemon Stadium",
-    "url": "${truffled}/gamefile/pokestad.html",
+    "url": "${static}https://truffled.lol/gamefile/pokestad.html",
     "category": "Strategy",
     "image": ""
   },
   {
     "title": "Pokemon Stadium 2",
-    "url": "${truffled}/gamefile/pokestad2.html",
+    "url": "${static}https://truffled.lol/gamefile/pokestad2.html",
     "category": "Strategy",
     "image": ""
   },
@@ -2584,7 +2584,7 @@
   },
   {
     "title": "Polytrack",
-    "url": "${truffled}/games/polytrack/index.html",
+    "url": "${static}https://truffled.lol/games/polytrack/index.html",
     "category": "Racing",
     "image": ""
   },
@@ -2602,31 +2602,31 @@
   },
   {
     "title": "Portal",
-    "url": "${truffled}/games/portal/index.html",
+    "url": "${static}https://truffled.lol/games/portal/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Postal",
-    "url": "${truffled}/gamefile/postal.html",
+    "url": "${static}https://truffled.lol/gamefile/postal.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Potion Craft Alchemy Simulator",
-    "url": "${truffled}/games/pcraft/index.html",
+    "url": "${static}https://truffled.lol/games/pcraft/index.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Pretend its not there",
-    "url": "${truffled}/games/pretenditsnotthere/index.html",
+    "url": "${static}https://truffled.lol/games/pretenditsnotthere/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Prodigy",
-    "url": "${truffled}/games/prodigy/select/index.html",
+    "url": "${static}https://truffled.lol/games/prodigy/select/index.html",
     "category": "RPG",
     "image": ""
   },
@@ -2638,37 +2638,37 @@
   },
   {
     "title": "Quake",
-    "url": "${truffled}/games/quake/index.html",
+    "url": "${static}https://truffled.lol/games/quake/index.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Quake II",
-    "url": "${truffled}/games/quakeii/index.html",
+    "url": "${static}https://truffled.lol/games/quakeii/index.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Quake III",
-    "url": "${truffled}/games/quakeiii/Quake3.htm",
+    "url": "${static}https://truffled.lol/games/quakeiii/Quake3.htm",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "R.E.P.O'",
-    "url": "${truffled}/games/repo/index.html",
+    "url": "${static}https://truffled.lol/games/repo/index.html",
     "category": "Horror",
     "image": "https://play-lh.googleusercontent.com/eXY7v6i7itGh46lRgGJBui5m-r75CSz2WQZ8UAED7sntbMU5tD0eQgIj4UwK4-qSO5k=w240-h480-rw"
   },
   {
     "title": "Rabbids Alive And Kicking",
-    "url": "${truffled}/games/rabbidsa/index.html",
+    "url": "${static}https://truffled.lol/games/rabbidsa/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Rabbids Travel In Time",
-    "url": "${truffled}/games/rabbidst/index.html",
+    "url": "${static}https://truffled.lol/games/rabbidst/index.html",
     "category": "Arcade",
     "image": ""
   },
@@ -2680,49 +2680,49 @@
   },
   {
     "title": "Raft",
-    "url": "${truffled}/games/raft/index.html",
+    "url": "${static}https://truffled.lol/games/raft/index.html",
     "category": "Adventure",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTgSpomiXMuTwhZBnWacBEbyoRKyBKY7CDBS5YMIFF4zROQplJNFF7C5oKjz-Unxse0ueg&usqp=CAU"
   },
   {
     "title": "Raft Wars",
-    "url": "${truffled}/games/raft-wars/index.html",
+    "url": "${static}https://truffled.lol/games/raft-wars/index.html",
     "category": "Strategy",
     "image": "https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=314,height=314,fit=cover,f=auto/d2a3bbd1bb8aea542835f4f8a353d388/raft-wars.png"
   },
   {
     "title": "Raft Wars 2",
-    "url": "${truffled}/games/raft-wars-2/index.html",
+    "url": "${static}https://truffled.lol/games/raft-wars-2/index.html",
     "category": "Strategy",
     "image": "https://img.poki-cdn.com/cdn-cgi/image/quality=78,width=1200,height=1200,fit=cover,f=png/8ce3d09339bcb18c63bf9f1780795944.png"
   },
   {
     "title": "Ragdoll Archers",
-    "url": "${truffled}/games/ragdoll-archers/index.html",
+    "url": "${static}https://truffled.lol/games/ragdoll-archers/index.html",
     "category": "Action",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjsAdBn3ymYhtomz2L6tJcy48gqYfKgLZHrkCCnyrMQ75G06rNpXrRW0qlLR26BOvWb4E&usqp=CAU"
   },
   {
     "title": "Ragdoll Hit",
-    "url": "${truffled}/games/ragdoll/index.html",
+    "url": "${static}https://truffled.lol/games/ragdoll/index.html",
     "category": "Action",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ4iA21deXM73oydNUllrX8xSl1_mLRuIkt6Q&s"
   },
   {
     "title": "Raldi's Crack House",
-    "url": "${truffled}/games/raldi/index.html",
+    "url": "${static}https://truffled.lol/games/raldi/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Rayman",
-    "url": "${truffled}/gamefile/rayman.html",
+    "url": "${static}https://truffled.lol/gamefile/rayman.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "RE:RUN",
-    "url": "${truffled}/games/rerun/index.html",
+    "url": "${static}https://truffled.lol/games/rerun/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -2734,25 +2734,25 @@
   },
   {
     "title": "Resident Evil 1",
-    "url": "${truffled}/gamefile/res1.html",
+    "url": "${static}https://truffled.lol/gamefile/res1.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Resident Evil 2",
-    "url": "${truffled}/gamefile/res2.html",
+    "url": "${static}https://truffled.lol/gamefile/res2.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Retro Bowl",
-    "url": "${truffled}/games/retro-bowl/index.html",
+    "url": "${static}https://truffled.lol/games/retro-bowl/index.html",
     "category": "Sports",
     "image": "https://tse2.mm.bing.net/th/id/OIP.73dFbFUHUVU9rpmvuoW9LAHaEK?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Retro Bowl College",
-    "url": "${truffled}/games/rbcollege/index.html",
+    "url": "${static}https://truffled.lol/games/rbcollege/index.html",
     "category": "Sports",
     "image": ""
   },
@@ -2764,55 +2764,55 @@
   },
   {
     "title": "Rhythm Heaven",
-    "url": "${truffled}/gamefile/rhythm.html",
+    "url": "${static}https://truffled.lol/gamefile/rhythm.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Rhythm Hell",
-    "url": "${truffled}/games/rhythm-hell/index.html",
+    "url": "${static}https://truffled.lol/games/rhythm-hell/index.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Riddle School",
-    "url": "${truffled}/games/riddleschool/index.html",
+    "url": "${static}https://truffled.lol/games/riddleschool/index.html",
     "category": "Puzzle",
     "image": "https://tse2.mm.bing.net/th/id/OIP.gLCNBY9qcTXJZRuGK3qh3AAAAA?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Riddle School 2",
-    "url": "${truffled}/games/sriddleschool2/index.html",
+    "url": "${static}https://truffled.lol/games/sriddleschool2/index.html",
     "category": "Puzzle",
     "image": "https://tse4.mm.bing.net/th/id/OIP.tRZQPqnsrSaJ0qWWtq-QUgAAAA?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Riddle School 3",
-    "url": "${truffled}/games/riddleschool3/index.html",
+    "url": "${static}https://truffled.lol/games/riddleschool3/index.html",
     "category": "Puzzle",
     "image": "https://tse4.mm.bing.net/th/id/OIP.aD4ebim5xn8uo8D9HjWU-AHaEK?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Riddle School 4",
-    "url": "${truffled}/games/riddleschool4/index.html",
+    "url": "${static}https://truffled.lol/games/riddleschool4/index.html",
     "category": "Puzzle",
     "image": "https://tse3.mm.bing.net/th/id/OIP.oq4O5FRj0EVyTjxRxnhKzAAAAA?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Riddle School 5",
-    "url": "${truffled}/games/riddleschool5/index.html",
+    "url": "${static}https://truffled.lol/games/riddleschool5/index.html",
     "category": "Puzzle",
     "image": "https://tse1.mm.bing.net/th/id/OIP.DvNBnJUAUqJS7QV4u6b7zgHaHa?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Riddle Transfer",
-    "url": "${truffled}/games/riddleschooltransfer/index.html",
+    "url": "${static}https://truffled.lol/games/riddleschooltransfer/index.html",
     "category": "Puzzle",
     "image": "https://tse4.mm.bing.net/th/id/OIP.eWdyvG5NATL4qXxhW3PT5AAAAA?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Riddle Transfer 2",
-    "url": "${truffled}/games/riddleschooltransfer2/index.html",
+    "url": "${static}https://truffled.lol/games/riddleschooltransfer2/index.html",
     "category": "Puzzle",
     "image": "https://tse4.mm.bing.net/th/id/OIP.jx7U6fy2Zta4yKIgkq-vwgAAAA?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
@@ -2830,55 +2830,55 @@
   },
   {
     "title": "Rooftop Snipers",
-    "url": "${truffled}/games/rooftop-snipers/index.html",
+    "url": "${static}https://truffled.lol/games/rooftop-snipers/index.html",
     "category": "Shooter",
     "image": "https://img.poki-cdn.com/cdn-cgi/image/q=78,scq=50,width=314,height=314,fit=cover,f=auto/c127771edb0e821e4109b7058ae3f094/rooftop-snipers.jpeg"
   },
   {
     "title": "Rooftop Snipers 2",
-    "url": "${truffled}/games/rooftop-snipers-2/index.html",
+    "url": "${static}https://truffled.lol/games/rooftop-snipers-2/index.html",
     "category": "Shooter",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRpFZZ6wFgSxJnV1L6oyBDEzVEkFXsWt-MLqA&s"
   },
   {
     "title": "Run",
-    "url": "${truffled}/gamefile/run.html",
+    "url": "${static}https://truffled.lol/gamefile/run.html",
     "category": "Platformer",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQBlbm-f1P9zTwFtLKf7M-z57KRhr-KAWSq3w&s"
   },
   {
     "title": "Run 2",
-    "url": "${truffled}/gamefile/run2.html",
+    "url": "${static}https://truffled.lol/gamefile/run2.html",
     "category": "Platformer",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTcvr90ukp0Ey4qogRsCeygajiLkyTyqH7Xlg&s"
   },
   {
     "title": "Run 3",
-    "url": "${truffled}/gamefile/run3.html",
+    "url": "${static}https://truffled.lol/gamefile/run3.html",
     "category": "Platformer",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSV5ui-eWyj4PU5ZICXnAjoxmtxl3-iJE8ZrQ&s"
   },
   {
     "title": "Running Fred",
-    "url": "${truffled}/games/fred/index.html",
+    "url": "${static}https://truffled.lol/games/fred/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Saihate Station",
-    "url": "${truffled}/gamefile/saihatestation.html",
+    "url": "${static}https://truffled.lol/gamefile/saihatestation.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Sandboxels",
-    "url": "${truffled}/gamefile/Sandboxels.html",
+    "url": "${static}https://truffled.lol/gamefile/Sandboxels.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Sanic Ball",
-    "url": "${truffled}/games/ball/index.html",
+    "url": "${static}https://truffled.lol/games/ball/index.html",
     "category": "Racing",
     "image": ""
   },
@@ -2890,25 +2890,25 @@
   },
   {
     "title": "Scary Path",
-    "url": "${truffled}/games/scary-path/index.html",
+    "url": "${static}https://truffled.lol/games/scary-path/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Scary Teacher 3D",
-    "url": "${truffled}/gamefile/scary.html",
+    "url": "${static}https://truffled.lol/gamefile/scary.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Schoolboy Runaway",
-    "url": "${truffled}/gamefile/runaway.html",
+    "url": "${static}https://truffled.lol/gamefile/runaway.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Shift At Midnight",
-    "url": "${truffled}/gamefile/shift.html",
+    "url": "${static}https://truffled.lol/gamefile/shift.html",
     "category": "Horror",
     "image": ""
   },
@@ -2920,67 +2920,67 @@
   },
   {
     "title": "Silksong",
-    "url": "${truffled}/games/silk/index.html",
+    "url": "${static}https://truffled.lol/games/silk/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Skibidi Shooter",
-    "url": "${truffled}/games/skibidi-shooter/index.html",
+    "url": "${static}https://truffled.lol/games/skibidi-shooter/index.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Skiing Fred",
-    "url": "${truffled}/games/skiing/index.html",
+    "url": "${static}https://truffled.lol/games/skiing/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Slender Man & The 8 Pages",
-    "url": "${truffled}/games/slender/index.html",
+    "url": "${static}https://truffled.lol/games/slender/index.html",
     "category": "Horror",
     "image": "https://m.media-amazon.com/images/M/MV5BNGIwMDBiM2ItOTJkOC00YjdlLWI3ZTAtNDgzNzQ5M2Y1YWI3XkEyXkFqcGc@._V1_FMjpg_UX1000_.jpg"
   },
   {
     "title": "Slendytubbies I",
-    "url": "${truffled}/gamefile/slendy1.html",
+    "url": "${static}https://truffled.lol/gamefile/slendy1.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Slendytubbies II 2D",
-    "url": "${truffled}/games/slendy2d/index.html",
+    "url": "${static}https://truffled.lol/games/slendy2d/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Slendytubbies II",
-    "url": "${truffled}/games/slendy/index.html",
+    "url": "${static}https://truffled.lol/games/slendy/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Slient Hill",
-    "url": "${truffled}/gamefile/slienthill.html",
+    "url": "${static}https://truffled.lol/gamefile/slienthill.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Slime Ranchers",
-    "url": "${truffled}/gamefile/slimeranchers.html",
+    "url": "${static}https://truffled.lol/gamefile/slimeranchers.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Slither.io",
-    "url": "${truffled}/gamefile/sfge.html",
+    "url": "${static}https://truffled.lol/gamefile/sfge.html",
     "category": "Multiplayer",
     "image": ""
   },
   {
     "title": "Slope",
-    "url": "${truffled}/games/slope/index.html",
+    "url": "${static}https://truffled.lol/games/slope/index.html",
     "category": "Arcade",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQmm7S2dquLUBl5Nq9nh-MCU19sAT3CbuqEmQ&s"
   },
@@ -2998,139 +2998,139 @@
   },
   {
     "title": "Slowroads",
-    "url": "${truffled}/games/slowroads/index.html",
+    "url": "${static}https://truffled.lol/games/slowroads/index.html",
     "category": "Driving",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQN8BWuOmRaKwrZKfGhNLTv4xCHu-BeWUzB6A&s"
   },
   {
     "title": "SM64, Super Mario 64",
-    "url": "${truffled}/games/sm64/index.html",
+    "url": "${static}https://truffled.lol/games/sm64/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Smash Karts",
-    "url": "${truffled}/games/smashkarts/index.html",
+    "url": "${static}https://truffled.lol/games/smashkarts/index.html",
     "category": "Racing",
     "image": "https://play-lh.googleusercontent.com/cM1CXOuBIy0kjGfoCTOKNa812iuVX6X2DDop8xNH4mNyjuM-oj3wVqZ7wiAOizq_TA"
   },
   {
     "title": "Snow Battle",
-    "url": "${truffled}/gamefile/snow.html",
+    "url": "${static}https://truffled.lol/gamefile/snow.html",
     "category": "Multiplayer",
     "image": ""
   },
   {
     "title": "Snow Rider 3D",
-    "url": "${truffled}/games/snowrider3D-main/index.html",
+    "url": "${static}https://truffled.lol/games/snowrider3D-main/index.html",
     "category": "Driving",
     "image": "https://pixiapi.com/wp-content/uploads/2024/08/snow-rider-3d-game-icon.jpg"
   },
   {
     "title": "Soccer Bros",
-    "url": "${truffled}/games/soccerbros/index.html",
+    "url": "${static}https://truffled.lol/games/soccerbros/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Soccer Random",
-    "url": "${truffled}/games/soccer-random/index.html",
+    "url": "${static}https://truffled.lol/games/soccer-random/index.html",
     "category": "Sports",
     "image": "https://play-lh.googleusercontent.com/XZfa8mGq1h2tdcH6cygo74c64nsxBoswzz1OQq5kUFW3uUZUf1rlqTg9UQgoEZ4qjQ=w526-h296-rw"
   },
   {
     "title": "Solar Smash",
-    "url": "${truffled}/gamefile/solar.html",
+    "url": "${static}https://truffled.lol/gamefile/solar.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Solitaire",
-    "url": "${truffled}/games/solitaire/index.html",
+    "url": "${static}https://truffled.lol/games/solitaire/index.html",
     "category": "Cards",
     "image": ""
   },
   {
     "title": "Sonic 1",
-    "url": "${truffled}/games/sonic/index.html",
+    "url": "${static}https://truffled.lol/games/sonic/index.html",
     "category": "Platformer",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTzcE2NVowdjqg8ZfuZg3w6G48MrR55L8YVjQ&s"
   },
   {
     "title": "Sonic 2",
-    "url": "${truffled}/games/sonic2/index.html",
+    "url": "${static}https://truffled.lol/games/sonic2/index.html",
     "category": "Platformer",
     "image": "https://upload.wikimedia.org/wikipedia/en/0/0c/Sonic_2_US_Cover.jpg"
   },
   {
     "title": "Sonic 3",
-    "url": "${truffled}/games/sonic3/sonic3.html",
+    "url": "${static}https://truffled.lol/games/sonic3/sonic3.html",
     "category": "Platformer",
     "image": "https://upload.wikimedia.org/wikipedia/en/0/07/Sonic3-box-us-225.jpg"
   },
   {
     "title": "Sonic 3D Blast",
-    "url": "${truffled}/gamefile/sonic3dblast.html",
+    "url": "${static}https://truffled.lol/gamefile/sonic3dblast.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Sonic 4",
-    "url": "${truffled}/games/sonic4/index.html",
+    "url": "${static}https://truffled.lol/games/sonic4/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Sonic CD",
-    "url": "${truffled}/games/soniccd/soniccd.html",
+    "url": "${static}https://truffled.lol/games/soniccd/soniccd.html",
     "category": "Platformer",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ5iSIdWhX6ng335e9RY5Zdt6-e4bd6rYOwcg&s"
   },
   {
     "title": "Sonic EXE",
-    "url": "${truffled}/gamefile/sonicexe.html",
+    "url": "${static}https://truffled.lol/gamefile/sonicexe.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Sonic Jam",
-    "url": "${truffled}/gamefile/sonicjam.html",
+    "url": "${static}https://truffled.lol/gamefile/sonicjam.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Sonic Mania",
-    "url": "${truffled}/gamefile/sonic.html",
+    "url": "${static}https://truffled.lol/gamefile/sonic.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Sonic Mania!",
-    "url": "${truffled}/extra/main/index.html",
+    "url": "${static}https://truffled.lol/extra/main/index.html",
     "category": "Platformer",
     "image": "https://upload.wikimedia.org/wikipedia/en/d/d2/Sonic_Mania_%28artwork%29.jpg"
   },
   {
     "title": "Sonic R",
-    "url": "${truffled}/gamefile/sonicr.html",
+    "url": "${static}https://truffled.lol/gamefile/sonicr.html",
     "category": "Racing",
     "image": ""
   },
   {
     "title": "Sonic Robo Blast 2",
-    "url": "${truffled}/games/srb2/index.html",
+    "url": "${static}https://truffled.lol/games/srb2/index.html",
     "category": "Platformer",
     "image": "https://upload.wikimedia.org/wikipedia/en/6/6d/Srb2_22_title.png"
   },
   {
     "title": "Sonic Robo Blast 2 KART",
-    "url": "${truffled}/games/kart/index.html",
+    "url": "${static}https://truffled.lol/games/kart/index.html",
     "category": "Racing",
     "image": ""
   },
   {
     "title": "Sonic World Next",
-    "url": "${truffled}/games/swn/index.html",
+    "url": "${static}https://truffled.lol/games/swn/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -3142,31 +3142,31 @@
   },
   {
     "title": "Space Waves",
-    "url": "${truffled}/gamefile/spacewaves.html",
+    "url": "${static}https://truffled.lol/gamefile/spacewaves.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Spaceflight Simulator",
-    "url": "${truffled}/gamefile/spaceflight.html",
+    "url": "${static}https://truffled.lol/gamefile/spaceflight.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Spank the monkey",
-    "url": "${truffled}/gamefile/monkey.html",
+    "url": "${static}https://truffled.lol/gamefile/monkey.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Speed Stars",
-    "url": "${truffled}/games/speed-stars/index.html",
+    "url": "${static}https://truffled.lol/games/speed-stars/index.html",
     "category": "Sports",
     "image": "https://play-lh.googleusercontent.com/AIdar8HSSXg0NQ6BUR1mVt-uOudupELbjPkU_cgwo_7fP0tKT0R49dfFltYj-43u6A"
   },
   {
     "title": "Spelunky Classic HD",
-    "url": "${truffled}/gamefile/spelunky.html",
+    "url": "${static}https://truffled.lol/gamefile/spelunky.html",
     "category": "Platformer",
     "image": ""
   },
@@ -3178,13 +3178,13 @@
   },
   {
     "title": "Starbound",
-    "url": "${truffled}/games/Starbound/index.html",
+    "url": "${static}https://truffled.lol/games/Starbound/index.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Stardew Valley",
-    "url": "${truffled}/games/stardew/index.html",
+    "url": "${static}https://truffled.lol/games/stardew/index.html",
     "category": "Simulation",
     "image": ""
   },
@@ -3202,13 +3202,13 @@
   },
   {
     "title": "Stick War: Legacy",
-    "url": "${truffled}/gamefile/stickwar.html",
+    "url": "${static}https://truffled.lol/gamefile/stickwar.html",
     "category": "Strategy",
     "image": ""
   },
   {
     "title": "Stick With It",
-    "url": "${truffled}/games/stick/index.html",
+    "url": "${static}https://truffled.lol/games/stick/index.html",
     "category": "Platformer",
     "image": ""
   },
@@ -3220,7 +3220,7 @@
   },
   {
     "title": "Stickman Hook",
-    "url": "${truffled}/games/stickman-hook/index.html",
+    "url": "${static}https://truffled.lol/games/stickman-hook/index.html",
     "category": "Arcade",
     "image": "https://img.poki-cdn.com/cdn-cgi/image/quality=78,width=314,height=314,fit=cover,f=auto/99e090d154caf30f3625df7e456d5984.png"
   },
@@ -3232,7 +3232,7 @@
   },
   {
     "title": "Subway Surfers",
-    "url": "${truffled}/games/subway-surfers/index.html",
+    "url": "${static}https://truffled.lol/games/subway-surfers/index.html",
     "category": "Arcade",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ40VveVPpSAfd4wh6lDZX82E8RPHo0u6i-dA&s"
   },
@@ -3244,7 +3244,7 @@
   },
   {
     "title": "Super Hot",
-    "url": "${truffled}/games/superhot/index.html",
+    "url": "${static}https://truffled.lol/games/superhot/index.html",
     "category": "FPS",
     "image": ""
   },
@@ -3256,73 +3256,73 @@
   },
   {
     "title": "Super Mario 64 Coop DX",
-    "url": "${truffled}/games/sm64coop/sm64coopdx.html",
+    "url": "${static}https://truffled.lol/games/sm64coop/sm64coopdx.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Super Mario Bros",
-    "url": "${truffled}/gamefile/smb.html",
+    "url": "${static}https://truffled.lol/gamefile/smb.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Super Mario Galaxy DS",
-    "url": "${truffled}/gamefile/smgds.html",
+    "url": "${static}https://truffled.lol/gamefile/smgds.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Super Meat Boy",
-    "url": "${truffled}/games/meatboy/index.html",
+    "url": "${static}https://truffled.lol/games/meatboy/index.html",
     "category": "Platformer",
     "image": "https://upload.wikimedia.org/wikipedia/en/a/aa/SuperMeatBoy_cover.png"
   },
   {
     "title": "Super Monkey Ball 1 & 2",
-    "url": "${truffled}/gamefile/monk.html",
+    "url": "${static}https://truffled.lol/gamefile/monk.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Super Monkey Ball JR",
-    "url": "${truffled}/gamefile/supermonkey.html",
+    "url": "${static}https://truffled.lol/gamefile/supermonkey.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Super Oliver World",
-    "url": "${truffled}/gamefile/superoliverworld.html",
+    "url": "${static}https://truffled.lol/gamefile/superoliverworld.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Super Smash Bros",
-    "url": "${truffled}/gamefile/ssm.html",
+    "url": "${static}https://truffled.lol/gamefile/ssm.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Super Smash Flash",
-    "url": "${truffled}/gamefile/ssf.html",
+    "url": "${static}https://truffled.lol/gamefile/ssf.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Super Smash Flash 2",
-    "url": "${truffled}/gamefile/ssf2.html",
+    "url": "${static}https://truffled.lol/gamefile/ssf2.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Super Tux Kart",
-    "url": "${truffled}/games/supertuxkart/SuperTuxKart.html",
+    "url": "${static}https://truffled.lol/games/supertuxkart/SuperTuxKart.html",
     "category": "Racing",
     "image": ""
   },
   {
     "title": "Survivor.io",
-    "url": "${truffled}/gamefile/survivor.html",
+    "url": "${static}https://truffled.lol/gamefile/survivor.html",
     "category": "Action",
     "image": ""
   },
@@ -3346,7 +3346,7 @@
   },
   {
     "title": "Taiko No Tatsujini",
-    "url": "${truffled}/games/psp/tja/index.html",
+    "url": "${static}https://truffled.lol/games/psp/tja/index.html",
     "category": "Rhythm",
     "image": ""
   },
@@ -3358,19 +3358,19 @@
   },
   {
     "title": "Tanuki Sunset",
-    "url": "${truffled}/games/tanukisunset/index.html",
+    "url": "${static}https://truffled.lol/games/tanukisunset/index.html",
     "category": "Sports",
     "image": "https://19230981230981309813098123098123.104.36.84.31.nip.io/images/games/tanukisunset-min.png"
   },
   {
     "title": "TattleTail",
-    "url": "${truffled}/games/tattletail/index.html",
+    "url": "${static}https://truffled.lol/games/tattletail/index.html",
     "category": "Horror",
     "image": "https://encrypted-tbn2.gstatic.com/images?q=tbn:ANd9GcSjNkLsBxPjXKpa8D6jTzir9wzxDrVboZhKgpMpmmbtQzJFDTKzn3sDfNfhmaQec2QX0V6b"
   },
   {
     "title": "Tax Heaven 3000",
-    "url": "${truffled}/games/th3000/index.html",
+    "url": "${static}https://truffled.lol/games/th3000/index.html",
     "category": "Simulation",
     "image": ""
   },
@@ -3388,73 +3388,73 @@
   },
   {
     "title": "Ten Basket",
-    "url": "${truffled}/games/ten-basket/index.html",
+    "url": "${static}https://truffled.lol/games/ten-basket/index.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Terraria",
-    "url": "${truffled}/gamefile/terraria48.html",
+    "url": "${static}https://truffled.lol/gamefile/terraria48.html",
     "category": "Adventure",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRrVNzn3aErkS59Ym_qhqbZYFd8laElFfxviQ&s"
   },
   {
     "title": "Tetris",
-    "url": "${truffled}/games/tetris/index.html",
+    "url": "${static}https://truffled.lol/games/tetris/index.html",
     "category": "Puzzle",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjeVktZO974LWS4OT8ol_qw354N4_v0r_iOg&s"
   },
   {
     "title": "Tetrisweeper",
-    "url": "${truffled}/games/tetrisweeper/",
+    "url": "${static}https://truffled.lol/games/tetrisweeper/",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "That's Not My Neighbor",
-    "url": "${truffled}/gamefile/thatsnot.html",
+    "url": "${static}https://truffled.lol/gamefile/thatsnot.html",
     "category": "Horror",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSZLxR8t0uPrV4PSNecVLZWiLr7h5zmkpPczw&s"
   },
   {
     "title": "The Binding Of Isaac Wrath Of The Lamb",
-    "url": "${truffled}/gamefile/tboiw.html",
+    "url": "${static}https://truffled.lol/gamefile/tboiw.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "The Binding Of Isaac Wrath Of The Lamb: Eternal",
-    "url": "${truffled}/gamefile/boilambeternal.html",
+    "url": "${static}https://truffled.lol/gamefile/boilambeternal.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "The Binding Of Issac",
-    "url": "${truffled}/games/binding-of-isaac/index.html",
+    "url": "${static}https://truffled.lol/games/binding-of-isaac/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "The Binding Of Issac: Rebirth",
-    "url": "${truffled}/games/psp/tboir/index.html",
+    "url": "${static}https://truffled.lol/games/psp/tboir/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "The Impossible Quiz",
-    "url": "${truffled}/games/theimpossiblequiz/index.html",
+    "url": "${static}https://truffled.lol/games/theimpossiblequiz/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "The Impossible Quiz 2",
-    "url": "${truffled}/games/iq2/index.html",
+    "url": "${static}https://truffled.lol/games/iq2/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "The Legend of Zelda Ocarina of Time",
-    "url": "${truffled}/gamefile/tloz.html",
+    "url": "${static}https://truffled.lol/gamefile/tloz.html",
     "category": "Adventure",
     "image": ""
   },
@@ -3478,7 +3478,7 @@
   },
   {
     "title": "There is no game",
-    "url": "${truffled}/games/there-is-no-game/index.html",
+    "url": "${static}https://truffled.lol/games/there-is-no-game/index.html",
     "category": "Puzzle",
     "image": "https://m.media-amazon.com/images/M/MV5BYTMzZWE2MWYtYjA4ZS00NDgyLThjYzItMTdmODhjMTk5MWU4XkEyXkFqcGc@._V1_.jpg"
   },
@@ -3490,151 +3490,151 @@
   },
   {
     "title": "Time Shooter 1",
-    "url": "${truffled}/gamefile/time1.html",
+    "url": "${static}https://truffled.lol/gamefile/time1.html",
     "category": "FPS",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSd_ao9IYz_ZCkqsqS5ZkguefeNtXAwDciwQA&s"
   },
   {
     "title": "Time Shooter 2",
-    "url": "${truffled}/games/timeshooter2/index.html",
+    "url": "${static}https://truffled.lol/games/timeshooter2/index.html",
     "category": "FPS",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRz3Kn6LEyj4PU5ZICXnAjoxmtxl3-iJE8ZrQ&s"
   },
   {
     "title": "Time Shooter 3",
-    "url": "${truffled}/games/timeshoot3/index.html",
+    "url": "${static}https://truffled.lol/games/timeshoot3/index.html",
     "category": "FPS",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSHd_igTSoTD7UfrkSYRiERYZU6dtBwVpP7rQ&s"
   },
   {
     "title": "Tiny Fishing",
-    "url": "${truffled}/games/tiny-fishing/index.html",
+    "url": "${static}https://truffled.lol/games/tiny-fishing/index.html",
     "category": "Sports",
     "image": "https://tse3.mm.bing.net/th/id/OIP.MVj3QlDvvEk7IOIAeGRvKQAAAA?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "To The Core",
-    "url": "${truffled}/games/tothecore/index.html",
+    "url": "${static}https://truffled.lol/games/tothecore/index.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Tomb of The Mask",
-    "url": "${truffled}/games/tombofthemask/index.html",
+    "url": "${static}https://truffled.lol/games/tombofthemask/index.html",
     "category": "Arcade",
     "image": "https://play-lh.googleusercontent.com/ATGr-U4JBK2VjFzKGK9eMMkrDxJaazadOUoz_7Yl0U5NrWSFcFUzEtNurWXYzVWc8uOO=w240-h480-rw"
   },
   {
     "title": "Tomodachi Collection",
-    "url": "${truffled}/gamefile/tomo.html",
+    "url": "${static}https://truffled.lol/gamefile/tomo.html",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Toss The Turtle",
-    "url": "${truffled}/games/tosstheturtle/index.html",
+    "url": "${static}https://truffled.lol/games/tosstheturtle/index.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "Touhou 1 Touhou-Reiiden",
-    "url": "${truffled}/gamefile/touhou.html",
+    "url": "${static}https://truffled.lol/gamefile/touhou.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Touhou 2 Touhou-Fuumaroku",
-    "url": "${truffled}/gamefile/touhou2.html",
+    "url": "${static}https://truffled.lol/gamefile/touhou2.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Touhou 3 Touhou-Yumejikuu",
-    "url": "${truffled}/gamefile/touhou3.html",
+    "url": "${static}https://truffled.lol/gamefile/touhou3.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Touhou 4 Touhou-Gensokyou",
-    "url": "${truffled}/gamefile/touhou4.html",
+    "url": "${static}https://truffled.lol/gamefile/touhou4.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Touhou 5 Touhou-Kaikidan",
-    "url": "${truffled}/gamefile/touhou5.html",
+    "url": "${static}https://truffled.lol/gamefile/touhou5.html",
     "category": "Shooter",
     "image": ""
   },
   {
     "title": "Touhou Mother",
-    "url": "${truffled}/games/touhoumother/index.html",
+    "url": "${static}https://truffled.lol/games/touhoumother/index.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Tube Jumpers",
-    "url": "${truffled}/gamefile/tube.html",
+    "url": "${static}https://truffled.lol/gamefile/tube.html",
     "category": "Action",
     "image": ""
   },
   {
     "title": "Tung Tung Basics",
-    "url": "${truffled}/games/tungtungbog/index.html",
+    "url": "${static}https://truffled.lol/games/tungtungbog/index.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Tung Tung Horror",
-    "url": "${truffled}/gamefile/tung.html",
+    "url": "${static}https://truffled.lol/gamefile/tung.html",
     "category": "Horror",
     "image": ""
   },
   {
     "title": "Ultimate Custom Night",
-    "url": "${truffled}/gamefile/fnafu.html",
+    "url": "${static}https://truffled.lol/gamefile/fnafu.html",
     "category": "Horror",
     "image": "https://thvnext.bing.com/th/id/OIP.r0EZIGOxcB0f-vzonhaiDAHaHa?cb=ucfimg2ucfimg=1&rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Ultrakill",
-    "url": "${truffled}/games/ultrakill/ultrakill/index.html",
+    "url": "${static}https://truffled.lol/games/ultrakill/ultrakill/index.html",
     "category": "FPS",
     "image": ""
   },
   {
     "title": "Ultrapool",
-    "url": "${truffled}/gamefile/ultrapool.html",
+    "url": "${static}https://truffled.lol/gamefile/ultrapool.html",
     "category": "Sports",
     "image": ""
   },
   {
     "title": "Um Jammer Lammy",
-    "url": "${truffled}/gamefile/jemmer.html",
+    "url": "${static}https://truffled.lol/gamefile/jemmer.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "UnderTale",
-    "url": "${truffled}/gamefile/Undertale.html",
+    "url": "${static}https://truffled.lol/gamefile/Undertale.html",
     "category": "RPG",
     "image": "https://tse1.mm.bing.net/th/id/OIP.UXgvVSFfoYC_x14pjKuKOgHaLH?rs=1&pid=ImgDetMain&o=7&rm=3"
   },
   {
     "title": "Undertale 10th Anniversary",
-    "url": "${truffled}/games/10th/index.html",
+    "url": "${static}https://truffled.lol/games/10th/index.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Undertale Last Breath",
-    "url": "${truffled}/gamefile/udlb.html",
+    "url": "${static}https://truffled.lol/gamefile/udlb.html",
     "category": "RPG",
     "image": ""
   },
   {
     "title": "Undertale Yellow",
-    "url": "${truffled}/games/uty/play.html",
+    "url": "${static}https://truffled.lol/games/uty/play.html",
     "category": "RPG",
     "image": ""
   },
@@ -3646,13 +3646,13 @@
   },
   {
     "title": "Untitled Goose Game",
-    "url": "${truffled}/games/UntitledGooseGameBog/index.html",
+    "url": "${static}https://truffled.lol/games/UntitledGooseGameBog/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Vampire Survivors",
-    "url": "${truffled}/games/vampire/index.html",
+    "url": "${static}https://truffled.lol/games/vampire/index.html",
     "category": "Action",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQII7y586Uj7JhRh8mdJHcus8clBmB27HTUtg&s"
   },
@@ -3664,121 +3664,121 @@
   },
   {
     "title": "Vex",
-    "url": "${truffled}/games/vex/index.html",
+    "url": "${static}https://truffled.lol/games/vex/index.html",
     "category": "Platformer",
     "image": "https://tse1.mm.bing.net/th/id/OIP.khbk4pXlQiFV87_RgBf91QAAAA?cb=12&rs=1&pid=ImgDetMain&o=7"
   },
   {
     "title": "Vex 2",
-    "url": "${truffled}/gamefile/vex2.html",
+    "url": "${static}https://truffled.lol/gamefile/vex2.html",
     "category": "Platformer",
     "image": "https://tse1.mm.bing.net/th/id/OIP.gxBLxJBteAz4zVFEdSmQLQAAAA?cb=12&rs=1&pid=ImgDetMain&o=7"
   },
   {
     "title": "Vex 3",
-    "url": "${truffled}/games/vex3/index.html",
+    "url": "${static}https://truffled.lol/games/vex3/index.html",
     "category": "Platformer",
     "image": "https://is2-ssl.mzstatic.com/image/thumb/Purple128/v4/23/cc/ea/23ccea49-28e1-2327-8b95-5d05a00a312e/source/512x512bb.jpg"
   },
   {
     "title": "Vex 4",
-    "url": "${truffled}/games/vex4/index.html",
+    "url": "${static}https://truffled.lol/games/vex4/index.html",
     "category": "Platformer",
     "image": "https://tse4.mm.bing.net/th/id/OIP.BFLEvKiQDdLkhZsMis8CZwAAAA?cb=12&rs=1&pid=ImgDetMain&o=7"
   },
   {
     "title": "Vex 5",
-    "url": "${truffled}/games/vex5/index.html",
+    "url": "${static}https://truffled.lol/games/vex5/index.html",
     "category": "Platformer",
     "image": "https://tse2.mm.bing.net/th/id/OIP.iKOXJmLZcRxscz6vEXdM-wAAAA?cb=12&rs=1&pid=ImgDetMain&o=7"
   },
   {
     "title": "Vex 6",
-    "url": "${truffled}/gamefile/vex6.html",
+    "url": "${static}https://truffled.lol/gamefile/vex6.html",
     "category": "Platformer",
     "image": "https://tse1.mm.bing.net/th/id/OIP.fYzTUt9RhvPjb6arLj0ViAHaHa?cb=12&rs=1&pid=ImgDetMain&o=7"
   },
   {
     "title": "Vex 7",
-    "url": "${truffled}/gamefile/vex7.html",
+    "url": "${static}https://truffled.lol/gamefile/vex7.html",
     "category": "Platformer",
     "image": "https://tse3.mm.bing.net/th/id/OIP.0p5w8QKMy-jWRfHF2JOWkAHaHa?cb=12&rs=1&pid=ImgDetMain&o=7"
   },
   {
     "title": "Vex 8",
-    "url": "${truffled}/gamefile/vex8.html",
+    "url": "${static}https://truffled.lol/gamefile/vex8.html",
     "category": "Platformer",
     "image": "https://tse1.mm.bing.net/th/id/OIP.4XqpeZFWXeioDa5bWaav0gHaHa?cb=12&rs=1&pid=ImgDetMain&o=7"
   },
   {
     "title": "Vib-Ribbon",
-    "url": "${truffled}/gamefile/vib.html",
+    "url": "${static}https://truffled.lol/gamefile/vib.html",
     "category": "Rhythm",
     "image": ""
   },
   {
     "title": "Volley Random",
-    "url": "${truffled}/games/volley-random/index.html",
+    "url": "${static}https://truffled.lol/games/volley-random/index.html",
     "category": "Sports",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-pgLkder9WBLY5dW82cGOaBFXi4jt3t27AA&s"
   },
   {
     "title": "Warioware D.I.Y",
-    "url": "${truffled}/gamefile/wariowarediy.html",
+    "url": "${static}https://truffled.lol/gamefile/wariowarediy.html",
     "category": "Arcade",
     "image": ""
   },
   {
     "title": "We Become What We Behold",
-    "url": "${truffled}/gamefile/wbwwb.html",
+    "url": "${static}https://truffled.lol/gamefile/wbwwb.html",
     "category": "Simulation",
     "image": "https://cdn-1.webcatalog.io/catalog/poki-we-become-what-we-behold/poki-we-become-what-we-behold-icon-filled-256.png"
   },
   {
     "title": "Webfishing",
-    "url": "${truffled}/games/webfishing/",
+    "url": "${static}https://truffled.lol/games/webfishing/",
     "category": "Simulation",
     "image": ""
   },
   {
     "title": "Who's Your Daddy",
-    "url": "${truffled}/games/whoseyourdaddy/index.html",
+    "url": "${static}https://truffled.lol/games/whoseyourdaddy/index.html",
     "category": "Multiplayer",
     "image": ""
   },
   {
     "title": "Witch's Heart",
-    "url": "${truffled}/gamefile/witches.html",
+    "url": "${static}https://truffled.lol/gamefile/witches.html",
     "category": "Adventure",
     "image": ""
   },
   {
     "title": "Woody's Incredible Journey To The Escape From Eternal Terror",
-    "url": "${truffled}/games/WIJ/index.html",
+    "url": "${static}https://truffled.lol/games/WIJ/index.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Wordle",
-    "url": "${truffled}/games/wordle-unlimited/index.html",
+    "url": "${static}https://truffled.lol/games/wordle-unlimited/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Worlds Hardest Game",
-    "url": "${truffled}/gamefile/twhg.html",
+    "url": "${static}https://truffled.lol/gamefile/twhg.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Worlds Hardest Game 2",
-    "url": "${truffled}/games/worlds-hardest-game-2/index.html",
+    "url": "${static}https://truffled.lol/games/worlds-hardest-game-2/index.html",
     "category": "Puzzle",
     "image": ""
   },
   {
     "title": "Worlds Hardest Game 3",
-    "url": "${truffled}/games/worlds-hardest-game-3/index.html",
+    "url": "${static}https://truffled.lol/games/worlds-hardest-game-3/index.html",
     "category": "Puzzle",
     "image": ""
   },
@@ -3790,7 +3790,7 @@
   },
   {
     "title": "Yandere Simulator",
-    "url": "${truffled}/gamefile/yandere.html",
+    "url": "${static}https://truffled.lol/gamefile/yandere.html",
     "category": "Simulation",
     "image": "https://i1.sndcdn.com/artworks-000614665357-ebxek7-t500x500.jpg"
   },
@@ -3802,13 +3802,13 @@
   },
   {
     "title": "Yoked",
-    "url": "${truffled}/gamefile/yoked.html",
+    "url": "${static}https://truffled.lol/gamefile/yoked.html",
     "category": "Platformer",
     "image": ""
   },
   {
     "title": "Yume Nikki",
-    "url": "${truffled}/gamefile/yume.html",
+    "url": "${static}https://truffled.lol/gamefile/yume.html",
     "category": "Horror",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjRBQf6W4UyXzvn02jbTOcG6aptEr0iZE3MQ&s"
   },
@@ -3820,7 +3820,7 @@
   },
   {
     "title": "Zuma",
-    "url": "${truffled}/games/zuma/index.html",
+    "url": "${static}https://truffled.lol/games/zuma/index.html",
     "category": "Puzzle",
     "image": ""
   },
