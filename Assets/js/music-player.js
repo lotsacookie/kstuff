@@ -30,9 +30,9 @@ export function init(K) {
         <div class="mini-player-title">Nothing playing</div>
         <div class="mini-player-artist"></div>
       </div>
-      <button type="button" class="study-nav-btn" data-act="prev" title="Previous song">${MINI_ICONS.prev}</button>
-      <button type="button" class="study-nav-btn" data-act="toggle" title="Play / Pause">${MINI_ICONS.play}</button>
-      <button type="button" class="study-nav-btn" data-act="next" title="Next song">${MINI_ICONS.next}</button>
+      <button type="button" class="study-nav-btn" data-act="prev">${MINI_ICONS.prev}</button>
+      <button type="button" class="study-nav-btn" data-act="toggle">${MINI_ICONS.play}</button>
+      <button type="button" class="study-nav-btn" data-act="next">${MINI_ICONS.next}</button>
     `
   });
   document.querySelector('.learning-header')?.appendChild(miniPlayer);
