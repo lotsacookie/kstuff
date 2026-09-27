@@ -418,7 +418,7 @@ export function init(K) {
   K.isAnyModalActive = isAnyModalActive;
 
   async function autoRefreshActivePage() {
-    if (K.autoRefreshBusy || K.isNavigating || isAnyModalActive() || document.hidden) return;
+    if (K.autoRefreshBusy || K.isNavigating || isAnyModalActive() || document.hidden || K.isAnyResourceOpen()) return;
     const activePage = document.querySelector('.page.active');
     if (!activePage) return;
     const tId = activePage.id;
