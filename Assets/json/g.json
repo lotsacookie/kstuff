@@ -140,6 +140,11 @@
     "category": "FPS"
   },
   {
+    "title": "Call of Duty: Black Ops Zombies Kino Der Toten",
+    "category": "FPS",
+    "url": "${static}https://kino-der-toten.pages.dev"
+  },
+  {
     "title": "Cat Goes Fishing",
     "category": "Adventure"
   },
