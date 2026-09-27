@@ -16,6 +16,7 @@ export function init(K) {
   K.pendingResourceOpen = {};
   K.resourceOpenFor = {};
   K.resourceTokens = {};
+  K.isAnyResourceOpen = () => Object.values(K.resourceOpenFor).some(Boolean);
 
   K.HTML_REPO_KEYWORDS = ['freebuisness/html', '{html_url}', 'htm@main'];
   K.LAUNCH_KEYWORDS = [...K.HTML_REPO_KEYWORDS, 'web-port', 'webport', 'web_port'];
@@ -285,4 +286,4 @@ export function init(K) {
   if (!K.getStorage('kstuff_theme')) K.setStorage('kstuff_theme', 'theme-sakura');
   if (!K.getStorage('kstuff_font')) K.setStorage('kstuff_font', 'Comfortaa, sans-serif');
   if (!K.getStorage('kstuff_search_engine')) K.setStorage('kstuff_search_engine', 'duckduckgo');
-}
+  }
