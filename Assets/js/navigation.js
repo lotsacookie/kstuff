@@ -1,0 +1,452 @@
+export function init(K) {
+  const tooltipEl = K.body.appendChild(K.el('div', { className: 'js-custom-tooltip' }));
+  tooltipEl.style.cssText = 'position:fixed;display:none;padding:6px 10px;background:rgba(0,0,0,0.85);color:#fff;font-size:0.75rem;border-radius:6px;pointer-events:none;z-index:999999;white-space:nowrap;';
+  K.tooltipEl = tooltipEl;
+
+  document.head.appendChild(K.el('style', {
+    textContent: `
+      html.kstuff-cursor-active, html.kstuff-cursor-active *{cursor:none !important;}
+      .kstuff-cursor{position:fixed;top:0;left:0;width:22px;height:22px;pointer-events:none;z-index:2147483647;color:var(--text-color, inherit);opacity:0;transition:opacity .1s ease;}
+      .kstuff-cursor.visible{opacity:1;}
+      .kstuff-cursor svg{width:100%;height:100%;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}
+    `
+  }));
+
+  const cursorEl = K.body.appendChild(K.el('div', { className: 'kstuff-cursor', innerHTML: K.CURSOR_SVG_MARKUP }));
+  document.documentElement.classList.add('kstuff-cursor-active');
+
+  let cursorSuppressed = false, cursorShown = false;
+  const showCustomCursor = () => {
+    if (cursorSuppressed || cursorShown) return;
+    cursorShown = true;
+    cursorEl.classList.add('visible');
+  };
+  const hideCustomCursor = () => {
+    cursorShown = false;
+    cursorEl.classList.remove('visible');
+  };
+  const setCursorSuppressed = state => {
+    cursorSuppressed = state;
+    if (state) hideCustomCursor();
+    else if (lastPointerEvent) showCustomCursor();
+  };
+  K.setCursorSuppressed = setCursorSuppressed;
+
+  let pointerPending = false, lastPointerEvent = null;
+  function onPointerFrame() {
+    pointerPending = false;
+    const e = lastPointerEvent;
+    if (!e) return;
+    cursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    const t = e.target?.closest?.('[data-tooltip]');
+    if (!t) {
+      tooltipEl.style.display = 'none';
+    } else {
+      tooltipEl.textContent = t.dataset.tooltip;
+      tooltipEl.style.left = (e.clientX + 12) + 'px';
+      tooltipEl.style.top = (e.clientY + 12) + 'px';
+      tooltipEl.style.display = 'block';
+    }
+  }
+
+  document.addEventListener('pointermove', e => {
+    lastPointerEvent = e;
+    if (!pointerPending) { pointerPending = true; requestAnimationFrame(onPointerFrame); }
+    showCustomCursor();
+  }, { passive: true });
+  document.addEventListener('pointerout', e => {
+    if (!e.relatedTarget || !e.relatedTarget.closest || !e.relatedTarget.closest('[data-tooltip]')) tooltipEl.style.display = 'none';
+  }, { passive: true });
+  document.addEventListener('pointerleave', () => hideCustomCursor(), { passive: true });
+  document.addEventListener('pointerenter', () => { if (lastPointerEvent) showCustomCursor(); }, { passive: true });
+
+  window.addEventListener('message', e => {
+    const d = e.data;
+    if (!d || d.type !== 'kstuff-cursor') return;
+    setCursorSuppressed(d.action === 'enter');
+  });
+
+  Object.values(K.iframePages).forEach(p => {
+    const f = K.$(p.id);
+    if (!f) return;
+    f.addEventListener('mouseenter', () => setCursorSuppressed(true));
+    f.addEventListener('mouseleave', () => setCursorSuppressed(false));
+  });
+  ['readingcorner', 'sciencequiz'].forEach(pageId => {
+    const ifr = K.resourceIframeFor(pageId);
+    if (!ifr) return;
+    ifr.addEventListener('mouseenter', () => setCursorSuppressed(true));
+    ifr.addEventListener('mouseleave', () => setCursorSuppressed(false));
+  });
+
+  let indicator = K.navBar?.querySelector('.nav-indicator') || (K.navBar && (K.navBar.prepend(K.el('div', { className: 'nav-indicator' })), K.navBar.querySelector('.nav-indicator')));
+  const updateIndicator = btn => {
+    if (!btn || !indicator || !K.navBar) return;
+    const isVert = K.body.className.includes('nav-left') || K.body.className.includes('nav-right');
+    const nR = K.navBar.getBoundingClientRect(), bR = btn.getBoundingClientRect();
+    indicator.style.cssText = `transition:transform .22s ease,width .22s ease,height .22s ease;` +
+      (isVert ? `width:3px;height:${bR.height}px;transform:translateY(${bR.top - nR.top}px);` : `width:${bR.width}px;height:3px;transform:translateX(${bR.left - nR.left}px);`);
+  };
+  K.updateIndicator = updateIndicator;
+
+  if (K.navBar) {
+    new MutationObserver(() => {
+      const activeBtn = K.navBar.querySelector('.nav-btn.active');
+      if (activeBtn) updateIndicator(activeBtn);
+    }).observe(K.navBar, { subtree: true, attributes: true, attributeFilter: ['class'] });
+  }
+  if (K.navBar && window.ResizeObserver) {
+    new ResizeObserver(() => updateIndicator(document.querySelector('.nav-btn.active'))).observe(K.navBar);
+  } else {
+    let rs; window.addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(() => updateIndicator(document.querySelector('.nav-btn.active')), 120); });
+  }
+
+  const loadContent = async (tId, forceReload = false, customSrc = null) => {
+    K.firstNavStarted = true;
+    K.isNavigating = true;
+
+    try {
+      if (tId === 'studyhall' && !K.currentUser) {
+        K.authMod?.classList.add('active');
+        K.toggleLoader(false);
+        return;
+      }
+
+      const targetPage = K.$(tId);
+      if (!targetPage) {
+        K.toggleLoader(false);
+        return;
+      }
+
+      if (!customSrc) K.setAddress(K.pageAddress(tId));
+
+      if (targetPage.classList.contains('active') && !forceReload && !customSrc) {
+        const ifr = K.iframePages[tId];
+        if (ifr && K.iframeInFlight[ifr.id]) return;
+        if (!(ifr && (K.iframeLoadFailed[ifr.id] || !K.$(ifr.id)?.srcdoc))) {
+          K.toggleLoader(false);
+          return;
+        }
+      }
+
+      const currentActive = document.querySelector('.page.active:not(#' + tId + ')');
+      K.toggleLoader(true);
+
+      if (currentActive) {
+        currentActive.classList.remove('active');
+        currentActive.style.display = 'none';
+
+        if (K.iframePages[currentActive.id]) {
+          const oldId = K.iframePages[currentActive.id].id;
+          if (!K.isKeepAliveLoaded(oldId)) {
+            K.cancelIframeLoads(oldId);
+            const oldIframe = K.$(oldId);
+            if (oldIframe) {
+              oldIframe.removeAttribute('srcdoc');
+              oldIframe.src = 'about:blank';
+            }
+          }
+        }
+      }
+
+      Object.keys(K.grids).forEach(k => {
+        if (k !== tId) {
+          if (K.grids[k].gridEl) K.clearGridPool(k);
+          if (K.resourceOpenFor[k]) K.resetResourceView(k);
+        }
+      });
+
+      targetPage.style.display = 'block';
+      targetPage.style.opacity = '1';
+      targetPage.classList.add('active');
+
+      if (K.grids[tId]) {
+        K.buildPool(tId);
+        await K.renderGrid(tId, false);
+        K.refreshGridSource(tId);
+      } else if (K.iframePages[tId]) {
+        const iframeData = K.iframePages[tId];
+        const iframeEl = K.$(iframeData.id);
+        if (iframeEl) iframeEl.style.display = 'block';
+        if (customSrc && iframeEl) {
+          K.cancelIframeLoads(iframeData.id);
+          iframeEl.removeAttribute('srcdoc');
+          iframeEl.src = customSrc;
+          K.toggleLoader(false);
+        } else {
+          await K.loadIframePage(iframeData.id, iframeData.path);
+        }
+      }
+    } finally {
+      K.isNavigating = false;
+    }
+  };
+  K.loadContent = loadContent;
+
+  K.navBtns.forEach(btn => {
+    const labelDivs = btn.querySelectorAll('.label-data div');
+
+    btn.dataset.tooltip = labelDivs.length
+      ? Array.from(labelDivs)
+          .map(item => item.textContent)
+          .reverse()
+          .join('')
+      : (btn.title || btn.dataset.target);
+
+    btn.addEventListener('click', event => {
+      event.preventDefault();
+
+      tooltipEl.style.display = 'none';
+
+      const targetId = btn.dataset.target;
+
+      if (targetId === 'profile') {
+        if (!K.currentUser) {
+          K.authMod?.classList.add('active');
+        } else {
+          K.updateAuthUI();
+          K.profMod?.classList.add('active');
+        }
+
+        return;
+      }
+
+      if (targetId === 'homeworkhelper') {
+        K.$('homeworkhelper-modal')?.classList.add('active');
+        return;
+      }
+
+      if (targetId === 'changelog') {
+        K.$('changelog-modal')?.classList.add('active');
+        return;
+      }
+
+      if (targetId === 'studyhall' && !K.currentUser) {
+        K.authMod?.classList.add('active');
+        return;
+      }
+
+      K.navBtns.forEach(other => {
+        if (!['homeworkhelper', 'changelog', 'profile'].includes(other.dataset.target)) {
+          other.classList.remove('active');
+        }
+      });
+
+      btn.classList.add('active');
+      updateIndicator(btn);
+      K.toggleLoader(true);
+
+      loadContent(targetId).then(() => {
+        const pendingTitle = K.pendingResourceOpen[targetId];
+        if (pendingTitle) {
+          K.pendingResourceOpen[targetId] = null;
+          const grid = K.grids[targetId];
+          if (grid) {
+            const match = (grid.data || []).find(i => K.slugifyTitle(i.title) === pendingTitle)
+              || (grid.data || []).find(i => i.title === pendingTitle)
+              || (grid.data || []).find(i => (i.title || '').toLowerCase() === pendingTitle.toLowerCase());
+            if (match) K.openResource(match, { pageId: targetId, isHistory: true });
+          }
+        }
+      }).catch(error => {
+        console.error(`Navigation to ${targetId} failed:`, error);
+        K.toggleLoader(false);
+      });
+    });
+  });
+
+  window.addEventListener('message', event => {
+    if (typeof event.data === 'string' && event.data.startsWith('nav: ')) {
+      const pageName = event.data.replace('nav: ', '').trim().toLowerCase();
+      const targetMap = { 'home': 'mathworksheets', 'games': 'readingcorner', 'apps': 'sciencequiz', 'music': 'gradebook', 'ai': 'lessonplanner', 'vms': 'vms', 'chat': 'studyhall' };
+      const targetId = targetMap[pageName] || pageName;
+      const targetBtn = K.findNavBtn(targetId);
+      if (targetBtn) targetBtn.click();
+    }
+  });
+
+  const updateBrowserNav = () => {
+    if (K.sBack) K.sBack.disabled = K.historyIndex <= 0;
+    if (K.sFwd) K.sFwd.disabled = K.historyIndex >= K.history.length - 1;
+  };
+  K.updateBrowserNav = updateBrowserNav;
+
+  const loadBrowserUrl = (val, isHistory = false) => {
+    const targetUrl = K.formatWebUrl(val);
+    if (!targetUrl) return;
+
+    if (targetUrl.startsWith('kstuff://')) {
+      const rest = targetUrl.slice('kstuff://'.length);
+      const slashIdx = rest.indexOf('/');
+      const pageSeg = (slashIdx === -1 ? rest : rest.slice(0, slashIdx)).toLowerCase();
+      const titleSeg = slashIdx === -1 ? '' : K.slugifyTitle(rest.slice(slashIdx + 1));
+      const targetId = K.reverseUrlMap[pageSeg] || pageSeg;
+      const btn = K.findNavBtn(targetId);
+
+      if (!isHistory && K.history[K.historyIndex] !== targetUrl) {
+        K.history = K.history.slice(0, K.historyIndex + 1);
+        K.history.push(targetUrl);
+        K.historyIndex++;
+      }
+      K.setAddress(targetUrl);
+      updateBrowserNav();
+
+      if (!titleSeg) {
+        K.pendingResourceOpen[targetId] = null;
+        if (K.grids[targetId] && K.resourceOpenFor[targetId] && document.querySelector('.page.active')?.id === targetId) {
+          K.closeResourceInline(targetId);
+        }
+        if (btn) btn.click();
+        return;
+      }
+
+      K.pendingResourceOpen[targetId] = titleSeg;
+      if (btn) btn.click();
+      return;
+    }
+
+    if (!isHistory && K.history[K.historyIndex] !== targetUrl) {
+      K.history = K.history.slice(0, K.historyIndex + 1);
+      K.history.push(targetUrl);
+      K.historyIndex++;
+    }
+
+    if (K.tbInput) K.tbInput.value = targetUrl;
+    updateBrowserNav();
+
+    const proxiedUrl = K.buildIxlUrl(targetUrl);
+    loadContent('mathworksheets', true, proxiedUrl);
+  };
+  K.loadBrowserUrl = loadBrowserUrl;
+
+  if (K.tbInput) {
+    K.tbInput.addEventListener('keydown', e => { if (e.key === 'Enter') loadBrowserUrl(e.target.value); });
+    K.$('study-enter-btn')?.addEventListener('click', () => loadBrowserUrl(K.tbInput.value));
+  }
+
+  K.sBack?.addEventListener('click', () => { if (K.historyIndex > 0) { K.historyIndex--; loadBrowserUrl(K.history[K.historyIndex], true); } });
+  K.sFwd?.addEventListener('click', () => { if (K.historyIndex < K.history.length - 1) { K.historyIndex++; loadBrowserUrl(K.history[K.historyIndex], true); } });
+  K.sReload?.addEventListener('click', () => { if (K.studyIframe) { try { K.studyIframe.contentWindow.location.reload(); } catch(e) { K.studyIframe.src = K.studyIframe.src; } } });
+  K.sHome?.addEventListener('click', () => loadBrowserUrl('kstuff://home'));
+
+  let activePort = null;
+  const mathworksIframe = K.$('mathworksheets-iframe');
+
+  if (mathworksIframe) {
+    mathworksIframe.addEventListener('load', () => {
+      try {
+        const channel = new MessageChannel();
+        activePort = channel.port1;
+
+        activePort.onmessage = (event) => {
+          if (event.data && event.data.type === 'tabData') {
+            const reportedUrl = event.data.url;
+
+            if (document.activeElement === K.tbInput) return;
+            if (document.querySelector('.page.active')?.id !== 'mathworksheets') return;
+
+            const normalize = u => u ? u.replace(/\/$/, '').trim().toLowerCase() : '';
+            const currentVal = K.tbInput ? K.tbInput.value : '';
+            if (reportedUrl && normalize(reportedUrl) !== normalize(currentVal) && reportedUrl !== 'about:blank') {
+              if (K.tbInput) K.tbInput.value = reportedUrl;
+
+              if (K.history[K.historyIndex] !== reportedUrl) {
+                K.history = K.history.slice(0, K.historyIndex + 1);
+                K.history.push(reportedUrl);
+                K.historyIndex++;
+                updateBrowserNav();
+              }
+            }
+          }
+        };
+
+        if (mathworksIframe.contentWindow) {
+          mathworksIframe.contentWindow.postMessage('init-port', '*', [channel.port2]);
+        }
+      } catch (e) {
+      }
+    });
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.data && typeof event.data === 'string') {
+      const data = event.data.trim();
+      if (
+        data.startsWith('http://') ||
+        data.startsWith('https://') ||
+        data.startsWith('kstuff://') ||
+        (data.includes('.') && !data.includes(' '))
+      ) {
+        loadBrowserUrl(data);
+      }
+    }
+  });
+
+  K.initPromise
+    .then(async () => {
+      if (K.firstNavStarted) return;
+
+      let activePage = document.querySelector('.page.active');
+
+      if (!activePage) {
+        const defaultHomeButton = K.findNavBtn('mathworksheets');
+
+        if (defaultHomeButton) {
+          K.navBtns.forEach(button => {
+            button.classList.remove('active');
+          });
+
+          defaultHomeButton.classList.add('active');
+          updateIndicator(defaultHomeButton);
+
+          activePage = { id: 'mathworksheets' };
+        }
+      }
+
+      if (activePage) {
+        await loadContent(activePage.id, true);
+      } else {
+        K.toggleLoader(false);
+      }
+    })
+    .catch(error => {
+      console.error('Initial page load failed:', error);
+      K.toggleLoader(false);
+    });
+
+  const isAnyModalActive = () => !!document.querySelector('.modal-overlay.active');
+  K.isAnyModalActive = isAnyModalActive;
+
+  async function autoRefreshActivePage() {
+    if (K.autoRefreshBusy || K.isNavigating || isAnyModalActive() || document.hidden) return;
+    const activePage = document.querySelector('.page.active');
+    if (!activePage) return;
+    const tId = activePage.id;
+
+    if (tId === 'mathworksheets' && K.tbInput && K.tbInput.value && K.tbInput.value !== 'kstuff://home') return;
+
+    K.autoRefreshBusy = true;
+    try {
+      const ifr = K.iframePages[tId];
+
+      if (ifr) {
+        await K.maybeReloadIframe(ifr.id, ifr.path);
+        return;
+      }
+
+      if (K.grids[tId]) {
+        window.kstuffLastRefresh = Date.now();
+        await K.refreshGridSource(tId, true);
+      }
+    } finally {
+      K.autoRefreshBusy = false;
+    }
+  }
+  K.autoRefreshActivePage = autoRefreshActivePage;
+
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) autoRefreshActivePage();
+  });
+
+  setInterval(autoRefreshActivePage, 200000);
+}
