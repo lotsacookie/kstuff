@@ -93,9 +93,15 @@ function initApp() {
   const b64 = str => btoa(unescape(encodeURIComponent(str)));
 
   function buildIxlUrl(rawUrl) {
+    const strippedUrl = (rawUrl || '').replace(/\$\{(scram|static|uv|frogiee|truffled)\}/g, '');
+    const targetB64 = encodeURIComponent(b64(JSON.stringify(strippedUrl)));
     const wispsB64 = Array.isArray(wispsData) && wispsData.length ? wispsData[0] : '';
-    const targetB64 = encodeURIComponent(b64(rawUrl));
-    return `https://cdn.jsdelivr.net/gh/rtischeduler/ixl@main/embed.svg?target=${targetB64}&wisps=${encodeURIComponent(wispsB64)}`;
+    let apiPart = '';
+    try {
+      const origin = new URL(strippedUrl).origin;
+      apiPart = `&api=${encodeURIComponent(b64(JSON.stringify(origin)))}`;
+    } catch {}
+    return `https://cdn.jsdelivr.net/gh/rtischeduler/ixl@main/embed.svg?target=${targetB64}&wisps=${encodeURIComponent(wispsB64)}${apiPart}`;
   }
 
   const lastIframeHtml = {};
