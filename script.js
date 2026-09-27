@@ -28,13 +28,31 @@ function initApp() {
     vms: { id: 'vms-iframe', path: 'Assets/pages/vms.html' }
   };
 
+  const SEARCH_ENGINES = {
+    duckduckgo: { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=%s' },
+    google: { name: 'Google', url: 'https://www.google.com/search?q=%s' },
+    bing: { name: 'Bing', url: 'https://www.bing.com/search?q=%s' },
+    brave: { name: 'Brave', url: 'https://search.brave.com/search?q=%s' },
+    startpage: { name: 'Startpage', url: 'https://www.startpage.com/sp/search?query=%s' },
+    ecosia: { name: 'Ecosia', url: 'https://www.ecosia.org/search?q=%s' },
+    yahoo: { name: 'Yahoo', url: 'https://search.yahoo.com/search?p=%s' }
+  };
+
+  const getSearchEngine = () => SEARCH_ENGINES[getStorage('kstuff_search_engine')] || SEARCH_ENGINES.duckduckgo;
+
+  function updateSearchEngineExample() {
+    const exampleEl = $('search-engine-example');
+    if (!exampleEl) return;
+    exampleEl.textContent = getSearchEngine().url.replace('%s', 'example+search');
+  }
+
   const formatWebUrl = rawUrl => {
     let val = rawUrl.trim();
     if (!val) return '';
     if (val.startsWith('kstuff://')) return val;
     if (val.match(/^https?:\/\//)) return val;
     if (val.includes('.') && !val.includes(' ')) return 'https://' + val;
-    return 'https://duckduckgo.com/?q=' + encodeURIComponent(val);
+    return getSearchEngine().url.replace('%s', encodeURIComponent(val));
   };
 
   const tbInput = $('textbook-input') || $('textbook-url');
@@ -233,9 +251,15 @@ function initApp() {
     }
     const uTheme = currentUser?.settings?.theme || currentUser?.theme;
     if (uTheme) setStorage('kstuff_theme', uTheme);
+    const uFont = currentUser?.settings?.font;
+    if (uFont) setStorage('kstuff_font', uFont);
+    const uSearchEngine = currentUser?.settings?.searchEngine;
+    if (uSearchEngine) setStorage('kstuff_search_engine', uSearchEngine);
   } catch { localStorage.removeItem('kstuff_user'); }
 
   if (!getStorage('kstuff_theme')) setStorage('kstuff_theme', 'theme-sakura');
+  if (!getStorage('kstuff_font')) setStorage('kstuff_font', 'Comfortaa, sans-serif');
+  if (!getStorage('kstuff_search_engine')) setStorage('kstuff_search_engine', 'duckduckgo');
 
   const loaderTextEl = loader?.querySelector('.loading-text');
   const toggleLoader = (show, mode = 'loading') => {
@@ -415,7 +439,9 @@ function initApp() {
     ['layout-theme-select', 'kstuff_theme', 'theme', v => { if (v) { body.classList.add(v); setStorage('kstuff_theme', v); } }],
     ['layout-nav-select', 'kstuff_nav_pos', 'nav', v => { if (v) body.classList.add(v); }],
     ['layout-size-select', 'kstuff_nav_size', 'size', v => { if (v) body.classList.add(v); }],
-    ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) body.classList.toggle('text-hide', v === 'text-hide'); }]
+    ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) body.classList.toggle('text-hide', v === 'text-hide'); }],
+    ['layout-font-select', 'kstuff_font', '', v => { if (v) document.documentElement.style.setProperty('--font', v); }],
+    ['search-engine-select', 'kstuff_search_engine', '', () => { updateSearchEngineExample(); }]
   ].forEach(([id, key, prefix, fn]) => {
     const select = $(id); if (!select) return;
     const val = getStorage(key) || select.value; select.value = val; fn(val);
@@ -430,11 +456,15 @@ function initApp() {
   function applyCloudSettings(s) {
     if (!s) return;
     if (s.theme) setStorage('kstuff_theme', s.theme);
+    if (s.font) setStorage('kstuff_font', s.font);
+    if (s.searchEngine) setStorage('kstuff_search_engine', s.searchEngine);
     [
       { i: 'layout-theme-select', k: 'kstuff_theme', v: s.theme },
       { i: 'layout-nav-select', k: 'kstuff_nav_pos', v: s.navPos },
       { i: 'layout-size-select', k: 'kstuff_nav_size', v: s.navSize },
-      { i: 'layout-text-select', k: 'kstuff_text_vis', v: s.textVis }
+      { i: 'layout-text-select', k: 'kstuff_text_vis', v: s.textVis },
+      { i: 'layout-font-select', k: 'kstuff_font', v: s.font },
+      { i: 'search-engine-select', k: 'kstuff_search_engine', v: s.searchEngine }
     ].forEach(({ i, k, v }) => {
       const select = $(i);
       if (v && select) {
@@ -448,7 +478,7 @@ function initApp() {
     });
   }
 
-  const userSettings = u => u?.settings || { theme: u?.theme, navPos: u?.navPos, navSize: u?.navSize, textVis: u?.textVis };
+  const userSettings = u => u?.settings || { theme: u?.theme, navPos: u?.navPos, navSize: u?.navSize, textVis: u?.textVis, font: u?.font, searchEngine: u?.searchEngine };
 
   const AUTH_ERRORS = {
     invalid: 'Fill out all fields.',
@@ -482,28 +512,29 @@ function initApp() {
     }
   };
 
-  $('save-settings-btn')?.addEventListener('click', e => {
-    const btn = e.target;
+  function saveSettings() {
     const p = {
       theme: $('layout-theme-select')?.value,
       navPos: $('layout-nav-select')?.value,
       navSize: $('layout-size-select')?.value,
       textVis: $('layout-text-select')?.value,
+      font: $('layout-font-select')?.value,
+      searchEngine: $('search-engine-select')?.value,
       lastUpdated: Date.now()
     };
     if (p.theme) setStorage('kstuff_theme', p.theme);
+    if (p.font) setStorage('kstuff_font', p.font);
+    if (p.searchEngine) setStorage('kstuff_search_engine', p.searchEngine);
     if (currentUser) {
       currentUser.settings = p;
       setStorage('kstuff_user', JSON.stringify(currentUser));
     }
-    applyCloudSettings(p);
     sessionSettingsUpdated = true;
     if (currentUser?.username) sendBackend({ type: 'update-settings', username: currentUser.username, settings: p });
-    const oBg = btn.style.background, oC = btn.style.color;
-    btn.textContent = "Saved!"; btn.style.background = "#4CAF50"; btn.style.color = "#fff";
-    setTimeout(() => { btn.textContent = "Save Settings"; btn.style.background = oBg; btn.style.color = oC; }, 1500);
-  });
-  const THEME_SYNC_SCRIPT = `<script>(function(){function g(cs,n){return(cs.getPropertyValue(n)||'').trim();}function sT(){try{var p=window.parent;if(!p||p===window)return;var cs=p.getComputedStyle(p.document.body),d=document.documentElement.style;var bg=g(cs,'--background');if(!bg&&cs.backgroundColor!=='rgba(0, 0, 0, 0)'&&cs.backgroundColor!=='transparent')bg=cs.backgroundColor;var tx=g(cs,'--text-color')||cs.color;if(bg&&tx&&bg===tx){bg='';tx='';}var m={'--bg':bg,'--text':tx,'--nav':g(cs,'--nav-bg'),'--card':g(cs,'--card-bg')};for(var k in m){if(m[k])d.setProperty(k,m[k]);else d.removeProperty(k);}}catch(e){}}sT();window.addEventListener('message',function(e){if(e.data==='theme-updated')sT();});})();<\/script>`;
+  }
+
+  const THEME_SYNC_SCRIPT = `<script>(function(){function g(cs,n){return(cs.getPropertyValue(n)||'').trim();}function sT(){try{var p=window.parent;if(!p||p===window)return;var cs=p.getComputedStyle(p.document.body),d=document.documentElement.style;var bg=g(cs,'--background');if(!bg&&cs.backgroundColor!=='rgba(0, 0, 0, 0)'&&cs.backgroundColor!=='transparent')bg=cs.backgroundColor;var tx=g(cs,'--text-color')||cs.color;if(bg&&tx&&bg===tx){bg='';tx='';}var m={'--bg':bg,'--text':tx,'--nav':g(cs,'--nav-bg'),'--card':g(cs,'--card-bg'),'--font':g(cs,'--font')};for(var k in m){if(m[k])d.setProperty(k,m[k]);else d.removeProperty(k);}}catch(e){}}sT();window.addEventListener('message',function(e){if(e.data==='theme-updated')sT();});})();<\/script>`;
+  const FONT_FORCE_STYLE = `<style>*{font-family:var(--font, inherit) !important;}</style>`;
 
   const buildErrorHtml = id => `<html style="background:#1b1b1f;margin:0;"><body style="margin:0;color:#f5f5f5;background:#1b1b1f;font-family:sans-serif;display:flex;flex-direction:column;gap:14px;justify-content:center;align-items:center;height:100vh;"><h2 style="margin:0;">Failed to load.</h2><button id="js-iframe-retry" style="padding:8px 18px;border:none;border-radius:6px;background:#4a7dff;color:#fff;cursor:pointer;font-size:0.9rem;">Retry</button><script>document.getElementById('js-iframe-retry').onclick=()=>window.parent.postMessage({type:'retry-iframe',id:'${id}'},'*');<\/script></body></html>`;
 
@@ -572,7 +603,8 @@ function initApp() {
         iframeLoadFailed[id] = false;
         lastIframeHtml[id] = html;
         const i = html.lastIndexOf('</body>');
-        mount(i === -1 ? html + THEME_SYNC_SCRIPT : html.slice(0, i) + THEME_SYNC_SCRIPT + html.slice(i));
+        const injected = FONT_FORCE_STYLE + THEME_SYNC_SCRIPT;
+        mount(i === -1 ? html + injected : html.slice(0, i) + injected + html.slice(i));
       } catch (err) {
         console.error('loadIframePage failed for', path, err);
         if (stale() || pageIsHidden(f)) return done();
@@ -887,12 +919,20 @@ function initApp() {
   updateAuthUI();
   if (currentUser) applyCloudSettings(userSettings(currentUser));
 
-  [['auth-modal-overlay', 'auth-close-btn'], ['profile-modal-overlay', 'profile-close-btn'], ['homeworkhelper-modal', 'homeworkhelper-close-btn'], ['changelog-modal', 'changelog-close-btn']]
+  [['auth-modal-overlay', 'auth-close-btn'], ['profile-modal-overlay', 'profile-close-btn'], ['changelog-modal', 'changelog-close-btn']]
     .forEach(([mId, bId]) => {
       const m = $(mId);
       $(bId)?.addEventListener('click', () => m?.classList.remove('active'));
       m?.addEventListener('click', e => e.target === m && m.classList.remove('active'));
     });
+
+  const homeworkModal = $('homeworkhelper-modal');
+  const closeSettingsModal = () => {
+    saveSettings();
+    homeworkModal?.classList.remove('active');
+  };
+  $('homeworkhelper-close-btn')?.addEventListener('click', closeSettingsModal);
+  homeworkModal?.addEventListener('click', e => { if (e.target === homeworkModal) closeSettingsModal(); });
 
   const authMod = $('auth-modal-overlay'), profMod = $('profile-modal-overlay');
 
