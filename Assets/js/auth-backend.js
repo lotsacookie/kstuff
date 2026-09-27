@@ -262,7 +262,7 @@ export function init(K) {
   K.sendBackend = sendBackend;
 
   startBackend();
-  setInterval(ensureBackend, K.BACKEND_WATCHDOG_INTERVAL);
+  setInterval(() => { if (!K.isAnyResourceOpen()) ensureBackend(); }, K.BACKEND_WATCHDOG_INTERVAL);
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) ensureBackend();
   });
@@ -317,4 +317,4 @@ export function init(K) {
     sendBackend({ type: 'update-settings', username: K.currentUser.username, settings: { profilePicture: K.currentUser.profilePicture, description: K.currentUser.description } });
     setTimeout(() => { btn.textContent = oT; toggleProfEdit(false); }, 600);
   });
-                                               }
+}
