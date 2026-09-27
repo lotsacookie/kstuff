@@ -438,24 +438,6 @@ function initApp() {
   try { handleThemesLoaded(JSON.parse(getStorage('kstuff_themes_cache'))); } catch {}
   fetchWithProxy('Assets/json/themes.json').then(t => { setStorage('kstuff_themes_cache', JSON.stringify(t)); handleThemesLoaded(t); }).catch(err => console.error('themes.json failed', err));
 
-  [
-    ['layout-theme-select', 'kstuff_theme', 'theme', v => { if (v) { body.classList.add(v); setStorage('kstuff_theme', v); } }],
-    ['layout-nav-select', 'kstuff_nav_pos', 'nav', v => { if (v) body.classList.add(v); }],
-    ['layout-size-select', 'kstuff_nav_size', 'size', v => { if (v) body.classList.add(v); }],
-    ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) body.classList.toggle('text-hide', v === 'text-hide'); }],
-    ['layout-font-select', 'kstuff_font', '', v => { if (v) { document.documentElement.style.setProperty('--font', v); ensureParentFontLoaded(v); } }],
-    ['search-engine-select', 'kstuff_search_engine', '', v => { updateSearchEngineExample(v); }]
-  ].forEach(([id, key, prefix, fn]) => {
-    const select = $(id); if (!select) return;
-    const val = getStorage(key) || select.value; select.value = val; fn(val);
-    select.addEventListener('change', e => {
-      if (prefix) body.className = body.className.replace(new RegExp(`\\b${prefix}-\\S+`, 'g'), '').trim();
-      fn(e.target.value); setStorage(key, e.target.value);
-      updateIndicator(navBar?.querySelector('.nav-btn.active'));
-      notifyIframesTheme();
-    });
-  });
-
   const SYSTEM_FONT_NAMES = new Set([
     'sans-serif', 'serif', 'monospace', 'cursive', 'fantasy', 'system-ui',
     'ui-sans-serif', 'ui-serif', 'ui-monospace', 'ui-rounded',
@@ -483,6 +465,24 @@ function initApp() {
     document.head.appendChild(link);
   }
   ensureParentFontLoaded(getStorage('kstuff_font'));
+
+  [
+    ['layout-theme-select', 'kstuff_theme', 'theme', v => { if (v) { body.classList.add(v); setStorage('kstuff_theme', v); } }],
+    ['layout-nav-select', 'kstuff_nav_pos', 'nav', v => { if (v) body.classList.add(v); }],
+    ['layout-size-select', 'kstuff_nav_size', 'size', v => { if (v) body.classList.add(v); }],
+    ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) body.classList.toggle('text-hide', v === 'text-hide'); }],
+    ['layout-font-select', 'kstuff_font', '', v => { if (v) { document.documentElement.style.setProperty('--font', v); ensureParentFontLoaded(v); } }],
+    ['search-engine-select', 'kstuff_search_engine', '', v => { updateSearchEngineExample(v); }]
+  ].forEach(([id, key, prefix, fn]) => {
+    const select = $(id); if (!select) return;
+    const val = getStorage(key) || select.value; select.value = val; fn(val);
+    select.addEventListener('change', e => {
+      if (prefix) body.className = body.className.replace(new RegExp(`\\b${prefix}-\\S+`, 'g'), '').trim();
+      fn(e.target.value); setStorage(key, e.target.value);
+      updateIndicator(navBar?.querySelector('.nav-btn.active'));
+      notifyIframesTheme();
+    });
+  });
 
   function applyCloudSettings(s) {
     if (!s) return;
