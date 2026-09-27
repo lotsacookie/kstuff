@@ -24,20 +24,12 @@
     "category": "Puzzle"
   },
   {
-    "title": "60 Seconds",
-    "category": "Strategy"
-  },
-  {
     "title": "a dance of fire and ice",
     "category": "Rhythm"
   },
   {
     "title": "A Difficult Game About Climbing",
     "category": "Platformer"
-  },
-  {
-    "title": "A Game About Feeding A Blackhole",
-    "category": "Arcade"
   },
   {
     "title": "A Small World Cup",
@@ -48,24 +40,8 @@
     "category": "Simulation"
   },
   {
-    "title": "Academytale",
-    "category": "RPG"
-  },
-  {
-    "title": "AdVenture Capatalist",
-    "category": "Idle"
-  },
-  {
     "title": "Agar.io",
     "category": "Multiplayer"
-  },
-  {
-    "title": "Amanda The Adventurer",
-    "category": "Horror"
-  },
-  {
-    "title": "Amaze",
-    "category": "Puzzle"
   },
   {
     "title": "Among us",
@@ -84,28 +60,12 @@
     "category": "RPG"
   },
   {
-    "title": "Angry Birds Online",
-    "category": "Puzzle"
-  },
-  {
     "title": "Angry Birds Showdown",
     "category": "Puzzle"
   },
   {
-    "title": "Animal Crossing Population: Growing!",
-    "category": "Simulation"
-  },
-  {
-    "title": "Animal Crossing Wild World",
-    "category": "Simulation"
-  },
-  {
     "title": "Animation Throwdown",
     "category": "Cards"
-  },
-  {
-    "title": "Antonblast 64",
-    "category": "Platformer"
   },
   {
     "title": "Apes VS Helium",
@@ -124,64 +84,12 @@
     "category": "Action"
   },
   {
-    "title": "Bad Parenting",
-    "category": "Horror"
-  },
-  {
-    "title": "Bad Piggies",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Balatro",
-    "category": "Cards"
-  },
-  {
-    "title": "Balatro Modded",
-    "category": "Cards"
-  },
-  {
-    "title": "Baldi's Basics Birthday Bash",
-    "category": "Horror"
-  },
-  {
-    "title": "Baldi's Basics Ultra Decompile",
-    "category": "Horror"
-  },
-  {
-    "title": "Baldi's Fun New School Plus Ultimate Edition",
-    "category": "Horror"
-  },
-  {
-    "title": "Baldurs Gate 2",
-    "category": "RPG"
-  },
-  {
-    "title": "Banjo Kazooie",
-    "category": "Platformer"
-  },
-  {
-    "title": "Basket Random",
-    "category": "Sports"
-  },
-  {
-    "title": "Bee Movie Game",
-    "category": "Adventure"
-  },
-  {
     "title": "BERGENTRUCK 201x",
     "category": "Driving"
   },
   {
-    "title": "Bfdia 5b",
-    "category": "Platformer"
-  },
-  {
     "title": "BitPlanes",
     "category": "Arcade"
-  },
-  {
-    "title": "Bitlife",
-    "category": "Simulation"
   },
   {
     "title": "BlackJack",
@@ -189,10 +97,6 @@
   },
   {
     "title": "Bloons TD Battles 2",
-    "category": "Strategy"
-  },
-  {
-    "title": "Bloons TD6",
     "category": "Strategy"
   },
   {
@@ -208,32 +112,12 @@
     "category": "Platformer"
   },
   {
-    "title": "Bombmerman",
-    "category": "Arcade"
-  },
-  {
-    "title": "Bombmerman 2",
-    "category": "Arcade"
-  },
-  {
     "title": "Bouncy Heroes",
     "category": "Arcade"
   },
   {
-    "title": "Boxing Random",
-    "category": "Sports"
-  },
-  {
     "title": "Brotato",
     "category": "Action"
-  },
-  {
-    "title": "Burrito Bison",
-    "category": "Arcade"
-  },
-  {
-    "title": "Burrito Bison Revenge",
-    "category": "Arcade"
   },
   {
     "title": "Call of Duty Mobile",
@@ -242,10 +126,6 @@
   {
     "title": "Candy Crush",
     "category": "Puzzle"
-  },
-  {
-    "title": "Capuchin",
-    "category": "Action"
   },
   {
     "title": "Capybara Clicker",
@@ -260,24 +140,12 @@
     "category": "FPS"
   },
   {
-    "title": "Celeste",
-    "category": "Platformer"
-  },
-  {
     "title": "Cat Goes Fishing",
     "category": "Adventure"
   },
   {
-    "title": "Celeste 64",
-    "category": "Platformer"
-  },
-  {
     "title": "Chicken CS",
     "category": "FPS"
-  },
-  {
-    "title": "Christmas Massacre",
-    "category": "Horror"
   },
   {
     "title": "Clash Ball",
@@ -288,35 +156,7 @@
     "category": "Strategy"
   },
   {
-    "title": "Class of 09",
-    "category": "Adventure"
-  },
-  {
-    "title": "Class Of 09 Flipside",
-    "category": "Adventure"
-  },
-  {
-    "title": "Class Of 09 Re-Up",
-    "category": "Adventure"
-  },
-  {
     "title": "Clicker Heroes",
-    "category": "Clicker"
-  },
-  {
-    "title": "Clover Pit",
-    "category": "Cards"
-  },
-  {
-    "title": "Cluster Rush",
-    "category": "Platformer"
-  },
-  {
-    "title": "Coffee Talk",
-    "category": "Simulation"
-  },
-  {
-    "title": "Cookie Clicker",
     "category": "Clicker"
   },
   {
@@ -324,124 +164,16 @@
     "category": "RPG"
   },
   {
-    "title": "Cooking Mama",
-    "category": "Cooking"
-  },
-  {
-    "title": "Cooking Mama 2",
-    "category": "Cooking"
-  },
-  {
-    "title": "Cooking Mama 3",
-    "category": "Cooking"
-  },
-  {
     "title": "Coreball",
     "category": "Arcade"
-  },
-  {
-    "title": "Counter Stike 0.8",
-    "category": "FPS"
-  },
-  {
-    "title": "Crash Bandicoot 1",
-    "category": "Platformer"
-  },
-  {
-    "title": "Crash Bandicoot 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "Crash Bandicoot 3",
-    "category": "Platformer"
-  },
-  {
-    "title": "Crazy Balls",
-    "category": "Arcade"
-  },
-  {
-    "title": "Crazy Cattle 3D",
-    "category": "Action"
   },
   {
     "title": "Crazy Cattle 3D in Space",
     "category": "Action"
   },
   {
-    "title": "CrazyCattle3D",
-    "category": "Action"
-  },
-  {
-    "title": "Crossy Road",
-    "category": "Arcade"
-  },
-  {
-    "title": "Cruelty Squad",
-    "category": "FPS"
-  },
-  {
     "title": "Crusher Clicker",
     "category": "Clicker"
-  },
-  {
-    "title": "Csgo Clicker",
-    "category": "Clicker"
-  },
-  {
-    "title": "Cuphead",
-    "category": "Platformer"
-  },
-  {
-    "title": "Customer Support",
-    "category": "Simulation"
-  },
-  {
-    "title": "Cut The Rope",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Cut The Rope : Time Travel",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Cut The Rope Holiday",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Dadish",
-    "category": "Platformer"
-  },
-  {
-    "title": "Dadish 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "Dadish 3",
-    "category": "Platformer"
-  },
-  {
-    "title": "Dadish 3d",
-    "category": "Platformer"
-  },
-  {
-    "title": "Dadish Daily",
-    "category": "Platformer"
-  },
-  {
-    "title": "Danganronpa",
-    "category": "Adventure"
-  },
-  {
-    "title": "DEAD PLATE",
-    "category": "Horror"
-  },
-  {
-    "title": "Dead Tapes",
-    "category": "Horror"
-  },
-  {
-    "title": "Deadseat",
-    "category": "Horror"
   },
   {
     "title": "Deadshot.io",
@@ -452,10 +184,6 @@
     "category": "Shooter"
   },
   {
-    "title": "Death Run 3D",
-    "category": "Arcade"
-  },
-  {
     "title": "Deer Adventure Simulator",
     "category": "Simulation"
   },
@@ -464,124 +192,12 @@
     "category": "Multiplayer"
   },
   {
-    "title": "DeltaRune",
-    "category": "RPG"
-  },
-  {
-    "title": "Deltatraveler",
-    "category": "RPG"
-  },
-  {
-    "title": "Diablo",
-    "category": "RPG"
-  },
-  {
-    "title": "Dice A Million",
-    "category": "Puzzle"
-  },
-  {
     "title": "Die In The Dungeon",
     "category": "Cards"
   },
   {
-    "title": "Dinosaur",
-    "category": "Arcade"
-  },
-  {
-    "title": "Do Not Take This Cat Home",
-    "category": "Horror"
-  },
-  {
-    "title": "Doge Miner",
-    "category": "Clicker"
-  },
-  {
-    "title": "Doge Miner 2",
-    "category": "Clicker"
-  },
-  {
     "title": "Doki Doki Literature Club!",
     "category": "Horror"
-  },
-  {
-    "title": "Dome Keeper",
-    "category": "Action"
-  },
-  {
-    "title": "Doodle Jump",
-    "category": "Arcade"
-  },
-  {
-    "title": "Doom",
-    "category": "FPS"
-  },
-  {
-    "title": "Doom 2",
-    "category": "FPS"
-  },
-  {
-    "title": "Doom 3",
-    "category": "FPS"
-  },
-  {
-    "title": "Doom 64",
-    "category": "FPS"
-  },
-  {
-    "title": "Dr. Mario",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Dreadhead Parkour",
-    "category": "Platformer"
-  },
-  {
-    "title": "Drift Boss",
-    "category": "Driving"
-  },
-  {
-    "title": "Drift Hunters",
-    "category": "Racing"
-  },
-  {
-    "title": "Drive Mad",
-    "category": "Driving"
-  },
-  {
-    "title": "Duck Life 1",
-    "category": "Sports"
-  },
-  {
-    "title": "Duck Life 2",
-    "category": "Sports"
-  },
-  {
-    "title": "Duck Life 3",
-    "category": "Sports"
-  },
-  {
-    "title": "Duck Life 4",
-    "category": "Sports"
-  },
-  {
-    "title": "Duck Life 5",
-    "category": "Sports"
-  },
-  {
-    "title": "Duck Life 6",
-    "category": "Sports"
-  },
-  {
-    "title": "Duck Life 7",
-    "category": "Sports"
-  },
-  {
-    "title": "Duck Life 8",
-    "category": "Sports"
-  },
-  {
-    "title": "Dumb Ways To Die",
-    "category": "Arcade"
   },
   {
     "title": "DUO",
@@ -592,92 +208,16 @@
     "category": "Sports"
   },
   {
-    "title": "Eggy Car",
-    "category": "Driving"
-  },
-  {
     "title": "Elastic Face",
     "category": "Arcade"
-  },
-  {
-    "title": "Emily Is Away",
-    "category": "Simulation"
-  },
-  {
-    "title": "Escape Road",
-    "category": "Driving"
-  },
-  {
-    "title": "Escape Road 2",
-    "category": "Driving"
-  },
-  {
-    "title": "Escape Road 3",
-    "category": "Driving"
-  },
-  {
-    "title": "Escape Road City 2",
-    "category": "Driving"
   },
   {
     "title": "Fall Guys",
     "category": "Multiplayer"
   },
   {
-    "title": "Falling Fred",
-    "category": "Arcade"
-  },
-  {
-    "title": "Fallout 1",
-    "category": "RPG"
-  },
-  {
-    "title": "Fallout 2",
-    "category": "RPG"
-  },
-  {
-    "title": "Fancy Pants Adventures",
-    "category": "Platformer"
-  },
-  {
-    "title": "Fancy Pants Adventures 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "Fancy Pants Adventures 3",
-    "category": "Platformer"
-  },
-  {
-    "title": "Fears to Fathom",
-    "category": "Horror"
-  },
-  {
-    "title": "FEZ",
-    "category": "Platformer"
-  },
-  {
     "title": "The Freak Circus",
     "category": "Platformer"
-  },
-  {
-    "title": "Final Fantasy VII",
-    "category": "RPG"
-  },
-  {
-    "title": "Fireboy and Watergirl",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Fireboy and Watergirl 2",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Fireboy and Watergirl 3",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Fireboy and Watergirl 4",
-    "category": "Puzzle"
   },
   {
     "title": "Fireboy and Watergirl 5",
@@ -688,47 +228,7 @@
     "category": "Puzzle"
   },
   {
-    "title": "FISH",
-    "category": "Arcade"
-  },
-  {
-    "title": "Fister",
-    "category": "Action"
-  },
-  {
-    "title": "Five Night At Epstein's",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights At Candys",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights At Candys 2",
-    "category": "Horror"
-  },
-  {
     "title": "Five Nights At Diddy's",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights at Freddy's",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights at Freddy's 2",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights at Freddy's 3",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights at Freddy's 4",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights at Freddy's 4: Halloween",
     "category": "Horror"
   },
   {
@@ -736,48 +236,8 @@
     "category": "Horror"
   },
   {
-    "title": "Five Nights at Freddy's: Sister Location",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights at Freddy's: World",
-    "category": "RPG"
-  },
-  {
-    "title": "Five Nights At Frickbears 3",
-    "category": "Horror"
-  },
-  {
-    "title": "Five Nights At Last Breath",
-    "category": "Horror"
-  },
-  {
-    "title": "Flappy bird",
-    "category": "Arcade"
-  },
-  {
-    "title": "Flying Gorilla",
-    "category": "Arcade"
-  },
-  {
-    "title": "FNAF World Refreshed",
-    "category": "RPG"
-  },
-  {
-    "title": "FNAW",
-    "category": "Horror"
-  },
-  {
     "title": "FNF Mods",
     "category": "Rhythm"
-  },
-  {
-    "title": "FNF, Friday Night Funkin",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Football Bros",
-    "category": "Sports"
   },
   {
     "title": "Fortnite",
@@ -792,120 +252,8 @@
     "category": "Cards"
   },
   {
-    "title": "Fire Fox",
-    "category": "Arcade"
-  },
-  {
-    "title": "Friday Night Funkin Aethos",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Atrocity",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin BFDI 26",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Bop City",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin For A BFDI",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Garcello",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Get Digging",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Golden Apple",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Hatsune Miku",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Hex",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Horkglorpgloop",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Infinite Irida",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Kapi",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Mario Madness",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Nonsense",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Rewrite",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Rewrite 2",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Ron",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Shaggy",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Shaggy X Matt",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Shucks V2",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Tricky",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin TWIDDLEFINGER",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Vs. Tord",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Whitty",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Friday Night Funkin Zardy",
-    "category": "Rhythm"
-  },
-  {
     "title": "Friday Night Funkin'",
     "category": "Rhythm"
-  },
-  {
-    "title": "Fruit Ninja",
-    "category": "Arcade"
   },
   {
     "title": "Funny Battle Simulator",
@@ -916,36 +264,12 @@
     "category": "Strategy"
   },
   {
-    "title": "Fused240",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Gabriel's Awesome Schoolhouse",
-    "category": "Horror"
-  },
-  {
-    "title": "Gacha Life",
-    "category": "Simulation"
-  },
-  {
-    "title": "Gacha Verse",
-    "category": "Simulation"
-  },
-  {
     "title": "Genshin Impact",
     "category": "RPG"
   },
   {
     "title": "Geometry Dash",
     "category": "Rhythm"
-  },
-  {
-    "title": "Getaway Shootout!",
-    "category": "Action"
-  },
-  {
-    "title": "Getting Over It",
-    "category": "Action"
   },
   {
     "title": "Ghostophobia",
@@ -960,14 +284,6 @@
     "category": "Simulation"
   },
   {
-    "title": "Gang Beasts, Webport",
-    "category": "Action"
-  },
-  {
-    "title": "GO TO BED",
-    "category": "Horror"
-  },
-  {
     "title": "Godzilla Daikaiju Battle Royale",
     "category": "Action"
   },
@@ -976,96 +292,12 @@
     "category": "Sports"
   },
   {
-    "title": "Google Baseball",
-    "category": "Sports"
-  },
-  {
-    "title": "Gorilla Tag",
-    "category": "Multiplayer"
-  },
-  {
-    "title": "Granny",
-    "category": "Horror"
-  },
-  {
-    "title": "Granny 2",
-    "category": "Horror"
-  },
-  {
-    "title": "Granny 3",
-    "category": "Horror"
-  },
-  {
-    "title": "Gravity run",
-    "category": "Platformer"
-  },
-  {
-    "title": "Greybox",
-    "category": "Puzzle"
-  },
-  {
     "title": "Growden.io",
     "category": "Multiplayer"
   },
   {
-    "title": "GTA I",
-    "category": "Action"
-  },
-  {
-    "title": "GTA II",
-    "category": "Action"
-  },
-  {
-    "title": "GTA III",
-    "category": "Action"
-  },
-  {
-    "title": "GTA San Andreas",
-    "category": "Action"
-  },
-  {
-    "title": "GTA: 3",
-    "category": "Action"
-  },
-  {
-    "title": "GTA: Vice City",
-    "category": "Action"
-  },
-  {
     "title": "GTA: 5",
     "category": "Action"
-  },
-  {
-    "title": "Gun Mayhem",
-    "category": "Shooter"
-  },
-  {
-    "title": "Gun Mayhem 2",
-    "category": "Shooter"
-  },
-  {
-    "title": "Gun Mayhem Redux",
-    "category": "Shooter"
-  },
-  {
-    "title": "Gunspin",
-    "category": "Arcade"
-  },
-  {
-    "title": "Half Life",
-    "category": "FPS"
-  },
-  {
-    "title": "Half life: Opposing Force",
-    "category": "FPS"
-  },
-  {
-    "title": "Happy Wheels",
-    "category": "Action"
-  },
-  {
-    "title": "Helltaker",
-    "category": "Puzzle"
   },
   {
     "title": "Henry Stickmin Breaking the Bank",
@@ -1092,60 +324,8 @@
     "category": "Adventure"
   },
   {
-    "title": "Hobo 1",
-    "category": "Action"
-  },
-  {
-    "title": "Hobo 2",
-    "category": "Action"
-  },
-  {
-    "title": "Hobo 3",
-    "category": "Action"
-  },
-  {
-    "title": "Hobo 4",
-    "category": "Action"
-  },
-  {
-    "title": "Hobo 5",
-    "category": "Action"
-  },
-  {
-    "title": "Hobo 6",
-    "category": "Action"
-  },
-  {
-    "title": "Hobo 7",
-    "category": "Action"
-  },
-  {
-    "title": "Hollow Knight",
-    "category": "Platformer"
-  },
-  {
-    "title": "Honkai: Star Rail",
-    "category": "RPG"
-  },
-  {
     "title": "Hotline Miami",
     "category": "Action"
-  },
-  {
-    "title": "House Of Hazards",
-    "category": "Arcade"
-  },
-  {
-    "title": "HUMAN EXPENDITURE PROGRAM",
-    "category": "Horror"
-  },
-  {
-    "title": "Ice Baby Quest 2",
-    "category": "Adventure"
-  },
-  {
-    "title": "Idle Breakout",
-    "category": "Idle"
   },
   {
     "title": "Idle Dice",
@@ -1160,196 +340,32 @@
     "category": "Puzzle"
   },
   {
-    "title": "Iron Lung",
-    "category": "Horror"
-  },
-  {
     "title": "Jacksmith",
     "category": "Strategy"
-  },
-  {
-    "title": "Jeffrey Epstein Basics In Education And Kidnapping",
-    "category": "Horror"
-  },
-  {
-    "title": "Jeffys Basics",
-    "category": "Horror"
   },
   {
     "title": "Jelly Car Worlds",
     "category": "Driving"
   },
   {
-    "title": "Jelly Drift",
-    "category": "Racing"
-  },
-  {
-    "title": "Jetpack Joyride",
-    "category": "Arcade"
-  },
-  {
-    "title": "Jumbo Mario",
-    "category": "Platformer"
-  },
-  {
     "title": "Karate Bros",
     "category": "Action"
-  },
-  {
-    "title": "Karlson",
-    "category": "FPS"
-  },
-  {
-    "title": "Karlson2D",
-    "category": "Platformer"
   },
   {
     "title": "Kart Bros",
     "category": "Racing"
   },
   {
-    "title": "Kick The Buddy",
-    "category": "Arcade"
-  },
-  {
-    "title": "Kindergarten",
-    "category": "Adventure"
-  },
-  {
-    "title": "Kindergarten 2",
-    "category": "Adventure"
-  },
-  {
-    "title": "Kindergarten 3",
-    "category": "Adventure"
-  },
-  {
-    "title": "Kinito Pet",
-    "category": "Horror"
-  },
-  {
-    "title": "Kirby Soft And Wet",
-    "category": "Platformer"
-  },
-  {
-    "title": "Klifur",
-    "category": "Platformer"
-  },
-  {
-    "title": "Krunker",
-    "category": "FPS"
-  },
-  {
-    "title": "Lacey's Flash Games",
-    "category": "Horror"
-  },
-  {
-    "title": "Learn to Fly",
-    "category": "Arcade"
-  },
-  {
-    "title": "Learn to Fly 2",
-    "category": "Arcade"
-  },
-  {
-    "title": "Learn to Fly 3",
-    "category": "Arcade"
-  },
-  {
-    "title": "Learn to Fly Idle",
-    "category": "Idle"
-  },
-  {
-    "title": "Lego Star Wars",
-    "category": "Action"
-  },
-  {
-    "title": "Level Devil",
-    "category": "Platformer"
-  },
-  {
     "title": "Limbus Company",
     "category": "RPG"
-  },
-  {
-    "title": "Line Rider",
-    "category": "Simulation"
-  },
-  {
-    "title": "Little Alchemy",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Little Alchemy 2",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Little Big Planet",
-    "category": "Platformer"
   },
   {
     "title": "Live From Bikini Bottom 2",
     "category": "Adventure"
   },
   {
-    "title": "Lobotomy Corporation",
-    "category": "Simulation"
-  },
-  {
     "title": "LOL Beans",
     "category": "Multiplayer"
-  },
-  {
-    "title": "Madden NFL 24 Mobile Football",
-    "category": "Sports"
-  },
-  {
-    "title": "Madness Accelerant",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Ambulation",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Combat Defense",
-    "category": "Strategy"
-  },
-  {
-    "title": "Madness Combat FPS Fueled by Hot Dogs",
-    "category": "FPS"
-  },
-  {
-    "title": "Madness Gemini",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Hydraulic",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Interactive",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Melee",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Off Color",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Premediation",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Project Nexus",
-    "category": "Action"
-  },
-  {
-    "title": "Madness Retaliation",
-    "category": "Strategy"
   },
   {
     "title": "Magic Tiles 3",
@@ -1360,58 +376,6 @@
     "category": "Puzzle"
   },
   {
-    "title": "Mario Kart 64",
-    "category": "Racing"
-  },
-  {
-    "title": "Mario Kart 7",
-    "category": "Racing"
-  },
-  {
-    "title": "Mario Kart DS",
-    "category": "Racing"
-  },
-  {
-    "title": "Mario Party 1",
-    "category": "Arcade"
-  },
-  {
-    "title": "Mario Party 2",
-    "category": "Arcade"
-  },
-  {
-    "title": "Mario Party 3",
-    "category": "Arcade"
-  },
-  {
-    "title": "Megaman",
-    "category": "Platformer"
-  },
-  {
-    "title": "Melon Playground",
-    "category": "Simulation"
-  },
-  {
-    "title": "Merge Rot",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Milkman karlson",
-    "category": "Action"
-  },
-  {
-    "title": "Minecraft",
-    "category": "Adventure"
-  },
-  {
-    "title": "Minecraft 1.12.2",
-    "category": "Adventure"
-  },
-  {
-    "title": "Minecraft 1.8.8",
-    "category": "Adventure"
-  },
-  {
     "title": "Minecraft Dungeons",
     "category": "Action"
   },
@@ -1420,40 +384,8 @@
     "category": "Simulation"
   },
   {
-    "title": "Minecraft Legacy Console Edition",
-    "category": "Adventure"
-  },
-  {
-    "title": "Minecraft Pocket Edition",
-    "category": "Adventure"
-  },
-  {
-    "title": "Minecraft Wurst",
-    "category": "Adventure"
-  },
-  {
-    "title": "Minesweeper Mania",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Minesweeper Plus",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Miside",
-    "category": "Horror"
-  },
-  {
     "title": "Monkey Mart",
     "category": "Simulation"
-  },
-  {
-    "title": "Monster Tracks",
-    "category": "Driving"
-  },
-  {
-    "title": "Moto X3M",
-    "category": "Racing"
   },
   {
     "title": "Moto X3M 2",
@@ -1468,51 +400,11 @@
     "category": "Simulation"
   },
   {
-    "title": "My teardrop, daniel",
-    "category": "Adventure"
-  },
-  {
-    "title": "N-Gon",
-    "category": "Action"
-  },
-  {
-    "title": "Nazi Zombies: Portable",
+    "title": "Nazi Zombies Portable",
     "category": "FPS"
   },
   {
-    "title": "Needy Streamer Overload",
-    "category": "Simulation"
-  },
-  {
     "title": "Netquel",
-    "category": "Puzzle"
-  },
-  {
-    "title": "New Super Mario Bros",
-    "category": "Platformer"
-  },
-  {
-    "title": "Node Buster",
-    "category": "Action"
-  },
-  {
-    "title": "Nubbys Number Factory",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Om Nom Run",
-    "category": "Arcade"
-  },
-  {
-    "title": "OMORI",
-    "category": "RPG"
-  },
-  {
-    "title": "Oneshot World Machine Edition",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Oneshot",
     "category": "Puzzle"
   },
   {
@@ -1522,50 +414,6 @@
   {
     "title": "OpenTTD",
     "category": "Simulation"
-  },
-  {
-    "title": "Orange Roulette",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Oshi Oshi Punch",
-    "category": "Action"
-  },
-  {
-    "title": "OSU!",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Overburden",
-    "category": "Puzzle"
-  },
-  {
-    "title": "OvO",
-    "category": "Platformer"
-  },
-  {
-    "title": "OvO 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "OvO 3 Dimensions",
-    "category": "Platformer"
-  },
-  {
-    "title": "Pacman",
-    "category": "Arcade"
-  },
-  {
-    "title": "Pacman World",
-    "category": "Platformer"
-  },
-  {
-    "title": "Pacman World 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "Paint Gal Adventures",
-    "category": "Adventure"
   },
   {
     "title": "Papa's Hot Doggeria",
@@ -1592,50 +440,6 @@
     "category": "Cooking"
   },
   {
-    "title": "Papas Bakeria",
-    "category": "Cooking"
-  },
-  {
-    "title": "Papas Burgeria",
-    "category": "Cooking"
-  },
-  {
-    "title": "Papas Cheeseria",
-    "category": "Cooking"
-  },
-  {
-    "title": "Papas Donuteria",
-    "category": "Cooking"
-  },
-  {
-    "title": "Papas Freezeria",
-    "category": "Cooking"
-  },
-  {
-    "title": "Papas Pizzaeria",
-    "category": "Cooking"
-  },
-  {
-    "title": "Paper Mario",
-    "category": "RPG"
-  },
-  {
-    "title": "Paper.io 2",
-    "category": "Multiplayer"
-  },
-  {
-    "title": "Papers, Please",
-    "category": "Simulation"
-  },
-  {
-    "title": "Parappa The Rapper",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Parappa The Rapper 2",
-    "category": "Rhythm"
-  },
-  {
     "title": "Parking Fury",
     "category": "Driving"
   },
@@ -1648,68 +452,12 @@
     "category": "Driving"
   },
   {
-    "title": "Peaks of Yore",
-    "category": "Platformer"
-  },
-  {
-    "title": "Peggle",
-    "category": "Puzzle"
-  },
-  {
-    "title": "People Playground",
-    "category": "Simulation"
-  },
-  {
-    "title": "Pikuniku",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Pixel Gun 3D",
-    "category": "FPS"
-  },
-  {
-    "title": "Pizza Tower",
-    "category": "Platformer"
-  },
-  {
-    "title": "Pizza Tower: Scoutdigo",
-    "category": "Platformer"
-  },
-  {
-    "title": "Pizzatron 3000",
-    "category": "Cooking"
-  },
-  {
     "title": "Plants vs. Zombies 2 Gardenless",
-    "category": "Strategy"
-  },
-  {
-    "title": "Plauge Inc",
     "category": "Strategy"
   },
   {
     "title": "Plinko",
     "category": "Arcade"
-  },
-  {
-    "title": "Pokemon Academy Life Forever",
-    "category": "RPG"
-  },
-  {
-    "title": "Pokemon Blue",
-    "category": "RPG"
-  },
-  {
-    "title": "Pokemon Crystal",
-    "category": "RPG"
-  },
-  {
-    "title": "Pokemon Emerald",
-    "category": "RPG"
-  },
-  {
-    "title": "Pokemon Gold",
-    "category": "RPG"
   },
   {
     "title": "Pokemon Quest",
@@ -1720,20 +468,8 @@
     "category": "Strategy"
   },
   {
-    "title": "Pokemon Stadium",
-    "category": "Strategy"
-  },
-  {
-    "title": "Pokemon Stadium 2",
-    "category": "Strategy"
-  },
-  {
     "title": "PokeRogue",
     "category": "RPG"
-  },
-  {
-    "title": "Polytrack",
-    "category": "Racing"
   },
   {
     "title": "Popcat.click",
@@ -1744,148 +480,20 @@
     "category": "Horror"
   },
   {
-    "title": "Portal",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Postal",
-    "category": "Shooter"
-  },
-  {
-    "title": "Potion Craft Alchemy Simulator",
-    "category": "Simulation"
-  },
-  {
-    "title": "Pretend its not there",
-    "category": "Horror"
-  },
-  {
-    "title": "Prodigy",
-    "category": "RPG"
-  },
-  {
     "title": "PUBG Mobile: Aftermath",
     "category": "Shooter"
-  },
-  {
-    "title": "Quake",
-    "category": "FPS"
-  },
-  {
-    "title": "Quake II",
-    "category": "FPS"
-  },
-  {
-    "title": "Quake III",
-    "category": "FPS"
-  },
-  {
-    "title": "R.E.P.O'",
-    "category": "Horror"
-  },
-  {
-    "title": "Rabbids Alive And Kicking",
-    "category": "Arcade"
-  },
-  {
-    "title": "Rabbids Travel In Time",
-    "category": "Arcade"
   },
   {
     "title": "Race Survival",
     "category": "Racing"
   },
   {
-    "title": "Raft",
-    "category": "Adventure"
-  },
-  {
-    "title": "Raft Wars",
-    "category": "Strategy"
-  },
-  {
-    "title": "Raft Wars 2",
-    "category": "Strategy"
-  },
-  {
-    "title": "Ragdoll Archers",
-    "category": "Action"
-  },
-  {
-    "title": "Ragdoll Hit",
-    "category": "Action"
-  },
-  {
-    "title": "Raldi's Crack House",
-    "category": "Horror"
-  },
-  {
-    "title": "Rayman",
-    "category": "Platformer"
-  },
-  {
-    "title": "RE:RUN",
-    "category": "Platformer"
-  },
-  {
     "title": "Red Dead Redemption 2",
     "category": "Action"
   },
   {
-    "title": "Resident Evil 1",
-    "category": "Horror"
-  },
-  {
-    "title": "Resident Evil 2",
-    "category": "Horror"
-  },
-  {
-    "title": "Retro Bowl",
-    "category": "Sports"
-  },
-  {
-    "title": "Retro Bowl College",
-    "category": "Sports"
-  },
-  {
     "title": "Retro Games",
     "category": "Arcade"
-  },
-  {
-    "title": "Rhythm Heaven",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Rhythm Hell",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Riddle School",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Riddle School 2",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Riddle School 3",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Riddle School 4",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Riddle School 5",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Riddle Transfer",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Riddle Transfer 2",
-    "category": "Puzzle"
   },
   {
     "title": "Roblox",
@@ -1896,108 +504,16 @@
     "category": "Sports"
   },
   {
-    "title": "Rooftop Snipers",
-    "category": "Shooter"
-  },
-  {
-    "title": "Rooftop Snipers 2",
-    "category": "Shooter"
-  },
-  {
-    "title": "Run",
-    "category": "Platformer"
-  },
-  {
-    "title": "Run 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "Run 3",
-    "category": "Platformer"
-  },
-  {
-    "title": "Running Fred",
-    "category": "Arcade"
-  },
-  {
-    "title": "Saihate Station",
-    "category": "Horror"
-  },
-  {
-    "title": "Sandboxels",
-    "category": "Simulation"
-  },
-  {
-    "title": "Sanic Ball",
-    "category": "Racing"
-  },
-  {
     "title": "Sausage Flip",
     "category": "Arcade"
-  },
-  {
-    "title": "Scary Path",
-    "category": "Horror"
-  },
-  {
-    "title": "Scary Teacher 3D",
-    "category": "Horror"
-  },
-  {
-    "title": "Schoolboy Runaway",
-    "category": "Horror"
-  },
-  {
-    "title": "Shift At Midnight",
-    "category": "Horror"
   },
   {
     "title": "Ships 3D",
     "category": "Multiplayer"
   },
   {
-    "title": "Silksong",
-    "category": "Platformer"
-  },
-  {
-    "title": "Skibidi Shooter",
-    "category": "Shooter"
-  },
-  {
-    "title": "Skiing Fred",
-    "category": "Arcade"
-  },
-  {
-    "title": "Slender Man & The 8 Pages",
-    "category": "Horror"
-  },
-  {
-    "title": "Slendytubbies I",
-    "category": "Horror"
-  },
-  {
-    "title": "Slendytubbies II 2D",
-    "category": "Horror"
-  },
-  {
-    "title": "Slendytubbies II",
-    "category": "Horror"
-  },
-  {
-    "title": "Slient Hill",
-    "category": "Horror"
-  },
-  {
-    "title": "Slime Ranchers",
-    "category": "Adventure"
-  },
-  {
     "title": "Slither.io",
     "category": "Multiplayer"
-  },
-  {
-    "title": "Slope",
-    "category": "Arcade"
   },
   {
     "title": "Slope 2",
@@ -2008,132 +524,12 @@
     "category": "Arcade"
   },
   {
-    "title": "Slowroads",
-    "category": "Driving"
-  },
-  {
-    "title": "SM64, Super Mario 64",
-    "category": "Platformer"
-  },
-  {
-    "title": "Smash Karts",
-    "category": "Racing"
-  },
-  {
-    "title": "Snow Battle",
-    "category": "Multiplayer"
-  },
-  {
-    "title": "Snow Rider 3D",
-    "category": "Driving"
-  },
-  {
-    "title": "Soccer Bros",
-    "category": "Sports"
-  },
-  {
-    "title": "Soccer Random",
-    "category": "Sports"
-  },
-  {
-    "title": "Solar Smash",
-    "category": "Simulation"
-  },
-  {
-    "title": "Solitaire",
-    "category": "Cards"
-  },
-  {
-    "title": "Sonic 1",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic 3",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic 3D Blast",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic 4",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic CD",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic EXE",
-    "category": "Horror"
-  },
-  {
-    "title": "Sonic Jam",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic Mania",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic Mania!",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic R",
-    "category": "Racing"
-  },
-  {
-    "title": "Sonic Robo Blast 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "Sonic Robo Blast 2 KART",
-    "category": "Racing"
-  },
-  {
-    "title": "Sonic World Next",
-    "category": "Platformer"
-  },
-  {
     "title": "Sort The Court",
     "category": "Simulation"
   },
   {
-    "title": "Space Waves",
-    "category": "Arcade"
-  },
-  {
-    "title": "Spaceflight Simulator",
-    "category": "Simulation"
-  },
-  {
-    "title": "Spank the monkey",
-    "category": "Arcade"
-  },
-  {
-    "title": "Speed Stars",
-    "category": "Sports"
-  },
-  {
-    "title": "Spelunky Classic HD",
-    "category": "Platformer"
-  },
-  {
     "title": "DRAGON BALL Sparking! Zero",
     "category": "Action"
-  },
-  {
-    "title": "Starbound",
-    "category": "Adventure"
-  },
-  {
-    "title": "Stardew Valley",
-    "category": "Simulation"
   },
   {
     "title": "Steal a Brainrot",
@@ -2144,88 +540,20 @@
     "category": "Arcade"
   },
   {
-    "title": "Stick War: Legacy",
-    "category": "Strategy"
-  },
-  {
-    "title": "Stick With It",
-    "category": "Platformer"
-  },
-  {
     "title": "Stickman Golf",
     "category": "Sports"
-  },
-  {
-    "title": "Stickman Hook",
-    "category": "Arcade"
   },
   {
     "title": "Stumble Guys",
     "category": "Multiplayer"
   },
   {
-    "title": "Subway Surfers",
-    "category": "Arcade"
-  },
-  {
     "title": "Suika Watermelon",
     "category": "Puzzle"
   },
   {
-    "title": "Super Hot",
-    "category": "FPS"
-  },
-  {
     "title": "Super Mario 64",
     "category": "Platformer"
-  },
-  {
-    "title": "Super Mario 64 Coop DX",
-    "category": "Platformer"
-  },
-  {
-    "title": "Super Mario Bros",
-    "category": "Platformer"
-  },
-  {
-    "title": "Super Mario Galaxy DS",
-    "category": "Platformer"
-  },
-  {
-    "title": "Super Meat Boy",
-    "category": "Platformer"
-  },
-  {
-    "title": "Super Monkey Ball 1 & 2",
-    "category": "Arcade"
-  },
-  {
-    "title": "Super Monkey Ball JR",
-    "category": "Arcade"
-  },
-  {
-    "title": "Super Oliver World",
-    "category": "Platformer"
-  },
-  {
-    "title": "Super Smash Bros",
-    "category": "Action"
-  },
-  {
-    "title": "Super Smash Flash",
-    "category": "Action"
-  },
-  {
-    "title": "Super Smash Flash 2",
-    "category": "Action"
-  },
-  {
-    "title": "Super Tux Kart",
-    "category": "Racing"
-  },
-  {
-    "title": "Survivor.io",
-    "category": "Action"
   },
   {
     "title": "Swan's Song",
@@ -2240,24 +568,8 @@
     "category": "Shooter"
   },
   {
-    "title": "Taiko No Tatsujini",
-    "category": "Rhythm"
-  },
-  {
     "title": "Tanks 3D",
     "category": "Action"
-  },
-  {
-    "title": "Tanuki Sunset",
-    "category": "Sports"
-  },
-  {
-    "title": "TattleTail",
-    "category": "Horror"
-  },
-  {
-    "title": "Tax Heaven 3000",
-    "category": "Simulation"
   },
   {
     "title": "Teardown",
@@ -2266,54 +578,6 @@
   {
     "title": "Temple Of Boom",
     "category": "Action"
-  },
-  {
-    "title": "Ten Basket",
-    "category": "Sports"
-  },
-  {
-    "title": "Terraria",
-    "category": "Adventure"
-  },
-  {
-    "title": "Tetris",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Tetrisweeper",
-    "category": "Puzzle"
-  },
-  {
-    "title": "That's Not My Neighbor",
-    "category": "Horror"
-  },
-  {
-    "title": "The Binding Of Isaac Wrath Of The Lamb",
-    "category": "Action"
-  },
-  {
-    "title": "The Binding Of Isaac Wrath Of The Lamb: Eternal",
-    "category": "Action"
-  },
-  {
-    "title": "The Binding Of Issac",
-    "category": "Action"
-  },
-  {
-    "title": "The Binding Of Issac: Rebirth",
-    "category": "Action"
-  },
-  {
-    "title": "The Impossible Quiz",
-    "category": "Puzzle"
-  },
-  {
-    "title": "The Impossible Quiz 2",
-    "category": "Puzzle"
-  },
-  {
-    "title": "The Legend of Zelda Ocarina of Time",
-    "category": "Adventure"
   },
   {
     "title": "The Man from The Window",
@@ -2328,236 +592,28 @@
     "category": "Simulation"
   },
   {
-    "title": "There is no game",
-    "category": "Puzzle"
-  },
-  {
     "title": "Tiles Hope: EDM Rush",
     "category": "Rhythm"
-  },
-  {
-    "title": "Time Shooter 1",
-    "category": "FPS"
-  },
-  {
-    "title": "Time Shooter 2",
-    "category": "FPS"
-  },
-  {
-    "title": "Time Shooter 3",
-    "category": "FPS"
-  },
-  {
-    "title": "Tiny Fishing",
-    "category": "Sports"
-  },
-  {
-    "title": "To The Core",
-    "category": "Action"
-  },
-  {
-    "title": "Tomb of The Mask",
-    "category": "Arcade"
-  },
-  {
-    "title": "Tomodachi Collection",
-    "category": "Simulation"
-  },
-  {
-    "title": "Toss The Turtle",
-    "category": "Arcade"
-  },
-  {
-    "title": "Touhou 1 Touhou-Reiiden",
-    "category": "Shooter"
-  },
-  {
-    "title": "Touhou 2 Touhou-Fuumaroku",
-    "category": "Shooter"
-  },
-  {
-    "title": "Touhou 3 Touhou-Yumejikuu",
-    "category": "Shooter"
-  },
-  {
-    "title": "Touhou 4 Touhou-Gensokyou",
-    "category": "Shooter"
-  },
-  {
-    "title": "Touhou 5 Touhou-Kaikidan",
-    "category": "Shooter"
-  },
-  {
-    "title": "Touhou Mother",
-    "category": "RPG"
-  },
-  {
-    "title": "Tube Jumpers",
-    "category": "Action"
-  },
-  {
-    "title": "Tung Tung Basics",
-    "category": "Horror"
-  },
-  {
-    "title": "Tung Tung Horror",
-    "category": "Horror"
-  },
-  {
-    "title": "Ultimate Custom Night",
-    "category": "Horror"
-  },
-  {
-    "title": "Ultrakill",
-    "category": "FPS"
-  },
-  {
-    "title": "Ultrapool",
-    "category": "Sports"
-  },
-  {
-    "title": "Um Jammer Lammy",
-    "category": "Rhythm"
-  },
-  {
-    "title": "UnderTale",
-    "category": "RPG"
-  },
-  {
-    "title": "Undertale 10th Anniversary",
-    "category": "RPG"
-  },
-  {
-    "title": "Undertale Last Breath",
-    "category": "RPG"
-  },
-  {
-    "title": "Undertale Yellow",
-    "category": "RPG"
   },
   {
     "title": "Universal Paperclips",
     "category": "Idle"
   },
   {
-    "title": "Untitled Goose Game",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Vampire Survivors",
-    "category": "Action"
-  },
-  {
     "title": "Venge.io",
     "category": "FPS"
-  },
-  {
-    "title": "Vex",
-    "category": "Platformer"
-  },
-  {
-    "title": "Vex 2",
-    "category": "Platformer"
-  },
-  {
-    "title": "Vex 3",
-    "category": "Platformer"
-  },
-  {
-    "title": "Vex 4",
-    "category": "Platformer"
-  },
-  {
-    "title": "Vex 5",
-    "category": "Platformer"
-  },
-  {
-    "title": "Vex 6",
-    "category": "Platformer"
-  },
-  {
-    "title": "Vex 7",
-    "category": "Platformer"
-  },
-  {
-    "title": "Vex 8",
-    "category": "Platformer"
-  },
-  {
-    "title": "Vib-Ribbon",
-    "category": "Rhythm"
-  },
-  {
-    "title": "Volley Random",
-    "category": "Sports"
-  },
-  {
-    "title": "Warioware D.I.Y",
-    "category": "Arcade"
-  },
-  {
-    "title": "We Become What We Behold",
-    "category": "Simulation"
-  },
-  {
-    "title": "Webfishing",
-    "category": "Simulation"
-  },
-  {
-    "title": "Who's Your Daddy",
-    "category": "Multiplayer"
-  },
-  {
-    "title": "Witch's Heart",
-    "category": "Adventure"
-  },
-  {
-    "title": "Woody's Incredible Journey To The Escape From Eternal Terror",
-    "category": "Platformer"
-  },
-  {
-    "title": "Wordle",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Worlds Hardest Game",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Worlds Hardest Game 2",
-    "category": "Puzzle"
-  },
-  {
-    "title": "Worlds Hardest Game 3",
-    "category": "Puzzle"
   },
   {
     "title": "Wrestle Bros",
     "category": "Action"
   },
   {
-    "title": "Yandere Simulator",
-    "category": "Simulation"
-  },
-  {
     "title": "Yohoho!.io",
     "category": "Multiplayer"
   },
   {
-    "title": "Yoked",
-    "category": "Platformer"
-  },
-  {
-    "title": "Yume Nikki",
-    "category": "Horror"
-  },
-  {
     "title": "Zombs Royale",
     "category": "Multiplayer"
-  },
-  {
-    "title": "Zuma",
-    "category": "Puzzle"
   },
   {
     "title": "Wheely 2",
