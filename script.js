@@ -27,8 +27,6 @@ function initApp() {
     vms: { id: 'vms-iframe', path: 'Assets/pages/vms.html' }
   };
 
-  const encodeUv = str => !str ? str : encodeURIComponent(str.toString().split('').map((char, ind) => ind % 2 ? String.fromCharCode(char.charCodeAt(0) ^ 2) : char).join(''));
-
   const formatWebUrl = rawUrl => {
     let val = rawUrl.trim();
     if (!val) return '';
@@ -74,58 +72,30 @@ function initApp() {
   let authBusyTimer = null;
   let pendingAuthMessage = null, authWatchdogTimer = null;
   const backendQueue = [];
-  let gRep = {}, gTruf = new Map();
-
-  let mirrorsScriptFailed = false;
-  let mirrorsScriptLoaded = false;
+  let gTruf = new Map();
 
   const MIRROR_PH = /\$\{(scram|static|uv|frogiee|truffled)\}/;
 
-  const lastGoodMirror = key => {
-    try {
-      const value = getStorage(`kstuff_lastgood_${key}`);
-      return /^https?:\/\/[^\s{}"']+$/i.test(value || '')
-        ? cleanUrl(value)
-        : '';
-    } catch {
-      return '';
-    }
-  };
+  let wispsData = null;
+  let wispsPromise = null;
 
-  const getMirrorValue = (mirrors, key) => {
-    const value = mirrors?.[key];
+  const WISPS_URL = 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json';
 
-    if (
-      typeof value === 'string' &&
-      /^https?:\/\//i.test(value)
-    ) {
-      return cleanUrl(value);
-    }
-
-    return lastGoodMirror(key);
-  };
-
-  function mirrorsToGRep(mirrors = window.kstuffMirrors || {}) {
-    const result = {};
-
-    ['scram', 'static', 'uv', 'frogiee', 'truffled'].forEach(key => {
-      result[key] = getMirrorValue(mirrors, key);
-    });
-
-    if (!result.truffled) {
-      result.truffled = 'https://boat.strongson.com';
-    }
-
-    return result;
+  function fetchWisps() {
+    if (wispsPromise) return wispsPromise;
+    wispsPromise = fetch(WISPS_URL, { cache: 'no-store' })
+      .then(r => r.json())
+      .then(j => { wispsData = j; return j; })
+      .catch(() => { wispsData = []; return []; });
+    return wispsPromise;
   }
 
-  function syncMirrors(mirrors = window.kstuffMirrors || {}) {
-    const next = mirrorsToGRep(mirrors);
-    const changed = JSON.stringify(next) !== JSON.stringify(gRep);
+  const b64 = str => btoa(unescape(encodeURIComponent(str)));
 
-    gRep = next;
-
-    return changed;
+  function buildIxlUrl(rawUrl) {
+    const wispsB64 = Array.isArray(wispsData) && wispsData.length ? wispsData[0] : '';
+    const targetB64 = encodeURIComponent(b64(rawUrl));
+    return `https://cdn.jsdelivr.net/gh/rtischeduler/ixl@main/embed.svg?target=${targetB64}&wisps=${encodeURIComponent(wispsB64)}`;
   }
 
   const lastIframeHtml = {};
@@ -713,35 +683,7 @@ function initApp() {
 
     let targetUrl = item.url.trim();
 
-    for (let i = 0; i < 5 && MIRROR_PH.test(targetUrl); i++) {
-      const match = targetUrl.match(MIRROR_PH);
-      if (!match) break;
-
-      const key = match[1];
-      syncMirrors();
-
-      let mirror = gRep[key];
-
-      if (!mirror) mirror = await waitForMirrorKey(key, 30000);
-
-      if (stale()) return;
-
-      if (!mirror) break;
-
-      const replacements = { ...gRep, [key]: mirror };
-      const next = appB(targetUrl, replacements, true);
-      if (next === targetUrl) break;
-      targetUrl = next;
-    }
-
-    syncMirrors();
-
     if (stale()) return;
-
-    if (MIRROR_PH.test(targetUrl)) {
-      ifr.srcdoc = '<body style="font-family:sans-serif;background:#1b1b1f;color:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0">No mirror is available right now.</body>';
-      return;
-    }
 
     const isRelativeUrl = !targetUrl.startsWith('http');
     const isHtmlRepo = isRelativeUrl || urlHasKeyword(targetUrl, HTML_REPO_KEYWORDS);
@@ -758,8 +700,7 @@ function initApp() {
       if (stale()) return;
       ifr.src = `https://cdn.jsdelivr.net/gh/rtischeduler/deltamath@main/launch.svg?url=${launchTarget}`;
     } else {
-      const hasMirror = v => !!v && targetUrl.includes(v);
-      const isProxyUrl = hasMirror(gRep.static) || hasMirror(gRep.scram) || hasMirror(gRep.uv) || hasMirror(gRep.truffled) || hasMirror(gRep.frogiee) || item.category === 'Apps' || (!targetUrl.includes('raw.githubusercontent.com') && !targetUrl.includes('cdn.jsdelivr.net'));
+      const isProxyUrl = targetUrl.includes('rtischeduler/ixl') || item.category === 'Apps' || (!targetUrl.includes('raw.githubusercontent.com') && !targetUrl.includes('cdn.jsdelivr.net'));
       if (isProxyUrl) {
         ifr.src = targetUrl;
       } else {
@@ -1372,15 +1313,12 @@ function initApp() {
     if (fetchedJsonString !== savedJsonString) { setStorage('kstuff_last_changelog', fetchedJsonString); $('changelog-modal')?.classList.add('active'); }
   }).catch(err => console.error('change-log.json failed', err));
 
-  const appB = (s, rep = gRep, isPage = false) => {
+  const appB = (s, isPage = false) => {
     if (typeof s !== 'string') return s;
-    for (const [k, v] of Object.entries(rep)) {
-      if (!v) continue;
-      if (k === 'static' && isPage) s = s.replace(/\$\{static\}(?!\/?embed\.html)/g, () => cleanUrl(v) + '/embed.html#');
-      s = s.split(`\${${k}}`).join(v);
+    if (MIRROR_PH.test(s)) {
+      return isPage ? buildIxlUrl(s) : '';
     }
-    if (MIRROR_PH.test(s)) return s;
-    return s.replace(/([^:]\/)\/+/g, '$1').replace(/(\/embed\.html#)\/+/g, '$1').replace(/^http:\/\//i, 'https://');
+    return s.replace(/([^:]\/)\/+/g, '$1').replace(/^http:\/\//i, 'https://');
   };
 
   const proc = arr => (Array.isArray(arr) ? arr : []).map(i => {
@@ -1395,8 +1333,7 @@ function initApp() {
         p.category = p.category || 'Truffled';
       }
     }
-    p.url = appB(p.url, gRep, true); p.image = appB(p.image);
-    if (MIRROR_PH.test(p.image || '')) p.image = '';
+    p.url = appB(p.url, true); p.image = appB(p.image);
     return p;
   }).sort((a, b) => (a.title||"").localeCompare(b.title||"", undefined, { sensitivity: 'base' }));
 
@@ -1514,180 +1451,6 @@ function initApp() {
   let rawReadingCornerData = [];
   let rawSciencequizData = [];
 
-  async function getMirrorsScriptSources() {
-    const path = 'Assets/js/mirrors.js';
-    const sources = [];
-    const sha = await getLatestSha();
-    if (sha) sources.push(`https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@${sha}/${path}`);
-    sources.push(`https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/${path}`, `https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@HEAD/${path}`);
-    return [...new Set(sources)];
-  }
-
-  function loadMirrorsScript() {
-    return new Promise(async resolve => {
-      const sources = await getMirrorsScriptSources();
-
-      const loadNext = index => {
-        if (index >= sources.length) {
-          mirrorsScriptFailed = true;
-          mirrorsScriptLoaded = false;
-          resolve(false);
-          return;
-        }
-
-        const script = document.createElement('script');
-        script.src = `${sources[index]}?cb=${Date.now()}`;
-        script.async = true;
-
-        script.onload = () => {
-          if (!window.kstuffMirrors || typeof window.kstuffMirrors !== 'object') {
-            script.remove();
-            loadNext(index + 1);
-            return;
-          }
-
-          mirrorsScriptLoaded = true;
-          mirrorsScriptFailed = false;
-          syncMirrors();
-
-          resolve(true);
-        };
-
-        script.onerror = () => {
-          script.remove();
-          loadNext(index + 1);
-        };
-
-        document.head.appendChild(script);
-      };
-
-      loadNext(0);
-    });
-  }
-
-  function waitForMirrors(timeoutMs = 30000) {
-    return new Promise(resolve => {
-      let done = false;
-      let timer = null;
-      let poll = null;
-
-      const finish = () => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        clearInterval(poll);
-        window.removeEventListener('kstuff-mirrors-updated', check);
-        syncMirrors(window.kstuffMirrors || {});
-        resolve(window.kstuffMirrors || {});
-      };
-
-      const check = () => {
-        const mirrors = window.kstuffMirrors || {};
-        syncMirrors(mirrors);
-
-        const hasRelevantMirror =
-          Boolean(gRep.static) ||
-          Boolean(gRep.frogiee) ||
-          Boolean(gRep.truffled) ||
-          Boolean(gRep.scram) ||
-          Boolean(gRep.uv);
-
-        if (mirrorsScriptFailed || (mirrorsScriptLoaded && hasRelevantMirror)) {
-          finish();
-        }
-      };
-
-      window.addEventListener('kstuff-mirrors-updated', check);
-      poll = setInterval(check, 250);
-      timer = setTimeout(finish, timeoutMs);
-      check();
-    });
-  }
-
-  function waitForMirrorKey(key, timeoutMs = 30000) {
-    return new Promise(resolve => {
-      let done = false;
-      let timer = null;
-      let poll = null;
-
-      const finish = value => {
-        if (done) return;
-        done = true;
-        clearTimeout(timer);
-        clearInterval(poll);
-        window.removeEventListener('kstuff-mirrors-updated', check);
-        resolve(value || '');
-      };
-
-      const check = () => {
-        syncMirrors(window.kstuffMirrors || {});
-        const value = gRep[key] || lastGoodMirror(key);
-
-        if (value) {
-          finish(value);
-          return;
-        }
-
-        if (mirrorsScriptFailed) {
-          finish('');
-        }
-      };
-
-      window.addEventListener('kstuff-mirrors-updated', check);
-      poll = setInterval(check, 250);
-      timer = setTimeout(() => {
-        syncMirrors(window.kstuffMirrors || {});
-        finish(gRep[key] || lastGoodMirror(key));
-      }, timeoutMs);
-
-      check();
-    });
-  }
-
-  function reprocessGridsWithMirrors() {
-    if (rawReadingCornerData.length) {
-      grids.readingcorner.data = proc(rawReadingCornerData);
-    }
-
-    if (rawSciencequizData.length) {
-      grids.sciencequiz.data = proc(rawSciencequizData);
-    }
-
-    const activePage = document.querySelector('.page.active');
-
-    if (activePage && grids[activePage.id]) {
-      const grid = grids[activePage.id];
-
-      if (!grid.pool.length) {
-        buildPool(activePage.id);
-      }
-
-      renderGrid(activePage.id, false, 'updating');
-    }
-  }
-
-  function setupMirrorListener() {
-    window.addEventListener('kstuff-mirrors-updated', event => {
-      const mirrors = event.detail || window.kstuffMirrors || {};
-      if (!mirrors) return;
-
-      const changed = syncMirrors(mirrors);
-
-      if (changed) {
-        reprocessGridsWithMirrors();
-      }
-    });
-  }
-
-  setupMirrorListener();
-
-  const mirrorsPromise = loadMirrorsScript()
-    .catch(error => {
-      console.error('mirrors.js failed:', error);
-      mirrorsScriptFailed = true;
-      return false;
-    });
-
   initPromise = Promise.all([
     fetchReadingCornerRaw().catch(error => {
       console.error('Reading Corner initialization failed:', error);
@@ -1700,7 +1463,8 @@ function initApp() {
     fetchWithProxy('Assets/json/truffled.json').catch(error => {
       console.error('Truffled initialization failed:', error);
       return null;
-    })
+    }),
+    fetchWisps()
   ]).then(async ([readingResult, scienceData, truffledData]) => {
     gTruf.clear();
 
@@ -1733,14 +1497,6 @@ function initApp() {
     }
 
     toggleLoader(false);
-
-    mirrorsPromise.then(() => {
-      syncMirrors();
-
-      if (gRep.static || gRep.frogiee || gRep.truffled) {
-        reprocessGridsWithMirrors();
-      }
-    });
   }).catch(error => {
     console.error('init failed:', error);
     toggleLoader(false);
@@ -1794,11 +1550,8 @@ function initApp() {
     if (tbInput) tbInput.value = targetUrl;
     updateBrowserNav();
 
-    if (gRep.uv) {
-      const baseStatic = gRep.uv.replace('/uv.html?site=', '');
-      const proxiedUrl = `${baseStatic}/service/${encodeUv('https://lotsacookie.github.io/kstuff/Assets/pages/browser-content.html?site=' + targetUrl)}`;
-      loadContent('mathworksheets', true, proxiedUrl);
-    }
+    const proxiedUrl = buildIxlUrl(targetUrl);
+    loadContent('mathworksheets', true, proxiedUrl);
   };
 
   if (tbInput) {
