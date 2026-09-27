@@ -1,12 +1,5 @@
 [
   {
-    "title": "Spectra",
-    "description": "",
-    "category": "Cloud",
-    "url": "https://warm-biscochitos-44c02e.netlify.app/spectrafull.html",
-    "image": "https://cdn2.fptshop.com.vn/unsafe/1920x0/small/cloudmoon_1_90bf317a4d.jpg"
-  },
-  {
     "title": "GeforceNOW",
     "description": "",
     "category": "Cloud",
@@ -19,20 +12,6 @@
     "category": "Search Engine",
     "url": "${static}https://kstuff.neocities.org/data_archive/data_new/tor6.html",
     "image": "https://play-lh.googleusercontent.com/TIJ5UlSUZv84PBG8iKSeANijhTdwM07seW9uAmLBsdU7Xis5eaaolLQooIZzAYUOhK94YjvPVFY9R13jdVewOQ=w240-h480-rw"
-  },
-  {
-    "title": "CoolMathGames",
-    "description": "",
-    "category": "Entertainment",
-    "url": "${static}https://coolmathgames.com",
-    "image": "https://play-lh.googleusercontent.com/I3hW7sKSGtOKeTpmsBxka7Eyul5HXTZUD4H3EbJEWyW-4vDlpyEG5Jtu9D8JgR0__g"
-  },
-  {
-    "title": "Crazy Games",
-    "description": "",
-    "category": "Entertainment",
-    "url": "${static}https://crazygames.com",
-    "image": "https://play-lh.googleusercontent.com/zGvYCipVc-uIpRVf6P5maUThHJyuNE35Y-tQCQz6tYigWuxlZThhQh0Te8G0SlLi1j8PAgHds8EkL2KXkKPG=s256-rw"
   },
   {
     "title": "DuckDuckGo",
@@ -84,13 +63,6 @@
     "image": "https://play-lh.googleusercontent.com/w2DdjDHGSj3DQElQQM0_J3PsNsALS-WD3CBeH0aXOYceR-F3aT02gFonhoFzz-Tc9ec8Dx9cLqh48-tzIFcP"
   },
   {
-    "title": "Tiktok",
-    "description": "",
-    "category": "Entertainment",
-    "url": "${static}https://www.tiktok.com/",
-    "image": "https://play-lh.googleusercontent.com/2o7iuqPe-0msP3DvNhzoOgNo4eZ6GkL_RtGVeKyBn5UBQAW5cw-GW5V3wDOHB1yTQuqWzrFLFOv2u4_5ea1uhg"
-  },
-  {
     "title": "Webtoon",
     "description": "",
     "category": "Entertainment",
@@ -130,6 +102,13 @@
     "description": "",
     "category": "Entertainment",
     "url": "${static}https://tubi.tv/",
+    "image": ""
+  },
+  {
+    "title": "Youtube",
+    "description": "",
+    "category": "Entertainment",
+    "url": "${static}https://youtube.com/",
     "image": ""
   }
 ]
