@@ -271,6 +271,7 @@ export function init(K) {
     if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
     const activePage = document.querySelector('.page.active'); if (!activePage) return;
     const type = activePage.id; if (!grids[type]) return;
+    if (K.resourceOpenFor[type]) return;
     const grid = grids[type];
     const filtered = (grid.data || []).filter(i => (grid.category === "All" || i.category === grid.category) && i.title.toLowerCase().includes(grid.search));
     const totalPages = Math.max(1, Math.ceil(filtered.length / K.ITEMS_PER_PAGE));
@@ -489,4 +490,4 @@ export function init(K) {
     console.error('init failed:', error);
     K.toggleLoader(false);
   });
-          }
+}
