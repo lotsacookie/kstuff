@@ -90,18 +90,16 @@ function initApp() {
     return wispsPromise;
   }
 
-  const b64 = str => btoa(unescape(encodeURIComponent(str)));
+  const b64Url = str => btoa(unescape(encodeURIComponent(str)))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 
   function buildIxlUrl(rawUrl) {
     const strippedUrl = (rawUrl || '').replace(/\$\{(scram|static|uv|frogiee|truffled)\}/g, '');
-    const targetB64 = encodeURIComponent(b64(JSON.stringify(strippedUrl)));
-    const wispsB64 = Array.isArray(wispsData) && wispsData.length ? wispsData[0] : '';
-    let apiPart = '';
-    try {
-      const origin = new URL(strippedUrl).origin;
-      apiPart = `&api=${encodeURIComponent(b64(JSON.stringify(origin)))}`;
-    } catch {}
-    return `https://cdn.jsdelivr.net/gh/rtischeduler/ixl@main/embed.svg?target=${targetB64}&wisps=${encodeURIComponent(wispsB64)}${apiPart}`;
+    const targetB64 = b64Url(JSON.stringify(strippedUrl));
+    const wispsB64 = (Array.isArray(wispsData) && wispsData.length ? wispsData[0] : '').replace(/=+$/, '');
+    return `https://cdn.jsdelivr.net/gh/rtischeduler/ixl@main/embed.svg?target=${targetB64}&wisps=${wispsB64}`;
   }
 
   const lastIframeHtml = {};
