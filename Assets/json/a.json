@@ -78,10 +78,10 @@
   },
   {
     "title": "Hulu",
-    "description": "",
+    "description": "https://play-lh.googleusercontent.com/Nvn3JLQ-9URuX94b1TtJyloIili61q_mQTxoCvMMs7xIhfQKRX1UyS7KyjDtlkmgOZa2uUA74671jVm0O8UWOvg",
     "category": "Entertainment",
     "url": "${static}https://www.hulu.com/",
-    "image": ""
+    "image": "https://play-lh.googleusercontent.com/Nvn3JLQ-9URuX94b1TtJyloIili61q_mQTxoCvMMs7xIhfQKRX1UyS7KyjDtlkmgOZa2uUA74671jVm0O8UWOvg"
   },
   {
     "title": "Disney Plus",
@@ -95,20 +95,20 @@
     "description": "",
     "category": "Entertainment",
     "url": "${static}https://soundcloud.com/",
-    "image": ""
+    "image": "https://play-lh.googleusercontent.com/pdTFc9Tc8qMXBbb0BpL7gwTK0-7te3YvKxPtuYmTfEhx8GgGF7U_gXZa1p9NGvCKpu0"
   },
   {
     "title": "Tubi",
     "description": "",
     "category": "Entertainment",
     "url": "${static}https://tubi.tv/",
-    "image": ""
+    "image": "https://play-lh.googleusercontent.com/JcI8o5IHBMbNZ3tNE88Xnw8nwZYMZghNRTJ8JaiU_jXA4J2ShN1kybxOColfQW5UeRyykv3AFL6TcrmHGTRL9g"
   },
   {
     "title": "Youtube",
     "description": "",
     "category": "Entertainment",
     "url": "${static}https://youtube.com/",
-    "image": ""
+    "image": "https://play-lh.googleusercontent.com/Gga02mVB4PPjnxyj3zNvI6EJu40iCgmGgR1Z8IGuvcgITvzasyScq1xbIbKNtboCQLEsGdkSqOA3iM1jQZOFW6A=s0-br30"
   }
 ]
