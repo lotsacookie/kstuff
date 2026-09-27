@@ -4,6 +4,7 @@ function initApp() {
   const getStorage = k => localStorage.getItem(k), setStorage = (k, v) => localStorage.setItem(k, v);
   const cleanUrl = u => u ? u.replace(/\/+$/, '') : '', trimSlash = u => u ? u.replace(/^\/+/, '') : '';
   const cleanGameTitle = t => (t || '').toLowerCase().replace(/,\s*webport/gi, '').trim();
+  const slugifyTitle = t => (t || '').toLowerCase().trim().replace(/\s+/g, '-');
   const urlMap = { 'mathworksheets': 'home', 'readingcorner': 'games', 'sciencequiz': 'apps', 'gradebook': 'music', 'civics': 'tv', 'lessonplanner': 'ai', 'vms': 'vms', 'studyhall': 'chat' };
   const reverseUrlMap = Object.entries(urlMap).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {});
   let history = ['kstuff://home'], historyIndex = 0;
@@ -47,6 +48,7 @@ function initApp() {
   const body = document.body, navBar = $('teachertouchbar'), navBtns = $$('.nav-btn'), pages = $$('.page');
   const loader = document.querySelector('.section-loader');
   const pContainer = $('profile-edit-container');
+  const findNavBtn = id => Array.from(navBtns).find(b => b.dataset.target === id);
 
   const ITEMS_PER_PAGE = 48;
   const IMAGE_LOAD_TIMEOUT = 5000;
@@ -340,24 +342,18 @@ function initApp() {
     throw new Error("Proxies failed: " + path);
   }
 
-  async function fetchRepoFile(repo, path, asText = false, ms = FETCH_TIMEOUT) {
+  async function fetchRepoFile(repo, path, asText = false, ms = FETCH_TIMEOUT, extraSources = []) {
     const sha = await getLatestSha(false, repo);
     const sources = [];
     if (sha) sources.push([`https://cdn.jsdelivr.net/gh/${repo}@${sha}/`, ms]);
     sources.push([`https://raw.githubusercontent.com/${repo}/main/`, ms]);
+    sources.push(...extraSources);
     sources.push([`https://cdn.jsdelivr.net/gh/${repo}@main/`, ms]);
     return fetchFromSources(path, asText, sources);
   }
 
-  async function fetchWithProxy(path, asText = false) {
-    const sha = await getLatestSha(false, MAIN_REPO);
-    const sources = [];
-    if (sha) sources.push([`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@${sha}/`, SHA_FETCH_TIMEOUT]);
-    sources.push([`https://raw.githubusercontent.com/${MAIN_REPO}/main/`, FETCH_TIMEOUT]);
-    sources.push(['', FETCH_TIMEOUT]);
-    sources.push([`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@main/`, FETCH_TIMEOUT]);
-    return fetchFromSources(path, asText, sources);
-  }
+  const fetchWithProxy = (path, asText = false) =>
+    fetchRepoFile(MAIN_REPO, path, asText, FETCH_TIMEOUT, [['', FETCH_TIMEOUT]]);
 
   function applyCustomDropdown(selectEl) {
     if (!selectEl || (selectEl.dataset.customized && !selectEl.nextElementSibling?.classList.contains('custom-select-wrapper'))) return;
@@ -619,14 +615,25 @@ function initApp() {
     if (grid?.pageEl) grid.pageEl.style.display = show ? '' : 'none';
   };
 
-  const closeResourceInline = pageId => {
+  function clearGridPool(type) {
+    const grid = grids[type];
+    if (!grid) return;
+    if (grid.pool) grid.pool.forEach(p => { if (p.img) { p.img.onload = p.img.onerror = null; p.img.src = ''; } });
+    if (grid.gridEl) grid.gridEl.innerHTML = '';
+    grid.pool = [];
+  }
+
+  function resetResourceView(pageId) {
     const ifr = resourceIframeFor(pageId);
-    if (ifr) {
-      if (ifr.__resourceLoadHandler) { ifr.removeEventListener('load', ifr.__resourceLoadHandler); ifr.__resourceLoadHandler = null; }
-      ifr.style.display = 'none'; ifr.removeAttribute('srcdoc'); ifr.src = 'about:blank';
-    }
+    if (ifr) { ifr.style.display = 'none'; ifr.removeAttribute('srcdoc'); ifr.src = 'about:blank'; }
     resourceOpenFor[pageId] = null;
     showResourceGrid(pageId, true);
+  }
+
+  const closeResourceInline = pageId => {
+    const ifr = resourceIframeFor(pageId);
+    if (ifr?.__resourceLoadHandler) { ifr.removeEventListener('load', ifr.__resourceLoadHandler); ifr.__resourceLoadHandler = null; }
+    resetResourceView(pageId);
     if (grids[pageId]) { buildPool(pageId); renderGrid(pageId, false); }
   };
 
@@ -645,7 +652,7 @@ function initApp() {
     resourceOpenFor[pageId] = item;
 
     const plainAddr = pageAddress(pageId);
-    const addr = plainAddr + '/' + (item.title || '');
+    const addr = plainAddr + '/' + slugifyTitle(item.title);
 
     if (!opts.isHistory) {
       if (history[historyIndex] !== plainAddr && history[historyIndex] !== addr) {
@@ -723,8 +730,7 @@ function initApp() {
 
   const buildPool = type => {
     const grid = grids[type]; if (!grid.gridEl) return;
-    if (grid.pool) grid.pool.forEach(p => { if (p.img) { p.img.onload = p.img.onerror = null; p.img.src = ''; } });
-    grid.gridEl.innerHTML = ''; grid.pool = [];
+    clearGridPool(type);
     const frag = document.createDocumentFragment();
     for (let i = 0; i < ITEMS_PER_PAGE; i++) {
       const card = el('div', { className: 'round-btn' }); card.dataset.index = i;
@@ -791,9 +797,8 @@ function initApp() {
             p.img.dataset.src = item.image || '';
             if (item.image) {
               p.img.style.display = 'block';
-              try {
-                p.img.loading = 'eager';
-              } catch (e) {}
+              p.img.loading = 'lazy';
+              p.img.decoding = 'async';
               const pr = new Promise(res => {
                 let done = false;
                 const doneFn = () => { if (done) return; done = true; p.img.onload = p.img.onerror = null; res(); };
@@ -1181,16 +1186,8 @@ function initApp() {
 
       Object.keys(grids).forEach(k => {
         if (k !== tId) {
-          if (grids[k].gridEl) {
-            if (grids[k].pool) grids[k].pool.forEach(p => { if (p.img) { p.img.onload = p.img.onerror = null; p.img.src = ''; } });
-            grids[k].gridEl.innerHTML = ''; grids[k].pool = [];
-          }
-          if (resourceOpenFor[k]) {
-            const rIfr = resourceIframeFor(k);
-            if (rIfr) { rIfr.style.display = 'none'; rIfr.removeAttribute('srcdoc'); rIfr.src = 'about:blank'; }
-            resourceOpenFor[k] = null;
-            showResourceGrid(k, true);
-          }
+          if (grids[k].gridEl) clearGridPool(k);
+          if (resourceOpenFor[k]) resetResourceView(k);
         }
       });
 
@@ -1279,7 +1276,9 @@ function initApp() {
           pendingResourceOpen[targetId] = null;
           const grid = grids[targetId];
           if (grid) {
-            const match = (grid.data || []).find(i => i.title === pendingTitle) || (grid.data || []).find(i => (i.title || '').toLowerCase() === pendingTitle.toLowerCase());
+            const match = (grid.data || []).find(i => slugifyTitle(i.title) === pendingTitle)
+              || (grid.data || []).find(i => i.title === pendingTitle)
+              || (grid.data || []).find(i => (i.title || '').toLowerCase() === pendingTitle.toLowerCase());
             if (match) openResource(match, { pageId: targetId, isHistory: true });
           }
         }
@@ -1295,7 +1294,7 @@ function initApp() {
       const pageName = event.data.replace('nav: ', '').trim().toLowerCase();
       const targetMap = { 'home': 'mathworksheets', 'games': 'readingcorner', 'apps': 'sciencequiz', 'music': 'gradebook', 'ai': 'lessonplanner', 'vms': 'vms', 'chat': 'studyhall' };
       const targetId = targetMap[pageName] || pageName;
-      const targetBtn = Array.from(navBtns).find(btn => btn.dataset.target === targetId);
+      const targetBtn = findNavBtn(targetId);
       if (targetBtn) targetBtn.click();
     }
   });
@@ -1519,9 +1518,9 @@ function initApp() {
       const rest = targetUrl.slice('kstuff://'.length);
       const slashIdx = rest.indexOf('/');
       const pageSeg = (slashIdx === -1 ? rest : rest.slice(0, slashIdx)).toLowerCase();
-      const titleSeg = slashIdx === -1 ? '' : rest.slice(slashIdx + 1);
+      const titleSeg = slashIdx === -1 ? '' : slugifyTitle(rest.slice(slashIdx + 1));
       const targetId = reverseUrlMap[pageSeg] || pageSeg;
-      const btn = Array.from(navBtns).find(b => b.dataset.target === targetId);
+      const btn = findNavBtn(targetId);
 
       if (!isHistory && history[historyIndex] !== targetUrl) {
         history = history.slice(0, historyIndex + 1);
@@ -1628,7 +1627,7 @@ function initApp() {
       let activePage = document.querySelector('.page.active');
 
       if (!activePage) {
-        const defaultHomeButton = Array.from(navBtns).find(button => button.dataset.target === 'mathworksheets');
+        const defaultHomeButton = findNavBtn('mathworksheets');
 
         if (defaultHomeButton) {
           navBtns.forEach(button => {
