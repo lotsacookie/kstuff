@@ -88,6 +88,8 @@ function initApp() {
   const MAX_UNDERSCORES = 2, MAX_USERNAME_LENGTH = 20;
   const dbg = (...args) => console.log('[kstuff-backend]', ...args);
 
+  const CURSOR_SVG_MARKUP = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.4 19.8 9.9c.6.3.5 1.1-.1 1.3l-6.6 1.8-2.3 6.4c-.2.6-1 .6-1.3 0L4 2.4z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".7" stroke-linejoin="round"/></svg>`;
+
   let backendPort = null, backendLinked = false, backendReady = false, syncInterval = null, currentUser = null;
   let backendFrame = null, backendLinkTimer = null, backendAttempts = 0, backendUrlIndex = 0;
   let authBusyTimer = null;
@@ -441,7 +443,7 @@ function initApp() {
     ['layout-nav-select', 'kstuff_nav_pos', 'nav', v => { if (v) body.classList.add(v); }],
     ['layout-size-select', 'kstuff_nav_size', 'size', v => { if (v) body.classList.add(v); }],
     ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) body.classList.toggle('text-hide', v === 'text-hide'); }],
-    ['layout-font-select', 'kstuff_font', '', v => { if (v) document.documentElement.style.setProperty('--font', v); }],
+    ['layout-font-select', 'kstuff_font', '', v => { if (v) { document.documentElement.style.setProperty('--font', v); ensureParentFontLoaded(v); } }],
     ['search-engine-select', 'kstuff_search_engine', '', v => { updateSearchEngineExample(v); }]
   ].forEach(([id, key, prefix, fn]) => {
     const select = $(id); if (!select) return;
@@ -453,6 +455,34 @@ function initApp() {
       notifyIframesTheme();
     });
   });
+
+  const SYSTEM_FONT_NAMES = new Set([
+    'sans-serif', 'serif', 'monospace', 'cursive', 'fantasy', 'system-ui',
+    'ui-sans-serif', 'ui-serif', 'ui-monospace', 'ui-rounded',
+    '-apple-system', 'blinkmacsystemfont', 'segoe ui', 'segoe ui emoji',
+    'arial', 'helvetica', 'verdana', 'tahoma', 'trebuchet ms', 'georgia',
+    'times new roman', 'times', 'courier new', 'courier', 'impact',
+    'lucida console', 'roboto', 'inherit'
+  ]);
+
+  const primaryFontName = fontValue => {
+    if (!fontValue) return '';
+    const first = fontValue.split(',')[0].trim().replace(/^['"]|['"]$/g, '');
+    return first;
+  };
+
+  const loadedGoogleFonts = new Set();
+  function ensureParentFontLoaded(fontValue) {
+    const name = primaryFontName(fontValue);
+    if (!name || SYSTEM_FONT_NAMES.has(name.toLowerCase()) || loadedGoogleFonts.has(name)) return;
+    loadedGoogleFonts.add(name);
+    const link = el('link', {
+      rel: 'stylesheet',
+      href: `https://fonts.googleapis.com/css2?family=${encodeURIComponent(name).replace(/%20/g, '+')}:wght@300;400;500;600;700;800&display=swap`
+    });
+    document.head.appendChild(link);
+  }
+  ensureParentFontLoaded(getStorage('kstuff_font'));
 
   function applyCloudSettings(s) {
     if (!s) return;
@@ -534,8 +564,9 @@ function initApp() {
     if (currentUser?.username) sendBackend({ type: 'update-settings', username: currentUser.username, settings: p });
   }
 
-  const THEME_SYNC_SCRIPT = `<script>(function(){function g(cs,n){return(cs.getPropertyValue(n)||'').trim();}function sT(){try{var p=window.parent;if(!p||p===window)return;var cs=p.getComputedStyle(p.document.body),d=document.documentElement.style;var bg=g(cs,'--background');if(!bg&&cs.backgroundColor!=='rgba(0, 0, 0, 0)'&&cs.backgroundColor!=='transparent')bg=cs.backgroundColor;var tx=g(cs,'--text-color')||cs.color;if(bg&&tx&&bg===tx){bg='';tx='';}var m={'--bg':bg,'--text':tx,'--nav':g(cs,'--nav-bg'),'--card':g(cs,'--card-bg'),'--font':g(cs,'--font')};for(var k in m){if(m[k])d.setProperty(k,m[k]);else d.removeProperty(k);}}catch(e){}}sT();window.addEventListener('message',function(e){if(e.data==='theme-updated')sT();});})();<\/script>`;
+  const THEME_SYNC_SCRIPT = `<script>(function(){function g(cs,n){return(cs.getPropertyValue(n)||'').trim();}function primaryFont(f){if(!f)return'';return f.split(',')[0].trim().replace(/^['"]|['"]\$/g,'');}var SYS=new Set(['sans-serif','serif','monospace','cursive','fantasy','system-ui','ui-sans-serif','ui-serif','ui-monospace','ui-rounded','-apple-system','blinkmacsystemfont','segoe ui','segoe ui emoji','arial','helvetica','verdana','tahoma','trebuchet ms','georgia','times new roman','times','courier new','courier','impact','lucida console','roboto','inherit']);var lastFont='';function ensureFontLink(name){if(!name||SYS.has(name.toLowerCase())||name===lastFont)return;lastFont=name;var id='kstuff-iframe-font-link';var old=document.getElementById(id);if(old)old.remove();var link=document.createElement('link');link.id=id;link.rel='stylesheet';link.href='https://fonts.googleapis.com/css2?family='+encodeURIComponent(name).replace(/%20/g,'+')+':wght@300;400;500;600;700;800&display=swap';document.head.appendChild(link);}function sT(){try{var p=window.parent;if(!p||p===window)return;var cs=p.getComputedStyle(p.document.body),d=document.documentElement.style;var bg=g(cs,'--background');if(!bg&&cs.backgroundColor!=='rgba(0, 0, 0, 0)'&&cs.backgroundColor!=='transparent')bg=cs.backgroundColor;var tx=g(cs,'--text-color')||cs.color;if(bg&&tx&&bg===tx){bg='';tx='';}var font=g(cs,'--font');var m={'--bg':bg,'--text':tx,'--nav':g(cs,'--nav-bg'),'--card':g(cs,'--card-bg'),'--font':font};for(var k in m){if(m[k])d.setProperty(k,m[k]);else d.removeProperty(k);}ensureFontLink(primaryFont(font));}catch(e){}}sT();window.addEventListener('message',function(e){if(e.data==='theme-updated')sT();});})();<\/script>`;
   const FONT_FORCE_STYLE = `<style>*{font-family:var(--font, inherit) !important;}</style>`;
+  const CURSOR_SYNC_SCRIPT = `<script>(function(){var css="html.kstuff-cursor-active,html.kstuff-cursor-active *{cursor:none !important;}.kstuff-cursor{position:fixed;top:0;left:0;width:22px;height:22px;pointer-events:none;z-index:2147483647;color:var(--text,inherit);opacity:0;transition:opacity .1s ease;}.kstuff-cursor.visible{opacity:1;}.kstuff-cursor svg{width:100%;height:100%;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}";var st=document.createElement('style');st.textContent=css;document.head.appendChild(st);document.documentElement.classList.add('kstuff-cursor-active');var c=document.createElement('div');c.className='kstuff-cursor';c.innerHTML='${CURSOR_SVG_MARKUP}';(document.body||document.documentElement).appendChild(c);var shown=false,pending=false,last=null;function pos(){pending=false;if(!last)return;c.style.transform='translate('+last.clientX+'px,'+last.clientY+'px)';}function show(){if(shown)return;shown=true;c.classList.add('visible');}function hide(){shown=false;c.classList.remove('visible');}document.addEventListener('pointermove',function(e){last=e;if(!pending){pending=true;requestAnimationFrame(pos);}show();});document.addEventListener('mouseenter',function(){try{window.parent.postMessage({type:'kstuff-cursor',action:'enter'},'*');}catch(e){}});document.addEventListener('mouseleave',function(){hide();try{window.parent.postMessage({type:'kstuff-cursor',action:'leave'},'*');}catch(e){}});try{window.parent.postMessage({type:'kstuff-cursor',action:'enter'},'*');}catch(e){}})();<\/script>`;
 
   const buildErrorHtml = id => `<html style="background:#1b1b1f;margin:0;"><body style="margin:0;color:#f5f5f5;background:#1b1b1f;font-family:sans-serif;display:flex;flex-direction:column;gap:14px;justify-content:center;align-items:center;height:100vh;"><h2 style="margin:0;">Failed to load.</h2><button id="js-iframe-retry" style="padding:8px 18px;border:none;border-radius:6px;background:#4a7dff;color:#fff;cursor:pointer;font-size:0.9rem;">Retry</button><script>document.getElementById('js-iframe-retry').onclick=()=>window.parent.postMessage({type:'retry-iframe',id:'${id}'},'*');<\/script></body></html>`;
 
@@ -604,7 +635,7 @@ function initApp() {
         iframeLoadFailed[id] = false;
         lastIframeHtml[id] = html;
         const i = html.lastIndexOf('</body>');
-        const injected = FONT_FORCE_STYLE + THEME_SYNC_SCRIPT;
+        const injected = FONT_FORCE_STYLE + THEME_SYNC_SCRIPT + CURSOR_SYNC_SCRIPT;
         mount(i === -1 ? html + injected : html.slice(0, i) + injected + html.slice(i));
       } catch (err) {
         console.error('loadIframePage failed for', path, err);
@@ -639,6 +670,65 @@ function initApp() {
 
   const resourceIframeFor = pageId => $(`${pageId}-resource-iframe`);
 
+  document.head.appendChild(el('style', {
+    textContent: `
+      html.kstuff-cursor-active, html.kstuff-cursor-active *{cursor:none !important;}
+      .kstuff-cursor{position:fixed;top:0;left:0;width:22px;height:22px;pointer-events:none;z-index:2147483647;color:var(--text-color, inherit);opacity:0;transition:opacity .1s ease;}
+      .kstuff-cursor.visible{opacity:1;}
+      .kstuff-cursor svg{width:100%;height:100%;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}
+    `
+  }));
+
+  const cursorEl = body.appendChild(el('div', { className: 'kstuff-cursor', innerHTML: CURSOR_SVG_MARKUP }));
+  document.documentElement.classList.add('kstuff-cursor-active');
+
+  let cursorSuppressed = false, cursorShown = false, cursorPending = false, lastCursorEvt = null;
+  const positionCursor = () => {
+    cursorPending = false;
+    if (!lastCursorEvt) return;
+    cursorEl.style.transform = `translate(${lastCursorEvt.clientX}px, ${lastCursorEvt.clientY}px)`;
+  };
+  const showCustomCursor = () => {
+    if (cursorSuppressed || cursorShown) return;
+    cursorShown = true;
+    cursorEl.classList.add('visible');
+  };
+  const hideCustomCursor = () => {
+    cursorShown = false;
+    cursorEl.classList.remove('visible');
+  };
+  const setCursorSuppressed = state => {
+    cursorSuppressed = state;
+    if (state) hideCustomCursor();
+    else if (lastCursorEvt) showCustomCursor();
+  };
+  document.addEventListener('pointermove', e => {
+    lastCursorEvt = e;
+    if (!cursorPending) { cursorPending = true; requestAnimationFrame(positionCursor); }
+    showCustomCursor();
+  });
+  document.addEventListener('pointerleave', () => hideCustomCursor());
+  document.addEventListener('pointerenter', () => { if (lastCursorEvt) showCustomCursor(); });
+
+  window.addEventListener('message', e => {
+    const d = e.data;
+    if (!d || d.type !== 'kstuff-cursor') return;
+    setCursorSuppressed(d.action === 'enter');
+  });
+
+  Object.values(iframePages).forEach(p => {
+    const f = $(p.id);
+    if (!f) return;
+    f.addEventListener('mouseenter', () => setCursorSuppressed(true));
+    f.addEventListener('mouseleave', () => setCursorSuppressed(false));
+  });
+  ['readingcorner', 'sciencequiz'].forEach(pageId => {
+    const ifr = resourceIframeFor(pageId);
+    if (!ifr) return;
+    ifr.addEventListener('mouseenter', () => setCursorSuppressed(true));
+    ifr.addEventListener('mouseleave', () => setCursorSuppressed(false));
+  });
+
   const showResourceGrid = (pageId, show) => {
     const grid = grids[pageId];
     const section = $(pageId);
@@ -661,6 +751,7 @@ function initApp() {
     if (ifr) { ifr.style.display = 'none'; ifr.removeAttribute('srcdoc'); ifr.src = 'about:blank'; }
     resourceOpenFor[pageId] = null;
     showResourceGrid(pageId, true);
+    setCursorSuppressed(false);
   }
 
   const closeResourceInline = pageId => {
