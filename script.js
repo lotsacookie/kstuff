@@ -40,10 +40,11 @@ function initApp() {
 
   const getSearchEngine = () => SEARCH_ENGINES[getStorage('kstuff_search_engine')] || SEARCH_ENGINES.duckduckgo;
 
-  function updateSearchEngineExample() {
+  function updateSearchEngineExample(engineKey) {
     const exampleEl = $('search-engine-example');
     if (!exampleEl) return;
-    exampleEl.textContent = getSearchEngine().url.replace('%s', 'example+search');
+    const engine = SEARCH_ENGINES[engineKey] || getSearchEngine();
+    exampleEl.textContent = engine.url.replace('%s', 'example+search');
   }
 
   const formatWebUrl = rawUrl => {
@@ -441,7 +442,7 @@ function initApp() {
     ['layout-size-select', 'kstuff_nav_size', 'size', v => { if (v) body.classList.add(v); }],
     ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) body.classList.toggle('text-hide', v === 'text-hide'); }],
     ['layout-font-select', 'kstuff_font', '', v => { if (v) document.documentElement.style.setProperty('--font', v); }],
-    ['search-engine-select', 'kstuff_search_engine', '', () => { updateSearchEngineExample(); }]
+    ['search-engine-select', 'kstuff_search_engine', '', v => { updateSearchEngineExample(v); }]
   ].forEach(([id, key, prefix, fn]) => {
     const select = $(id); if (!select) return;
     const val = getStorage(key) || select.value; select.value = val; fn(val);
