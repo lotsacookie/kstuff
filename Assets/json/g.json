@@ -406,8 +406,9 @@
     "category": "Simulation"
   },
   {
-    "title": "Nazi Zombies Portable",
-    "category": "FPS"
+    "title": "Nazi Zombies: Portable",
+    "category": "FPS",
+    "${static}https://nzp.gay"
   },
   {
     "title": "Netquel",
