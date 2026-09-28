@@ -54,16 +54,17 @@ function initApp() {
     throw new Error('Failed to load module ' + name + ': ' + lastErr);
   }
 
-  const MODULE_NAMES = ['core', 'theme-settings', 'auth-backend', 'iframe-loader', 'resource-grids', 'music-player', 'navigation'];
+  const MODULE_NAMES = ['core', 'theme-settings', 'auth-backend', 'iframe-loader', 'game-sources', 'resource-grids', 'music-player', 'navigation'];
 
   Promise.all(MODULE_NAMES.map(loadModule))
     .then(modules => {
       const K = {};
-      const [core, themeSettings, authBackend, iframeLoader, resourceGrids, musicPlayer, navigation] = modules;
+      const [core, themeSettings, authBackend, iframeLoader, gameSources, resourceGrids, musicPlayer, navigation] = modules;
       core.init(K);
       themeSettings.init(K);
       authBackend.init(K);
       iframeLoader.init(K);
+      gameSources.init(K);
       resourceGrids.init(K);
       musicPlayer.init(K);
       navigation.init(K);
