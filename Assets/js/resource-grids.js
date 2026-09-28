@@ -103,6 +103,18 @@ export function init(K) {
 
     if (stale()) return;
 
+    if (targetUrl.startsWith('lumin:')) {
+      try {
+        const luminUrl = await K.luminGameUrl(targetUrl.slice(6));
+        if (stale()) return;
+        if (luminUrl) ifr.src = luminUrl;
+        else K.toggleLoader(false);
+      } catch {
+        if (!stale()) K.toggleLoader(false);
+      }
+      return;
+    }
+
     const isRelativeUrl = !targetUrl.startsWith('http');
     const isHtmlRepo = isRelativeUrl || K.urlHasKeyword(targetUrl, K.HTML_REPO_KEYWORDS);
     const useLaunch = isHtmlRepo || K.urlHasKeyword(targetUrl, K.LAUNCH_KEYWORDS);
@@ -200,25 +212,36 @@ export function init(K) {
           if (p.c) p.c.textContent = item.category || 'All';
           p.el.dataset.tooltip = item.title;
 
-          if (p.img.dataset.src !== (item.image || '')) {
+          const wanted = item.image || (item.imageToken && K.luminImgCache?.get(item.imageToken)) || '';
+          if (p.img.dataset.src !== wanted) {
             p.img.onload = p.img.onerror = null;
             if (p.img.src) p.img.src = '';
-            p.img.dataset.src = item.image || '';
-            if (item.image) {
+            p.img.dataset.src = wanted;
+            if (wanted) {
               p.img.style.display = 'block';
               p.img.loading = 'lazy';
               p.img.decoding = 'async';
+              const alts = (item.imageAlts || []).slice();
               const pr = new Promise(res => {
                 let done = false;
                 const doneFn = () => { if (done) return; done = true; p.img.onload = p.img.onerror = null; res(); };
-                p.img.onload = doneFn; p.img.onerror = doneFn;
-                p.img.src = item.image;
+                p.img.onload = doneFn;
+                p.img.onerror = () => { if (alts.length) p.img.src = alts.shift(); else doneFn(); };
+                p.img.src = wanted;
               });
               imagePromises.push(pr);
             } else {
               p.img.removeAttribute('src'); p.img.style.display = 'none';
+              if (item.imageToken && K.resolveLuminImage) {
+                K.resolveLuminImage(item).then(url => {
+                  if (!url || grid.paginatedData[idx] !== item || p.img.dataset.src) return;
+                  p.img.dataset.src = url;
+                  p.img.style.display = 'block';
+                  p.img.src = url;
+                });
+              }
             }
-          } else if (item.image) {
+          } else if (wanted) {
             p.img.style.display = 'block';
           }
         } else {
@@ -305,6 +328,7 @@ export function init(K) {
   };
   K.appB = appB;
 
+  const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
   const proc = arr => (Array.isArray(arr) ? arr : []).map(i => {
     let p = { ...i };
     if (p.url?.includes('${truffled}') || !p.image || p.category === 'Truffled') {
@@ -319,7 +343,7 @@ export function init(K) {
     }
     p.url = appB(p.url, true); p.image = appB(p.image);
     return p;
-  }).sort((a, b) => (a.title||"").localeCompare(b.title||"", undefined, { sensitivity: 'base' }));
+  }).sort((a, b) => collator.compare(a.title || "", b.title || ""));
   K.proc = proc;
 
   const rData = async (t, p, resetPage = true, mode = 'updating', silent = false) => {
@@ -355,30 +379,46 @@ export function init(K) {
     const manualMap = new Map();
     manualList.forEach(item => { if (item && item.title) manualMap.set(item.title.toLowerCase().trim(), item); });
 
-    try {
-      const json = await K.fetchRepoFile('freebuisness/assets', 'zones.json', false, 12000);
-      if (!Array.isArray(json)) throw new Error('zones.json is not an array');
+    const [zones, extras] = await Promise.all([
+      K.fetchRepoFile('freebuisness/assets', 'zones.json', false, 12000)
+        .then(json => {
+          if (!Array.isArray(json)) throw new Error('zones.json is not an array');
+          return json.map(z => ({ source: 'gn-math', name: z.name, url: z.url, cover: z.cover }));
+        })
+        .catch(e => { console.error('fetchReadingCornerRaw zones failed', e); return []; }),
+      K.fetchExtraGames ? K.fetchExtraGames().catch(e => { console.error('extra game sources failed', e); return []; }) : []
+    ]);
+
+    const entries = [...zones, ...extras];
+    if (entries.length) {
       const mappedData = [];
-      json.forEach(item => {
-        const titleLower = (item.name || '').toLowerCase().trim();
-        const manualMatch = manualMap.get(titleLower);
-        let finalUrl = item.url, finalCover = item.cover, finalTitle = item.name, finalCategory = 'All';
+      const used = new Set();
+      entries.forEach(item => {
+        const baseName = item.name || '';
+        const key = baseName.toLowerCase().trim();
+        const manualMatch = manualMap.get(key);
+        let finalUrl = item.url, finalCover = item.cover, finalCategory = 'All';
         if (manualMatch) {
           if (manualMatch.url) finalUrl = manualMatch.url;
           if (manualMatch.category) finalCategory = manualMatch.category;
           if (manualMatch.image || manualMatch.img) finalCover = manualMatch.image || manualMatch.img;
-          manualMap.delete(titleLower);
+          used.add(key);
         }
-        if (finalTitle && finalTitle.includes('[!]')) return;
-        mappedData.push({
-          title: finalTitle,
-          image: (finalCover || '').replace('{COVER_URL}', coverBase + '/'),
+        if (baseName && baseName.includes('[!]')) return;
+        const covers = Array.isArray(finalCover) ? finalCover : [finalCover];
+        const row = {
+          title: item.suffix ? `${baseName} (${item.suffix})` : baseName,
+          image: (covers[0] || '').replace('{COVER_URL}', coverBase + '/'),
           url: (finalUrl || '').replace('{HTML_URL}', htmlBase + '/'),
           category: finalCategory,
           description: ''
-        });
+        };
+        if (covers.length > 1) row.imageAlts = covers.slice(1);
+        if (item.imageToken && !manualMatch?.image && !manualMatch?.img) row.imageToken = item.imageToken;
+        mappedData.push(row);
       });
-      manualMap.forEach(manualItem => {
+      manualMap.forEach((manualItem, key) => {
+        if (used.has(key)) return;
         if (manualItem.title && !manualItem.title.includes('[!]')) {
           mappedData.push({
             title: manualItem.title,
@@ -390,7 +430,7 @@ export function init(K) {
         }
       });
       return { data: mappedData };
-    } catch (e) { console.error('fetchReadingCornerRaw zones failed', e); }
+    }
 
     const fallbackMapped = [];
     manualList.forEach(item => {
@@ -490,4 +530,4 @@ export function init(K) {
     console.error('init failed:', error);
     K.toggleLoader(false);
   });
-}
+                                                      }
