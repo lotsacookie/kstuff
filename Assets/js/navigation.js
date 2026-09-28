@@ -6,9 +6,12 @@ export function init(K) {
   document.head.appendChild(K.el('style', {
     textContent: `
       html.kstuff-cursor-active, html.kstuff-cursor-active *{cursor:none !important;}
-      .kstuff-cursor{position:fixed;top:0;left:0;width:22px;height:22px;pointer-events:none;z-index:2147483647;color:var(--text-color, inherit);opacity:0;transition:opacity .1s ease;}
+      .kstuff-cursor{position:fixed;top:0;left:0;width:${K.CURSOR_SIZE}px;height:${K.CURSOR_SIZE}px;pointer-events:none;z-index:2147483647;color:var(--text-color, inherit);opacity:0;transition:opacity .1s ease;}
       .kstuff-cursor.visible{opacity:1;}
-      .kstuff-cursor svg{width:100%;height:100%;display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}
+      .kstuff-cursor svg{width:100%;height:100%;display:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}
+      .kstuff-cursor .k-arrow{display:block;}
+      .kstuff-cursor.pointer .k-arrow{display:none;}
+      .kstuff-cursor.pointer .k-hand{display:block;}
     `
   }));
 
@@ -28,16 +31,22 @@ export function init(K) {
   const setCursorSuppressed = state => {
     cursorSuppressed = state;
     if (state) hideCustomCursor();
-    else if (lastPointerEvent) showCustomCursor();
   };
   K.setCursorSuppressed = setCursorSuppressed;
 
-  let pointerPending = false, lastPointerEvent = null;
+  let pointerPending = false, lastPointerEvent = null, cursorIsHand = false;
   function onPointerFrame() {
     pointerPending = false;
     const e = lastPointerEvent;
     if (!e) return;
-    cursorEl.style.transform = `translate(${e.clientX}px, ${e.clientY}px)`;
+    let isHand = false;
+    try { isHand = !!e.target?.closest?.(K.CLICKABLE_SELECTOR); } catch {}
+    if (isHand !== cursorIsHand) {
+      cursorIsHand = isHand;
+      cursorEl.classList.toggle('pointer', isHand);
+    }
+    const off = isHand ? K.CURSOR_OFFSETS.hand : K.CURSOR_OFFSETS.arrow;
+    cursorEl.style.transform = `translate(${e.clientX - off[0]}px, ${e.clientY - off[1]}px)`;
     const t = e.target?.closest?.('[data-tooltip]');
     if (!t) {
       tooltipEl.style.display = 'none';
@@ -51,6 +60,7 @@ export function init(K) {
 
   document.addEventListener('pointermove', e => {
     lastPointerEvent = e;
+    if (cursorSuppressed && !(e.target instanceof HTMLIFrameElement)) cursorSuppressed = false;
     if (!pointerPending) { pointerPending = true; requestAnimationFrame(onPointerFrame); }
     showCustomCursor();
   }, { passive: true });
@@ -449,4 +459,4 @@ export function init(K) {
   });
 
   setInterval(autoRefreshActivePage, 200000);
-}
+  }
