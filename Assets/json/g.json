@@ -287,7 +287,7 @@
   {
     "title": "Gladihoppers",
     "category": "Action",
-    "url": "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@HEAD/Assets/embed/self-hosted/gladihoppers.html"
+    "url": "${static}https://raw.githack.com/lotsacookie/kstuff/main/Assets/embed/self-hosted/gladihoppers.html"
   },
   {
     "title": "Garry's Mod",
