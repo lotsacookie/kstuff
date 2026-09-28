@@ -548,5 +548,15 @@
       "--nav-bg": "#ffe0bd",
       "--card-bg": "#ffce99"
     }
+  },
+  {
+    "id": "theme-pitch-black",
+    "name": "Pitch Black",
+    "variables": {
+      "--bg-color": "#000000",
+      "--text-color": "#ffffff",
+      "--nav-bg": "#0a0a0a",
+      "--card-bg": "#141414"
+    }
   }
 ]
