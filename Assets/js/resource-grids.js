@@ -371,6 +371,66 @@ export function init(K) {
   };
   K.rData = rData;
 
+  const NUM_WORDS = { zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10' };
+  const normName = t => {
+    const base = (t || '').toLowerCase().replace(/\s*[(\[][^)\]]*[)\]]\s*$/, '').replace(/['’]/g, '').replace(/\b(zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/g, m => NUM_WORDS[m]);
+    const stripped = base.replace(/\b(unblocked|online|games?|the|free)\b/g, '').replace(/[^a-z0-9]+/g, '');
+    return stripped || base.replace(/[^a-z0-9]+/g, '');
+  };
+
+  const editDistance = (a, b, max) => {
+    if (Math.abs(a.length - b.length) > max) return max + 1;
+    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      const cur = [i];
+      let rowMin = i;
+      for (let j = 1; j <= b.length; j++) {
+        const v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+        cur.push(v);
+        if (v < rowMin) rowMin = v;
+      }
+      if (rowMin > max) return max + 1;
+      prev = cur;
+    }
+    return prev[b.length];
+  };
+
+  const fillMissingImages = rows => {
+    const donors = new Map();
+    rows.forEach(r => {
+      if (!r.image) return;
+      const n = normName(r.title);
+      if (!n) return;
+      const existing = donors.get(n);
+      if (!existing || (!r.imageAlts && existing.imageAlts)) donors.set(n, r);
+    });
+    const buckets = new Map();
+    donors.forEach((row, n) => {
+      if (!buckets.has(n[0])) buckets.set(n[0], []);
+      buckets.get(n[0]).push([n, row]);
+    });
+    rows.forEach(r => {
+      if (r.image || r.imageToken) return;
+      const n = normName(r.title);
+      if (!n) return;
+      let hit = donors.get(n);
+      if (!hit && n.length >= 6) {
+        const max = n.length >= 12 ? 2 : 1;
+        const digits = n.replace(/\D/g, '');
+        let best = max + 1;
+        (buckets.get(n[0]) || []).forEach(([m, row]) => {
+          if (Math.abs(m.length - n.length) > max || m.replace(/\D/g, '') !== digits) return;
+          const d = editDistance(n, m, max);
+          if (d < best) { best = d; hit = row; }
+        });
+      }
+      if (hit) {
+        r.image = hit.image;
+        if (hit.imageAlts) r.imageAlts = hit.imageAlts.slice();
+      }
+    });
+  };
+
   const fetchReadingCornerRaw = async () => {
     const coverBase = 'https://cdn.jsdelivr.net/gh/freebuisness/covers@main';
     const htmlBase = 'https://cdn.jsdelivr.net/gh/freebuisness/html@main';
@@ -429,6 +489,7 @@ export function init(K) {
           });
         }
       });
+      fillMissingImages(mappedData);
       return { data: mappedData };
     }
 
@@ -530,4 +591,4 @@ export function init(K) {
     console.error('init failed:', error);
     K.toggleLoader(false);
   });
-                                                      }
+}
