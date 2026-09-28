@@ -99,7 +99,10 @@ export function init(K) {
   K.dbg = (...args) => console.log('[kstuff-backend]', ...args);
   K.MUSIC_IFRAME_ID = 'gradebook-iframe';
 
-  K.CURSOR_SVG_MARKUP = `<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.4 19.8 9.9c.6.3.5 1.1-.1 1.3l-6.6 1.8-2.3 6.4c-.2.6-1 .6-1.3 0L4 2.4z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".7" stroke-linejoin="round"/></svg>`;
+  K.CURSOR_SIZE = 28;
+  K.CURSOR_OFFSETS = { arrow: [4 * 28 / 24, 2.4 * 28 / 24], hand: [10.5 * 28 / 24, 2 * 28 / 24] };
+  K.CURSOR_SVG_MARKUP = `<svg class="k-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.4 19.8 9.9c.6.3.5 1.1-.1 1.3l-6.6 1.8-2.3 6.4c-.2.6-1 .6-1.3 0L4 2.4z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".7" stroke-linejoin="round"/></svg><svg class="k-hand" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 3.5a1.5 1.5 0 0 1 3 0V10h.5V8.5a1.3 1.3 0 0 1 2.6 0V10h.4V9.4a1.3 1.3 0 0 1 2.6 0V10.5h.3a1.3 1.3 0 0 1 1.3 1.3V15c0 3.3-2.2 6-5.5 6h-1.4c-1.8 0-3-.8-4-2.1L5.3 15.2a1.4 1.4 0 0 1 2.1-1.8L9 15V3.5z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".7" stroke-linejoin="round"/></svg>`;
+  K.CLICKABLE_SELECTOR = "a[href],button:not(:disabled),[role='button'],[onclick],select,summary,label[for],input[type='button']:not(:disabled),input[type='submit']:not(:disabled),input[type='checkbox'],input[type='radio'],input[type='range'],.round-btn,.nav-btn,.custom-select-trigger,.custom-select-option,.page-btn,[data-act]:not(:disabled),[data-target]";
 
   K.backendPort = null;
   K.backendLinked = false;
