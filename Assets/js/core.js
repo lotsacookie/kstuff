@@ -11,7 +11,8 @@ export function init(K) {
 
   K.urlMap = { 'mathworksheets': 'home', 'readingcorner': 'games', 'sciencequiz': 'apps', 'gradebook': 'music', 'civics': 'tv', 'lessonplanner': 'ai', 'vms': 'vms', 'studyhall': 'chat' };
   K.reverseUrlMap = Object.entries(K.urlMap).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {});
-  K.history = ['kstuff://home'];
+  K.SCHEME = 'singularity://';
+  K.history = ['singularity://home'];
   K.historyIndex = 0;
   K.pendingResourceOpen = {};
   K.resourceOpenFor = {};
@@ -56,7 +57,7 @@ export function init(K) {
   K.formatWebUrl = rawUrl => {
     let val = rawUrl.trim();
     if (!val) return '';
-    if (val.startsWith('kstuff://')) return val;
+    if (/^(kstuff|singularity):\/\//i.test(val)) return K.SCHEME + val.replace(/^[a-z]+:\/\//i, '');
     if (val.match(/^https?:\/\//)) return val;
     if (val.includes('.') && !val.includes(' ')) return 'https://' + val;
     return K.getSearchEngine().url.replace('%s', encodeURIComponent(val));
@@ -68,8 +69,8 @@ export function init(K) {
   K.sFwd = K.$('study-forward-btn') || K.$('browser-forward');
   K.sReload = K.$('reload-study-btn') || K.$('browser-refresh');
   K.sHome = K.$('home-study-btn') || K.$('browser-home');
-  K.pageAddress = id => 'kstuff://' + (K.urlMap[id] || id);
-  K.setAddress = value => { if (K.tbInput) K.tbInput.value = value; };
+  K.pageAddress = id => K.SCHEME + (K.urlMap[id] || id);
+  K.setAddress = value => { if (K.tbInput) K.tbInput.value = value; K.updateLogoState?.(); };
   K.body = document.body;
   K.navBar = K.$('teachertouchbar');
   K.navBtns = K.$$('.nav-btn');
@@ -288,7 +289,7 @@ export function init(K) {
     if (uFloating) K.setStorage('kstuff_floating_ui', uFloating);
   } catch { localStorage.removeItem('kstuff_user'); }
 
-  if (!K.getStorage('kstuff_theme')) K.setStorage('kstuff_theme', 'theme-sakura');
+  if (!K.getStorage('kstuff_theme')) K.setStorage('kstuff_theme', 'theme-pitch-black');
   if (!K.getStorage('kstuff_font')) K.setStorage('kstuff_font', 'Comfortaa, sans-serif');
   if (!K.getStorage('kstuff_search_engine')) K.setStorage('kstuff_search_engine', 'duckduckgo');
   if (!K.getStorage('kstuff_floating_ui')) K.setStorage('kstuff_floating_ui', 'floating-off');
