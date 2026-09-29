@@ -292,5 +292,5 @@ export function init(K) {
   if (!K.getStorage('kstuff_theme')) K.setStorage('kstuff_theme', 'theme-pitch-black');
   if (!K.getStorage('kstuff_font')) K.setStorage('kstuff_font', 'Comfortaa, sans-serif');
   if (!K.getStorage('kstuff_search_engine')) K.setStorage('kstuff_search_engine', 'duckduckgo');
-  if (!K.getStorage('kstuff_floating_ui')) K.setStorage('kstuff_floating_ui', 'floating-off');
+  if (!K.getStorage('kstuff_floating_ui')) K.setStorage('kstuff_floating_ui', 'floating-on');
 }
