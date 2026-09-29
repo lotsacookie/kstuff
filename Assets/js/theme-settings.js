@@ -60,6 +60,7 @@ export function init(K) {
   [
     ['layout-theme-select', 'kstuff_theme', 'theme', v => { if (v) { K.body.classList.add(v); K.setStorage('kstuff_theme', v); } }],
     ['layout-nav-select', 'kstuff_nav_pos', 'nav', v => { if (v) K.body.classList.add(v); }],
+    ['layout-floating-select', 'kstuff_floating_ui', 'floating', v => { if (v) K.body.classList.add(v); }],
     ['layout-size-select', 'kstuff_nav_size', 'size', v => { if (v) K.body.classList.add(v); }],
     ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) K.body.classList.toggle('text-hide', v === 'text-hide'); }],
     ['layout-font-select', 'kstuff_font', '', v => { if (v) { document.documentElement.style.setProperty('--font', v); ensureParentFontLoaded(v); } }],
@@ -80,9 +81,11 @@ export function init(K) {
     if (s.theme) K.setStorage('kstuff_theme', s.theme);
     if (s.font) K.setStorage('kstuff_font', s.font);
     if (s.searchEngine) K.setStorage('kstuff_search_engine', s.searchEngine);
+    if (s.floatingUi) K.setStorage('kstuff_floating_ui', s.floatingUi);
     [
       { i: 'layout-theme-select', k: 'kstuff_theme', v: s.theme },
       { i: 'layout-nav-select', k: 'kstuff_nav_pos', v: s.navPos },
+      { i: 'layout-floating-select', k: 'kstuff_floating_ui', v: s.floatingUi },
       { i: 'layout-size-select', k: 'kstuff_nav_size', v: s.navSize },
       { i: 'layout-text-select', k: 'kstuff_text_vis', v: s.textVis },
       { i: 'layout-font-select', k: 'kstuff_font', v: s.font },
@@ -100,12 +103,13 @@ export function init(K) {
     });
   };
 
-  K.userSettings = u => u?.settings || { theme: u?.theme, navPos: u?.navPos, navSize: u?.navSize, textVis: u?.textVis, font: u?.font, searchEngine: u?.searchEngine };
+  K.userSettings = u => u?.settings || { theme: u?.theme, navPos: u?.navPos, floatingUi: u?.floatingUi, navSize: u?.navSize, textVis: u?.textVis, font: u?.font, searchEngine: u?.searchEngine };
 
   K.saveSettings = () => {
     const p = {
       theme: K.$('layout-theme-select')?.value,
       navPos: K.$('layout-nav-select')?.value,
+      floatingUi: K.$('layout-floating-select')?.value,
       navSize: K.$('layout-size-select')?.value,
       textVis: K.$('layout-text-select')?.value,
       font: K.$('layout-font-select')?.value,
@@ -115,6 +119,7 @@ export function init(K) {
     if (p.theme) K.setStorage('kstuff_theme', p.theme);
     if (p.font) K.setStorage('kstuff_font', p.font);
     if (p.searchEngine) K.setStorage('kstuff_search_engine', p.searchEngine);
+    if (p.floatingUi) K.setStorage('kstuff_floating_ui', p.floatingUi);
     if (K.currentUser) {
       K.currentUser.settings = p;
       K.setStorage('kstuff_user', JSON.stringify(K.currentUser));
