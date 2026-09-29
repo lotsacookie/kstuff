@@ -1236,46 +1236,6 @@ body.text-hide .nav-right .nav-divider {
 .modal-scroll .modal-settings-body::-webkit-scrollbar { width: 6px; }
 .modal-scroll .modal-settings-body::-webkit-scrollbar-thumb { background: rgba(128, 128, 128, 0.35); border-radius: 4px; }
 
-.modal-section-title {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-bottom: 1rem;
-    font-size: 1.05rem;
-    font-weight: 900 !important;
-}
-
-.changelog-body #changelog-content {
-    font-size: 0.95rem;
-    line-height: 1.6;
-    margin-bottom: 1.5rem;
-    opacity: 0.92;
-}
-
-.changelog-body #changelog-content li {
-    margin-bottom: 0.5rem;
-    padding: 0.55rem 0.8rem;
-    list-style: none;
-    background: var(--card-bg);
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-}
-
-.changelog-body #changelog-content ul {
-    padding-left: 0 !important;
-}
-
-.changelog-footer {
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 0.4rem;
-    padding-top: 1rem;
-    border-top: 1px solid rgba(128, 128, 128, 0.2);
-    font-size: 0.8rem;
-    opacity: 0.7;
-}
-
 .modal-input {
     width: 100%;
     padding: 0.75rem 0.9rem;
@@ -2100,4 +2060,4 @@ body.floating-on.nav-bottom #classroom-portal-container {
 #do-logout-btn:active {
     transform: translateY(0);
     box-shadow: none;
-} 
+}
