@@ -111,6 +111,46 @@ export function init(K) {
     let rs; window.addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(() => updateIndicator(document.querySelector('.nav-btn.active')), 120); });
   }
 
+  const navLogo = K.$('nav-logo');
+  let lastLogoHome = null;
+  const isHomeView = () => {
+    const value = (K.tbInput?.value || '').trim().toLowerCase().replace(/\/+$/, '');
+    return value === 'singularity://home' && document.querySelector('.page.active')?.id === 'mathworksheets';
+  };
+  const updateLogoState = () => {
+    if (!navLogo) return;
+    const home = isHomeView();
+    if (home === lastLogoHome) return;
+    lastLogoHome = home;
+    navLogo.classList.toggle('is-home', home);
+  };
+  K.updateLogoState = updateLogoState;
+
+  if (navLogo) {
+    const burstLogo = () => {
+      navLogo.classList.remove('burst');
+      void navLogo.offsetWidth;
+      navLogo.classList.add('burst');
+    };
+    const activateLogo = () => {
+      tooltipEl.style.display = 'none';
+      burstLogo();
+      K.findNavBtn('mathworksheets')?.click();
+    };
+    navLogo.addEventListener('click', activateLogo);
+    navLogo.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        activateLogo();
+      }
+    });
+    navLogo.addEventListener('animationend', e => {
+      if (e.target === navLogo && e.animationName === 'nl-click') navLogo.classList.remove('burst');
+    });
+    setInterval(updateLogoState, 400);
+    updateLogoState();
+  }
+
   const loadContent = async (tId, forceReload = false, customSrc = null) => {
     K.firstNavStarted = true;
     K.isNavigating = true;
@@ -169,6 +209,7 @@ export function init(K) {
       targetPage.style.display = 'block';
       targetPage.style.opacity = '1';
       targetPage.classList.add('active');
+      K.updateLogoState?.();
 
       if (K.grids[tId]) {
         K.buildPool(tId);
@@ -285,8 +326,8 @@ export function init(K) {
     const targetUrl = K.formatWebUrl(val);
     if (!targetUrl) return;
 
-    if (targetUrl.startsWith('kstuff://')) {
-      const rest = targetUrl.slice('kstuff://'.length);
+    if (targetUrl.startsWith(K.SCHEME)) {
+      const rest = targetUrl.slice(K.SCHEME.length);
       const slashIdx = rest.indexOf('/');
       const pageSeg = (slashIdx === -1 ? rest : rest.slice(0, slashIdx)).toLowerCase();
       const titleSeg = slashIdx === -1 ? '' : K.slugifyTitle(rest.slice(slashIdx + 1));
@@ -321,7 +362,7 @@ export function init(K) {
       K.historyIndex++;
     }
 
-    if (K.tbInput) K.tbInput.value = targetUrl;
+    K.setAddress(targetUrl);
     updateBrowserNav();
 
     const proxiedUrl = K.buildIxlUrl(targetUrl);
@@ -337,7 +378,7 @@ export function init(K) {
   K.sBack?.addEventListener('click', () => { if (K.historyIndex > 0) { K.historyIndex--; loadBrowserUrl(K.history[K.historyIndex], true); } });
   K.sFwd?.addEventListener('click', () => { if (K.historyIndex < K.history.length - 1) { K.historyIndex++; loadBrowserUrl(K.history[K.historyIndex], true); } });
   K.sReload?.addEventListener('click', () => { if (K.studyIframe) { try { K.studyIframe.contentWindow.location.reload(); } catch(e) { K.studyIframe.src = K.studyIframe.src; } } });
-  K.sHome?.addEventListener('click', () => loadBrowserUrl('kstuff://home'));
+  K.sHome?.addEventListener('click', () => loadBrowserUrl('singularity://home'));
 
   let activePort = null;
   const mathworksIframe = K.$('mathworksheets-iframe');
@@ -358,7 +399,7 @@ export function init(K) {
             const normalize = u => u ? u.replace(/\/$/, '').trim().toLowerCase() : '';
             const currentVal = K.tbInput ? K.tbInput.value : '';
             if (reportedUrl && normalize(reportedUrl) !== normalize(currentVal) && reportedUrl !== 'about:blank') {
-              if (K.tbInput) K.tbInput.value = reportedUrl;
+              K.setAddress(reportedUrl);
 
               if (K.history[K.historyIndex] !== reportedUrl) {
                 K.history = K.history.slice(0, K.historyIndex + 1);
@@ -385,6 +426,7 @@ export function init(K) {
         data.startsWith('http://') ||
         data.startsWith('https://') ||
         data.startsWith('kstuff://') ||
+        data.startsWith('singularity://') ||
         (data.includes('.') && !data.includes(' '))
       ) {
         loadBrowserUrl(data);
@@ -433,7 +475,7 @@ export function init(K) {
     if (!activePage) return;
     const tId = activePage.id;
 
-    if (tId === 'mathworksheets' && K.tbInput && K.tbInput.value && K.tbInput.value !== 'kstuff://home') return;
+    if (tId === 'mathworksheets' && K.tbInput && K.tbInput.value && K.tbInput.value !== 'singularity://home') return;
 
     K.autoRefreshBusy = true;
     try {
@@ -459,4 +501,4 @@ export function init(K) {
   });
 
   setInterval(autoRefreshActivePage, 200000);
-  }
+}
