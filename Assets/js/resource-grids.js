@@ -1,9 +1,13 @@
 export function init(K) {
   const grids = {
-    readingcorner: { data: [], pool: [], gridEl: K.$('readingcorner-grid'), pageEl: K.$('readingcorner-pagination'), category: "All", search: "", page: 1, id: 'readingcorner', renderId: 0 },
-    sciencequiz: { data: [], pool: [], gridEl: K.$('sciencequiz-grid'), pageEl: K.$('sciencequiz-pagination'), category: "All", search: "", page: 1, id: 'sciencequiz', renderId: 0 }
+    readingcorner: { data: [], pool: [], gridEl: K.$('readingcorner-grid'), pageEl: K.$('readingcorner-pagination'), category: "All", search: "", page: 1, id: 'readingcorner', renderId: 0, sig: '', filterCache: null, pageKey: '' },
+    sciencequiz: { data: [], pool: [], gridEl: K.$('sciencequiz-grid'), pageEl: K.$('sciencequiz-pagination'), category: "All", search: "", page: 1, id: 'sciencequiz', renderId: 0, sig: '', filterCache: null, pageKey: '' }
   };
   K.grids = grids;
+  K.lastGridRefresh = {};
+
+  const REFRESH_TTL = 60000;
+  const FIRST_PAINT_IMAGES = 24;
 
   const resourceIframeFor = pageId => K.$(`${pageId}-resource-iframe`);
   K.resourceIframeFor = resourceIframeFor;
@@ -18,12 +22,18 @@ export function init(K) {
   };
   K.showResourceGrid = showResourceGrid;
 
+  const releaseImage = img => {
+    if (!img) return;
+    img.onload = img.onerror = null;
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    delete img.dataset.src;
+  };
+
   function clearGridPool(type) {
     const grid = grids[type];
     if (!grid) return;
-    if (grid.pool) grid.pool.forEach(p => { if (p.img) { p.img.onload = p.img.onerror = null; p.img.src = ''; } });
-    if (grid.gridEl) grid.gridEl.innerHTML = '';
-    grid.pool = [];
+    grid.pool.forEach(p => releaseImage(p.img));
   }
   K.clearGridPool = clearGridPool;
 
@@ -148,17 +158,26 @@ export function init(K) {
   };
   K.openResource = openResource;
 
+  const cardTemplate = document.createElement('div');
+  cardTemplate.className = 'round-btn';
+  cardTemplate.innerHTML = `<img alt="" style="display:none;"><div class="category-label"></div><div class="overlay"><h3></h3><p></p></div>`;
+
   const buildPool = type => {
     const grid = grids[type]; if (!grid.gridEl) return;
-    clearGridPool(type);
-    const frag = document.createDocumentFragment();
-    for (let i = 0; i < K.ITEMS_PER_PAGE; i++) {
-      const card = K.el('div', { className: 'round-btn' }); card.dataset.index = i;
-      card.innerHTML = `<img alt="" style="display:none;"><div class="category-label"></div><div class="overlay"><h3></h3><p></p></div>`;
-      grid.pool.push({ el: card, img: card.querySelector('img'), t: card.querySelector('h3'), d: card.querySelector('p'), c: card.querySelector('.category-label') });
-      frag.appendChild(card);
+    if (grid.pool.length !== K.ITEMS_PER_PAGE || grid.gridEl.childElementCount !== grid.pool.length) {
+      grid.pool.forEach(p => releaseImage(p.img));
+      grid.gridEl.textContent = '';
+      grid.pool = [];
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < K.ITEMS_PER_PAGE; i++) {
+        const card = cardTemplate.cloneNode(true);
+        card.dataset.index = i;
+        grid.pool.push({ el: card, img: card.querySelector('img'), t: card.querySelector('h3'), d: card.querySelector('p'), c: card.querySelector('.category-label') });
+        frag.appendChild(card);
+      }
+      grid.gridEl.appendChild(frag);
+      grid.pageKey = '';
     }
-    grid.gridEl.appendChild(frag);
     grid.gridEl.onclick = e => { const c = e.target.closest('.round-btn'); if (c && c.style.display !== 'none') openResource(grid.paginatedData?.[c.dataset.index], { pageId: type }); };
   };
   K.buildPool = buildPool;
@@ -189,91 +208,108 @@ export function init(K) {
   `;
   document.head.appendChild(gridImageStyle);
 
-  const renderGrid = (type, preload = false, mode = 'loading') => {
-    return new Promise(async resolve => {
-      const grid = grids[type]; if (!grid.gridEl) return resolve();
-      grid.renderId = (grid.renderId || 0) + 1;
-      const myRenderId = grid.renderId;
-      K.toggleLoader(true, mode);
-      const filtered = (grid.data || []).filter(i => (grid.category === "All" || i.category === grid.category) && i.title.toLowerCase().includes(grid.search));
-      const totalPages = Math.max(1, Math.ceil(filtered.length / K.ITEMS_PER_PAGE));
-      if (grid.page > totalPages) grid.page = 1;
-      grid.paginatedData = filtered.slice((grid.page - 1) * K.ITEMS_PER_PAGE, grid.page * K.ITEMS_PER_PAGE);
+  const getFiltered = grid => {
+    const key = grid.category + '\u0000' + grid.search;
+    const cache = grid.filterCache;
+    if (cache && cache.data === grid.data && cache.key === key) return cache.list;
+    const list = (grid.data || []).filter(i => (grid.category === "All" || i.category === grid.category) && (!grid.search || (i._lt ?? (i.title || '').toLowerCase()).includes(grid.search)));
+    grid.filterCache = { data: grid.data, key, list };
+    return list;
+  };
 
-      const imagePromises = [];
-      for (let idx = 0; idx < grid.pool.length; idx++) {
-        const p = grid.pool[idx];
-        const item = grid.paginatedData[idx];
-        p.el.style.display = item ? 'block' : 'none';
+  const renderGrid = async (type, preload = false, mode = 'loading') => {
+    const grid = grids[type]; if (!grid?.gridEl) return;
+    grid.renderId = (grid.renderId || 0) + 1;
+    const myRenderId = grid.renderId;
+    K.toggleLoader(true, mode);
+    const filtered = getFiltered(grid);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / K.ITEMS_PER_PAGE));
+    if (grid.page > totalPages) grid.page = 1;
+    grid.paginatedData = filtered.slice((grid.page - 1) * K.ITEMS_PER_PAGE, grid.page * K.ITEMS_PER_PAGE);
 
-        if (item) {
-          if (p.t.textContent !== item.title) p.t.textContent = item.title;
-          if (p.d.textContent !== (item.description || '')) p.d.textContent = item.description || '';
-          if (p.c) p.c.textContent = item.category || 'All';
-          p.el.dataset.tooltip = item.title;
+    const imagePromises = [];
+    for (let idx = 0; idx < grid.pool.length; idx++) {
+      const p = grid.pool[idx];
+      const item = grid.paginatedData[idx];
+      const nextDisplay = item ? 'block' : 'none';
+      if (p.el.style.display !== nextDisplay) p.el.style.display = nextDisplay;
 
-          const wanted = item.image || (item.imageToken && K.luminImgCache?.get(item.imageToken)) || '';
-          if (p.img.dataset.src !== wanted) {
-            p.img.onload = p.img.onerror = null;
-            if (p.img.src) p.img.src = '';
-            p.img.dataset.src = wanted;
-            if (wanted) {
-              p.img.style.display = 'block';
-              p.img.loading = 'lazy';
-              p.img.decoding = 'async';
-              const alts = (item.imageAlts || []).slice();
-              const pr = new Promise(res => {
-                let done = false;
-                const doneFn = () => { if (done) return; done = true; p.img.onload = p.img.onerror = null; res(); };
-                p.img.onload = doneFn;
-                p.img.onerror = () => { if (alts.length) p.img.src = alts.shift(); else doneFn(); };
-                p.img.src = wanted;
-              });
-              imagePromises.push(pr);
-            } else {
-              p.img.removeAttribute('src'); p.img.style.display = 'none';
-              if (item.imageToken && K.resolveLuminImage) {
-                K.resolveLuminImage(item).then(url => {
-                  if (!url || grid.paginatedData[idx] !== item || p.img.dataset.src) return;
-                  p.img.dataset.src = url;
-                  p.img.style.display = 'block';
-                  p.img.src = url;
-                });
-              }
-            }
-          } else if (wanted) {
+      if (item) {
+        if (p.t.textContent !== item.title) p.t.textContent = item.title;
+        const desc = item.description || '';
+        if (p.d.textContent !== desc) p.d.textContent = desc;
+        const cat = item.category || 'All';
+        if (p.c && p.c.textContent !== cat) p.c.textContent = cat;
+        if (p.el.dataset.tooltip !== item.title) p.el.dataset.tooltip = item.title;
+
+        const wanted = item.image || (item.imageToken && K.luminImgCache?.get(item.imageToken)) || '';
+        if (p.img.dataset.src !== wanted) {
+          p.img.onload = p.img.onerror = null;
+          if (p.img.getAttribute('src')) p.img.removeAttribute('src');
+          p.img.dataset.src = wanted;
+          if (wanted) {
             p.img.style.display = 'block';
+            p.img.loading = idx < FIRST_PAINT_IMAGES ? 'eager' : 'lazy';
+            p.img.decoding = 'async';
+            const alts = (item.imageAlts || []).slice();
+            const track = idx < FIRST_PAINT_IMAGES;
+            const pr = new Promise(res => {
+              let done = false;
+              const doneFn = () => { if (done) return; done = true; p.img.onload = p.img.onerror = null; res(); };
+              p.img.onload = doneFn;
+              p.img.onerror = () => { if (alts.length) p.img.src = alts.shift(); else doneFn(); };
+              p.img.src = wanted;
+            });
+            if (track) imagePromises.push(pr);
+          } else {
+            p.img.style.display = 'none';
+            if (item.imageToken && K.resolveLuminImage) {
+              K.resolveLuminImage(item).then(url => {
+                if (!url || grid.paginatedData[idx] !== item || p.img.dataset.src) return;
+                p.img.dataset.src = url;
+                p.img.style.display = 'block';
+                p.img.src = url;
+              });
+            }
           }
-        } else {
-          if (p.img) { p.img.onload = p.img.onerror = null; p.img.src = ''; p.img.removeAttribute('src'); p.img.style.display = 'none'; delete p.img.dataset.src; }
-          if (p.c) p.c.textContent = ''; delete p.el.dataset.tooltip;
+        } else if (wanted && p.img.style.display !== 'block') {
+          p.img.style.display = 'block';
         }
+      } else {
+        if (p.img.dataset.src !== undefined || p.img.getAttribute('src')) releaseImage(p.img);
+        if (p.c && p.c.textContent) p.c.textContent = '';
+        if (p.el.dataset.tooltip !== undefined) delete p.el.dataset.tooltip;
       }
+    }
 
-      if (grid.pageEl) {
+    if (grid.pageEl) {
+      const pageKey = `${grid.page}/${totalPages}`;
+      if (grid.pageKey !== pageKey) {
+        grid.pageKey = pageKey;
         grid.pageEl.innerHTML = `<button class="page-btn" data-action="prev" ${grid.page===1?'style="opacity:0.4;cursor:not-allowed;"':''}><i class="ph ph-caret-left"></i></button><span style="font-weight:700;font-size:1.1rem;min-width:80px;text-align:center;user-select:none;">${grid.page} / ${totalPages}</span><button class="page-btn" data-action="next" ${grid.page===totalPages?'style="opacity:0.4;cursor:not-allowed;"':''}><i class="ph ph-caret-right"></i></button>`;
-        if (!grid.pageEl.dataset.bound) {
-          grid.pageEl.dataset.bound = 'true';
-          grid.pageEl.onclick = e => {
-            const btn = e.target.closest('.page-btn'); if (!btn) return;
-            const f = (grid.data || []).filter(i => (grid.category === "All" || i.category === grid.category) && i.title.toLowerCase().includes(grid.search));
-            const tp = Math.max(1, Math.ceil(f.length / K.ITEMS_PER_PAGE));
-            const act = btn.dataset.action;
-            if (act === 'prev' && grid.page > 1) { grid.page--; renderGrid(type, true); }
-            else if (act === 'next' && grid.page < tp) { grid.page++; renderGrid(type, true); }
-          };
-        }
       }
-
-      const waitPromise = (imagePromises.length ? Promise.allSettled(imagePromises) : Promise.resolve());
-      const timeout = new Promise(r => setTimeout(r, K.IMAGE_LOAD_TIMEOUT));
-      await Promise.race([waitPromise, timeout]);
-
-      if (grid.renderId === myRenderId) {
-        K.toggleLoader(false);
+      if (!grid.pageEl.dataset.bound) {
+        grid.pageEl.dataset.bound = 'true';
+        grid.pageEl.onclick = e => {
+          const btn = e.target.closest('.page-btn'); if (!btn) return;
+          const tp = Math.max(1, Math.ceil(getFiltered(grid).length / K.ITEMS_PER_PAGE));
+          const act = btn.dataset.action;
+          if (act === 'prev' && grid.page > 1) { grid.page--; renderGrid(type, true); }
+          else if (act === 'next' && grid.page < tp) { grid.page++; renderGrid(type, true); }
+        };
       }
-      resolve();
-    });
+    }
+
+    if (imagePromises.length) {
+      let timer;
+      const timeout = new Promise(r => { timer = setTimeout(r, K.IMAGE_LOAD_TIMEOUT); });
+      await Promise.race([Promise.allSettled(imagePromises), timeout]);
+      clearTimeout(timer);
+    }
+
+    if (grid.renderId === myRenderId) {
+      K.toggleLoader(false);
+    }
   };
   K.renderGrid = renderGrid;
 
@@ -296,8 +332,7 @@ export function init(K) {
     const type = activePage.id; if (!grids[type]) return;
     if (K.resourceOpenFor[type]) return;
     const grid = grids[type];
-    const filtered = (grid.data || []).filter(i => (grid.category === "All" || i.category === grid.category) && i.title.toLowerCase().includes(grid.search));
-    const totalPages = Math.max(1, Math.ceil(filtered.length / K.ITEMS_PER_PAGE));
+    const totalPages = Math.max(1, Math.ceil(getFiltered(grid).length / K.ITEMS_PER_PAGE));
     if (e.key === 'ArrowLeft' && grid.page > 1) { e.preventDefault(); grid.page--; renderGrid(type, true); }
     else if (e.key === 'ArrowRight' && grid.page < totalPages) { e.preventDefault(); grid.page++; renderGrid(type, true); }
   });
@@ -310,14 +345,6 @@ export function init(K) {
     };
     setC('readingcorner-category-select', c.Games, 'readingcorner'); setC('sciencequiz-category-select', c.Apps, 'sciencequiz');
   }).catch(err => console.error('categories.json failed', err));
-
-  K.fetchWithProxy('Assets/json/change-log.json').then(l => {
-    if (!l) return;
-    if (K.$('changelog-timestamp')) K.$('changelog-timestamp').textContent = l.timestamp || "Unknown";
-    if (K.$('changelog-content')) K.$('changelog-content').innerHTML = l.changes?.length ? `<ul style="padding-left:1.5rem;margin:0;">${l.changes.map(c => `<li style="margin-bottom:0.5rem;">${c}</li>`).join('')}</ul>` : "No recent changes found.";
-    const fetchedJsonString = JSON.stringify(l), savedJsonString = K.getStorage('kstuff_last_changelog');
-    if (fetchedJsonString !== savedJsonString) { K.setStorage('kstuff_last_changelog', fetchedJsonString); K.$('changelog-modal')?.classList.add('active'); }
-  }).catch(err => console.error('change-log.json failed', err));
 
   const appB = (s, isPage = false) => {
     if (typeof s !== 'string') return s;
@@ -342,6 +369,7 @@ export function init(K) {
       }
     }
     p.url = appB(p.url, true); p.image = appB(p.image);
+    p._lt = (p.title || '').toLowerCase();
     return p;
   }).sort((a, b) => collator.compare(a.title || "", b.title || ""));
   K.proc = proc;
@@ -351,14 +379,16 @@ export function init(K) {
       const n = await K.fetchWithProxy(p).catch(err => { console.error('rData fetch failed', p, err); return null; });
       if (!Array.isArray(n)) { if (!silent) K.toggleLoader(false); return false; }
 
-      if (t === 'sciencequiz') rawSciencequizData = n;
-      const processed = proc(n);
-      if (JSON.stringify(processed) === JSON.stringify(grids[t].data)) {
+      const sig = JSON.stringify(n);
+      if (sig === grids[t].sig) {
         if (!silent) K.toggleLoader(false);
         return false;
       }
 
+      if (t === 'sciencequiz') K.rawSciencequizData = n;
+      const processed = proc(n);
       K.toggleLoader(true, mode);
+      grids[t].sig = sig;
       grids[t].data = processed;
       if (resetPage) grids[t].page = 1;
       await renderGrid(t, true, mode);
@@ -407,7 +437,7 @@ export function init(K) {
     const buckets = new Map();
     donors.forEach((row, n) => {
       if (!buckets.has(n[0])) buckets.set(n[0], []);
-      buckets.get(n[0]).push([n, row]);
+      buckets.get(n[0]).push([n, row, n.replace(/\D/g, '')]);
     });
     rows.forEach(r => {
       if (r.image || r.imageToken) return;
@@ -418,8 +448,8 @@ export function init(K) {
         const max = n.length >= 12 ? 2 : 1;
         const digits = n.replace(/\D/g, '');
         let best = max + 1;
-        (buckets.get(n[0]) || []).forEach(([m, row]) => {
-          if (Math.abs(m.length - n.length) > max || m.replace(/\D/g, '') !== digits) return;
+        (buckets.get(n[0]) || []).forEach(([m, row, mDigits]) => {
+          if (Math.abs(m.length - n.length) > max || mDigits !== digits) return;
           const d = editDistance(n, m, max);
           if (d < best) { best = d; hit = row; }
         });
@@ -431,13 +461,11 @@ export function init(K) {
     });
   };
 
-  const fetchReadingCornerRaw = async () => {
+  const fetchReadingCornerRaw = async (prevSig = '') => {
     const coverBase = 'https://cdn.jsdelivr.net/gh/freebuisness/covers@main';
     const htmlBase = 'https://cdn.jsdelivr.net/gh/freebuisness/html@main';
     const manualRes = await K.fetchWithProxy('Assets/json/g.json').catch(() => null);
     const manualList = Array.isArray(manualRes) ? manualRes : [];
-    const manualMap = new Map();
-    manualList.forEach(item => { if (item && item.title) manualMap.set(item.title.toLowerCase().trim(), item); });
 
     const [zones, extras] = await Promise.all([
       K.fetchRepoFile('freebuisness/assets', 'zones.json', false, 12000)
@@ -448,6 +476,13 @@ export function init(K) {
         .catch(e => { console.error('fetchReadingCornerRaw zones failed', e); return []; }),
       K.fetchExtraGames ? K.fetchExtraGames().catch(e => { console.error('extra game sources failed', e); return []; }) : []
     ]);
+
+    let sig = '';
+    try { sig = JSON.stringify([manualList, zones, extras]); } catch {}
+    if (prevSig && sig === prevSig) return { unchanged: true, sig };
+
+    const manualMap = new Map();
+    manualList.forEach(item => { if (item && item.title) manualMap.set(item.title.toLowerCase().trim(), item); });
 
     const entries = [...zones, ...extras];
     if (entries.length) {
@@ -490,7 +525,7 @@ export function init(K) {
         }
       });
       fillMissingImages(mappedData);
-      return { data: mappedData };
+      return { data: mappedData, sig };
     }
 
     const fallbackMapped = [];
@@ -498,23 +533,20 @@ export function init(K) {
       if (!item || !item.title || item.title.includes('[!]')) return;
       fallbackMapped.push({ ...item, image: item.image || item.img || '', category: item.category || 'All' });
     });
-    return { data: fallbackMapped };
+    return { data: fallbackMapped, sig };
   };
   K.fetchReadingCornerRaw = fetchReadingCornerRaw;
 
   const refreshReadingCorner = async (resetPage = true, mode = 'updating', silent = false) => {
     try {
-      const result = await fetchReadingCornerRaw();
+      const result = await fetchReadingCornerRaw(grids.readingcorner.sig);
+      if (result?.unchanged) { if (!silent) K.toggleLoader(false); return false; }
       if (!result?.data?.length) { if (!silent) K.toggleLoader(false); return false; }
 
       K.rawReadingCornerData = result.data;
       const processed = proc(result.data);
-      if (JSON.stringify(processed) === JSON.stringify(grids.readingcorner.data)) {
-        if (!silent) K.toggleLoader(false);
-        return false;
-      }
-
       K.toggleLoader(true, mode);
+      grids.readingcorner.sig = result.sig || '';
       grids.readingcorner.data = processed;
       if (resetPage) grids.readingcorner.page = 1;
       await renderGrid('readingcorner', true, mode);
@@ -527,24 +559,32 @@ export function init(K) {
   };
   K.refreshReadingCorner = refreshReadingCorner;
 
+  const runWhenIdle = fn => new Promise(resolve => {
+    const run = () => { Promise.resolve().then(fn).then(resolve, () => resolve(false)); };
+    if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 2000 });
+    else setTimeout(run, 250);
+  });
+
   K.refreshGridSource = (tId, silent = true) => {
     if (K.resourceOpenFor[tId]) return Promise.resolve(false);
-    if (tId === 'readingcorner') return refreshReadingCorner(false, 'updating', silent);
-    if (tId === 'sciencequiz') return rData('sciencequiz', 'Assets/json/a.json', false, 'updating', silent);
-    return Promise.resolve(false);
+    if (tId !== 'readingcorner' && tId !== 'sciencequiz') return Promise.resolve(false);
+    if (silent && Date.now() - (K.lastGridRefresh[tId] || 0) < REFRESH_TTL) return Promise.resolve(false);
+    K.lastGridRefresh[tId] = Date.now();
+    return runWhenIdle(() => tId === 'readingcorner'
+      ? refreshReadingCorner(false, 'updating', silent)
+      : rData('sciencequiz', 'Assets/json/a.json', false, 'updating', silent));
   };
 
-  K.$('readingcorner-refresh-btn')?.addEventListener('click', () => refreshReadingCorner());
-  K.$('sciencequiz-refresh-btn')?.addEventListener('click', () => rData('sciencequiz', 'Assets/json/a.json'));
+  K.$('readingcorner-refresh-btn')?.addEventListener('click', () => { K.lastGridRefresh.readingcorner = Date.now(); refreshReadingCorner(); });
+  K.$('sciencequiz-refresh-btn')?.addEventListener('click', () => { K.lastGridRefresh.sciencequiz = Date.now(); rData('sciencequiz', 'Assets/json/a.json'); });
 
   K.rawReadingCornerData = [];
   K.rawSciencequizData = [];
-  let rawSciencequizData = K.rawSciencequizData;
 
   K.initPromise = Promise.all([
     fetchReadingCornerRaw().catch(error => {
       console.error('Reading Corner initialization failed:', error);
-      return { data: [] };
+      return { data: [], sig: '' };
     }),
     K.fetchWithProxy('Assets/json/a.json').catch(error => {
       console.error('Science Quiz initialization failed:', error);
@@ -570,7 +610,13 @@ export function init(K) {
     K.rawSciencequizData = Array.isArray(scienceData) ? scienceData : [];
 
     grids.readingcorner.data = proc(K.rawReadingCornerData);
+    grids.readingcorner.sig = readingResult?.sig || '';
     grids.sciencequiz.data = proc(K.rawSciencequizData);
+    try { grids.sciencequiz.sig = JSON.stringify(K.rawSciencequizData); } catch { grids.sciencequiz.sig = ''; }
+
+    const now = Date.now();
+    K.lastGridRefresh.readingcorner = now;
+    K.lastGridRefresh.sciencequiz = now;
 
     Object.keys(grids).forEach(type => {
       if (!grids[type].gridEl) return;
@@ -591,4 +637,4 @@ export function init(K) {
     console.error('init failed:', error);
     K.toggleLoader(false);
   });
-}
+  }
