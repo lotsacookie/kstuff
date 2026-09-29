@@ -37,24 +37,31 @@ function initApp() {
   }
 
   async function loadModule(name) {
-    const sha = await getRepoSha();
-    const candidates = [];
-    if (sha) candidates.push(`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@${sha}/${MODULE_DIR}/${name}.js`);
-    candidates.push(`https://raw.githubusercontent.com/${MAIN_REPO}/main/${MODULE_DIR}/${name}.js`);
-    candidates.push(`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@main/${MODULE_DIR}/${name}.js`);
+    try {
+      const sha = await getRepoSha();
+      const candidates = [];
+      if (sha) candidates.push(`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@${sha}/${MODULE_DIR}/${name}.js`);
+      candidates.push(`https://raw.githubusercontent.com/${MAIN_REPO}/main/${MODULE_DIR}/${name}.js`);
+      candidates.push(`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@main/${MODULE_DIR}/${name}.js`);
 
-    let lastErr = null;
-    for (const url of candidates) {
-      try {
-        return await importWithTimeout(url);
-      } catch (err) {
-        lastErr = err;
+      let lastErr = null;
+      for (const url of candidates) {
+        try {
+          return await importWithTimeout(url);
+        } catch (err) {
+          lastErr = err;
+        }
       }
+      throw new Error('Failed to load module ' + name + ': ' + lastErr);
+    } finally {
+      window.kProgress?.tick();
     }
-    throw new Error('Failed to load module ' + name + ': ' + lastErr);
   }
 
   const MODULE_NAMES = ['core', 'theme-settings', 'auth-backend', 'iframe-loader', 'game-sources', 'resource-grids', 'music-player', 'navigation'];
+
+  window.kModulesStarted = true;
+  window.kProgress?.setTotal((window.kProgress.base || 2) + MODULE_NAMES.length);
 
   Promise.all(MODULE_NAMES.map(loadModule))
     .then(modules => {
@@ -70,7 +77,7 @@ function initApp() {
       navigation.init(K);
     })
     .catch(err => {
-      console.error('kstuff module load failed', err);
+      console.error('singularity module load failed', err);
       const loader = document.querySelector('.section-loader');
       if (loader) {
         loader.classList.remove('hidden');
@@ -78,6 +85,9 @@ function initApp() {
         const t = loader.querySelector('.loading-text');
         if (t) t.textContent = 'Failed to load';
       }
+    })
+    .finally(() => {
+      window.kReadyResolve?.();
     });
 }
 
