@@ -22,6 +22,7 @@
     --header-height: 56px;
     --footer-height: 36px;
     --fg: 10px;
+    --fr: 14px;
 }
 
 body {
@@ -1076,7 +1077,7 @@ body.text-hide .nav-right .nav-divider {
     position: absolute;
     inset: 0;
     padding: 1rem;
-    background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.72));
+    background: rgba(0, 0, 0, 0.62);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -1124,7 +1125,7 @@ body.text-hide .nav-right .nav-divider {
     align-items: center;
     flex-shrink: 0;
     padding: 0.85rem 1rem 0.85rem 1.25rem;
-    background: linear-gradient(to bottom, rgba(255, 255, 255, 0.05), transparent);
+    background: color-mix(in srgb, var(--text-color) 4%, transparent);
     border-bottom: 1px solid rgba(128, 128, 128, 0.18);
     border-radius: 20px 20px 0 0;
 }
@@ -1594,21 +1595,22 @@ textarea.modal-input {
 body.floating-on .learning-header {
     top: var(--fg);
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 14px;
+    border-radius: var(--fr);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 body.floating-on #teachertouchbar {
     border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
+    border-radius: var(--fr);
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 body.floating-on .learning-footer {
     bottom: var(--fg);
-    padding: 0 2px;
+    padding: 0;
     background: transparent;
     border: none;
+    border-radius: 0;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
     box-shadow: none;
@@ -1617,14 +1619,22 @@ body.floating-on .learning-footer {
 
 body.floating-on .learning-footer .footer-item {
     pointer-events: auto;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
-    border-color: rgba(255, 255, 255, 0.1);
+    background: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+}
+
+body.floating-on .learning-footer .footer-item:hover {
+    background: color-mix(in srgb, var(--text-color) 12%, var(--nav-bg));
 }
 
 body.floating-on #studymaterial-area {
-    border-radius: 14px;
+    border-radius: var(--fr);
     border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
 body.floating-on.nav-left #teachertouchbar {
@@ -1708,6 +1718,8 @@ body.floating-on.nav-bottom #classroom-portal-container {
         --btn-icon-size: 0.75rem;
         --btn-text-size: 0.55rem;
         --nav-width: 41px;
+        --fg: 6px;
+        --fr: 12px;
     }
     
     body.size-medium {
