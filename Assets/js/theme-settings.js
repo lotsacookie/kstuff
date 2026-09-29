@@ -15,7 +15,7 @@ export function init(K) {
     const sel = K.$('layout-theme-select');
     if (sel) {
       sel.innerHTML = html;
-      const chosen = K.currentUser?.settings?.theme || K.currentUser?.theme || K.getStorage('kstuff_theme') || themes[0].id;
+      const chosen = K.currentUser?.settings?.theme || K.currentUser?.theme || K.getStorage('kstuff_theme') || 'theme-pitch-black';
       sel.value = chosen; K.setStorage('kstuff_theme', chosen);
       K.body.className = K.body.className.replace(/\btheme-\S+/g, '').trim() + ' ' + chosen;
       K.applyCustomDropdown(sel);
