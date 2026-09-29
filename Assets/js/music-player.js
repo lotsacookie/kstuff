@@ -5,6 +5,8 @@ export function init(K) {
     play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
     pause: '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>'
   };
+  const MUSIC_PAGE_ID = 'gradebook';
+  const INACTIVE_STATUSES = ['error', 'ended', 'idle', 'stopped'];
 
   document.head.appendChild(K.el('style', {
     textContent: `
@@ -30,9 +32,9 @@ export function init(K) {
         <div class="mini-player-title">Nothing playing</div>
         <div class="mini-player-artist"></div>
       </div>
-      <button type="button" class="study-nav-btn" data-act="prev">${MINI_ICONS.prev}</button>
-      <button type="button" class="study-nav-btn" data-act="toggle">${MINI_ICONS.play}</button>
-      <button type="button" class="study-nav-btn" data-act="next">${MINI_ICONS.next}</button>
+      <button type="button" class="study-nav-btn" data-act="prev" disabled>${MINI_ICONS.prev}</button>
+      <button type="button" class="study-nav-btn" data-act="toggle" disabled>${MINI_ICONS.play}</button>
+      <button type="button" class="study-nav-btn" data-act="next" disabled>${MINI_ICONS.next}</button>
     `
   });
   document.querySelector('.learning-header')?.appendChild(miniPlayer);
@@ -45,15 +47,50 @@ export function init(K) {
   const miniNext = miniPlayer.querySelector('[data-act="next"]');
 
   K.musicState = null;
+  let lastState = null;
+
+  const musicIframe = () => K.$(K.MUSIC_IFRAME_ID);
+  const hasLiveTrack = s => !!(s && s.hasTrack && !INACTIVE_STATUSES.includes(s.status));
+  K.isMusicActive = () => hasLiveTrack(lastState);
+
+  const baseKeepAlive = K.isKeepAliveLoaded;
+  K.isKeepAliveLoaded = id => id === K.MUSIC_IFRAME_ID ? hasLiveTrack(lastState) : (baseKeepAlive ? baseKeepAlive(id) : false);
+
+  function resetMiniPlayer() {
+    miniTitle.textContent = 'Nothing playing';
+    miniTitle.title = '';
+    miniArtist.textContent = '';
+    miniCover.removeAttribute('src');
+    miniCover.classList.add('no-art');
+    miniToggle.innerHTML = MINI_ICONS.play;
+    miniToggle.disabled = true;
+    miniPrev.disabled = true;
+    miniNext.disabled = true;
+  }
+
+  function closeMusicIfIdle() {
+    if (hasLiveTrack(lastState)) return;
+    if (document.querySelector('.page.active')?.id === MUSIC_PAGE_ID) return;
+    const ifr = musicIframe();
+    if (!ifr) return;
+    const alreadyBlank = !ifr.hasAttribute('srcdoc') && (ifr.getAttribute('src') || 'about:blank') === 'about:blank';
+    if (alreadyBlank) return;
+    K.cancelIframeLoads?.(ifr.id);
+    ifr.removeAttribute('srcdoc');
+    ifr.src = 'about:blank';
+  }
 
   function renderMiniPlayer(state) {
+    lastState = state || null;
     K.musicState = state && state.hasTrack ? state : null;
+    miniPlayer.hidden = false;
+
     if (!K.musicState) {
-      miniPlayer.hidden = false;
+      resetMiniPlayer();
+      closeMusicIfIdle();
       return;
     }
 
-    miniPlayer.hidden = false;
     miniTitle.textContent = state.title || '';
     miniTitle.title = state.title || '';
     miniArtist.textContent =
@@ -73,12 +110,23 @@ export function init(K) {
     miniToggle.disabled = state.status === 'loading' || state.status === 'error';
     miniPrev.disabled = !state.hasPrev;
     miniNext.disabled = !state.hasNext;
+
+    closeMusicIfIdle();
   }
   K.renderMiniPlayer = renderMiniPlayer;
 
+  const iframeEl = musicIframe();
+  iframeEl?.addEventListener('load', () => {
+    if (!iframeEl.hasAttribute('srcdoc') && iframeEl.getAttribute('src') === 'about:blank') {
+      lastState = null;
+      K.musicState = null;
+      resetMiniPlayer();
+    }
+  });
+
   function sendMusicCmd(action) {
     try {
-      K.$(K.MUSIC_IFRAME_ID)?.contentWindow?.postMessage({ type: 'kstuff-music-cmd', action }, '*');
+      musicIframe()?.contentWindow?.postMessage({ type: 'kstuff-music-cmd', action }, '*');
     } catch {}
   }
   K.sendMusicCmd = sendMusicCmd;
@@ -91,7 +139,7 @@ export function init(K) {
   window.addEventListener('message', e => {
     const data = e.data;
     if (!data || data.type !== 'kstuff-music-state') return;
-    if (e.source !== K.$(K.MUSIC_IFRAME_ID)?.contentWindow) return;
+    if (e.source !== musicIframe()?.contentWindow) return;
     renderMiniPlayer(data.state);
   });
 }
