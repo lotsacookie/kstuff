@@ -1207,7 +1207,9 @@ body.text-hide .nav-right .nav-divider {
 
 .settings-modal-content.settings-wide {
     width: 660px;
+    height: 520px;
     max-width: 100%;
+    max-height: 100%;
     overflow: hidden !important;
 }
 
@@ -1434,7 +1436,6 @@ textarea.modal-input {
     padding: 1.5rem;
     position: relative;
     overflow-y: auto;
-    min-height: min(380px, 60vh);
 }
 
 .settings-content::-webkit-scrollbar { width: 6px; }
@@ -1447,6 +1448,28 @@ textarea.modal-input {
 .settings-panel.active {
     display: block;
     animation: fadeIn 0.4s ease;
+}
+
+.settings-panel.settings-grid.active {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 1rem;
+    align-content: start;
+}
+
+.settings-panel.settings-grid .setting-group {
+    margin-bottom: 1.25rem;
+    min-width: 0;
+}
+
+.settings-panel.settings-grid .setting-group.full {
+    grid-column: 1 / -1;
+}
+
+@media (max-width: 560px) {
+    .settings-panel.settings-grid.active {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 .custom-select-wrapper {
