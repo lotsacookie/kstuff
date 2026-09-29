@@ -267,18 +267,13 @@ export function init(K) {
         return;
       }
 
-      if (targetId === 'changelog') {
-        K.$('changelog-modal')?.classList.add('active');
-        return;
-      }
-
       if (targetId === 'studyhall' && !K.currentUser) {
         K.authMod?.classList.add('active');
         return;
       }
 
       K.navBtns.forEach(other => {
-        if (!['homeworkhelper', 'changelog', 'profile'].includes(other.dataset.target)) {
+        if (!['homeworkhelper', 'profile'].includes(other.dataset.target)) {
           other.classList.remove('active');
         }
       });
@@ -501,4 +496,4 @@ export function init(K) {
   });
 
   setInterval(autoRefreshActivePage, 200000);
-}
+  }
