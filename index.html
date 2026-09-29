@@ -16,14 +16,14 @@
     <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
     <script>window.addEventListener("beforeunload",e=>{e.preventDefault();e.returnValue=""});</script>
     <script>(async function(){let c='main';try{const r=await fetch('https://api.github.com/repos/lotsacookie/kstuff/commits/main');if(r.ok){const d=await r.json();c=d.sha}}catch(e){}const p=["https://raw.githubusercontent.com/lotsacookie/kstuff/refs/heads/main/","https://raw.githack.com/lotsacookie/kstuff/main/",`https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@${c}/`,"https://cdn.statically.io/gh/lotsacookie/kstuff/main/",""];window.kAssets=Promise.all(['style.css','script.min.js'].map(f=>new Promise(res=>{const isScript=f.endsWith('.js');let i=0,cb="?i_="+Date.now();function t(){if(i>=p.length)return res();let e=document.createElement(isScript?'script':'link'),cp=p[i],u=cp?(cp+f+(cp.includes('jsdelivr')?'':cb)):(f+cb);if(isScript){e.src=u;e.async=false}else{e.rel='stylesheet';e.href=u}e.onload=res;e.onerror=()=>{e.remove();i++;t()};document.head.appendChild(e)}t()})))})();</script>
-    <script>(()=>{let cloudTheme=null,cloudFont=null,cloudFloating=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;cloudFont=u?.settings?.font;cloudFloating=u?.settings?.floatingUi;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-sakura';const chosenFont=cloudFont||localStorage.getItem('kstuff_font')||'Comfortaa, sans-serif';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';const f=cloudFloating||localStorage.getItem('kstuff_floating_ui')||'floating-off';document.body.className=`${chosenTheme} ${n} ${v} ${s} ${f}`;document.documentElement.style.setProperty('--font',chosenFont);try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#1a1216');document.body.style.setProperty('--text-color','#ffb8d9');}}catch(e){}})();</script>
+    <script>(()=>{let cloudTheme=null,cloudFont=null,cloudFloating=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;cloudFont=u?.settings?.font;cloudFloating=u?.settings?.floatingUi;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-pitch-black';const chosenFont=cloudFont||localStorage.getItem('kstuff_font')||'Comfortaa, sans-serif';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';const f=cloudFloating||localStorage.getItem('kstuff_floating_ui')||'floating-off';document.body.className=`${chosenTheme} ${n} ${v} ${s} ${f}`;document.documentElement.style.setProperty('--font',chosenFont);try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#000000');document.body.style.setProperty('--text-color','#ffffff');}}catch(e){}})();</script>
     <style>
         *,body{font-family: var(--font, "Comfortaa", sans-serif) !important;}
         body{background:var(--bg-color);color:var(--text-color);height:100vh;overflow:hidden;transition:background var(--transition-speed) ease,color var(--transition-speed) ease,font-family var(--transition-speed) ease;font-weight:bold}
-        #loading-screen{position:fixed;inset:0;width:100vw;height:100vh;background:var(--bg-color,#1a1216);color:var(--text-color,#ffb8d9);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:999999;filter:brightness(0);transition:filter .8s ease,opacity .5s ease,visibility .5s ease}
+        #loading-screen{position:fixed;inset:0;width:100vw;height:100vh;background:var(--bg-color,#000000);color:var(--text-color,#ffffff);display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:999999;filter:brightness(0);transition:filter .8s ease,opacity .5s ease,visibility .5s ease}
         #loading-screen.loaded{filter:brightness(1)}
         #loading-screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
-        .spinner{width:48px;height:48px;border:4px solid var(--bg-color);border-top-color:var(--text-color,#ffb8d9);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:1.5rem}
+        .spinner{width:48px;height:48px;border:4px solid var(--bg-color);border-top-color:var(--text-color,#ffffff);border-radius:50%;animation:spin .8s linear infinite;margin-bottom:1.5rem}
         .loading-text{font-size:1.25rem;font-weight:900!important;letter-spacing:.25em;text-transform:uppercase;animation:pulse 1.5s ease-in-out infinite}
         @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
         @keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
@@ -37,8 +37,8 @@
         .search-engine-example{font-family:monospace !important;font-size:0.85rem;padding:10px 12px;border-radius:8px;background:rgba(128,128,128,0.12);border:1px solid rgba(128,128,128,0.25);word-break:break-all;opacity:0.85;}
     </style>
 </head>
-<body class="theme-sakura nav-left text-hide size-small floating-off">
-    <script>(()=>{let cloudTheme=null,cloudFloating=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;cloudFloating=u?.settings?.floatingUi;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-sakura';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';const f=cloudFloating||localStorage.getItem('kstuff_floating_ui')||'floating-off';document.body.className=`${chosenTheme} ${n} ${v} ${s} ${f}`;try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#1a1216');document.body.style.setProperty('--text-color','#ffb8d9');}}catch(e){}})();</script>
+<body class="theme-pitch-black nav-left text-hide size-small floating-off">
+    <script>(()=>{let cloudTheme=null,cloudFloating=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;cloudFloating=u?.settings?.floatingUi;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-pitch-black';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';const f=cloudFloating||localStorage.getItem('kstuff_floating_ui')||'floating-off';document.body.className=`${chosenTheme} ${n} ${v} ${s} ${f}`;try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#000000');document.body.style.setProperty('--text-color','#ffffff');}}catch(e){}})();</script>
     
     <div id="loading-screen"><div class="spinner"></div><div class="loading-text">Loading</div></div>
     
@@ -72,6 +72,43 @@
     <div id="classroom-portal-container">
         <nav id="teachertouchbar">
             <div style="display:none;" id="edu-logo">T</div>
+            <div class="nav-logo is-home" id="nav-logo" role="button" tabindex="0" aria-label="Singularity" data-tooltip="Singularity">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                    <defs>
+                        <g id="nl-arm" fill="none" stroke-linecap="round">
+                            <path d="M50 5 C82 5 96 36 79 58 C67 73 44 73 38 58 C33 46 44 38 52 42" stroke-width="5.5"/>
+                            <path d="M50 14 C74 14 86 36 74 53 C65 65 49 65 45 55" stroke-width="2.2" opacity="0.7"/>
+                        </g>
+                        <g id="nl-arms">
+                            <use href="#nl-arm"/>
+                            <use href="#nl-arm" transform="rotate(120 50 50)"/>
+                            <use href="#nl-arm" transform="rotate(240 50 50)"/>
+                        </g>
+                        <linearGradient id="nl-shine-grad" x1="0" y1="0" x2="1" y2="0">
+                            <stop offset="0" stop-color="#fff" stop-opacity="0"/>
+                            <stop offset="0.5" stop-color="#fff" stop-opacity="1"/>
+                            <stop offset="1" stop-color="#fff" stop-opacity="0"/>
+                        </linearGradient>
+                        <mask id="nl-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                            <g stroke="#fff"><use href="#nl-arms"/></g>
+                            <g class="nl-core">
+                                <circle cx="50" cy="50" r="6" fill="#fff"/>
+                                <path d="M50 28 L53.5 46.5 L72 50 L53.5 53.5 L50 72 L46.5 53.5 L28 50 L46.5 46.5 Z" fill="#fff"/>
+                            </g>
+                        </mask>
+                    </defs>
+                    <g class="nl-base" stroke="currentColor"><use href="#nl-arms"/></g>
+                    <g class="nl-core-wrap">
+                        <g class="nl-core" fill="currentColor">
+                            <circle cx="50" cy="50" r="6"/>
+                            <path d="M50 28 L53.5 46.5 L72 50 L53.5 53.5 L50 72 L46.5 53.5 L28 50 L46.5 46.5 Z"/>
+                        </g>
+                        <g mask="url(#nl-mask)">
+                            <rect class="nl-shine" x="-80" y="-10" width="34" height="120" fill="url(#nl-shine-grad)"/>
+                        </g>
+                    </g>
+                </svg>
+            </div>
             <button class="nav-btn active" data-target="mathworksheets"><i class="ph ph-house"></i><span class="label-data"><div>e</div><div>m</div><div>o</div><div>H</div></span></button>
             <button class="nav-btn" data-target="readingcorner"><i class="ph ph-game-controller"></i><span class="label-data"><div>s</div><div>e</div><div>m</div><div>a</div><div>G</div></span></button>
             <button class="nav-btn" data-target="sciencequiz"><i class="ph ph-app-window"></i><span class="label-data"><div>s</div><div>p</div><div>p</div><div>A</div></span></button>
@@ -172,7 +209,7 @@
                         </nav>
                         <div class="settings-content">
                             <div class="settings-panel active" id="settings-panel-appearance" role="tabpanel">
-                                <div class="setting-group"><label for="layout-theme-select"><i class="ph ph-palette"></i> Theme</label><select id="layout-theme-select"><option value="theme-sakura" selected>Sakura</option><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-ocean">Ocean</option><option value="theme-sunset">Sunset</option><option value="theme-emerald">Emerald</option><option value="theme-midnight">Midnight</option><option value="theme-cyber">Cyber</option><option value="theme-ruby">Ruby</option><option value="theme-latte">Latte</option></select></div>
+                                <div class="setting-group"><label for="layout-theme-select"><i class="ph ph-palette"></i> Theme</label><select id="layout-theme-select"><option value="theme-pitch-black" selected>Pitch Black</option><option value="theme-sakura">Sakura</option><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-ocean">Ocean</option><option value="theme-sunset">Sunset</option><option value="theme-emerald">Emerald</option><option value="theme-midnight">Midnight</option><option value="theme-cyber">Cyber</option><option value="theme-ruby">Ruby</option><option value="theme-latte">Latte</option></select></div>
                                 <div class="setting-group"><label for="layout-font-select"><i class="ph ph-text-aa"></i> Font</label><select id="layout-font-select"><option value="Comfortaa, sans-serif" selected>Comfortaa (Default)</option><option value="Orbitron, sans-serif">Orbitron</option><option value="Poppins, sans-serif">Poppins</option><option value="Roboto, sans-serif">Roboto</option><option value="Inter, sans-serif">Inter</option><option value="Arial, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option><option value="'Times New Roman', serif">Times New Roman</option><option value="'Courier New', monospace">Courier New</option><option value="Verdana, sans-serif">Verdana</option></select></div>
                                 <div class="setting-group"><label for="layout-nav-select"><i class="ph ph-layout"></i> Navbar Position</label><select id="layout-nav-select"><option value="nav-top">Top</option><option value="nav-left" selected>Left</option><option value="nav-right">Right</option><option value="nav-bottom">Bottom</option></select></div>
                                 <div class="setting-group"><label for="layout-floating-select"><i class="ph ph-picture-in-picture"></i> Floating UI</label><select id="layout-floating-select"><option value="floating-off" selected>Off</option><option value="floating-on">On</option></select></div>
