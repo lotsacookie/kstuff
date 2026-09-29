@@ -16,7 +16,7 @@
     <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
     <script>window.addEventListener("beforeunload",e=>{e.preventDefault();e.returnValue=""});</script>
     <script>(async function(){let c='main';try{const r=await fetch('https://api.github.com/repos/lotsacookie/kstuff/commits/main');if(r.ok){const d=await r.json();c=d.sha}}catch(e){}const p=["https://raw.githubusercontent.com/lotsacookie/kstuff/refs/heads/main/","https://raw.githack.com/lotsacookie/kstuff/main/",`https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@${c}/`,"https://cdn.statically.io/gh/lotsacookie/kstuff/main/",""];window.kAssets=Promise.all(['style.css','script.min.js'].map(f=>new Promise(res=>{const isScript=f.endsWith('.js');let i=0,cb="?i_="+Date.now();function t(){if(i>=p.length)return res();let e=document.createElement(isScript?'script':'link'),cp=p[i],u=cp?(cp+f+(cp.includes('jsdelivr')?'':cb)):(f+cb);if(isScript){e.src=u;e.async=false}else{e.rel='stylesheet';e.href=u}e.onload=res;e.onerror=()=>{e.remove();i++;t()};document.head.appendChild(e)}t()})))})();</script>
-    <script>(()=>{let cloudTheme=null,cloudFont=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;cloudFont=u?.settings?.font;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-sakura';const chosenFont=cloudFont||localStorage.getItem('kstuff_font')||'Comfortaa, sans-serif';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';document.body.className=`${chosenTheme} ${n} ${v} ${s}`;document.documentElement.style.setProperty('--font',chosenFont);try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#1a1216');document.body.style.setProperty('--text-color','#ffb8d9');}}catch(e){}})();</script>
+    <script>(()=>{let cloudTheme=null,cloudFont=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;cloudFont=u?.settings?.font;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-sakura';const chosenFont=cloudFont||localStorage.getItem('kstuff_font')||'Comfortaa, sans-serif';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';const f=localStorage.getItem('kstuff_floating_ui')||'floating-off';document.body.className=`${chosenTheme} ${n} ${v} ${s} ${f}`;document.documentElement.style.setProperty('--font',chosenFont);try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#1a1216');document.body.style.setProperty('--text-color','#ffb8d9');}}catch(e){}})();</script>
     <style>
         *,body{font-family: var(--font, "Comfortaa", sans-serif) !important;}
         body{background:var(--bg-color);color:var(--text-color);height:100vh;overflow:hidden;transition:background var(--transition-speed) ease,color var(--transition-speed) ease,font-family var(--transition-speed) ease;font-weight:bold}
@@ -37,8 +37,8 @@
         .search-engine-example{font-family:monospace !important;font-size:0.85rem;padding:10px 12px;border-radius:8px;background:rgba(128,128,128,0.12);border:1px solid rgba(128,128,128,0.25);word-break:break-all;opacity:0.85;}
     </style>
 </head>
-<body class="theme-sakura nav-left text-hide size-small">
-    <script>(()=>{let cloudTheme=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-sakura';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';document.body.className=`${chosenTheme} ${n} ${v} ${s}`;try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#1a1216');document.body.style.setProperty('--text-color','#ffb8d9');}}catch(e){}})();</script>
+<body class="theme-sakura nav-left text-hide size-small floating-off">
+    <script>(()=>{let cloudTheme=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-sakura';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';const f=localStorage.getItem('kstuff_floating_ui')||'floating-off';document.body.className=`${chosenTheme} ${n} ${v} ${s} ${f}`;try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#1a1216');document.body.style.setProperty('--text-color','#ffb8d9');}}catch(e){}})();</script>
     
     <div id="loading-screen"><div class="spinner"></div><div class="loading-text">Loading</div></div>
     
@@ -102,7 +102,7 @@
             </button>
             
             <div class="textbook-bar-container">
-                <input type="text" class="textbook-input" id="textbook-input" value="kstuff://home" />
+                <input type="text" class="textbook-input" id="textbook-input" value="singularity://home" />
                 <button class="study-action-btn" id="study-enter-btn">
                     <svg viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
                 </button>
@@ -154,6 +154,91 @@
             <section id="lessonplanner" class="page"><iframe id="lessonplanner-iframe" class="full-page-iframe" allowfullscreen></iframe></section>
             <section id="vms" class="page"><iframe id="vms-iframe" class="full-page-iframe" allowfullscreen></iframe></section>
             <section id="studyhall" class="page"><iframe id="studyhall-iframe" class="full-page-iframe" allowfullscreen></iframe></section>
+
+            <div id="homeworkhelper-modal" class="modal-overlay">
+                <div class="modal-content settings-modal-content settings-wide">
+                    <div class="modal-header">
+                        <span id="homeworkhelper-title"><i class="ph ph-gear"></i> Settings</span>
+                        <div class="modal-actions"><button id="homeworkhelper-close-btn"><i class="ph ph-x"></i></button></div>
+                    </div>
+                    <div class="settings-layout">
+                        <nav class="settings-nav" id="settings-nav" role="tablist" aria-orientation="vertical">
+                            <button class="settings-tab active" role="tab" data-panel="settings-panel-appearance"><i class="ph ph-palette"></i><span>Appearance</span></button>
+                            <button class="settings-tab" role="tab" data-panel="settings-panel-search"><i class="ph ph-magnifying-glass"></i><span>Search</span></button>
+                            <button class="settings-tab" role="tab" data-panel="settings-panel-proxy"><i class="ph ph-globe"></i><span>Proxy</span></button>
+                            <button class="settings-tab" role="tab" data-panel="settings-panel-data"><i class="ph ph-database"></i><span>Data</span></button>
+                            <button class="settings-tab" role="tab" data-panel="settings-panel-about"><i class="ph ph-info"></i><span>About</span></button>
+                            <div class="settings-nav-indicator"></div>
+                        </nav>
+                        <div class="settings-content">
+                            <div class="settings-panel active" id="settings-panel-appearance" role="tabpanel">
+                                <div class="setting-group"><label for="layout-theme-select"><i class="ph ph-palette"></i> Theme</label><select id="layout-theme-select"><option value="theme-sakura" selected>Sakura</option><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-ocean">Ocean</option><option value="theme-sunset">Sunset</option><option value="theme-emerald">Emerald</option><option value="theme-midnight">Midnight</option><option value="theme-cyber">Cyber</option><option value="theme-ruby">Ruby</option><option value="theme-latte">Latte</option></select></div>
+                                <div class="setting-group"><label for="layout-font-select"><i class="ph ph-text-aa"></i> Font</label><select id="layout-font-select"><option value="Comfortaa, sans-serif" selected>Comfortaa (Default)</option><option value="Orbitron, sans-serif">Orbitron</option><option value="Poppins, sans-serif">Poppins</option><option value="Roboto, sans-serif">Roboto</option><option value="Inter, sans-serif">Inter</option><option value="Arial, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option><option value="'Times New Roman', serif">Times New Roman</option><option value="'Courier New', monospace">Courier New</option><option value="Verdana, sans-serif">Verdana</option></select></div>
+                                <div class="setting-group"><label for="layout-nav-select"><i class="ph ph-layout"></i> Navbar Position</label><select id="layout-nav-select"><option value="nav-top">Top</option><option value="nav-left" selected>Left</option><option value="nav-right">Right</option><option value="nav-bottom">Bottom</option></select></div>
+                                <div class="setting-group"><label for="layout-floating-select"><i class="ph ph-picture-in-picture"></i> Floating UI</label><select id="layout-floating-select"><option value="floating-off" selected>Off</option><option value="floating-on">On</option></select></div>
+                                <div class="setting-group" style="display: none;"><label for="layout-text-select"><i class="ph ph-text-aa"></i> Nav Text Visibility</label><select id="layout-text-select"><option value="text-show">Show</option><option value="text-hide" selected>Hide</option></select></div>
+                                <div class="setting-group"><label for="layout-size-select"><i class="ph ph-bounding-box"></i> Nav Button Size</label><select id="layout-size-select"><option value="size-small" selected>Small</option><option value="size-medium">Medium</option><option value="size-large">Large</option></select></div>
+                            </div>
+                            <div class="settings-panel" id="settings-panel-search" role="tabpanel">
+                                <div class="setting-group"><label for="search-engine-select"><i class="ph ph-magnifying-glass"></i> Search Engine</label><select id="search-engine-select"><option value="duckduckgo" selected>DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option><option value="startpage">Startpage</option><option value="ecosia">Ecosia</option><option value="yahoo">Yahoo</option></select></div>
+                                <div class="setting-group"><label><i class="ph ph-link"></i> Example URL</label><div id="search-engine-example" class="search-engine-example"></div></div>
+                            </div>
+                            <div class="settings-panel" id="settings-panel-proxy" role="tabpanel">Coming Soon</div>
+                            <div class="settings-panel" id="settings-panel-data" role="tabpanel">Coming Soon</div>
+                            <div class="settings-panel" id="settings-panel-about" role="tabpanel">Coming Soon</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="changelog-modal" class="modal-overlay">
+                <div class="modal-content settings-modal-content modal-scroll">
+                    <div class="modal-header">
+                        <span id="changelog-title-header"><i class="ph ph-clipboard-text"></i> Change Log</span>
+                        <div class="modal-actions"><button id="changelog-close-btn"><i class="ph ph-x"></i></button></div>
+                    </div>
+                    <div class="modal-settings-body changelog-body">
+                        <h3 class="modal-section-title"><i class="ph ph-sparkle"></i> Changes</h3>
+                        <div id="changelog-content">Loading updates...</div>
+                        <div class="changelog-footer"><i class="ph ph-clock"></i> Last Updated: <span id="changelog-timestamp">Fetching...</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="profile-modal-overlay" class="modal-overlay">
+                <div class="modal-content settings-modal-content modal-scroll modal-profile">
+                    <div class="modal-header">
+                        <span id="profile-modal-title"><i class="ph ph-user"></i> Profile</span>
+                        <div class="modal-actions"><button id="edit-profile-btn" title="Edit profile"><i class="ph ph-pencil-simple"></i></button><button id="profile-close-btn"><i class="ph ph-x"></i></button></div>
+                    </div>
+                    <div class="modal-settings-body profile-body">
+                        <img id="profile-modal-pic" src="" alt="Profile Picture">
+                        <h2 id="profile-modal-username">Username</h2>
+                        <p id="profile-modal-desc">Description goes here.</p>
+                        <div id="profile-edit-container" class="profile-edit" style="display: none; opacity: 0;">
+                            <div><label><i class="ph ph-image"></i> Profile Picture URL</label><input type="text" id="profile-edit-pic-url" class="modal-input" placeholder="https://..."></div>
+                            <div><label><i class="ph ph-text-align-left"></i> Description</label><textarea id="profile-edit-desc" class="modal-input" rows="3" placeholder="Tell us about yourself..."></textarea></div>
+                            <button id="save-profile-changes-btn" class="modal-primary-btn">Save Profile</button>
+                        </div>
+                        <button id="do-logout-btn">Log Out</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="auth-modal-overlay" class="modal-overlay">
+                <div class="modal-content settings-modal-content modal-scroll modal-auth">
+                    <div class="modal-header">
+                        <span id="auth-modal-title"><i class="ph ph-user-circle"></i> Account Portal</span>
+                        <div class="modal-actions"><button id="auth-close-btn"><i class="ph ph-x"></i></button></div>
+                    </div>
+                    <div class="modal-settings-body" id="auth-modal-body" style="display: flex; flex-direction: column; gap: 1rem;">
+                        <div class="setting-group" style="margin-bottom: 0;"><label for="auth-user"><i class="ph ph-user"></i> Username</label><input type="text" id="auth-user" class="modal-input" placeholder="Enter username"></div>
+                        <div class="setting-group" style="margin-bottom: 0.25rem;"><label for="auth-pass"><i class="ph ph-lock"></i> Password</label><input type="password" id="auth-pass" class="modal-input" placeholder="Enter password"></div>
+                        <div id="auth-error-msg" class="modal-error" style="display: none;"></div>
+                        <div class="modal-row"><button id="do-login-btn">Log In</button><button id="do-signup-btn">Sign Up</button></div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -175,47 +260,6 @@
             </div>
         </div>
     </footer>
-        
-    <div id="homeworkhelper-modal" class="modal-overlay">
-        <div class="modal-content settings-modal-content settings-wide">
-            <div class="modal-header">
-                <span id="homeworkhelper-title"><i class="ph ph-gear"></i> Settings</span>
-                <div class="modal-actions"><button id="homeworkhelper-close-btn"><i class="ph ph-x"></i></button></div>
-            </div>
-            <div class="settings-layout">
-                <nav class="settings-nav" id="settings-nav" role="tablist" aria-orientation="vertical">
-                    <button class="settings-tab active" role="tab" data-panel="settings-panel-appearance"><i class="ph ph-palette"></i><span>Appearance</span></button>
-                    <button class="settings-tab" role="tab" data-panel="settings-panel-search"><i class="ph ph-magnifying-glass"></i><span>Search</span></button>
-                    <button class="settings-tab" role="tab" data-panel="settings-panel-proxy"><i class="ph ph-globe"></i><span>Proxy</span></button>
-                    <button class="settings-tab" role="tab" data-panel="settings-panel-data"><i class="ph ph-database"></i><span>Data</span></button>
-                    <button class="settings-tab" role="tab" data-panel="settings-panel-about"><i class="ph ph-info"></i><span>About</span></button>
-                    <div class="settings-nav-indicator"></div>
-                </nav>
-                <div class="settings-content">
-                    <div class="settings-panel active" id="settings-panel-appearance" role="tabpanel">
-                        <div class="setting-group"><label for="layout-theme-select"><i class="ph ph-palette"></i> Theme</label><select id="layout-theme-select"><option value="theme-sakura" selected>Sakura</option><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-ocean">Ocean</option><option value="theme-sunset">Sunset</option><option value="theme-emerald">Emerald</option><option value="theme-midnight">Midnight</option><option value="theme-cyber">Cyber</option><option value="theme-ruby">Ruby</option><option value="theme-latte">Latte</option></select></div>
-                        <div class="setting-group"><label for="layout-font-select"><i class="ph ph-text-aa"></i> Font</label><select id="layout-font-select"><option value="Comfortaa, sans-serif" selected>Comfortaa (Default)</option><option value="Orbitron, sans-serif">Orbitron</option><option value="Poppins, sans-serif">Poppins</option><option value="Roboto, sans-serif">Roboto</option><option value="Inter, sans-serif">Inter</option><option value="Arial, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option><option value="'Times New Roman', serif">Times New Roman</option><option value="'Courier New', monospace">Courier New</option><option value="Verdana, sans-serif">Verdana</option></select></div>
-                        <div class="setting-group"><label for="layout-nav-select"><i class="ph ph-layout"></i> Navbar Position</label><select id="layout-nav-select"><option value="nav-top">Top</option><option value="nav-left" selected>Left</option><option value="nav-right">Right</option><option value="nav-bottom">Bottom</option></select></div>
-                        <div class="setting-group" style="display: none;"><label for="layout-text-select"><i class="ph ph-text-aa"></i> Nav Text Visibility</label><select id="layout-text-select"><option value="text-show">Show</option><option value="text-hide" selected>Hide</option></select></div>
-                        <div class="setting-group"><label for="layout-size-select"><i class="ph ph-bounding-box"></i> Nav Button Size</label><select id="layout-size-select"><option value="size-small" selected>Small</option><option value="size-medium">Medium</option><option value="size-large">Large</option></select></div>
-                    </div>
-                    <div class="settings-panel" id="settings-panel-search" role="tabpanel">
-                        <div class="setting-group"><label for="search-engine-select"><i class="ph ph-magnifying-glass"></i> Search Engine</label><select id="search-engine-select"><option value="duckduckgo" selected>DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option><option value="startpage">Startpage</option><option value="ecosia">Ecosia</option><option value="yahoo">Yahoo</option></select></div>
-                        <div class="setting-group"><label><i class="ph ph-link"></i> Example URL</label><div id="search-engine-example" class="search-engine-example"></div></div>
-                    </div>
-                    <div class="settings-panel" id="settings-panel-proxy" role="tabpanel">Coming Soon</div>
-                    <div class="settings-panel" id="settings-panel-data" role="tabpanel">Coming Soon</div>
-                    <div class="settings-panel" id="settings-panel-about" role="tabpanel">Coming Soon</div>
-                </div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="changelog-modal" class="modal-overlay"><div class="modal-content settings-modal-content"><div class="modal-header"><span id="changelog-title-header"><i class="ph ph-clipboard-text"></i> Change Log</span><div class="modal-actions"><button id="changelog-close-btn"><i class="ph ph-x"></i></button></div></div><div class="settings-card modal-settings-body" style="display: flex; flex-direction: column; max-height: 100%; overflow-y: auto;"><h3 style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem;"><i class="ph ph-sparkle"></i> Changes:</h3><div id="changelog-content" style="font-size: 0.95rem; line-height: 1.6; margin-bottom: 2rem; opacity: 0.9;">Loading updates...</div><div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid rgba(128, 128, 128, 0.2); text-align: right; font-size: 0.8rem; opacity: 0.7;"><i class="ph ph-clock"></i> Last Updated: <span id="changelog-timestamp">Fetching...</span></div></div></div></div>
-    
-    <div id="profile-modal-overlay" class="modal-overlay"><div class="modal-content settings-modal-content" style="max-width: 400px; text-align: center;"><div class="modal-header"><span id="profile-modal-title"><i class="ph ph-user"></i> Profile</span><div class="modal-actions"><button id="edit-profile-btn" style="background: none; border: none; color: var(--text-color); font-size: 1.2rem; cursor: pointer; margin-right: 5px; transition: 0.2s;"><i class="ph ph-pencil-simple"></i></button><button id="profile-close-btn"><i class="ph ph-x"></i></button></div></div><div class="settings-card modal-settings-body" style="display: flex; flex-direction: column; align-items: center; gap: 1rem; padding-bottom: 2rem;"><img id="profile-modal-pic" src="" alt="Profile Picture"><h2 id="profile-modal-username" style="margin: 0; font-size: 1.5rem;">Username</h2><p id="profile-modal-desc" style="margin: 0; opacity: 0.8; font-size: 0.95rem; line-height: 1.4; padding: 0 10px;">Description goes here.</p><div id="profile-edit-container" style="display: none; flex-direction: column; width: 100%; gap: 10px; margin-top: 10px; opacity: 0; transition: opacity 0.3s ease;"><div style="text-align: left;"><label style="font-size: 0.85rem; opacity: 0.8;"><i class="ph ph-image"></i> Profile Picture URL</label><input type="text" id="profile-edit-pic-url" placeholder="https://..." style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid rgba(128,128,128,0.3); background: var(--card-bg, rgba(0,0,0,0.1)); color: var(--text-color); margin-top: 4px; box-sizing: border-box; outline: none;"></div><div style="text-align: left;"><label style="font-size: 0.85rem; opacity: 0.8;"><i class="ph ph-text-align-left"></i> Description</label><textarea id="profile-edit-desc" rows="3" placeholder="Tell us about yourself..." style="width: 100%; padding: 8px; border-radius: 6px; border: 1px solid rgba(128,128,128,0.3); background: var(--card-bg, rgba(0,0,0,0.1)); color: var(--text-color); margin-top: 4px; box-sizing: border-box; resize: none; outline: none; font-family: inherit;"></textarea></div><button id="save-profile-changes-btn" style="width: 100%; padding: 10px; background: var(--text-color); color: var(--bg-color); border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 5px; transition: 0.2s;">Save Profile</button></div><button id="do-logout-btn">Log Out</button></div></div></div>
-    
-    <div id="auth-modal-overlay" class="modal-overlay"><div class="modal-content settings-modal-content" style="max-width: 425px;"><div class="modal-header"><span id="auth-modal-title"><i class="ph ph-user-circle"></i> Account Portal</span><div class="modal-actions"><button id="auth-close-btn"><i class="ph ph-x"></i></button></div></div><div class="settings-card modal-settings-body" id="auth-modal-body" style="display: flex; flex-direction: column; gap: 1rem;"><div class="setting-group" style="margin-bottom: 0;"><label for="auth-user"><i class="ph ph-user"></i> Username</label><input type="text" id="auth-user" placeholder="Enter username" style="width: 100%; padding: 0.75rem; font-size: 1rem; font-weight: bold; border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.3); background: var(--card-bg, rgba(0,0,0,0.1)); color: var(--text-color); outline: none;"></div><div class="setting-group" style="margin-bottom: 0.5rem;"><label for="auth-pass"><i class="ph ph-lock"></i> Password</label><input type="password" id="auth-pass" placeholder="Enter password" style="width: 100%; padding: 0.75rem; font-size: 1rem; font-weight: bold; border-radius: 8px; border: 1px solid rgba(128, 128, 128, 0.3); background: var(--card-bg, rgba(0,0,0,0.1)); color: var(--text-color); outline: none;"></div><div id="auth-error-msg" style="color: #ff4d4d; font-size: 0.9rem; text-align: center; display: none; font-weight: bold; margin-top: -0.5rem;"></div><div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;"><button id="do-login-btn">Log In</button><button id="do-signup-btn">Sign Up</button></div></div></div></div>
 
     <script>
         document.addEventListener("DOMContentLoaded", () => {
