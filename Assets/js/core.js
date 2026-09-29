@@ -284,9 +284,12 @@ export function init(K) {
     if (uFont) K.setStorage('kstuff_font', uFont);
     const uSearchEngine = K.currentUser?.settings?.searchEngine;
     if (uSearchEngine) K.setStorage('kstuff_search_engine', uSearchEngine);
+    const uFloating = K.currentUser?.settings?.floatingUi;
+    if (uFloating) K.setStorage('kstuff_floating_ui', uFloating);
   } catch { localStorage.removeItem('kstuff_user'); }
 
   if (!K.getStorage('kstuff_theme')) K.setStorage('kstuff_theme', 'theme-sakura');
   if (!K.getStorage('kstuff_font')) K.setStorage('kstuff_font', 'Comfortaa, sans-serif');
   if (!K.getStorage('kstuff_search_engine')) K.setStorage('kstuff_search_engine', 'duckduckgo');
+  if (!K.getStorage('kstuff_floating_ui')) K.setStorage('kstuff_floating_ui', 'floating-off');
 }
