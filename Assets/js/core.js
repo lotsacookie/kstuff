@@ -79,7 +79,7 @@ export function init(K) {
   K.pContainer = K.$('profile-edit-container');
   K.findNavBtn = id => Array.from(K.navBtns).find(b => b.dataset.target === id);
 
-  K.ITEMS_PER_PAGE = 32;
+  K.ITEMS_PER_PAGE = 40;
   K.IMAGE_LOAD_TIMEOUT = 5000;
   K.FETCH_TIMEOUT = 10000;
   K.SHA_FETCH_TIMEOUT = 6000;
