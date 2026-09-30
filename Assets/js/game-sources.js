@@ -76,9 +76,32 @@ export function init(K) {
     return unique;
   }
 
+  const coverCandidates = url => {
+    const dir = url.replace(/\/[^/]*$/, '').split('/').pop();
+    const file = url.split('/').pop().replace(/\.[^.]*$/, '');
+    const set = new Set();
+    [dir, file].forEach(n => { if (n) ['jpg', 'png', 'webp', 'jpeg'].forEach(ext => set.add(`${n}.${ext}`)); });
+    return [...set];
+  };
+
+  async function fetchSeraph() {
+    const repo = 'gmshelf/seraph';
+    const base = `https://cdn.jsdelivr.net/gh/${repo}`;
+    const data = await K.fetchRepoFile(repo, 'seraph.json', false, 12000, [[base + '/', 12000]]);
+    const list = Array.isArray(data) ? data : (data?.games || []);
+    return list.filter(g => g && g.url && g.name).map(g => ({
+      source: 'seraph',
+      name: g.name,
+      suffix: 'seraph',
+      url: base + g.url,
+      cover: coverCandidates(g.url).map(n => `${base}/covers/${n}`)
+    }));
+  }
+
   K.fetchExtraGames = async () => {
     const lists = await Promise.all([
-      source('lumin', fetchLumin)
+      source('lumin', fetchLumin),
+      source('seraph', fetchSeraph)
     ]);
     return lists.flat();
   };
