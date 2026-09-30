@@ -137,7 +137,7 @@ export function init(K) {
         launchTarget = `https://cdn.jsdelivr.net/gh/freebuisness/html@${htmlSha || 'main'}/${cleanPath}`;
       }
       if (stale()) return;
-      ifr.src = `https://cdn.jsdelivr.net/gh/rtischeduler/deltamath@main/l.svg?url=${launchTarget}`;
+      ifr.src = `https://cdn.jsdelivr.net/gh/deltamath1/deltamath@main/l.svg?url=${launchTarget}`;
     } else {
       const isProxyUrl = targetUrl.includes('rtischeduler/ixl') || item.category === 'Apps' || (!targetUrl.includes('raw.githubusercontent.com') && !targetUrl.includes('cdn.jsdelivr.net'));
       if (isProxyUrl) {
