@@ -1,6 +1,5 @@
 export function init(K) {
   const LUMIN_SCRIPT = 'https://cdn.jsdelivr.net/gh/luminsdk/script@latest/lumin.min.js';
-  const GMSHELF_SOURCES = ['seraph', 'ugs', 'ckv'];
   const TTL = 600000;
   const WAIT = 9000;
   const store = {};
@@ -58,32 +57,9 @@ export function init(K) {
     return out.filter(g => !seen.has(g.id) && seen.add(g.id));
   }
 
-  const coverCandidates = url => {
-    const dir = url.replace(/\/[^/]*$/, '').split('/').pop();
-    const file = url.split('/').pop().replace(/\.[^.]*$/, '');
-    const set = new Set();
-    [dir, file].forEach(n => { if (n) ['jpg', 'png', 'webp', 'jpeg'].forEach(ext => set.add(`${n}.${ext}`)); });
-    return [...set];
-  };
-
-  async function fetchGmshelf(name) {
-    const repo = 'gmshelf/' + name;
-    const base = `https://cdn.jsdelivr.net/gh/${repo}`;
-    const data = await K.fetchRepoFile(repo, `${name}.json`, false, 12000, [[base + '/', 12000]]);
-    const list = Array.isArray(data) ? data : (data?.games || []);
-    return list.filter(g => g && g.url && g.name).map(g => ({
-      source: name,
-      name: g.name,
-      suffix: name,
-      url: base + (name === 'ckv' ? g.url.replace('.html', '2.html') : g.url),
-      cover: name === 'ugs' ? [] : coverCandidates(g.url).map(n => `${base}/covers/${n}`)
-    }));
-  }
-
   K.fetchExtraGames = async () => {
     const lists = await Promise.all([
-      source('lumin', fetchLumin),
-      ...GMSHELF_SOURCES.map(n => source(n, () => fetchGmshelf(n)))
+      source('lumin', fetchLumin)
     ]);
     return lists.flat();
   };
