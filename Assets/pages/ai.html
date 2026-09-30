@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -635,6 +635,14 @@ details[open] .ai-reasoning-chevron {
   background: rgba(128, 128, 128, 0.5);
 }
 
+/* PiP button active state */
+#aiPipBtn.pip-active {
+  background-color: var(--text);
+  border-color: var(--text);
+  color: var(--bg);
+  opacity: 1;
+}
+
 @media (max-width: 720px) {
   #aiSidebar {
     position: fixed;
@@ -710,6 +718,15 @@ details[open] .ai-reasoning-chevron {
             </svg>
           </button>
 
+          <!-- PiP Chat button -->
+          <button id="aiPipBtn" class="ai-composer-tool-btn" title="Chat in Picture-in-Picture">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="3" width="20" height="14" rx="2"/>
+              <rect x="12" y="9" width="8" height="6" rx="1" fill="currentColor" stroke="none" opacity="0.7"/>
+              <path d="M7 21h10M12 17v4"/>
+            </svg>
+          </button>
+
           <div class="ai-composer-spacer"></div>
 
           <button id="aiSendBtn" title="Send">
@@ -725,7 +742,388 @@ details[open] .ai-reasoning-chevron {
 
 <script src="https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@HEAD/Assets/pages/js/ai.js?zzz00s"></script>
 <script>
-document.addEventListener("DOMContentLoaded", () => openAI());
+(function () {
+  let _pipWin = null;
+  let _pipUi = null;
+  let _pipOpen = false;
+
+  const KB_ROWS = [
+    ['q','w','e','r','t','y','u','i','o','p'],
+    ['a','s','d','f','g','h','j','k','l'],
+    ['SHIFT','z','x','c','v','b','n','m','⌫'],
+    ['123','SPACE','⏎']
+  ];
+  const KB_NUM_ROWS = [
+    ['1','2','3','4','5','6','7','8','9','0'],
+    ['-','/','$','&','"','.',',','?','!','\''],
+    ['#+=','%','_','+','=','|','~','<','>','⌫'],
+    ['ABC','SPACE','⏎']
+  ];
+  const KB_SYM_ROWS = [
+    ['[',']','{','}','#','%','^','*','+','='],
+    ['_','\\','|','~','<','>','€','£','¥','·'],
+    ['123','.',',','?','!','\'','⌫'],
+    ['ABC','SPACE','⏎']
+  ];
+
+  let _kbShift = false;
+  let _kbLayer = 'alpha';
+
+  function _currentRows() {
+    if (_kbLayer === 'num') return KB_NUM_ROWS;
+    if (_kbLayer === 'sym') return KB_SYM_ROWS;
+    return KB_ROWS;
+  }
+
+  function _pipStyles() {
+    return `
+      @import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;700&display=swap');
+      *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+      html, body {
+        height: 100%; background: #1a1216; color: #ffb8d9;
+        font-family: 'Comfortaa', system-ui, sans-serif; font-weight: bold;
+        display: flex; flex-direction: column; overflow: hidden;
+      }
+      .pip-wrap { display: flex; flex-direction: column; height: 100%; }
+
+      /* header */
+      .pip-header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: 8px 12px; height: 44px; flex-shrink: 0;
+        background: rgba(26,18,22,0.9); backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        font-size: 11px; letter-spacing: .06em; text-transform: uppercase; opacity: 0.7;
+      }
+      .pip-header-title { opacity: 0.8; }
+      .pip-header-close {
+        background: none; border: none; color: #ffb8d9; cursor: pointer;
+        font-size: 16px; line-height: 1; padding: 2px 6px; border-radius: 6px;
+        opacity: 0.6; transition: opacity .15s;
+      }
+      .pip-header-close:hover { opacity: 1; }
+
+      /* messages */
+      .pip-messages {
+        flex: 1; overflow-y: auto; padding: 10px 12px;
+        display: flex; flex-direction: column; gap: 10px;
+      }
+      .pip-messages::-webkit-scrollbar { width: 4px; }
+      .pip-messages::-webkit-scrollbar-thumb { background: rgba(255,184,217,0.2); border-radius: 4px; }
+      .pip-msg { font-size: 12.5px; line-height: 1.5; word-wrap: break-word; }
+      .pip-msg.user {
+        align-self: flex-end; max-width: 85%;
+        background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px; padding: 7px 11px; color: #ffb8d9;
+      }
+      .pip-msg.assistant { color: rgba(255,220,240,0.92); padding: 0 2px; }
+      .pip-msg.assistant p { margin: 0 0 6px; }
+      .pip-msg.assistant p:last-child { margin-bottom: 0; }
+      .pip-msg.assistant a { color: #ffb8d9; }
+      .pip-msg.assistant code { font-size: 11px; background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; }
+      .pip-msg.assistant pre { background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px; overflow-x: auto; margin: 4px 0; }
+
+      /* dots */
+      .pip-dots { display: flex; gap: 4px; padding: 4px 0; }
+      .pip-dot {
+        width: 5px; height: 5px; border-radius: 50%;
+        background: #ffb8d9; opacity: .3;
+        animation: pdot 1.2s infinite ease-in-out;
+      }
+      .pip-dot:nth-child(2) { animation-delay: .15s; }
+      .pip-dot:nth-child(3) { animation-delay: .3s; }
+      @keyframes pdot { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+      /* status */
+      .pip-status { font-size: 10px; opacity: .5; padding: 0 12px 4px; min-height: 14px; flex-shrink: 0; }
+
+      /* text preview above keyboard */
+      .pip-textbox-wrap {
+        flex-shrink: 0; padding: 6px 10px;
+        border-top: 1px solid rgba(255,255,255,0.07);
+      }
+      .pip-textbox {
+        width: 100%; background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,184,217,0.25); border-radius: 10px;
+        color: #ffb8d9; font-family: inherit; font-weight: bold;
+        font-size: 12.5px; padding: 8px 10px; min-height: 38px;
+        word-break: break-word; white-space: pre-wrap; outline: none;
+        overflow-y: auto; max-height: 70px;
+        cursor: text; position: relative;
+      }
+      .pip-textbox:empty::before {
+        content: attr(data-placeholder);
+        color: rgba(255,184,217,0.35); pointer-events: none;
+      }
+
+      /* on-screen keyboard */
+      .pip-keyboard {
+        flex-shrink: 0; background: rgba(15,10,12,0.95);
+        padding: 6px 4px 8px; border-top: 1px solid rgba(255,255,255,0.06);
+      }
+      .pip-kb-row {
+        display: flex; justify-content: center; gap: 4px; margin-bottom: 4px;
+      }
+      .pip-key {
+        background: rgba(255,255,255,0.09); border: 1px solid rgba(255,255,255,0.06);
+        color: #ffb8d9; border-radius: 7px; cursor: pointer;
+        font-family: inherit; font-weight: bold; font-size: 12px;
+        height: 34px; min-width: 28px; padding: 0 6px;
+        display: flex; align-items: center; justify-content: center;
+        transition: background .1s, transform .08s;
+        user-select: none; -webkit-user-select: none;
+        flex: 1; max-width: 38px;
+      }
+      .pip-key:active { background: rgba(255,184,217,0.22); transform: scale(0.94); }
+      .pip-key.wide { flex: 2; max-width: 70px; font-size: 11px; }
+      .pip-key.wider { flex: 4; max-width: 130px; }
+      .pip-key.action { background: rgba(255,184,217,0.18); border-color: rgba(255,184,217,0.2); }
+      .pip-key.send-key {
+        background: #ffb8d9; color: #1a1216; border-color: #ffb8d9;
+        flex: 2; max-width: 70px;
+      }
+      .pip-key.send-key:active { background: rgba(255,184,217,0.8); }
+      .pip-key.shifted { background: rgba(255,184,217,0.28); }
+    `;
+  }
+
+  function _buildKeyboard(doc, textEl) {
+    const kb = doc.createElement('div');
+    kb.className = 'pip-keyboard';
+    kb.id = 'pipKb';
+
+    function renderRows() {
+      kb.innerHTML = '';
+      const rows = _currentRows();
+      rows.forEach((row, ri) => {
+        const rowEl = doc.createElement('div');
+        rowEl.className = 'pip-kb-row';
+        row.forEach(key => {
+          const btn = doc.createElement('button');
+          btn.className = 'pip-key';
+          let label = key;
+          if (key === 'SPACE') {
+            label = 'space';
+            btn.classList.add('wider');
+          } else if (key === '⏎') {
+            btn.classList.add('send-key');
+            label = '↑ send';
+          } else if (key === 'SHIFT' || key === 'ABC' || key === '123' || key === '#+=') {
+            btn.classList.add('wide');
+            btn.classList.add('action');
+            if (key === 'SHIFT' && _kbShift) btn.classList.add('shifted');
+          } else if (key === '⌫') {
+            btn.classList.add('wide');
+            btn.classList.add('action');
+          }
+          btn.textContent = label;
+          btn.addEventListener('pointerdown', e => {
+            e.preventDefault();
+            _keyTap(key, textEl, renderRows);
+          });
+          rowEl.appendChild(btn);
+        });
+        kb.appendChild(rowEl);
+      });
+    }
+    renderRows();
+    return kb;
+  }
+
+  function _keyTap(key, textEl, rerender) {
+    if (key === '⏎') { _pipSend(); return; }
+    if (key === '⌫') {
+      const t = textEl.innerText || '';
+      textEl.innerText = t.slice(0, -1);
+      return;
+    }
+    if (key === 'SHIFT') {
+      _kbShift = !_kbShift;
+      rerender();
+      return;
+    }
+    if (key === '123') { _kbLayer = 'num'; _kbShift = false; rerender(); return; }
+    if (key === 'ABC') { _kbLayer = 'alpha'; _kbShift = false; rerender(); return; }
+    if (key === '#+=') { _kbLayer = 'sym'; rerender(); return; }
+    if (key === 'SPACE') {
+      textEl.innerText = (textEl.innerText || '') + ' ';
+      return;
+    }
+    let ch = (_kbLayer === 'alpha' && _kbShift) ? key.toUpperCase() : key;
+    textEl.innerText = (textEl.innerText || '') + ch;
+    if (_kbShift && _kbLayer === 'alpha') { _kbShift = false; rerender(); }
+  }
+
+  async function _openPip() {
+    if (!window.documentPictureInPicture) {
+      alert('Picture-in-Picture is not supported in this browser.\nTry Chrome 116+.');
+      return;
+    }
+    try {
+      _pipWin = await window.documentPictureInPicture.requestWindow({
+        width: 360,
+        height: 580,
+        disallowReturnToOpener: false
+      });
+    } catch (e) {
+      if (e && e.name !== 'NotAllowedError') console.warn('[PiP]', e);
+      return;
+    }
+
+    const doc = _pipWin.document;
+
+    const styleEl = doc.createElement('style');
+    styleEl.textContent = _pipStyles();
+    doc.head.appendChild(styleEl);
+
+    const wrap = doc.createElement('div');
+    wrap.className = 'pip-wrap';
+
+    const header = doc.createElement('div');
+    header.className = 'pip-header';
+    const title = doc.createElement('span');
+    title.className = 'pip-header-title';
+    title.textContent = '💬 AI Chat';
+    const closeBtn = doc.createElement('button');
+    closeBtn.className = 'pip-header-close';
+    closeBtn.textContent = '✕';
+    closeBtn.title = 'Close PiP';
+    closeBtn.addEventListener('click', _closePip);
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    wrap.appendChild(header);
+
+    const msgs = doc.createElement('div');
+    msgs.className = 'pip-messages';
+    msgs.id = 'pipMessages';
+    wrap.appendChild(msgs);
+
+    const status = doc.createElement('div');
+    status.className = 'pip-status';
+    status.id = 'pipStatus';
+    wrap.appendChild(status);
+
+    const tbWrap = doc.createElement('div');
+    tbWrap.className = 'pip-textbox-wrap';
+    const tb = doc.createElement('div');
+    tb.className = 'pip-textbox';
+    tb.id = 'pipTextbox';
+    tb.contentEditable = 'false';
+    tb.setAttribute('data-placeholder', 'Type below…');
+    tbWrap.appendChild(tb);
+    wrap.appendChild(tbWrap);
+
+    const kb = _buildKeyboard(doc, tb);
+    wrap.appendChild(kb);
+
+    doc.body.appendChild(wrap);
+
+    _pipUi = { doc, msgs, status, textbox: tb };
+
+    _syncPipMessages();
+
+    _pipWin.addEventListener('pagehide', () => {
+      _pipOpen = false;
+      _pipWin = null;
+      _pipUi = null;
+      _kbLayer = 'alpha';
+      _kbShift = false;
+      document.getElementById('aiPipBtn').classList.remove('pip-active');
+    }, { once: true });
+
+    _pipOpen = true;
+    document.getElementById('aiPipBtn').classList.add('pip-active');
+  }
+
+  function _closePip() {
+    if (_pipWin) {
+      try { _pipWin.close(); } catch (e) {}
+      _pipWin = null;
+    }
+    _pipUi = null;
+    _pipOpen = false;
+    _kbLayer = 'alpha';
+    _kbShift = false;
+    document.getElementById('aiPipBtn').classList.remove('pip-active');
+  }
+
+  function _pipSend() {
+    if (!_pipUi) return;
+    const text = (_pipUi.textbox.innerText || '').trim();
+    if (!text) return;
+    _pipUi.textbox.innerText = '';
+
+    const mainInput = document.getElementById('aiInput');
+    if (mainInput) {
+      const nativeInputValueSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+      nativeInputValueSetter.call(mainInput, text);
+      mainInput.dispatchEvent(new Event('input', { bubbles: true }));
+      if (typeof _sendMessage === 'function') {
+        setTimeout(() => _sendMessage(), 30);
+      } else {
+        mainInput.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      }
+    }
+  }
+
+  function _syncPipMessages() {
+    if (!_pipUi) return;
+    const src = document.getElementById('aiMessages');
+    if (!src) return;
+    const dest = _pipUi.msgs;
+    const doc = _pipUi.doc;
+
+    dest.innerHTML = '';
+
+    const msgs = src.querySelectorAll('.ai-message');
+    msgs.forEach(msgEl => {
+      const isUser = msgEl.classList.contains('user');
+      const textEl = msgEl.querySelector('.ai-message-text');
+      if (!textEl) return;
+      const pip = doc.createElement('div');
+      pip.className = 'pip-msg ' + (isUser ? 'user' : 'assistant');
+      pip.innerHTML = textEl.innerHTML;
+      dest.appendChild(pip);
+    });
+
+    const blink = src.querySelector('.ai-blink-dots, .ai-thinking-dots');
+    if (blink) {
+      const dots = doc.createElement('div');
+      dots.className = 'pip-dots';
+      dots.innerHTML = '<span class="pip-dot"></span><span class="pip-dot"></span><span class="pip-dot"></span>';
+      dest.appendChild(dots);
+    }
+
+    dest.scrollTop = dest.scrollHeight;
+  }
+
+  let _observer = null;
+  function _startObserver() {
+    const target = document.getElementById('aiMessages');
+    if (!target) return;
+    _observer = new MutationObserver(() => {
+      if (_pipUi) _syncPipMessages();
+    });
+    _observer.observe(target, { childList: true, subtree: true, characterData: true });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    openAI();
+    _startObserver();
+
+    const btn = document.getElementById('aiPipBtn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        if (_pipOpen) {
+          _closePip();
+        } else {
+          _openPip();
+        }
+      });
+    }
+  });
+
+  window._pipChat = { open: _openPip, close: _closePip, sync: _syncPipMessages };
+})();
 </script>
 </body>
 </html>
