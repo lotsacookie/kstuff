@@ -1,9 +1,6 @@
 {
   "timestamp": "September 29th | 🖤",
   "changes": [
-    "Rebranded, new logo, new name",
-    "New CSS (Floating UI setting)",
-    "Optimizations",
-    "New game libraries"
+    "Removed unnecessary libraries"
   ]
 }
