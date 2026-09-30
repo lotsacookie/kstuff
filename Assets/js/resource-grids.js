@@ -54,6 +54,27 @@ export function init(K) {
   };
   K.closeResourceInline = closeResourceInline;
 
+  const launchInline = async (ifr, url, stale, onLoad) => {
+    const res = await fetch(url);
+    const text = await res.text();
+    if (stale()) return;
+
+    const doc = ifr.contentDocument;
+    if (!doc) throw new Error('iframe document unavailable');
+
+    ifr.removeEventListener('load', onLoad);
+    ifr.__resourceLoadHandler = null;
+
+    const base = String(url).replace(/[^\/]*$/, '');
+    const html = /<base\s/i.test(text) ? text : (/<head[^>]*>/i.test(text) ? text.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">`) : `<base href="${base}">` + text);
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    if (!stale()) K.toggleLoader(false);
+  };
+
   const openResource = async (item, opts = {}) => {
     if (!item) return;
     const pageId = opts.pageId || document.querySelector('.page.active')?.id;
@@ -137,7 +158,12 @@ export function init(K) {
         launchTarget = `https://cdn.jsdelivr.net/gh/freebuisness/html@${htmlSha || 'main'}/${cleanPath}`;
       }
       if (stale()) return;
-      ifr.src = `https://cdn.jsdelivr.net/gh/deltamath1/deltamath@main/l.svg?url=${launchTarget}`;
+      try {
+        await launchInline(ifr, launchTarget, stale, onLoad);
+      } catch {
+        if (stale()) return;
+        ifr.src = `https://cdn.jsdelivr.net/gh/deltamath1/deltamath@main/l.svg?url=${launchTarget}`;
+      }
     } else {
       const isProxyUrl = targetUrl.includes('rtischeduler/ixl') || item.category === 'Apps' || (!targetUrl.includes('raw.githubusercontent.com') && !targetUrl.includes('cdn.jsdelivr.net'));
       if (isProxyUrl) {
