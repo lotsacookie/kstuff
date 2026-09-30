@@ -54,7 +54,26 @@ export function init(K) {
       page++;
     } while (page <= pages);
     const seen = new Set();
-    return out.filter(g => !seen.has(g.id) && seen.add(g.id));
+    const unique = out.filter(g => !seen.has(g.id) && seen.add(g.id));
+
+    const withToken = unique.filter(g => g.imageToken && !K.luminImgCache.has(g.imageToken));
+    if (withToken.length) {
+      await Promise.allSettled(withToken.map(async g => {
+        try {
+          const url = await window.Lumin.getImageUrl(g.imageToken);
+          if (url) K.luminImgCache.set(g.imageToken, url);
+        } catch {}
+      }));
+    }
+
+    unique.forEach(g => {
+      if (g.imageToken && !g.image) {
+        const cached = K.luminImgCache.get(g.imageToken);
+        if (cached) g.image = cached;
+      }
+    });
+
+    return unique;
   }
 
   K.fetchExtraGames = async () => {
