@@ -152,7 +152,7 @@ export function init(K) {
     const strippedUrl = (rawUrl || '').replace(/\$\{(scram|static|uv|frogiee|truffled)\}/g, '');
     const targetB64 = K.b64Url(JSON.stringify(strippedUrl));
     const wispsB64 = (Array.isArray(K.wispsData) && K.wispsData.length ? K.wispsData[0] : '').replace(/=+$/, '');
-    return `https://cdn.jsdelivr.net/gh/rtischeduler/ixl@main/embed.svg?target=${targetB64}&wisps=${wispsB64}`;
+    return `https://cdn.jsdelivr.net/gh/deltamath1/ixl@main/embed.svg?target=${targetB64}&wisps=${wispsB64}`;
   };
 
   K.timedFetch = async (url, asText = false, ms = K.FETCH_TIMEOUT) => {
