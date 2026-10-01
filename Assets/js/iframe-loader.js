@@ -8,6 +8,9 @@ export function init(K) {
   const KEEP_ALIVE_IFRAMES = new Set([K.MUSIC_IFRAME_ID]);
   K.KEEP_ALIVE_IFRAMES = KEEP_ALIVE_IFRAMES;
 
+  const IFRAME_ALLOW = 'document-picture-in-picture; picture-in-picture; display-capture; clipboard-write; autoplay';
+  K.IFRAME_ALLOW = IFRAME_ALLOW;
+
   K.lastIframeHtml = {};
   K.iframeLoadFailed = {};
   K.iframeLoadTokens = {};
@@ -51,6 +54,7 @@ export function init(K) {
 
       clearTimeout(f.__kShowTimer);
       if (f.__kLoadHandler) { f.removeEventListener('load', f.__kLoadHandler); f.__kLoadHandler = null; }
+      if (f.getAttribute('allow') !== IFRAME_ALLOW) f.setAttribute('allow', IFRAME_ALLOW);
       const mount = html => {
         let settled = false;
         const finish = () => {
