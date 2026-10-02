@@ -1,5 +1,4 @@
 (async function() {
-    // Load sandstone safely via script tag to avoid VM Obfuscation breaking dynamic imports
     let sandstone = window.sandstone;
     if (!sandstone) {
         await new Promise((resolve, reject) => {
@@ -17,16 +16,64 @@
         return;
     }
 
-    // wisp url (changable)
-    sandstone.libcurl.set_websocket("wss://wisp.rhw.one/wisp/");
+    const testWisp = (url) => new Promise((resolve) => {
+        try {
+            const ws = new WebSocket(url);
+            const timer = setTimeout(() => {
+                ws.close();
+                resolve(false);
+            }, 3000);
+            ws.onopen = () => {
+                clearTimeout(timer);
+                ws.close();
+                resolve(true);
+            };
+            ws.onerror = () => {
+                clearTimeout(timer);
+                resolve(false);
+            };
+        } catch (e) {
+            resolve(false);
+        }
+    });
 
-    // chatgpt b64 decoder
+    const setupWisp = async () => {
+        try {
+            const outerRes = await fetch("https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json");
+            if (!outerRes.ok) throw new Error("Failed to fetch wss.json");
+            const outerArr = await outerRes.json();
+
+            if (!Array.isArray(outerArr) || outerArr.length === 0) throw new Error("wss.json is empty or not an array");
+
+            const innerJson = atob(outerArr[0]);
+            const wssUrls = JSON.parse(innerJson);
+
+            if (!Array.isArray(wssUrls) || wssUrls.length === 0) throw new Error("Decoded WSS list is empty");
+
+            for (const url of wssUrls) {
+                const works = await testWisp(url);
+                if (works) {
+                    sandstone.libcurl.set_websocket(url);
+                    console.log("EasyGame: Using wisp server:", url);
+                    return;
+                }
+            }
+
+            console.warn("EasyGame: No working wisp server found, falling back to default.");
+            sandstone.libcurl.set_websocket(wssUrls[0]);
+        } catch (err) {
+            console.error("EasyGame: Wisp setup failed:", err);
+        }
+    };
+
+    await setupWisp();
+
     const decodeUrl = (str) => {
         try {
             if (!/^[a-zA-Z0-9+/]*={0,2}$/.test(str) || str.length < 4) return str;
             return atob(str);
         } catch (e) {
-            return str; 
+            return str;
         }
     };
 
@@ -38,7 +85,6 @@
             const h = p.getAttribute('height') || '600';
 
             if (rawUrl) {
-                // ignoree prepended proxies to avoid double-proxying, let Sandstone rewrite pages directly
                 const targetUrl = decodeUrl(rawUrl);
 
                 const wrapper = document.createElement('div');
@@ -48,13 +94,11 @@
 
                 const proxyFrame = new sandstone.controller.ProxyFrame();
                 const iframe = proxyFrame.iframe;
-                
+
                 iframe.width = '100%';
                 iframe.height = '100%';
                 iframe.style.border = 'none';
                 iframe.className = 'eg-container-frame';
-                // Note: The sandboxing attributes are managed by ProxyFrame internally, 
-                // but we apply fullscreen constraints.
                 iframe.setAttribute('allowfullscreen', 'true');
                 iframe.setAttribute('loading', 'lazy');
 
@@ -71,7 +115,7 @@
                 if (!finalTargetUrl.startsWith("http:") && !finalTargetUrl.startsWith("https:") && !finalTargetUrl.startsWith("sandstone:")) {
                     finalTargetUrl = "https://" + finalTargetUrl;
                 }
-              
+
                 try {
                     await proxyFrame.navigate_to(finalTargetUrl);
                 } catch (err) {
@@ -81,7 +125,6 @@
         }
     };
 
-    // --- START OBSERVER IMMEDIATELY ---
     const observer = new MutationObserver((mutations) => {
         let shouldRun = false;
         for (const mutation of mutations) {
@@ -97,13 +140,12 @@
         if (shouldRun) replacePTags();
     });
 
-    observer.observe(document.documentElement, { 
-        childList: true, 
+    observer.observe(document.documentElement, {
+        childList: true,
         subtree: true,
-        attributes: true, 
-        attributeFilter: ['eg-url'] 
+        attributes: true,
+        attributeFilter: ['eg-url']
     });
 
-    // first pass
     replacePTags();
 })();
