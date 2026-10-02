@@ -16,6 +16,9 @@
         return;
     }
 
+    const FALLBACK_WISP = "wss://girlspreples.org/wi/";
+    sandstone.libcurl.set_websocket(FALLBACK_WISP);
+
     const testWisp = (url) => new Promise((resolve) => {
         try {
             const ws = new WebSocket(url);
