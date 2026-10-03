@@ -3,37 +3,37 @@ function initApp() {
   const MODULE_DIR = 'Assets/js';
   const SHA_FETCH_TIMEOUT = 6000;
   const IMPORT_TIMEOUT = 10000;
-  let shaCache = null, shaPending = null;
+  const MODULE_NAMES = ['core', 'theme-settings', 'auth-backend', 'iframe-loader', 'game-sources', 'resource-grids', 'music-player', 'navigation', 'ui-extras'];
 
-  async function timedFetchJson(url, ms) {
+  let shaPromise = null;
+
+  async function fetchSha() {
     const ctrl = new AbortController();
-    const timer = setTimeout(() => ctrl.abort(), ms);
+    const timer = setTimeout(() => ctrl.abort(), SHA_FETCH_TIMEOUT);
     try {
-      const r = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      return await r.json();
-    } finally { clearTimeout(timer); }
-  }
-
-  async function getRepoSha() {
-    if (shaCache) return shaCache;
-    if (shaPending) return shaPending;
-    shaPending = (async () => {
-      try {
-        const data = await timedFetchJson(`https://api.github.com/repos/${MAIN_REPO}/commits/main`, SHA_FETCH_TIMEOUT);
-        const sha = data?.sha;
-        if (typeof sha === 'string' && /^[0-9a-f]{40}$/i.test(sha)) { shaCache = sha; return sha; }
-      } catch {}
+      const r = await fetch(`https://api.github.com/repos/${MAIN_REPO}/commits/main`, { cache: 'no-store', signal: ctrl.signal });
+      if (!r.ok) return '';
+      const data = await r.json();
+      const sha = data?.sha;
+      return typeof sha === 'string' && /^[0-9a-f]{40}$/i.test(sha) ? sha : '';
+    } catch {
       return '';
-    })();
-    try { return await shaPending; } finally { shaPending = null; }
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
-  async function importWithTimeout(url) {
-    return await Promise.race([
-      import(url),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('import timeout: ' + url)), IMPORT_TIMEOUT))
-    ]);
+  function getRepoSha() {
+    if (!shaPromise) shaPromise = window.kShaP || fetchSha();
+    return shaPromise;
+  }
+
+  function importWithTimeout(url) {
+    let timer;
+    const timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => reject(new Error('import timeout: ' + url)), IMPORT_TIMEOUT);
+    });
+    return Promise.race([import(url), timeout]).finally(() => clearTimeout(timer));
   }
 
   async function loadModule(name) {
@@ -41,8 +41,8 @@ function initApp() {
       const sha = await getRepoSha();
       const candidates = [];
       if (sha) candidates.push(`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@${sha}/${MODULE_DIR}/${name}.js`);
-      candidates.push(`https://raw.githubusercontent.com/${MAIN_REPO}/main/${MODULE_DIR}/${name}.js`);
       candidates.push(`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@main/${MODULE_DIR}/${name}.js`);
+      candidates.push(`https://raw.githubusercontent.com/${MAIN_REPO}/main/${MODULE_DIR}/${name}.js`);
 
       let lastErr = null;
       for (const url of candidates) {
@@ -58,25 +58,20 @@ function initApp() {
     }
   }
 
-  const MODULE_NAMES = ['core', 'theme-settings', 'auth-backend', 'iframe-loader', 'game-sources', 'resource-grids', 'music-player', 'navigation'];
+  const yieldToMain = () => window.scheduler?.yield ? window.scheduler.yield() : new Promise(resolve => setTimeout(resolve, 0));
 
-  window.kModulesStarted = true;
-  window.kProgress?.setTotal((window.kProgress.base || 2) + MODULE_NAMES.length);
+  async function start() {
+    window.kModulesStarted = true;
+    window.kProgress?.setTotal((window.kProgress.base || 2) + MODULE_NAMES.length);
 
-  Promise.all(MODULE_NAMES.map(loadModule))
-    .then(modules => {
+    try {
+      const modules = await Promise.all(MODULE_NAMES.map(loadModule));
       const K = {};
-      const [core, themeSettings, authBackend, iframeLoader, gameSources, resourceGrids, musicPlayer, navigation] = modules;
-      core.init(K);
-      themeSettings.init(K);
-      authBackend.init(K);
-      iframeLoader.init(K);
-      gameSources.init(K);
-      resourceGrids.init(K);
-      musicPlayer.init(K);
-      navigation.init(K);
-    })
-    .catch(err => {
+      for (const mod of modules) {
+        mod.init(K);
+        await yieldToMain();
+      }
+    } catch (err) {
       console.error('singularity module load failed', err);
       const loader = document.querySelector('.section-loader');
       if (loader) {
@@ -85,10 +80,12 @@ function initApp() {
         const t = loader.querySelector('.loading-text');
         if (t) t.textContent = 'Failed to load';
       }
-    })
-    .finally(() => {
+    } finally {
       window.kReadyResolve?.();
-    });
+    }
+  }
+
+  start();
 }
 
-document.readyState === "loading" ? document.addEventListener("DOMContentLoaded", initApp) : initApp();
+document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', initApp) : initApp();
