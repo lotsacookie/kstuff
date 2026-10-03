@@ -9,6 +9,15 @@ export function init(K) {
   const REFRESH_TTL = 60000;
   const FIRST_PAINT_IMAGES = 24;
 
+  const hashSig = str => {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(36) + ':' + str.length;
+  };
+
   const resourceIframeFor = pageId => K.$(`${pageId}-resource-iframe`);
   K.resourceIframeFor = resourceIframeFor;
 
@@ -214,7 +223,7 @@ export function init(K) {
 
   const gridImageStyle = document.createElement('style');
   gridImageStyle.textContent = `
-    .round-btn{position:relative;overflow:hidden;aspect-ratio:1/1;}
+    .round-btn{position:relative;overflow:hidden;aspect-ratio:1/1;contain:layout paint style;content-visibility:auto;contain-intrinsic-size:auto 220px;}
     .round-btn>img{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:cover!important;object-position:center;}
     .round-btn>img[src=""]{display:none!important;}
   `;
@@ -286,6 +295,7 @@ export function init(K) {
         if (wanted) {
           p.img.style.display = 'block';
           p.img.loading = idx < FIRST_PAINT_IMAGES ? 'eager' : 'lazy';
+          p.img.fetchPriority = idx < FIRST_PAINT_IMAGES ? 'auto' : 'low';
           p.img.decoding = 'async';
           const alts = (item.imageAlts || []).slice();
           p.img.onerror = () => { if (alts.length) { p.img.onerror = null; p.img.src = alts.shift(); } };
@@ -416,7 +426,7 @@ export function init(K) {
     try {
       const n = await K.fetchWithProxy(p).catch(err => { console.error('rData fetch failed', p, err); return null; });
       if (!Array.isArray(n)) { if (!silent) K.toggleLoader(false); return false; }
-      const sig = JSON.stringify(n);
+      const sig = hashSig(JSON.stringify(n));
       if (sig === grids[t].sig) { if (!silent) K.toggleLoader(false); return false; }
       if (t === 'sciencequiz') K.rawSciencequizData = n;
       const processed = proc(n);
@@ -441,21 +451,33 @@ export function init(K) {
     return stripped || base.replace(/[^a-z0-9]+/g, '');
   };
 
+  let edPrev = new Int32Array(64), edCur = new Int32Array(64);
   const editDistance = (a, b, max) => {
-    if (Math.abs(a.length - b.length) > max) return max + 1;
-    let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
-    for (let i = 1; i <= a.length; i++) {
-      const cur = [i];
+    const al = a.length, bl = b.length;
+    if (Math.abs(al - bl) > max) return max + 1;
+    if (edPrev.length < bl + 1) {
+      edPrev = new Int32Array(bl + 1);
+      edCur = new Int32Array(bl + 1);
+    }
+    let prev = edPrev, cur = edCur;
+    for (let j = 0; j <= bl; j++) prev[j] = j;
+    for (let i = 1; i <= al; i++) {
+      cur[0] = i;
       let rowMin = i;
-      for (let j = 1; j <= b.length; j++) {
-        const v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
-        cur.push(v);
+      const ac = a.charCodeAt(i - 1);
+      for (let j = 1; j <= bl; j++) {
+        let v = prev[j] + 1;
+        const ins = cur[j - 1] + 1;
+        if (ins < v) v = ins;
+        const sub = prev[j - 1] + (ac === b.charCodeAt(j - 1) ? 0 : 1);
+        if (sub < v) v = sub;
+        cur[j] = v;
         if (v < rowMin) rowMin = v;
       }
       if (rowMin > max) return max + 1;
-      prev = cur;
+      const tmp = prev; prev = cur; cur = tmp;
     }
-    return prev[b.length];
+    return prev[bl];
   };
 
   const fillMissingImages = rows => {
@@ -481,11 +503,14 @@ export function init(K) {
         const max = n.length >= 12 ? 2 : 1;
         const digits = n.replace(/\D/g, '');
         let best = max + 1;
-        (buckets.get(n[0]) || []).forEach(([m, row, mDigits]) => {
-          if (Math.abs(m.length - n.length) > max || mDigits !== digits) return;
+        const bucket = buckets.get(n[0]) || [];
+        for (let k = 0; k < bucket.length; k++) {
+          const entry = bucket[k];
+          const m = entry[0];
+          if (Math.abs(m.length - n.length) > max || entry[2] !== digits) continue;
           const d = editDistance(n, m, max);
-          if (d < best) { best = d; hit = row; }
-        });
+          if (d < best) { best = d; hit = entry[1]; }
+        }
       }
       if (hit) {
         r.image = hit.image;
@@ -511,7 +536,7 @@ export function init(K) {
     ]);
 
     let sig = '';
-    try { sig = JSON.stringify([manualList, zones, extras]); } catch {}
+    try { sig = hashSig(JSON.stringify([manualList, zones, extras])); } catch {}
     if (prevSig && sig === prevSig) return { unchanged: true, sig };
 
     const manualMap = new Map();
@@ -627,7 +652,7 @@ export function init(K) {
     grids.readingcorner.data = proc(K.rawReadingCornerData);
     grids.readingcorner.sig = readingResult?.sig || '';
     grids.sciencequiz.data = proc(K.rawSciencequizData);
-    try { grids.sciencequiz.sig = JSON.stringify(K.rawSciencequizData); } catch { grids.sciencequiz.sig = ''; }
+    try { grids.sciencequiz.sig = hashSig(JSON.stringify(K.rawSciencequizData)); } catch { grids.sciencequiz.sig = ''; }
 
     const now = Date.now();
     K.lastGridRefresh.readingcorner = now;
