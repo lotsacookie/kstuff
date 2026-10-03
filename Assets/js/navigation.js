@@ -1,12 +1,12 @@
 export function init(K) {
   const tooltipEl = K.body.appendChild(K.el('div', { className: 'js-custom-tooltip' }));
-  tooltipEl.style.cssText = 'position:fixed;display:none;padding:6px 10px;background:rgba(0,0,0,0.85);color:#fff;font-size:0.75rem;border-radius:6px;pointer-events:none;z-index:999999;white-space:nowrap;';
+  tooltipEl.style.cssText = 'position:fixed;left:0;top:0;display:none;padding:6px 10px;background:rgba(0,0,0,0.85);color:#fff;font-size:0.75rem;border-radius:6px;pointer-events:none;z-index:999999;white-space:nowrap;will-change:transform;';
   K.tooltipEl = tooltipEl;
 
   document.head.appendChild(K.el('style', {
     textContent: `
       html.kstuff-cursor-active, html.kstuff-cursor-active *{cursor:none !important;}
-      .kstuff-cursor{position:fixed;top:0;left:0;width:${K.CURSOR_SIZE}px;height:${K.CURSOR_SIZE}px;pointer-events:none;z-index:2147483647;color:var(--text-color, inherit);opacity:0;transition:opacity .1s ease;}
+      .kstuff-cursor{position:fixed;top:0;left:0;width:${K.CURSOR_SIZE}px;height:${K.CURSOR_SIZE}px;pointer-events:none;z-index:2147483647;color:var(--text-color, inherit);opacity:0;transition:opacity .1s ease;will-change:transform;contain:layout style;}
       .kstuff-cursor.visible{opacity:1;}
       .kstuff-cursor svg{width:100%;height:100%;display:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}
       .kstuff-cursor .k-arrow{display:block;}
@@ -35,26 +35,39 @@ export function init(K) {
   K.setCursorSuppressed = setCursorSuppressed;
 
   let pointerPending = false, lastPointerEvent = null, cursorIsHand = false;
+  let lastTarget = null, lastTipEl = null, lastTipText = null;
+
   function onPointerFrame() {
     pointerPending = false;
     const e = lastPointerEvent;
     if (!e) return;
-    let isHand = false;
-    try { isHand = !!e.target?.closest?.(K.CLICKABLE_SELECTOR); } catch {}
-    if (isHand !== cursorIsHand) {
-      cursorIsHand = isHand;
-      cursorEl.classList.toggle('pointer', isHand);
+    const target = e.target;
+
+    if (target !== lastTarget) {
+      lastTarget = target;
+      let isHand = false;
+      try { isHand = !!target?.closest?.(K.CLICKABLE_SELECTOR); } catch {}
+      if (isHand !== cursorIsHand) {
+        cursorIsHand = isHand;
+        cursorEl.classList.toggle('pointer', isHand);
+      }
+      lastTipEl = target?.closest?.('[data-tooltip]') || null;
     }
-    const off = isHand ? K.CURSOR_OFFSETS.hand : K.CURSOR_OFFSETS.arrow;
+
+    const off = cursorIsHand ? K.CURSOR_OFFSETS.hand : K.CURSOR_OFFSETS.arrow;
     cursorEl.style.transform = `translate(${e.clientX - off[0]}px, ${e.clientY - off[1]}px)`;
-    const t = e.target?.closest?.('[data-tooltip]');
-    if (!t) {
-      tooltipEl.style.display = 'none';
+
+    const text = lastTipEl ? lastTipEl.dataset.tooltip : undefined;
+    if (text === undefined) {
+      if (tooltipEl.style.display !== 'none') tooltipEl.style.display = 'none';
+      lastTipText = null;
     } else {
-      tooltipEl.textContent = t.dataset.tooltip;
-      tooltipEl.style.left = (e.clientX + 12) + 'px';
-      tooltipEl.style.top = (e.clientY + 12) + 'px';
-      tooltipEl.style.display = 'block';
+      if (text !== lastTipText) {
+        tooltipEl.textContent = text;
+        lastTipText = text;
+      }
+      tooltipEl.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 12}px)`;
+      if (tooltipEl.style.display !== 'block') tooltipEl.style.display = 'block';
     }
   }
 
@@ -99,16 +112,27 @@ export function init(K) {
   };
   K.updateIndicator = updateIndicator;
 
+  let indicatorRaf = 0;
+  const scheduleIndicator = () => {
+    if (indicatorRaf) return;
+    indicatorRaf = requestAnimationFrame(() => {
+      indicatorRaf = 0;
+      updateIndicator(document.querySelector('.nav-btn.active'));
+    });
+  };
+
   if (K.navBar) {
-    new MutationObserver(() => {
-      const activeBtn = K.navBar.querySelector('.nav-btn.active');
-      if (activeBtn) updateIndicator(activeBtn);
+    new MutationObserver(mutations => {
+      for (const m of mutations) {
+        if (m.target.classList?.contains('nav-btn')) { scheduleIndicator(); return; }
+      }
     }).observe(K.navBar, { subtree: true, attributes: true, attributeFilter: ['class'] });
   }
   if (K.navBar && window.ResizeObserver) {
-    new ResizeObserver(() => updateIndicator(document.querySelector('.nav-btn.active'))).observe(K.navBar);
+    new ResizeObserver(scheduleIndicator).observe(K.navBar);
   } else {
-    let rs; window.addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(() => updateIndicator(document.querySelector('.nav-btn.active')), 120); });
+    let rs;
+    window.addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(scheduleIndicator, 120); }, { passive: true });
   }
 
   const navLogo = K.$('nav-logo');
@@ -125,6 +149,16 @@ export function init(K) {
     navLogo.classList.toggle('is-home', home);
   };
   K.updateLogoState = updateLogoState;
+
+  if (typeof K.setAddress === 'function') {
+    const baseSetAddress = K.setAddress;
+    K.setAddress = function (...args) {
+      const result = baseSetAddress.apply(this, args);
+      updateLogoState();
+      return result;
+    };
+  }
+  K.tbInput?.addEventListener('input', updateLogoState);
 
   if (navLogo) {
     const burstLogo = () => {
@@ -147,7 +181,7 @@ export function init(K) {
     navLogo.addEventListener('animationend', e => {
       if (e.target === navLogo && e.animationName === 'nl-click') navLogo.classList.remove('burst');
     });
-    setInterval(updateLogoState, 400);
+    setInterval(() => { if (!document.hidden) updateLogoState(); }, 2000);
     updateLogoState();
   }
 
