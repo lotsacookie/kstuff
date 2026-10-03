@@ -1,4 +1,15 @@
 (async function() {
+    const statusEl = document.getElementById('eg-status');
+    const setStatus = (msg) => {
+        if (!statusEl) return;
+        statusEl.textContent = msg;
+        statusEl.classList.remove('hidden');
+    };
+    const hideStatus = () => {
+        if (!statusEl) return;
+        statusEl.classList.add('hidden');
+    };
+
     let sandstone = window.sandstone;
     if (!sandstone) {
         await new Promise((resolve, reject) => {
@@ -12,12 +23,24 @@
     }
 
     if (!sandstone) {
+        setStatus("Failed to load sandstone proxy.\nThe CDN script did not load — check your network connection.");
         console.error("EasyGame: Could not load sandstone proxy. Please ensure the CDN is accessible.");
         return;
     }
 
+
     const FALLBACK_WISP = "wss://girlspreples.org/wi/";
     sandstone.libcurl.set_websocket(FALLBACK_WISP);
+
+
+    try {
+        if (sandstone.libcurl && typeof sandstone.libcurl.on === 'function') {
+            sandstone.libcurl.on('close', () => setStatus("Wisp connection closed.\nReloading may help."));
+            sandstone.libcurl.on('error', (e) => setStatus("Wisp connection error:\n" + (e && e.message ? e.message : e)));
+        }
+    } catch (e) {
+        console.warn("EasyGame: libcurl does not expose connection events on this build:", e);
+    }
 
     const testWisp = (url) => new Promise((resolve) => {
         try {
@@ -41,6 +64,7 @@
     });
 
     const setupWisp = async () => {
+        setStatus("Finding a working wisp server...");
         try {
             const outerRes = await fetch("https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json");
             if (!outerRes.ok) throw new Error("Failed to fetch wss.json");
@@ -119,9 +143,28 @@
                     finalTargetUrl = "https://" + finalTargetUrl;
                 }
 
+                iframe.addEventListener('load', () => {
+                    hideStatus();
+                    setTimeout(() => {
+                        try {
+                            const doc = iframe.contentDocument;
+                            const isBlank = !doc || !doc.body || doc.body.innerHTML.trim().length === 0;
+                            if (isBlank) {
+                                setStatus("Page loaded blank.\nThis usually means the proxy tunnel dropped mid-request.\nCheck the browser console for a wisp/WebSocket error, or try reloading.");
+                            }
+                        } catch (e) {
+                        }
+                    }, 800);
+                });
+                iframe.addEventListener('error', () => {
+                    setStatus("The proxied frame failed to load.");
+                });
+
+                setStatus("Loading " + finalTargetUrl + " ...");
                 try {
                     await proxyFrame.navigate_to(finalTargetUrl);
                 } catch (err) {
+                    setStatus("Navigation failed:\n" + (err && err.message ? err.message : err));
                     console.error("EasyGame: Error navigating ProxyFrame", err);
                 }
             }
