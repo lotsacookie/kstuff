@@ -28,19 +28,47 @@
         return;
     }
 
-
     const FALLBACK_WISP = "wss://girlspreples.org/wi/";
     sandstone.libcurl.set_websocket(FALLBACK_WISP);
 
+    (function patchProxyFrame() {
+        const ProxyFrame = sandstone.controller.ProxyFrame;
+        const original_navigate_to = ProxyFrame.prototype.navigate_to;
 
-    try {
-        if (sandstone.libcurl && typeof sandstone.libcurl.on === 'function') {
-            sandstone.libcurl.on('close', () => setStatus("Wisp connection closed.\nReloading may help."));
-            sandstone.libcurl.on('error', (e) => setStatus("Wisp connection error:\n" + (e && e.message ? e.message : e)));
-        }
-    } catch (e) {
-        console.warn("EasyGame: libcurl does not expose connection events on this build:", e);
-    }
+        ProxyFrame.prototype.navigate_to = async function (url, form_data = null) {
+            console.log("EasyGame: navigating to", url, form_data ? "(POST)" : "(GET)");
+            setStatus("Loading " + url + " ...");
+
+            try {
+                await original_navigate_to.call(this, url, form_data);
+            } catch (err) {
+                console.error("EasyGame: navigate_to threw:", err);
+                setStatus("Failed to load page:\n" + (err && err.message ? err.message : err));
+                throw err;
+            }
+
+            try {
+                const text_length = await this.eval_js(
+                    "document.body ? document.body.innerText.trim().length : 0"
+                );
+                if (text_length < 5) {
+                    console.warn("EasyGame: page loaded with no visible content:", url);
+                    setStatus(
+                        "This page loaded with no visible content.\n" +
+                        url + "\n\n" +
+                        "This usually means the destination sent a redirect or a response " +
+                        "the proxy couldn't render (common with search engines whose search " +
+                        "box submits as POST). Check the console for details, or try reloading."
+                    );
+                    return;
+                }
+            } catch (evalErr) {
+                console.warn("EasyGame: couldn't verify page content:", evalErr);
+            }
+
+            hideStatus();
+        };
+    })();
 
     const testWisp = (url) => new Promise((resolve) => {
         try {
@@ -143,28 +171,13 @@
                     finalTargetUrl = "https://" + finalTargetUrl;
                 }
 
-                iframe.addEventListener('load', () => {
-                    hideStatus();
-                    setTimeout(() => {
-                        try {
-                            const doc = iframe.contentDocument;
-                            const isBlank = !doc || !doc.body || doc.body.innerHTML.trim().length === 0;
-                            if (isBlank) {
-                                setStatus("Page loaded blank.\nThis usually means the proxy tunnel dropped mid-request.\nCheck the browser console for a wisp/WebSocket error, or try reloading.");
-                            }
-                        } catch (e) {
-                        }
-                    }, 800);
-                });
                 iframe.addEventListener('error', () => {
                     setStatus("The proxied frame failed to load.");
                 });
 
-                setStatus("Loading " + finalTargetUrl + " ...");
                 try {
                     await proxyFrame.navigate_to(finalTargetUrl);
                 } catch (err) {
-                    setStatus("Navigation failed:\n" + (err && err.message ? err.message : err));
                     console.error("EasyGame: Error navigating ProxyFrame", err);
                 }
             }
