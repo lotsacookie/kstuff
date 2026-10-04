@@ -143,21 +143,39 @@ export function init(K) {
     return K.wispsPromise;
   };
 
-  K.SCRAM_TEMPLATE_URL = 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@latest/Assets/embed/scram.html';
+  K.SCRAM_REPO = 'lotsacookie/kstuff';
+  K.SCRAM_PATH = 'Assets/embed/scram.html';
   K.scramTemplatePromise = null;
+  K.scramTemplateSha = '';
 
   K.getScramTemplate = () => {
-    if (!K.scramTemplatePromise) {
-      K.scramTemplatePromise = fetch(K.SCRAM_TEMPLATE_URL, { cache: 'no-store' })
-        .then(r => {
-          if (!r.ok) throw new Error('scram.html HTTP ' + r.status);
-          return r.text();
-        })
-        .catch(err => {
-          K.scramTemplatePromise = null;
-          throw err;
-        });
-    }
+    if (K.scramTemplatePromise) return K.scramTemplatePromise;
+
+    K.scramTemplatePromise = (async () => {
+      let sha = '';
+      try {
+        const data = await K.timedFetch(
+          `https://api.github.com/repos/${K.SCRAM_REPO}/commits/main`,
+          false,
+          K.SHA_FETCH_TIMEOUT
+        );
+        if (typeof data?.sha === 'string' && /^[0-9a-f]{40}$/i.test(data.sha)) sha = data.sha;
+      } catch (err) {
+        console.warn('GitHub commit lookup failed, falling back to main', err);
+      }
+
+      const ref = sha || 'main';
+      K.scramTemplateSha = ref;
+      const url = `https://cdn.jsdelivr.net/gh/${K.SCRAM_REPO}@${ref}/${K.SCRAM_PATH}`;
+
+      const r = await fetch(url, { cache: 'no-store' });
+      if (!r.ok) throw new Error('scram.html HTTP ' + r.status);
+      return r.text();
+    })().catch(err => {
+      K.scramTemplatePromise = null;
+      throw err;
+    });
+
     return K.scramTemplatePromise;
   };
 
@@ -336,4 +354,4 @@ export function init(K) {
   if (!K.getStorage('kstuff_font')) K.setStorage('kstuff_font', 'Comfortaa, sans-serif');
   if (!K.getStorage('kstuff_search_engine')) K.setStorage('kstuff_search_engine', 'duckduckgo');
   if (!K.getStorage('kstuff_floating_ui')) K.setStorage('kstuff_floating_ui', 'floating-on');
-  }
+}
