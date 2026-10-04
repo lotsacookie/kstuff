@@ -148,12 +148,21 @@ export function init(K) {
     .replace(/\//g, '_')
     .replace(/=+$/, '');
 
-  K.buildIxlUrl = rawUrl => {
-    const strippedUrl = (rawUrl || '').replace(/\$\{(scram|static|uv|frogiee|truffled)\}/g, '');
-    const targetB64 = K.b64Url(JSON.stringify(strippedUrl));
-    const wispsB64 = (Array.isArray(K.wispsData) && K.wispsData.length ? K.wispsData[0] : '').replace(/=+$/, '');
-    return `https://cdn.jsdelivr.net/gh/deltamath1/ixl@main/embed.svg?target=${targetB64}&wisps=${wispsB64}`;
-  };
+K.buildIxlUrl = rawUrl => {
+  return rawUrl || '';
+};
+
+K.scramTemplate = null;
+K.loadScramEmbed = async (rawUrl) => {
+  if (!K.scramTemplate) {
+    K.scramTemplate = await fetch(
+      'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/embed/scram.html',
+      { cache: 'no-store' }
+    ).then(r => r.text());
+  }
+  const cleaned = (rawUrl || '').replace(/\$\{(scram|static|uv|frogiee|truffled)\}/g, '');
+  return K.scramTemplate.replace(/PROXYURL/g, cleaned);
+};
 
   K.timedFetch = async (url, asText = false, ms = K.FETCH_TIMEOUT) => {
     const ctrl = new AbortController();
