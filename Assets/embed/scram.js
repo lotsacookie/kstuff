@@ -14,7 +14,7 @@
     if (!sandstone) {
         await new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/gh/USERNAME/REPO@main/dist/sandstone.js';
+            script.src = 'https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/dist/sandstone.js';
             script.onload = resolve;
             script.onerror = () => reject(new Error("Script failed to load from CDN"));
             document.head.appendChild(script);
