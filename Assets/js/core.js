@@ -143,26 +143,60 @@ export function init(K) {
     return K.wispsPromise;
   };
 
+  K.SCRAM_TEMPLATE_URL = 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/embed/scram.html';
+  K.scramTemplatePromise = null;
+
+  K.getScramTemplate = () => {
+    if (!K.scramTemplatePromise) {
+      K.scramTemplatePromise = fetch(K.SCRAM_TEMPLATE_URL, { cache: 'no-store' })
+        .then(r => {
+          if (!r.ok) throw new Error('scram.html HTTP ' + r.status);
+          return r.text();
+        })
+        .catch(err => {
+          K.scramTemplatePromise = null;
+          throw err;
+        });
+    }
+    return K.scramTemplatePromise;
+  };
+
+  K.stripMirror = u => (u || '').replace(/\$\{(scram|static|uv|frogiee|truffled)\}/g, '');
+
+  K.buildScramHtml = async rawUrl => {
+    const template = await K.getScramTemplate();
+    const target = K.stripMirror(rawUrl).trim();
+    const safe = target.replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+    return template.replace(/PROXYURL/g, safe);
+  };
+
+  K.embedInFrame = async (ifr, rawUrl) => {
+    if (!ifr) return;
+    const token = ifr.__embedToken = (ifr.__embedToken || 0) + 1;
+    const stale = () => ifr.__embedToken !== token;
+
+    K.toggleLoader(true);
+    try {
+      const html = await K.buildScramHtml(rawUrl);
+      if (stale()) return;
+      const onLoad = () => {
+        ifr.removeEventListener('load', onLoad);
+        if (!stale()) K.toggleLoader(false);
+      };
+      ifr.addEventListener('load', onLoad);
+      ifr.removeAttribute('src');
+      ifr.style.display = 'block';
+      ifr.srcdoc = html;
+    } catch (err) {
+      console.error('Scram embed failed for', rawUrl, err);
+      if (!stale()) K.toggleLoader(false);
+    }
+  };
+
   K.b64Url = str => btoa(unescape(encodeURIComponent(str)))
     .replace(/\+/g, '-')
     .replace(/\//g, '_')
     .replace(/=+$/, '');
-
-K.buildIxlUrl = rawUrl => {
-  return rawUrl || '';
-};
-
-K.scramTemplate = null;
-K.loadScramEmbed = async (rawUrl) => {
-  if (!K.scramTemplate) {
-    K.scramTemplate = await fetch(
-      'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/embed/scram.html',
-      { cache: 'no-store' }
-    ).then(r => r.text());
-  }
-  const cleaned = (rawUrl || '').replace(/\$\{(scram|static|uv|frogiee|truffled)\}/g, '');
-  return K.scramTemplate.replace(/PROXYURL/g, cleaned);
-};
 
   K.timedFetch = async (url, asText = false, ms = K.FETCH_TIMEOUT) => {
     const ctrl = new AbortController();
@@ -302,4 +336,4 @@ K.loadScramEmbed = async (rawUrl) => {
   if (!K.getStorage('kstuff_font')) K.setStorage('kstuff_font', 'Comfortaa, sans-serif');
   if (!K.getStorage('kstuff_search_engine')) K.setStorage('kstuff_search_engine', 'duckduckgo');
   if (!K.getStorage('kstuff_floating_ui')) K.setStorage('kstuff_floating_ui', 'floating-on');
-}
+  }
