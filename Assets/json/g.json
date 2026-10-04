@@ -525,7 +525,8 @@
   },
   {
     "title": "Slither.io",
-    "category": "Multiplayer"
+    "category": "Multiplayer",
+    "url": "${static}https://slither.io"
   },
   {
     "title": "Slope 2",
