@@ -36,7 +36,7 @@ export function init(K) {
   };
 
   K.SEARCH_ENGINES = {
-    duckduckgo: { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=%s' },
+    duckduckgo: { name: 'DuckDuckGo', url: 'https://html.duckduckgo.com/html?q=%s' },
     google: { name: 'Google', url: 'https://www.google.com/search?q=%s' },
     bing: { name: 'Bing', url: 'https://www.bing.com/search?q=%s' },
     brave: { name: 'Brave', url: 'https://search.brave.com/search?q=%s' },
