@@ -10,15 +10,62 @@
         statusEl.classList.add('hidden');
     };
 
+    const REPO = "lotsacookie/Singuloxy";
+    const BRANCH = "main";
+    const DIST_PATH = "dist/sandstone.js";
+
+    const loadScript = (src) => new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = src;
+        script.onload = () => resolve();
+        script.onerror = () => {
+            script.remove();
+            reject(new Error("Script failed to load: " + src));
+        };
+        document.head.appendChild(script);
+    });
+
+    const getLatestCommitSha = async () => {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 4000);
+        try {
+            const res = await fetch("https://api.github.com/repos/" + REPO + "/commits/" + BRANCH, {
+                signal: controller.signal,
+                headers: { "Accept": "application/vnd.github+json" },
+                cache: "no-store"
+            });
+            if (!res.ok) throw new Error("GitHub API returned " + res.status);
+            const data = await res.json();
+            if (!data || typeof data.sha !== "string" || !/^[0-9a-f]{40}$/i.test(data.sha)) {
+                throw new Error("GitHub API returned no valid commit sha");
+            }
+            return data.sha;
+        } finally {
+            clearTimeout(timer);
+        }
+    };
+
+    const loadSandstone = async () => {
+        const directUrl = "https://cdn.jsdelivr.net/gh/" + REPO + "@" + BRANCH + "/" + DIST_PATH;
+        try {
+            const sha = await getLatestCommitSha();
+            const pinnedUrl = "https://cdn.jsdelivr.net/gh/" + REPO + "@" + sha + "/" + DIST_PATH;
+            console.log("EasyGame: Loading sandstone from commit", sha);
+            await loadScript(pinnedUrl);
+            return;
+        } catch (err) {
+            console.warn("EasyGame: Latest commit load failed, using direct CDN url:", err);
+        }
+        await loadScript(directUrl);
+    };
+
     let sandstone = window.sandstone;
     if (!sandstone) {
-        await new Promise((resolve, reject) => {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/dist/sandstone.js';
-            script.onload = resolve;
-            script.onerror = () => reject(new Error("Script failed to load from CDN"));
-            document.head.appendChild(script);
-        });
+        try {
+            await loadSandstone();
+        } catch (err) {
+            console.error("EasyGame: Could not load sandstone from any source:", err);
+        }
         sandstone = window.sandstone;
     }
 
