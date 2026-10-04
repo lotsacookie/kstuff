@@ -154,6 +154,11 @@ export function init(K) {
       return;
     }
 
+    if (K.MIRROR_PH.test(targetUrl)) {
+      await K.embedInFrame(ifr, targetUrl);
+      return;
+    }
+
     const isRelativeUrl = !targetUrl.startsWith('http');
     const isHtmlRepo = isRelativeUrl || K.urlHasKeyword(targetUrl, K.HTML_REPO_KEYWORDS);
     const useLaunch = isHtmlRepo || K.urlHasKeyword(targetUrl, K.LAUNCH_KEYWORDS);
@@ -395,9 +400,11 @@ export function init(K) {
     setC('sciencequiz-category-select', c.Apps, 'sciencequiz');
   }).catch(err => console.error('categories.json failed', err));
 
+  // Page URLs with a mirror placeholder are kept as-is so openResource can embed them via scram.
+  // Image URLs with a placeholder are dropped, as before.
   const appB = (s, isPage = false) => {
     if (typeof s !== 'string') return s;
-    if (K.MIRROR_PH.test(s)) return isPage ? K.buildIxlUrl(s) : '';
+    if (K.MIRROR_PH.test(s)) return isPage ? s : '';
     return s.replace(/([^:]\/)\/+/g, '$1').replace(/^http:\/\//i, 'https://');
   };
   K.appB = appB;
@@ -668,4 +675,4 @@ export function init(K) {
     console.error('init failed:', error);
     K.toggleLoader(false);
   });
-  }
+}
