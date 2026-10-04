@@ -394,8 +394,14 @@ export function init(K) {
     K.setAddress(targetUrl);
     updateBrowserNav();
 
-    const proxiedUrl = K.buildIxlUrl(targetUrl);
-    loadContent('mathworksheets', true, proxiedUrl);
+    loadContent('mathworksheets').then(() => {
+      K.setAddress(targetUrl);
+      const ifr = K.$('mathworksheets-iframe');
+      if (ifr) return K.embedInFrame(ifr, targetUrl);
+    }).catch(err => {
+      console.error('Browser navigation failed:', err);
+      K.toggleLoader(false);
+    });
   };
   K.loadBrowserUrl = loadBrowserUrl;
 
@@ -530,4 +536,4 @@ export function init(K) {
   });
 
   setInterval(autoRefreshActivePage, 200000);
-  }
+}
