@@ -14,7 +14,7 @@
     if (!sandstone) {
         await new Promise((resolve, reject) => {
             const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/sandstone-proxy/dist/sandstone.js';
+            script.src = 'https://cdn.jsdelivr.net/gh/USERNAME/REPO@main/dist/sandstone.js';
             script.onload = resolve;
             script.onerror = () => reject(new Error("Script failed to load from CDN"));
             document.head.appendChild(script);
@@ -31,44 +31,10 @@
     const FALLBACK_WISP = "wss://girlspreples.org/wi/";
     sandstone.libcurl.set_websocket(FALLBACK_WISP);
 
-    (function patchProxyFrame() {
-        const ProxyFrame = sandstone.controller.ProxyFrame;
-        const original_navigate_to = ProxyFrame.prototype.navigate_to;
-
-        ProxyFrame.prototype.navigate_to = async function (url, form_data = null) {
-            console.log("EasyGame: navigating to", url, form_data ? "(POST)" : "(GET)");
-            setStatus("Loading " + url + " ...");
-
-            try {
-                await original_navigate_to.call(this, url, form_data);
-            } catch (err) {
-                console.error("EasyGame: navigate_to threw:", err);
-                setStatus("Failed to load page:\n" + (err && err.message ? err.message : err));
-                throw err;
-            }
-
-            try {
-                const text_length = await this.eval_js(
-                    "document.body ? document.body.innerText.trim().length : 0"
-                );
-                if (text_length < 5) {
-                    console.warn("EasyGame: page loaded with no visible content:", url);
-                    setStatus(
-                        "This page loaded with no visible content.\n" +
-                        url + "\n\n" +
-                        "This usually means the destination sent a redirect or a response " +
-                        "the proxy couldn't render (common with search engines whose search " +
-                        "box submits as POST). Check the console for details, or try reloading."
-                    );
-                    return;
-                }
-            } catch (evalErr) {
-                console.warn("EasyGame: couldn't verify page content:", evalErr);
-            }
-
-            hideStatus();
-        };
-    })();
+    function wireStatus(proxyFrame, url) {
+        proxyFrame.on_navigate = () => setStatus("Loading " + url + " ...");
+        proxyFrame.on_load = () => hideStatus();
+    }
 
     const testWisp = (url) => new Promise((resolve) => {
         try {
@@ -171,6 +137,7 @@
                     finalTargetUrl = "https://" + finalTargetUrl;
                 }
 
+                wireStatus(proxyFrame, finalTargetUrl);
                 iframe.addEventListener('error', () => {
                     setStatus("The proxied frame failed to load.");
                 });
@@ -178,6 +145,7 @@
                 try {
                     await proxyFrame.navigate_to(finalTargetUrl);
                 } catch (err) {
+                    setStatus("Navigation failed:\n" + (err && err.message ? err.message : err));
                     console.error("EasyGame: Error navigating ProxyFrame", err);
                 }
             }
