@@ -143,7 +143,7 @@ export function init(K) {
     return K.wispsPromise;
   };
 
-  K.SCRAM_TEMPLATE_URL = 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/embed/scram.html';
+  K.SCRAM_TEMPLATE_URL = 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@latest/Assets/embed/scram.html';
   K.scramTemplatePromise = null;
 
   K.getScramTemplate = () => {
