@@ -1,12 +1,23 @@
+html.halloween-season,
 html.halloween-season body {
     --bg-color: #120700;
     --text-color: #ffe3bf;
-    --nav-bg: rgba(28, 11, 2, 0.92);
+    --nav-bg: rgba(28, 11, 2, 0.94);
     --card-bg: rgba(54, 22, 4, 0.7);
+    --bg: #120700;
+    --text: #ffe3bf;
+    --card: rgba(54, 22, 4, 0.7);
+    --nav: #2a1004;
     --hw-orange: #ff7a1a;
-    --hw-purple: #9d5cff;
     --hw-glow: rgba(255, 122, 26, 0.4);
     --hw-ink: #120700;
+}
+
+html.halloween-season {
+    background-color: #120700;
+}
+
+html.halloween-season body {
     background-color: var(--bg-color);
 }
 
@@ -44,7 +55,9 @@ html.halloween-season .textbook-bar-container:focus-within,
 html.halloween-season .modern-select-wrapper:focus-within,
 html.halloween-season .modal-input:focus,
 html.halloween-season .refresh-btn:hover,
-html.halloween-season .refresh-btn:focus {
+html.halloween-season .refresh-btn:focus,
+html.halloween-season .library-search-container:focus-within,
+html.halloween-season .exam-input:focus {
     border-color: var(--hw-orange) !important;
     box-shadow: 0 0 0 2px var(--hw-glow) !important;
 }
@@ -69,7 +82,8 @@ html.halloween-season .ld-fill {
 html.halloween-season .page-btn:hover,
 html.halloween-season .page-btn.active,
 html.halloween-season #do-login-btn,
-html.halloween-season .modal-primary-btn {
+html.halloween-season .modal-primary-btn,
+html.halloween-season .exam-btn-save {
     background: var(--hw-orange) !important;
     border-color: var(--hw-orange) !important;
     color: var(--hw-ink) !important;
@@ -80,6 +94,36 @@ html.halloween-season #do-logout-btn:hover {
     background: var(--hw-orange) !important;
     border-color: var(--hw-orange) !important;
     color: var(--hw-ink) !important;
+}
+
+html.halloween-season .library-home-title span {
+    background:
+        linear-gradient(105deg, transparent 40%, rgba(255, 230, 190, 0.95) 50%, transparent 60%) 100% 0 / 250% 100% no-repeat,
+        linear-gradient(180deg, #ffe3bf 0%, #ffb35c 45%, #ff7a1a 100%) 0 0 / 100% 100% no-repeat;
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
+html.halloween-season .exam-input-group label,
+html.halloween-season .changelog-version {
+    color: var(--hw-ink);
+}
+
+html.halloween-season .exam-input-group label {
+    color: rgba(255, 122, 26, 0.85);
+}
+
+html.halloween-season .changelog-version {
+    background: linear-gradient(180deg, #ffe3bf, #ff9f4a);
+}
+
+html.halloween-season .changelog-dot {
+    background: var(--hw-orange);
+    box-shadow: 0 0 8px var(--hw-glow);
+}
+
+html.halloween-season .changelog-list li::before {
+    background: var(--hw-orange);
 }
 
 html.halloween-season .hw-wrap {
@@ -95,6 +139,10 @@ html.halloween-season .nav-bottom .hw-wrap {
 
 html.halloween-season .hw-badge {
     position: absolute;
+    right: -6px;
+    bottom: -6px;
+    width: 40%;
+    height: 40%;
     display: block;
     pointer-events: none;
     z-index: 5;
@@ -106,18 +154,4 @@ html.halloween-season .hw-badge svg {
     height: 100%;
     display: block;
     overflow: visible;
-}
-
-html.halloween-season .hw-badge-nav {
-    right: -6px;
-    bottom: -6px;
-    width: 55%;
-    height: 55%;
-}
-
-html.halloween-season .hw-badge-loading {
-    right: -0.7rem;
-    bottom: -0.5rem;
-    width: 2.2rem;
-    height: 2.2rem;
 }
