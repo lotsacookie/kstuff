@@ -1,8 +1,22 @@
 export function init(K) {
+  const HOLIDAY = new Date().getMonth() === 9;
+
   const notifyIframesTheme = () => Object.values(K.iframePages).forEach(p => {
     try { K.$(p.id)?.contentWindow?.postMessage('theme-updated', '*'); } catch {}
   });
   K.notifyIframesTheme = notifyIframesTheme;
+
+  const lockThemeSelect = () => {
+    const sel = K.$('layout-theme-select');
+    if (!sel) return;
+    sel.disabled = true;
+    const wrap = sel.nextElementSibling;
+    if (wrap?.classList.contains('custom-select-wrapper')) {
+      wrap.style.pointerEvents = 'none';
+      wrap.style.opacity = '0.5';
+      wrap.title = 'Locked during the holiday season';
+    }
+  };
 
   const handleThemesLoaded = themes => {
     let css = '', html = '';
@@ -16,9 +30,13 @@ export function init(K) {
     if (sel) {
       sel.innerHTML = html;
       const chosen = K.currentUser?.settings?.theme || K.currentUser?.theme || K.getStorage('kstuff_theme') || 'theme-pitch-black';
-      sel.value = chosen; K.setStorage('kstuff_theme', chosen);
-      K.body.className = K.body.className.replace(/\btheme-\S+/g, '').trim() + ' ' + chosen;
+      sel.value = chosen;
+      if (!HOLIDAY) {
+        K.setStorage('kstuff_theme', chosen);
+        K.body.className = K.body.className.replace(/\btheme-\S+/g, '').trim() + ' ' + chosen;
+      }
       K.applyCustomDropdown(sel);
+      if (HOLIDAY) lockThemeSelect();
     }
     notifyIframesTheme();
   };
@@ -58,7 +76,7 @@ export function init(K) {
   ensureParentFontLoaded(K.getStorage('kstuff_font'));
 
   [
-    ['layout-theme-select', 'kstuff_theme', 'theme', v => { if (v) { K.body.classList.add(v); K.setStorage('kstuff_theme', v); } }],
+    ['layout-theme-select', 'kstuff_theme', 'theme', v => { if (v && !HOLIDAY) { K.body.classList.add(v); K.setStorage('kstuff_theme', v); } }],
     ['layout-nav-select', 'kstuff_nav_pos', 'nav', v => { if (v) K.body.classList.add(v); }],
     ['layout-floating-select', 'kstuff_floating_ui', 'floating', v => { if (v) K.body.classList.add(v); }],
     ['layout-size-select', 'kstuff_nav_size', 'size', v => { if (v) K.body.classList.add(v); }],
@@ -69,21 +87,23 @@ export function init(K) {
     const select = K.$(id); if (!select) return;
     const val = K.getStorage(key) || select.value; select.value = val; fn(val);
     select.addEventListener('change', e => {
+      if (HOLIDAY && id === 'layout-theme-select') return;
       if (prefix) K.body.className = K.body.className.replace(new RegExp(`\\b${prefix}-\\S+`, 'g'), '').trim();
       fn(e.target.value); K.setStorage(key, e.target.value);
       K.updateIndicator?.(K.navBar?.querySelector('.nav-btn.active'));
       notifyIframesTheme();
     });
   });
+  if (HOLIDAY) lockThemeSelect();
 
   K.applyCloudSettings = s => {
     if (!s) return;
-    if (s.theme) K.setStorage('kstuff_theme', s.theme);
+    if (s.theme && !HOLIDAY) K.setStorage('kstuff_theme', s.theme);
     if (s.font) K.setStorage('kstuff_font', s.font);
     if (s.searchEngine) K.setStorage('kstuff_search_engine', s.searchEngine);
     if (s.floatingUi) K.setStorage('kstuff_floating_ui', s.floatingUi);
     [
-      { i: 'layout-theme-select', k: 'kstuff_theme', v: s.theme },
+      { i: 'layout-theme-select', k: 'kstuff_theme', v: HOLIDAY ? null : s.theme },
       { i: 'layout-nav-select', k: 'kstuff_nav_pos', v: s.navPos },
       { i: 'layout-floating-select', k: 'kstuff_floating_ui', v: s.floatingUi },
       { i: 'layout-size-select', k: 'kstuff_nav_size', v: s.navSize },
@@ -116,7 +136,7 @@ export function init(K) {
       searchEngine: K.$('search-engine-select')?.value,
       lastUpdated: Date.now()
     };
-    if (p.theme) K.setStorage('kstuff_theme', p.theme);
+    if (p.theme && !HOLIDAY) K.setStorage('kstuff_theme', p.theme);
     if (p.font) K.setStorage('kstuff_font', p.font);
     if (p.searchEngine) K.setStorage('kstuff_search_engine', p.searchEngine);
     if (p.floatingUi) K.setStorage('kstuff_floating_ui', p.floatingUi);
