@@ -1,7 +1,13 @@
-html.halloween-season {
+html.halloween-season body {
+    --bg-color: #120700;
+    --text-color: #ffe3bf;
+    --nav-bg: rgba(28, 11, 2, 0.92);
+    --card-bg: rgba(54, 22, 4, 0.7);
     --hw-orange: #ff7a1a;
-    --hw-glow: rgba(255, 122, 26, 0.35);
-    --hw-ink: #1a0a00;
+    --hw-purple: #9d5cff;
+    --hw-glow: rgba(255, 122, 26, 0.4);
+    --hw-ink: #120700;
+    background-color: var(--bg-color);
 }
 
 html.halloween-season body::before {
@@ -10,8 +16,8 @@ html.halloween-season body::before {
     inset: 0;
     pointer-events: none;
     background:
-        radial-gradient(circle at 100% 0%, rgba(255, 122, 26, 0.12), transparent 40%),
-        radial-gradient(circle at 0% 100%, rgba(120, 40, 200, 0.1), transparent 40%);
+        radial-gradient(circle at 100% 0%, rgba(255, 122, 26, 0.14), transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(157, 92, 255, 0.12), transparent 40%);
     z-index: 0;
 }
 
@@ -25,6 +31,13 @@ html.halloween-season .nav-btn:hover i,
 html.halloween-season .settings-tab.active i,
 html.halloween-season .settings-tab:hover i {
     filter: brightness(1) drop-shadow(0 0 4px var(--hw-glow));
+}
+
+html.halloween-season .nav-btn.active span,
+html.halloween-season .nav-btn:hover span,
+html.halloween-season .settings-tab.active span,
+html.halloween-season .settings-tab:hover span {
+    color: var(--hw-orange);
 }
 
 html.halloween-season .textbook-bar-container:focus-within,
@@ -69,8 +82,15 @@ html.halloween-season #do-logout-btn:hover {
     color: var(--hw-ink) !important;
 }
 
-html.halloween-season .nav-logo {
-    overflow: visible;
+html.halloween-season .hw-wrap {
+    position: relative;
+    display: flex;
+    flex-shrink: 0;
+}
+
+html.halloween-season .nav-top .hw-wrap,
+html.halloween-season .nav-bottom .hw-wrap {
+    display: none;
 }
 
 html.halloween-season .hw-badge {
@@ -78,8 +98,7 @@ html.halloween-season .hw-badge {
     display: block;
     pointer-events: none;
     z-index: 5;
-    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
-    animation: hw-bob 3s ease-in-out infinite;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.45));
 }
 
 html.halloween-season .hw-badge svg {
@@ -90,20 +109,15 @@ html.halloween-season .hw-badge svg {
 }
 
 html.halloween-season .hw-badge-nav {
-    right: -7px;
-    bottom: -7px;
+    right: -6px;
+    bottom: -6px;
     width: 55%;
     height: 55%;
 }
 
 html.halloween-season .hw-badge-loading {
-    width: 2.4rem;
-    height: 2.4rem;
-    top: calc(50% - 4.6rem);
-    left: calc(50% + 2.6rem);
-}
-
-@keyframes hw-bob {
-    0%, 100% { transform: translateY(0) rotate(-4deg); }
-    50% { transform: translateY(-2px) rotate(4deg); }
+    right: -0.7rem;
+    bottom: -0.5rem;
+    width: 2.2rem;
+    height: 2.2rem;
 }
