@@ -16,6 +16,15 @@
         '<path d="M20 46q12 9 24 0z" fill="#1a0a00"/>' +
         '</svg>';
 
+    var NO_BACKGROUND_CSS =
+        'html.halloween-season, html.halloween-season body {' +
+        '  background: none !important;' +
+        '  background-color: transparent !important;' +
+        '}' +
+        'html.halloween-season body::before {' +
+        '  content: none !important;' +
+        '}';
+
     function decode(b64) {
         var bin = atob(b64.replace(/\s/g, ''));
         var bytes = new Uint8Array(bin.length);
@@ -60,6 +69,14 @@
 
     function init() {
         document.documentElement.classList.add('halloween-season');
+
+        // browser.html already has its own background, so keep it clear
+        if (document.getElementById('library-home')) {
+            var reset = document.createElement('style');
+            reset.id = 'halloween-no-bg';
+            reset.textContent = NO_BACKGROUND_CSS;
+            document.head.appendChild(reset);
+        }
 
         ['#nav-logo', '#loading-screen .ld-logo', '#logo-wrap'].forEach(function (sel) {
             addPumpkin(document.querySelector(sel));
