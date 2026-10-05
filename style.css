@@ -1729,9 +1729,10 @@ body.floating-on #teachertouchbar {
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
 }
 
+/* Footer sits inside the section area, aligned to its bottom edge */
 body.floating-on .learning-footer {
-    bottom: var(--fg);
-    padding: 0;
+    bottom: calc(2 * var(--fg));
+    padding: 0 10px;
     background: transparent;
     border: none;
     border-radius: 0;
@@ -1744,16 +1745,16 @@ body.floating-on .learning-footer {
 
 body.floating-on .learning-footer .footer-item {
     pointer-events: auto;
-    background: color-mix(in srgb, var(--nav-bg) 78%, transparent);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: color-mix(in srgb, var(--nav-bg) 40%, transparent);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.06);
     border-radius: 10px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
 body.floating-on .learning-footer .footer-item:hover {
-    background: color-mix(in srgb, var(--text-color) 12%, var(--nav-bg));
+    background: color-mix(in srgb, var(--text-color) 10%, transparent);
 }
 
 body.floating-on #studymaterial-area {
@@ -1771,7 +1772,7 @@ body.floating-on.nav-left #teachertouchbar {
 body.floating-on.nav-left .learning-header,
 body.floating-on.nav-left .learning-footer {
     left: calc(var(--nav-width) + 2 * var(--fg));
-    width: calc(100% - var(--nav-width) - 3 * var(--fg));
+    width: calc(100% - var(--nav-width) - 4 * var(--fg));
 }
 
 body.floating-on.nav-left #classroom-portal-container {
@@ -1789,8 +1790,8 @@ body.floating-on.nav-right #teachertouchbar {
 
 body.floating-on.nav-right .learning-header,
 body.floating-on.nav-right .learning-footer {
-    left: var(--fg);
-    width: calc(100% - var(--nav-width) - 3 * var(--fg));
+    left: calc(2 * var(--fg));
+    width: calc(100% - var(--nav-width) - 4 * var(--fg));
 }
 
 body.floating-on.nav-right #classroom-portal-container {
