@@ -526,26 +526,35 @@ html, body {
 }
 
 .add-flashcard-btn {
-    background-color: var(--card);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    color: var(--text);
-    padding: 10px 20px;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 0.85rem;
-    font-weight: 900 !important;
+    width: 56px;
+    height: 56px;
+    padding: 0;
+    flex-shrink: 0;
     display: flex;
     align-items: center;
-    gap: 8px;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.14);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    color: var(--text);
+    cursor: pointer;
+    font-size: 26px;
+    font-weight: 700 !important;
+    line-height: 1;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.add-flashcard-btn span {
+    display: block;
+    transform: translateY(-1px);
 }
 
 .add-flashcard-btn:hover {
-    background-color: rgba(255, 255, 255, 0.15);
-    border-color: rgba(255, 255, 255, 0.2);
+    background-color: rgba(255, 255, 255, 0.22);
+    border-color: var(--text);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     transform: translateY(-2px);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
 }
 
 .add-flashcard-btn:active {
@@ -875,8 +884,9 @@ html, body {
                     <svg viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
                 </button>
             </div>
-            <div class="flashcards-container" id="flashcards-container"></div>
-            <button class="add-flashcard-btn" id="add-flashcard-main-btn"><span>+</span> Create Shortcut</button>
+            <div class="flashcards-container" id="flashcards-container">
+                <button class="add-flashcard-btn" id="add-flashcard-main-btn" title="Create Shortcut"><span>+</span></button>
+            </div>
             <div class="changelog" id="changelog" hidden>
                 <div class="changelog-head"><span class="changelog-dot"></span>Change Log</div>
                 <div class="changelog-body" id="changelog-body">
@@ -1057,6 +1067,19 @@ html, body {
 
     box.hidden = false;
     load(0);
+})();
+
+(function () {
+    var plus = document.getElementById('add-flashcard-main-btn');
+    var row = document.getElementById('flashcards-container');
+    if (!plus || !row) return;
+
+    function keepLast() {
+        if (row.lastElementChild !== plus) row.appendChild(plus);
+    }
+
+    new MutationObserver(keepLast).observe(row, { childList: true });
+    keepLast();
 })();
 </script>
 </body>
