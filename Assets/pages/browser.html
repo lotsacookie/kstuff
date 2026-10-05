@@ -397,6 +397,22 @@ html, body {
     fill: currentColor;
 }
 
+.shortcuts-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    width: 100%;
+    max-width: 650px;
+    margin-bottom: 25px;
+    padding: 10px;
+}
+
+.shortcuts-row > .flashcards-container {
+    display: contents;
+}
+
 .flashcards-container {
     display: flex;
     flex-wrap: wrap;
@@ -499,22 +515,6 @@ html, body {
     transform: scale(1.1);
 }
 
-.shortcuts-row {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 20px;
-    width: 100%;
-    max-width: 650px;
-    margin-bottom: 25px;
-    padding: 10px;
-}
-
-.shortcuts-row > .flashcards-container {
-    display: contents;
-}
-
 .flashcard-name {
     position: absolute;
     bottom: -28px;
@@ -549,10 +549,10 @@ html, body {
     display: flex;
     align-items: center;
     justify-content: center;
-    background-color: rgba(255, 255, 255, 0.14);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    background-color: color-mix(in srgb, var(--text) 22%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text) 70%, transparent);
     border-radius: 12px;
-    color: var(--text);
+    color: color-mix(in srgb, var(--text) 60%, white);
     cursor: pointer;
     font-size: 26px;
     font-weight: 700 !important;
@@ -567,8 +567,9 @@ html, body {
 }
 
 .add-flashcard-btn:hover {
-    background-color: rgba(255, 255, 255, 0.22);
+    background-color: color-mix(in srgb, var(--text) 35%, transparent);
     border-color: var(--text);
+    color: #ffffff;
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     transform: translateY(-2px);
 }
@@ -901,8 +902,8 @@ html, body {
                 </button>
             </div>
             <div class="shortcuts-row">
-                 <div class="flashcards-container" id="flashcards-container"></div>
-                 <button class="add-flashcard-btn" id="add-flashcard-main-btn" title="Create Shortcut"><span>+</span></button>
+                <div class="flashcards-container" id="flashcards-container"></div>
+                <button class="add-flashcard-btn" id="add-flashcard-main-btn" title="Create Shortcut"><span>+</span></button>
             </div>
             <div class="changelog" id="changelog" hidden>
                 <div class="changelog-head"><span class="changelog-dot"></span>Change Log</div>
@@ -1061,9 +1062,17 @@ html, body {
         });
     }
 
+    function showStatus(text) {
+        body.textContent = '';
+        var s = document.createElement('div');
+        s.className = 'changelog-status';
+        s.textContent = text;
+        body.appendChild(s);
+    }
+
     function load(index) {
         if (index >= sources.length) {
-            box.hidden = true;
+            showStatus('Change log unavailable');
             return;
         }
         fetch(sources[index], { cache: 'no-cache' })
@@ -1075,28 +1084,16 @@ html, body {
                 var entries = normalize(data);
                 if (!entries.length) throw new Error('empty');
                 render(entries);
-                box.hidden = false;
             })
-            .catch(function () {
+            .catch(function (err) {
+                console.warn('Change log source failed:', sources[index], err);
                 load(index + 1);
             });
     }
 
     box.hidden = false;
+    showStatus('Loading...');
     load(0);
-})();
-
-(function () {
-    var plus = document.getElementById('add-flashcard-main-btn');
-    var row = document.getElementById('flashcards-container');
-    if (!plus || !row) return;
-
-    function keepLast() {
-        if (row.lastElementChild !== plus) row.appendChild(plus);
-    }
-
-    new MutationObserver(keepLast).observe(row, { childList: true });
-    keepLast();
 })();
 </script>
 </body>
