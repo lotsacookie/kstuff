@@ -499,6 +499,22 @@ html, body {
     transform: scale(1.1);
 }
 
+.shortcuts-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 20px;
+    width: 100%;
+    max-width: 650px;
+    margin-bottom: 25px;
+    padding: 10px;
+}
+
+.shortcuts-row > .flashcards-container {
+    display: contents;
+}
+
 .flashcard-name {
     position: absolute;
     bottom: -28px;
@@ -884,8 +900,9 @@ html, body {
                     <svg viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
                 </button>
             </div>
-            <div class="flashcards-container" id="flashcards-container">
-                <button class="add-flashcard-btn" id="add-flashcard-main-btn" title="Create Shortcut"><span>+</span></button>
+            <div class="shortcuts-row">
+                 <div class="flashcards-container" id="flashcards-container"></div>
+                 <button class="add-flashcard-btn" id="add-flashcard-main-btn" title="Create Shortcut"><span>+</span></button>
             </div>
             <div class="changelog" id="changelog" hidden>
                 <div class="changelog-head"><span class="changelog-dot"></span>Change Log</div>
