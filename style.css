@@ -12,8 +12,8 @@
 }
 
 :root {
-    --nav-size: 38.5px; 
-    --nav-width: 132px; 
+    --nav-size: 38.5px;
+    --nav-width: 132px;
     --btn-size: 29px;
     --btn-icon-size: 0.85rem;
     --btn-text-size: 0.7rem;
@@ -21,16 +21,17 @@
     --transition-speed: 0.3s;
     --header-height: 56px;
     --footer-height: 36px;
+    --footer-space: var(--footer-height);
     --fg: 10px;
     --fr: 14px;
 }
 
 body {
     font-family: 'Segoe UI', system-ui, sans-serif;
-    background-image: 
+    background-image:
         linear-gradient(to right, rgba(255, 255, 255, 0.06) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
-    background-size: 40px 40px; 
+    background-size: 40px 40px;
     background-position: 0 0;
     background-attachment: fixed;
     color: var(--text-color);
@@ -142,7 +143,7 @@ body.size-large.text-hide {
     left: 0;
 }
 
-.footer-left, 
+.footer-left,
 .footer-right {
     display: flex;
     align-items: center;
@@ -292,28 +293,28 @@ body.size-large.text-hide {
     top: var(--header-height);
     left: 0;
     width: 100vw;
-    height: calc(100vh - var(--header-height) - var(--footer-height));
+    height: calc(100vh - var(--header-height) - var(--footer-space));
 }
 
 .nav-top #classroom-portal-container {
     top: calc(var(--header-height) + var(--nav-size));
-    height: calc(100vh - var(--header-height) - var(--nav-size) - var(--footer-height));
+    height: calc(100vh - var(--header-height) - var(--nav-size) - var(--footer-space));
 }
 
 .nav-bottom #classroom-portal-container {
     top: var(--header-height);
-    height: calc(100vh - var(--header-height) - var(--nav-size) - var(--footer-height));
+    height: calc(100vh - var(--header-height) - var(--nav-size) - var(--footer-space));
 }
 
 .nav-left #classroom-portal-container {
     left: var(--nav-width);
     width: calc(100vw - var(--nav-width));
-    height: calc(100vh - var(--header-height) - var(--footer-height));
+    height: calc(100vh - var(--header-height) - var(--footer-space));
 }
 
 .nav-right #classroom-portal-container {
     width: calc(100vw - var(--nav-width));
-    height: calc(100vh - var(--header-height) - var(--footer-height));
+    height: calc(100vh - var(--header-height) - var(--footer-space));
 }
 
 .nav-top #classroom-portal-container { flex-direction: column; }
@@ -345,7 +346,7 @@ body.size-large.text-hide {
 
 #studymaterial-area {
     flex-grow: 1;
-    padding: 0; 
+    padding: 0;
     overflow: hidden;
     display: flex;
     flex-direction: column;
@@ -368,8 +369,8 @@ body.size-large.text-hide {
     box-shadow: 0 4px 15px rgba(0,0,0,0.1);
     z-index: 10;
     flex-shrink: 0;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                height 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                height 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 padding 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -435,14 +436,14 @@ body.size-large.text-hide {
     display: none;
 }
 
-body.text-hide .nav-left #teachertouchbar, 
+body.text-hide .nav-left #teachertouchbar,
 body.text-hide .nav-right #teachertouchbar {
     gap: 0.22rem;
     padding-left: 0.28rem;
     padding-right: 0.28rem;
 }
 
-body.show-logo.nav-left #teachertouchbar, 
+body.show-logo.nav-left #teachertouchbar,
 body.show-logo.nav-right #teachertouchbar {
     padding-top: 3rem;
 }
@@ -453,8 +454,8 @@ body.show-logo.nav-right #teachertouchbar {
     border-radius: 3px;
     pointer-events: none;
     z-index: 20;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -505,27 +506,27 @@ body.show-logo.nav-right #teachertouchbar {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nav-top #edu-logo, 
+.nav-top #edu-logo,
 .nav-bottom #edu-logo {
     left: 0.8rem;
     top: 50%;
     transform: translateY(-50%) scale(0.5);
 }
 
-.nav-left #edu-logo, 
+.nav-left #edu-logo,
 .nav-right #edu-logo {
     top: 0.8rem;
     left: 50%;
     transform: translateX(-50%) scale(0.5);
 }
 
-.nav-top #edu-logo.show, 
+.nav-top #edu-logo.show,
 .nav-bottom #edu-logo.show {
     transform: translateY(-50%) scale(1);
     opacity: 1;
 }
 
-.nav-left #edu-logo.show, 
+.nav-left #edu-logo.show,
 .nav-right #edu-logo.show {
     transform: translateX(-50%) scale(1);
     opacity: 1;
@@ -542,7 +543,7 @@ body.show-logo.nav-right #teachertouchbar {
     padding: 0 0.7rem;
     height: var(--btn-size);
     min-height: var(--btn-size);
-    flex-shrink: 0; 
+    flex-shrink: 0;
     width: max-content;
     min-width: var(--btn-size);
     cursor: pointer;
@@ -558,8 +559,8 @@ body.show-logo.nav-right #teachertouchbar {
     font-weight: 900 !important;
     flex-shrink: 0;
     filter: brightness(0.5);
-    transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                margin 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: font-size 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                margin 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 filter 0.3s ease;
 }
 
@@ -573,23 +574,23 @@ body.show-logo.nav-right #teachertouchbar {
     font-size: var(--btn-text-size);
     font-weight: 900 !important;
     line-height: normal;
-    transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                margin 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
-                opacity 0.2s ease, 
+    transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                margin 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                opacity 0.2s ease,
                 font-size 0.3s ease;
 }
 
-.nav-btn:hover i, 
+.nav-btn:hover i,
 .nav-btn.active i {
     filter: brightness(1);
 }
 
-.nav-btn:hover span, 
+.nav-btn:hover span,
 .nav-btn.active span {
     opacity: 1;
 }
 
-.nav-btn:hover, 
+.nav-btn:hover,
 .nav-btn.active {
     background: transparent;
 }
@@ -609,38 +610,38 @@ body.show-logo.nav-right #teachertouchbar {
     max-width: 0;
     margin-left: 0;
     opacity: 0;
-    font-size: 0; 
-    line-height: 0; 
+    font-size: 0;
+    line-height: 0;
     pointer-events: none;
 }
 
 .nav-divider {
     background-color: var(--text-color);
-    opacity: 0.2; 
-    border-radius: 10px; 
+    opacity: 0.2;
+    border-radius: 10px;
     flex-shrink: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.nav-top .nav-divider, 
+.nav-top .nav-divider,
 .nav-bottom .nav-divider {
     width: 2px;
-    height: calc(100% - 16px); 
-    margin-left: auto; 
+    height: calc(100% - 16px);
+    margin-left: auto;
     margin-right: 0;
     align-self: center;
 }
 
-.nav-left .nav-divider, 
+.nav-left .nav-divider,
 .nav-right .nav-divider {
     height: 2px;
-    width: calc(100% - 24px); 
-    margin-top: auto; 
+    width: calc(100% - 24px);
+    margin-top: auto;
     margin-left: 0;
     align-self: center;
 }
 
-body.text-hide .nav-left .nav-divider, 
+body.text-hide .nav-left .nav-divider,
 body.text-hide .nav-right .nav-divider {
     width: calc(100% - 16px);
 }
@@ -665,7 +666,7 @@ body.text-hide .nav-right .nav-divider {
     display: block;
 }
 
-#mathworksheets.page.active, 
+#mathworksheets.page.active,
 #gradebook.page.active,
 #lessonplanner.page.active,
 #studyhall.page.active,
@@ -850,7 +851,7 @@ body.text-hide .nav-right .nav-divider {
     pointer-events: auto;
 }
 
-.refresh-btn:focus, 
+.refresh-btn:focus,
 .refresh-btn:hover {
     border-color: var(--text-color);
     box-shadow: 0 0 0 2px rgba(128, 128, 128, 0.2);
@@ -905,7 +906,7 @@ body.text-hide .nav-right .nav-divider {
 
 .item-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));    
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     grid-auto-rows: min-content;
     align-content: start;
     gap: 0.4rem;
@@ -920,7 +921,7 @@ body.text-hide .nav-right .nav-divider {
 .round-btn {
     display: block;
     width: 100%;
-    max-width: 100%; 
+    max-width: 100%;
     aspect-ratio: 1 / 1;
     height: auto;
     border-radius: 9px;
@@ -965,7 +966,7 @@ body.text-hide .nav-right .nav-divider {
 .round-btn .overlay {
     position: absolute;
     inset: 0;
-    background: rgba(0, 0, 0, 0.4); 
+    background: rgba(0, 0, 0, 0.4);
     color: #ffffff;
     display: flex;
     flex-direction: column;
@@ -989,7 +990,7 @@ body.text-hide .nav-right .nav-divider {
 
 .round-btn:active .overlay {
     opacity: 0;
-    background: rgba(0, 0, 0, 0.8); 
+    background: rgba(0, 0, 0, 0.8);
     backdrop-filter: blur(0px);
     -webkit-backdrop-filter: blur(0px);
 }
@@ -1003,17 +1004,17 @@ body.text-hide .nav-right .nav-divider {
     font-size: 0.75rem;
     font-weight: 700;
     padding: 4px 10px;
-    border-radius: 12px; 
+    border-radius: 12px;
     border: 1px solid color-mix(in srgb, var(--card-bg), black 20%);
-    z-index: 3; 
+    z-index: 3;
     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-    pointer-events: none; 
+    pointer-events: none;
     text-transform: uppercase;
     letter-spacing: 0.5px;
 }
 
 .round-btn:hover .category-label {
-    opacity: 1; 
+    opacity: 1;
     transition: opacity 0.2s ease;
 }
 
@@ -1066,7 +1067,7 @@ body.text-hide .nav-right .nav-divider {
     pointer-events: auto;
 }
 
-.page-btn:hover, 
+.page-btn:hover,
 .page-btn.active {
     background: var(--text-color);
     color: var(--bg-color);
@@ -1226,7 +1227,7 @@ body.text-hide .nav-right .nav-divider {
     padding: 1.5rem !important;
     margin: 0 !important;
     max-width: 100% !important;
-    max-height: none !important; 
+    max-height: none !important;
     overflow: visible !important;
 }
 
@@ -1426,7 +1427,7 @@ textarea.modal-input {
     border-radius: 3px;
     pointer-events: none;
     z-index: 20;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -1494,7 +1495,7 @@ textarea.modal-input {
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
 
-.setting-group .custom-select-trigger:hover, 
+.setting-group .custom-select-trigger:hover,
 .setting-group .custom-select-trigger.open {
     border-color: var(--text-color);
 }
@@ -1556,7 +1557,7 @@ textarea.modal-input {
     border-bottom: none;
 }
 
-.custom-select-option:hover, 
+.custom-select-option:hover,
 .custom-select-option.selected {
     background: color-mix(in srgb, var(--text-color) 15%, transparent);
 }
@@ -1711,6 +1712,10 @@ textarea.modal-input {
     100% { opacity: 0; transform: scale(2.6); }
 }
 
+body.floating-on {
+    --footer-space: 0px;
+}
+
 body.floating-on .learning-header {
     top: var(--fg);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1734,11 +1739,12 @@ body.floating-on .learning-footer {
     -webkit-backdrop-filter: none;
     box-shadow: none;
     pointer-events: none;
+    z-index: 12;
 }
 
 body.floating-on .learning-footer .footer-item {
     pointer-events: auto;
-    background: var(--nav-bg);
+    background: color-mix(in srgb, var(--nav-bg) 78%, transparent);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1772,7 +1778,7 @@ body.floating-on.nav-left #classroom-portal-container {
     top: calc(var(--header-height) + 2 * var(--fg));
     left: calc(var(--nav-width) + 2 * var(--fg));
     width: calc(100vw - var(--nav-width) - 3 * var(--fg));
-    height: calc(100vh - var(--header-height) - var(--footer-height) - 4 * var(--fg));
+    height: calc(100vh - var(--header-height) - var(--footer-space) - 4 * var(--fg));
 }
 
 body.floating-on.nav-right #teachertouchbar {
@@ -1791,7 +1797,7 @@ body.floating-on.nav-right #classroom-portal-container {
     top: calc(var(--header-height) + 2 * var(--fg));
     left: var(--fg);
     width: calc(100vw - var(--nav-width) - 3 * var(--fg));
-    height: calc(100vh - var(--header-height) - var(--footer-height) - 4 * var(--fg));
+    height: calc(100vh - var(--header-height) - var(--footer-space) - 4 * var(--fg));
 }
 
 body.floating-on.nav-top #teachertouchbar {
@@ -1810,7 +1816,7 @@ body.floating-on.nav-top #classroom-portal-container {
     top: calc(var(--header-height) + var(--nav-size) + 3 * var(--fg));
     left: var(--fg);
     width: calc(100vw - 2 * var(--fg));
-    height: calc(100vh - var(--header-height) - var(--nav-size) - var(--footer-height) - 5 * var(--fg));
+    height: calc(100vh - var(--header-height) - var(--nav-size) - var(--footer-space) - 5 * var(--fg));
 }
 
 body.floating-on.nav-bottom #teachertouchbar {
@@ -1829,7 +1835,7 @@ body.floating-on.nav-bottom #classroom-portal-container {
     top: calc(var(--header-height) + 2 * var(--fg));
     left: var(--fg);
     width: calc(100vw - 2 * var(--fg));
-    height: calc(100vh - var(--header-height) - var(--nav-size) - var(--footer-height) - 5 * var(--fg));
+    height: calc(100vh - var(--header-height) - var(--nav-size) - var(--footer-space) - 5 * var(--fg));
 }
 
 @media (max-width: 768px) {
@@ -1840,13 +1846,13 @@ body.floating-on.nav-bottom #classroom-portal-container {
         --fg: 6px;
         --fr: 12px;
     }
-    
+
     body.size-medium {
         --btn-icon-size: 0.95rem;
         --btn-text-size: 0.7rem;
         --nav-width: 48px;
     }
-    
+
     body.size-large {
         --btn-icon-size: 1.15rem;
         --btn-text-size: 0.85rem;
@@ -1857,7 +1863,7 @@ body.floating-on.nav-bottom #classroom-portal-container {
         padding: 0.28rem;
         gap: 0.14rem;
     }
-    
+
     .nav-btn {
         flex-direction: column;
         padding: 0.28rem 0.22rem;
@@ -1882,7 +1888,7 @@ body.floating-on.nav-bottom #classroom-portal-container {
         white-space: normal;
     }
 
-    .nav-left #teachertouchbar, 
+    .nav-left #teachertouchbar,
     .nav-right #teachertouchbar {
         width: var(--nav-width);
         padding-top: 0.55rem;
@@ -1973,7 +1979,7 @@ body.floating-on.nav-bottom #classroom-portal-container {
     justify-content: center;
     background: var(--text-color);
     flex-shrink: 0;
-    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), 
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
                 height 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
