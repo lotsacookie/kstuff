@@ -1,6 +1,7 @@
 [
   {
-    "title":"Be back soon!",
-    "url": "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/embed/scram.html?ss"
+    "title":"Duck.AI",
+    "url": "${static}https://duck.ai",
+    "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQFTk57Cdso9HE-k300t2yIHaccKcusaMZrquMcbeOXcQ&s"
   }
 ]
