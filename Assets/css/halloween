@@ -1,0 +1,109 @@
+html.halloween-season {
+    --hw-orange: #ff7a1a;
+    --hw-glow: rgba(255, 122, 26, 0.35);
+    --hw-ink: #1a0a00;
+}
+
+html.halloween-season body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255, 122, 26, 0.12), transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(120, 40, 200, 0.1), transparent 40%);
+    z-index: 0;
+}
+
+html.halloween-season .nav-indicator,
+html.halloween-season .settings-nav-indicator {
+    background-color: var(--hw-orange) !important;
+}
+
+html.halloween-season .nav-btn.active i,
+html.halloween-season .nav-btn:hover i,
+html.halloween-season .settings-tab.active i,
+html.halloween-season .settings-tab:hover i {
+    filter: brightness(1) drop-shadow(0 0 4px var(--hw-glow));
+}
+
+html.halloween-season .textbook-bar-container:focus-within,
+html.halloween-season .modern-select-wrapper:focus-within,
+html.halloween-season .modal-input:focus,
+html.halloween-season .refresh-btn:hover,
+html.halloween-season .refresh-btn:focus {
+    border-color: var(--hw-orange) !important;
+    box-shadow: 0 0 0 2px var(--hw-glow) !important;
+}
+
+html.halloween-season .learning-header,
+html.halloween-season #teachertouchbar,
+html.halloween-season .learning-footer .footer-item,
+html.halloween-season #studymaterial-area {
+    border-color: rgba(255, 122, 26, 0.25) !important;
+}
+
+html.halloween-season .round-btn:hover,
+html.halloween-season .round-btn:active {
+    border-color: var(--hw-orange) !important;
+}
+
+html.halloween-season .ld-fill {
+    background: var(--hw-orange) !important;
+    box-shadow: 0 0 10px var(--hw-glow) !important;
+}
+
+html.halloween-season .page-btn:hover,
+html.halloween-season .page-btn.active,
+html.halloween-season #do-login-btn,
+html.halloween-season .modal-primary-btn {
+    background: var(--hw-orange) !important;
+    border-color: var(--hw-orange) !important;
+    color: var(--hw-ink) !important;
+}
+
+html.halloween-season #do-signup-btn:hover,
+html.halloween-season #do-logout-btn:hover {
+    background: var(--hw-orange) !important;
+    border-color: var(--hw-orange) !important;
+    color: var(--hw-ink) !important;
+}
+
+html.halloween-season .nav-logo {
+    overflow: visible;
+}
+
+html.halloween-season .hw-badge {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+    z-index: 5;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+    animation: hw-bob 3s ease-in-out infinite;
+}
+
+html.halloween-season .hw-badge svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+}
+
+html.halloween-season .hw-badge-nav {
+    right: -7px;
+    bottom: -7px;
+    width: 55%;
+    height: 55%;
+}
+
+html.halloween-season .hw-badge-loading {
+    width: 2.4rem;
+    height: 2.4rem;
+    top: calc(50% - 4.6rem);
+    left: calc(50% + 2.6rem);
+}
+
+@keyframes hw-bob {
+    0%, 100% { transform: translateY(0) rotate(-4deg); }
+    50% { transform: translateY(-2px) rotate(4deg); }
+}
