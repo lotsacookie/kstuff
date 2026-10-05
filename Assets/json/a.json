@@ -3,5 +3,12 @@
     "title":"Duck.AI",
     "url": "${static}https://duck.ai",
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQFTk57Cdso9HE-k300t2yIHaccKcusaMZrquMcbeOXcQ&s"
-  }
+  },
+  {
+    "title": "Webtoon",
+    "description": "",
+    "category": "Entertainment",
+    "url": "${static}https://webtoons.com/",
+    "image": "https://play-lh.googleusercontent.com/he2lEwx_2GRMBKxpN78dcnwbtTntaOOvUlnBpPJ0G5xXBetmzkdXgYuu_6xqwMTrjlYMb74NW1bb5RUwvp2pmQ"
+  },
 ]
