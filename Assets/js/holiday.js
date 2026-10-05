@@ -1,12 +1,13 @@
 (function () {
     if (new Date().getMonth() !== 9) return;
 
-    var root = document.documentElement;
-    root.classList.add('halloween-season');
+    var BASE = 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@latest/Assets/';
+
+    document.documentElement.classList.add('halloween-season');
 
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/css/halloween.css';
+    link.href = BASE + 'css/halloween.css';
     document.head.appendChild(link);
 
     var pumpkin = '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
@@ -20,19 +21,19 @@
         '<path d="M20 46q12 9 24 0z" fill="#1a0a00"/>' +
         '</svg>';
 
-    var navLogo = document.getElementById('nav-logo');
-    if (navLogo) {
+    function addPumpkin(el, badgeClass) {
+        if (!el || !el.parentNode) return;
+        var wrap = document.createElement('span');
+        wrap.className = 'hw-wrap';
+        el.parentNode.insertBefore(wrap, el);
+        wrap.appendChild(el);
+
         var badge = document.createElement('span');
-        badge.className = 'hw-badge hw-badge-nav';
+        badge.className = 'hw-badge ' + badgeClass;
         badge.innerHTML = pumpkin;
-        navLogo.appendChild(badge);
+        wrap.appendChild(badge);
     }
 
-    var loading = document.getElementById('loading-screen');
-    if (loading) {
-        var lb = document.createElement('span');
-        lb.className = 'hw-badge hw-badge-loading';
-        lb.innerHTML = pumpkin;
-        loading.appendChild(lb);
-    }
+    addPumpkin(document.getElementById('nav-logo'), 'hw-badge-nav');
+    addPumpkin(document.querySelector('#loading-screen .ld-logo'), 'hw-badge-loading');
 })();
