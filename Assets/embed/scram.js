@@ -104,6 +104,38 @@
         }
     });
 
+    const PROBE_URLS = [
+        "https://www.cloudflare.com/cdn-cgi/trace",
+        "https://www.roblox.com/robots.txt"
+    ];
+
+    const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("timeout")), ms);
+        promise.then(
+            (value) => { clearTimeout(timer); resolve(value); },
+            (error) => { clearTimeout(timer); reject(error); }
+        );
+    });
+
+    const waitForLibcurl = () => new Promise((resolve) => {
+        const libcurl = sandstone.libcurl;
+        if (libcurl.ready) {
+            resolve();
+            return;
+        }
+        libcurl.events.addEventListener("libcurl_load", () => resolve(), { once: true });
+    });
+
+    const probeWisp = async (url) => {
+        sandstone.libcurl.set_websocket(url);
+        const results = await Promise.allSettled(PROBE_URLS.map(async (probeUrl) => {
+            const res = await withTimeout(sandstone.libcurl.fetch(probeUrl), 8000);
+            try { await res.body?.cancel(); } catch (e) {}
+            return true;
+        }));
+        return results.filter((result) => result.status === "fulfilled").length;
+    };
+
     const setupWisp = async () => {
         setStatus("Finding a working wisp server...");
         try {
@@ -118,17 +150,35 @@
 
             if (!Array.isArray(wssUrls) || wssUrls.length === 0) throw new Error("Decoded WSS list is empty");
 
+            await withTimeout(waitForLibcurl(), 10000).catch(() => {});
+
+            let chosen = null;
+            let best = null;
+            let bestScore = 0;
+
             for (const url of wssUrls) {
-                const works = await testWisp(url);
-                if (works) {
-                    sandstone.libcurl.set_websocket(url);
-                    console.log("EasyGame: Using wisp server:", url);
-                    return;
+                if (!(await testWisp(url))) continue;
+                setStatus("Testing " + url + " ...");
+                const score = await probeWisp(url);
+                console.log("EasyGame: wisp probe", url, score + "/" + PROBE_URLS.length);
+                if (score === PROBE_URLS.length) {
+                    chosen = url;
+                    break;
+                }
+                if (score > bestScore) {
+                    best = url;
+                    bestScore = score;
                 }
             }
 
-            console.warn("EasyGame: No working wisp server found, falling back to default.");
-            sandstone.libcurl.set_websocket(wssUrls[0]);
+            const selected = chosen || best || wssUrls[0];
+            sandstone.libcurl.set_websocket(selected);
+            console.log("EasyGame: Using wisp server:", selected);
+
+            const pool = [selected, ...wssUrls.filter((url) => url !== selected)];
+            if (typeof sandstone.network?.set_wisp_pool === "function") {
+                sandstone.network.set_wisp_pool(pool);
+            }
         } catch (err) {
             console.error("EasyGame: Wisp setup failed:", err);
         }
