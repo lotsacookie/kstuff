@@ -17,6 +17,7 @@
     <script>window.addEventListener("beforeunload",e=>{if(window.__sgReloading)return;e.preventDefault();e.returnValue=""});</script>
     <script>window.kProgress=(()=>{const s={done:0,total:10,base:2,peak:0,label:'Loading'};s.render=()=>{const t=document.getElementById('ld-status'),b=document.getElementById('ld-fill');if(!b)return;s.peak=Math.max(s.peak,s.total?Math.min(s.done,s.total)/s.total:0);b.style.transform='scaleX('+s.peak+')';if(t)t.textContent=s.peak>=1?'Ready':s.label};s.tick=()=>{s.done++;s.render()};s.setTotal=t=>{s.total=t;s.render()};s.say=t=>{s.label=t;s.render()};document.addEventListener('DOMContentLoaded',s.render);return s})();window.kReady=new Promise(r=>{window.kReadyResolve=r});window.kAssetsP=new Promise(r=>{window.kAssetsPR=r});</script>
     <script>
+/* singularity boot: run the cached bundle from IndexedDB instantly, check Assets/singularity.json for a newer hash in the background */
 (()=>{
 const R='lotsacookie/kstuff',BUN='Assets/singularity.js',MAN='Assets/singularity.json';
 const cdn=[`https://cdn.jsdelivr.net/gh/${R}@main/`,`https://raw.githubusercontent.com/${R}/main/`,`https://cdn.statically.io/gh/${R}/main/`,''];
@@ -93,6 +94,19 @@ function legacy(){
         .clear-search{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;opacity:0.6;display:none;transition:opacity 0.2s;}
         .clear-search:hover{opacity:1;}
         .search-engine-example{font-family:monospace !important;font-size:0.85rem;padding:10px 12px;border-radius:8px;background:rgba(128,128,128,0.12);border:1px solid rgba(128,128,128,0.25);word-break:break-all;opacity:0.85;}
+        /* ---- screen modes: full screen + fit to window ---- */
+        .study-nav-btn.sg-ico svg{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+        .study-nav-btn.sg-ico.is-on,.study-nav-btn.sg-ico.is-on:hover:not(:disabled){background:var(--text-color);color:var(--bg-color);border-color:var(--text-color);opacity:1}
+        .screen-exit{display:none;position:absolute;top:10px;right:10px;z-index:1200;width:34px;height:34px;padding:0;align-items:center;justify-content:center;border-radius:10px;cursor:pointer;color:var(--text-color,#fff);background:color-mix(in srgb,var(--bg-color,#000) 72%,transparent);border:1px solid color-mix(in srgb,var(--text-color,#fff) 25%,transparent);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);opacity:.4;transition:opacity .2s ease,transform .2s ease}
+        .screen-exit:hover{opacity:1;transform:scale(1.06)}
+        .screen-exit svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round}
+        html.sg-fit .screen-exit,html.sg-fs .screen-exit{display:flex}
+        /* fit: the section covers the whole window (nav, header and footer sit underneath) */
+        html.sg-fit body #classroom-portal-container{z-index:99990}
+        html.sg-fit body #studymaterial-area{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;z-index:50;margin:0;border:0;border-radius:0;box-shadow:none;background:var(--bg-color,#000)}
+        /* full screen: Fullscreen API on the section itself */
+        #studymaterial-area:fullscreen{width:100vw;height:100vh;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--bg-color,#000)}
+        #studymaterial-area:-webkit-full-screen{width:100vw;height:100vh;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--bg-color,#000)}
     </style>
 </head>
 <body class="theme-pitch-black nav-left text-hide size-small floating-on">
@@ -123,7 +137,30 @@ function legacy(){
     
     <script>window.addEventListener('load',async()=>{await window.kAssetsP;if(window.kModulesStarted)await Promise.race([window.kReady,new Promise(res=>setTimeout(res,20000))]);if(document.fonts&&document.fonts.ready){await document.fonts.ready;}const p=window.kProgress;if(p){p.done=p.total;p.render();}await new Promise(res=>setTimeout(res,250));const l=document.getElementById('loading-screen');if(l){l.classList.add('hidden');setTimeout(()=>{document.body.style.removeProperty('--bg-color');document.body.style.removeProperty('--text-color');},600);}});</script>
 
-%%SEO%%
+    <div style="display:none;" aria-hidden="true">
+        <h1>Educational Resources and Online Learning Platform</h1><p>Comprehensive education platform for students, teachers, and lifelong learners. Access online courses, study materials, exam preparation resources, and interactive learning tools.</p>
+        <section><h2>Academic Subjects</h2><p>Mathematics, Science, English, History, Literature, Writing, Reading, Social Studies, Geography, Biology, Chemistry, Physics, Algebra, Geometry, Calculus, Statistics, Computer Science, Programming, Foreign Languages, Art, Music</p></section>
+        <section><h2>Educational Services</h2><p>Online courses, college credit, exam preparation, test prep, tutoring, homework help, study guides, practice tests, educational videos, interactive lessons, learning resources, curriculum development, academic support, student success, teacher resources, educational technology, e-learning, distance education, virtual classroom, online tutoring, academic coaching</p></section>
+        <section><h2>Student Levels</h2><p>K-12 education, elementary school, middle school, high school, college, university, graduate school, continuing education, adult learning, professional development, certification programs, degree programs, homeschool education</p></section>
+        <section><h2>Test Preparation</h2><p>SAT prep, ACT prep, GRE prep, GMAT prep, LSAT prep, MCAT prep, AP courses, Advanced Placement, standardized tests, college entrance exams, professional certification exams, state assessments, final exams, midterms</p></section>
+        <section><h3>Learning Methods</h3><p>Interactive learning, video lessons, practice quizzes, flashcards, study notes, educational games, adaptive learning, personalized education, self-paced learning, collaborative learning, project-based learning, STEM education, critical thinking, problem solving</p></section>
+    </div>
+    <div style="display:none;" aria-hidden="true">
+        <h1>Educational Resources and Online Learning Platform</h1><p>Comprehensive education platform for students, teachers, and lifelong learners. Access online courses, study materials, exam preparation resources, and interactive learning tools.</p>
+        <section><h2>Academic Subjects</h2><p>Mathematics, Science, English, History, Literature, Writing, Reading, Social Studies, Geography, Biology, Chemistry, Physics, Algebra, Geometry, Calculus, Statistics, Computer Science, Programming, Foreign Languages, Art, Music</p></section>
+        <section><h2>Educational Services</h2><p>Online courses, college credit, exam preparation, test prep, tutoring, homework help, study guides, practice tests, educational videos, interactive lessons, learning resources, curriculum development, academic support, student success, teacher resources, educational technology, e-learning, distance education, virtual classroom, online tutoring, academic coaching</p></section>
+        <section><h2>Student Levels</h2><p>K-12 education, elementary school, middle school, high school, college, university, graduate school, continuing education, adult learning, professional development, certification programs, degree programs, homeschool education</p></section>
+        <section><h2>Test Preparation</h2><p>SAT prep, ACT prep, GRE prep, GMAT prep, LSAT prep, MCAT prep, AP courses, Advanced Placement, standardized tests, college entrance exams, professional certification exams, state assessments, final exams, midterms</p></section>
+        <section><h3>Learning Methods</h3><p>Interactive learning, video lessons, practice quizzes, flashcards, study notes, educational games, adaptive learning, personalized education, self-paced learning, collaborative learning, project-based learning, STEM education, critical thinking, problem solving</p></section>
+    </div>
+    <div style="display:none;" aria-hidden="true">
+        <h1>Educational Resources and Online Learning Platform</h1><p>Comprehensive education platform for students, teachers, and lifelong learners. Access online courses, study materials, exam preparation resources, and interactive learning tools.</p>
+        <section><h2>Academic Subjects</h2><p>Mathematics, Science, English, History, Literature, Writing, Reading, Social Studies, Geography, Biology, Chemistry, Physics, Algebra, Geometry, Calculus, Statistics, Computer Science, Programming, Foreign Languages, Art, Music</p></section>
+        <section><h2>Educational Services</h2><p>Online courses, college credit, exam preparation, test prep, tutoring, homework help, study guides, practice tests, educational videos, interactive lessons, learning resources, curriculum development, academic support, student success, teacher resources, educational technology, e-learning, distance education, virtual classroom, online tutoring, academic coaching</p></section>
+        <section><h2>Student Levels</h2><p>K-12 education, elementary school, middle school, high school, college, university, graduate school, continuing education, adult learning, professional development, certification programs, degree programs, homeschool education</p></section>
+        <section><h2>Test Preparation</h2><p>SAT prep, ACT prep, GRE prep, GMAT prep, LSAT prep, MCAT prep, AP courses, Advanced Placement, standardized tests, college entrance exams, professional certification exams, state assessments, final exams, midterms</p></section>
+        <section><h3>Learning Methods</h3><p>Interactive learning, video lessons, practice quizzes, flashcards, study notes, educational games, adaptive learning, personalized education, self-paced learning, collaborative learning, project-based learning, STEM education, critical thinking, problem solving</p></section>
+    </div>
     
     <div id="classroom-portal-container">
         <nav id="teachertouchbar">
@@ -199,6 +236,12 @@ function legacy(){
                     <svg viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
                 </button>
             </div>
+            <button class="study-nav-btn sg-ico" id="study-fullscreen-btn" title="Full screen" aria-label="Full screen" aria-pressed="false">
+                <svg viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M10 20H4v-6"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg>
+            </button>
+            <button class="study-nav-btn sg-ico" id="study-fit-btn" title="Fit to window" aria-label="Fit to window" aria-pressed="false">
+                <svg viewBox="0 0 24 24"><path d="M4 9V6a2 2 0 0 1 2-2h3"/><path d="M15 4h3a2 2 0 0 1 2 2v3"/><path d="M20 15v3a2 2 0 0 1-2 2h-3"/><path d="M9 20H6a2 2 0 0 1-2-2v-3"/><rect x="8" y="8" width="8" height="8" rx="1.5"/></svg>
+            </button>
         </header>
 
         <main id="studymaterial-area">
@@ -318,6 +361,7 @@ function legacy(){
                     </div>
                 </div>
             </div>
+            <button class="screen-exit" id="screen-exit-btn" title="Exit" aria-label="Exit full screen"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
         </main>
     </div>
 
@@ -339,5 +383,35 @@ function legacy(){
             </div>
         </div>
     </footer>
+    <script>
+(()=>{
+const root=document.documentElement,area=document.getElementById('studymaterial-area');
+const fsBtn=document.getElementById('study-fullscreen-btn'),fitBtn=document.getElementById('study-fit-btn'),exitBtn=document.getElementById('screen-exit-btn');
+if(!area||!fsBtn||!fitBtn)return;
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement||null;
+const reqFs=area.requestFullscreen||area.webkitRequestFullscreen;
+const kick=()=>requestAnimationFrame(()=>window.dispatchEvent(new Event('resize')));
+function sync(){
+  const fs=!!fsEl(),fit=root.classList.contains('sg-fit');
+  root.classList.toggle('sg-fs',fs);
+  fsBtn.classList.toggle('is-on',fs);fsBtn.setAttribute('aria-pressed',fs);fsBtn.title=fsBtn.ariaLabel=fs?'Exit full screen':'Full screen';
+  fitBtn.classList.toggle('is-on',fit);fitBtn.setAttribute('aria-pressed',fit);fitBtn.title=fitBtn.ariaLabel=fit?'Exit fit to window':'Fit to window';
+  kick();
+}
+function setFit(on){root.classList.toggle('sg-fit',on);sync()}
+async function leaveFs(){try{await(document.exitFullscreen||document.webkitExitFullscreen).call(document)}catch{}}
+async function toggleFs(){
+  if(fsEl())return leaveFs();
+  if(!reqFs)return setFit(true);
+  try{await reqFs.call(area,{navigationUI:'hide'})}catch{try{await reqFs.call(area)}catch{setFit(true)}}
+}
+fsBtn.addEventListener('click',toggleFs);
+fitBtn.addEventListener('click',()=>setFit(!root.classList.contains('sg-fit')));
+exitBtn&&exitBtn.addEventListener('click',()=>{setFit(false);if(fsEl())leaveFs()});
+document.addEventListener('fullscreenchange',sync);
+document.addEventListener('webkitfullscreenchange',sync);
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fsEl()&&root.classList.contains('sg-fit'))setFit(false)});
+})();
+    </script>
 </body>
 </html>
