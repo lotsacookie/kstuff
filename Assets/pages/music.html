@@ -467,6 +467,113 @@ main {
 @media (hover: none) { .row-rm { opacity: 1; } }
 .empty-note { padding: 32px 8px; color: var(--muted); }
 
+.lyrics-view {
+    position: fixed;
+    top: calc(var(--header-h) + 8px);
+    left: calc(var(--side) + 16px);
+    right: 8px;
+    bottom: calc(var(--footer-h) + 8px);
+    z-index: 15;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, var(--lyric-color, var(--hover-strong)) 0%, var(--bg) 115%);
+    transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1), right 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+body.queue-open .lyrics-view { right: 376px; }
+
+.lyrics-head { flex: none; padding: 22px 32px 0; }
+.lyrics-title { font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lyrics-artist { margin-top: 4px; font-size: 0.9rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.lyrics-scroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 32px;
+    scrollbar-width: none;
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 86%, transparent 100%);
+    mask-image: linear-gradient(to bottom, transparent 0, #000 12%, #000 86%, transparent 100%);
+}
+.lyrics-scroll::-webkit-scrollbar { display: none; }
+
+.lyrics-inner { padding: 30vh 0 45vh; }
+
+.lyric-line {
+    max-width: 920px;
+    margin: 0 0 22px;
+    font-size: clamp(1.5rem, 3.4vw, 2.6rem);
+    line-height: 1.3;
+    color: var(--text);
+    opacity: 0.32;
+    cursor: pointer;
+    word-break: break-word;
+    transform-origin: left center;
+    transition: opacity 0.35s ease, transform 0.35s ease;
+}
+.lyric-line:hover { opacity: 0.8; }
+.lyric-line.past { opacity: 0.6; }
+.lyric-line.active { opacity: 1; transform: scale(1.02); }
+.lyric-line.gap { font-size: clamp(1.2rem, 2.4vw, 1.8rem); }
+
+.lyrics-status {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0 32px;
+    text-align: center;
+    font-size: 1.2rem;
+    color: var(--muted);
+    pointer-events: none;
+}
+
+.queue-panel {
+    position: fixed;
+    top: calc(var(--header-h) + 8px);
+    right: 8px;
+    bottom: calc(var(--footer-h) + 8px);
+    width: 360px;
+    z-index: 22;
+    display: flex;
+    flex-direction: column;
+    border-radius: 10px;
+    overflow: hidden;
+    background: var(--nav);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+}
+.queue-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 12px 8px 8px 20px; }
+.queue-head h3 { font-size: 1.2rem; }
+.queue-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 12px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--hover-strong) transparent;
+}
+.queue-label { padding: 12px 12px 6px; font-size: 0.9rem; color: var(--muted); }
+.queue-note { padding: 12px; font-size: 0.9rem; color: var(--muted); }
+.q-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+.q-row:hover { background: var(--hover); }
+.q-row.now { background: var(--hover-strong); }
+.q-row img { width: 48px; height: 48px; flex: none; border-radius: 4px; object-fit: cover; background: var(--hover); }
+.q-text { min-width: 0; flex: 1; }
+.q-title, .q-artist { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-artist { margin-top: 3px; font-size: 0.85rem; color: var(--muted); }
+
 .audio-dock {
     position: fixed;
     left: 0;
@@ -509,11 +616,12 @@ main {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: color 0.15s, transform 0.15s, background 0.15s;
+    transition: color 0.15s, transform 0.15s, background 0.15s, opacity 0.15s;
 }
 .control-button svg { width: 28px; height: 28px; }
 .control-button:hover { color: var(--text); transform: scale(1.1); }
 .control-button:disabled { opacity: 0.3; pointer-events: none; }
+.control-button.dim { opacity: 0.4; }
 .control-button.on { color: var(--text); }
 .control-button.on::before {
     content: "";
@@ -639,20 +747,25 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
 .modal-actions .btn-primary { width: auto; border-radius: 500px; background: var(--text); color: var(--bg); }
 
 @media (max-width: 900px) {
-    .audio-dock { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr); }
-    .player-right { display: none; }
+    .audio-dock { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; }
+    .player-right > :not(.keep-mobile) { display: none; }
+    body.queue-open .lyrics-view { right: 8px; }
+    .queue-panel { width: min(360px, calc(100vw - 16px)); }
 }
 
 @media (max-width: 650px) {
     :root { --side: 88px; }
-    body:has(.audio-dock.visible) { --footer-h: 176px; }
-    .audio-dock { grid-template-columns: 1fr; height: 176px; gap: 6px; padding: 10px 14px; align-content: center; }
+    body:has(.audio-dock.visible) { --footer-h: 224px; }
+    .audio-dock { grid-template-columns: 1fr; height: 224px; gap: 6px; padding: 10px 14px; align-content: center; }
+    .player-right { justify-content: center; }
     .now-cover { width: 48px; height: 48px; }
     .transport { gap: 6px; }
     .pl-cover { width: 160px; height: 160px; }
     .row { grid-template-columns: 28px 44px 1fr 40px; }
     .row-dur { display: none; }
     #volumeBar { width: 80px; }
+    .lyrics-head { padding: 16px 20px 0; }
+    .lyrics-scroll { padding: 0 20px; }
 }
 </style>
 </head>
@@ -697,6 +810,27 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
     <div class="results-list" id="resultsList" hidden></div>
     <div id="playlistView" hidden></div>
 </main>
+
+<section class="lyrics-view" id="lyricsView" hidden>
+    <div class="lyrics-head">
+        <div class="lyrics-title" id="lyricsTitle"></div>
+        <div class="lyrics-artist" id="lyricsArtist"></div>
+    </div>
+    <div class="lyrics-scroll" id="lyricsScroll">
+        <div class="lyrics-inner" id="lyricsInner"></div>
+    </div>
+    <div class="lyrics-status" id="lyricsStatus" hidden></div>
+</section>
+
+<aside class="queue-panel" id="queuePanel" hidden>
+    <div class="queue-head">
+        <h3>Queue</h3>
+        <button class="control-button" id="queueCloseBtn" title="Close queue">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+    </div>
+    <div class="queue-body" id="queueBody"></div>
+</aside>
 
 <input type="file" id="coverInput" accept="image/*" hidden>
 
@@ -750,6 +884,12 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
     </div>
 
     <div class="player-right">
+        <button class="control-button keep-mobile" id="lyricsBtn" title="Lyrics">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/></svg>
+        </button>
+        <button class="control-button keep-mobile" id="queueBtn" title="Queue">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        </button>
         <button class="control-button" id="pipBtn" title="Picture-in-Picture">
             <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 7h-8v6h8V7zm2-4H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16.01H3V4.98h18v14.03z"/></svg>
         </button>
@@ -937,6 +1077,7 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
     };
 
     function openPlaylist(name) {
+        closeLyricsView();
         sidebarPlaylistSelect.value = name;
         homeView.hidden = true;
         resultsList.hidden = true;
