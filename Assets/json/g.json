@@ -655,5 +655,15 @@
   {
     "title": "Wheely 8",
     "category": "Adventure"
+  },
+  {
+    "title": "Call of Duty 4: Modern Warfare",
+    "url": "${static}https://kisakcod.netlify.app",
+    "category": "Shooter"
+  },
+  {
+    "Team Fortress 2",
+    "url": "",
+    "category": "Action"
   }
 ]
