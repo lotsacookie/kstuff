@@ -1,0 +1,55 @@
+name: Build singularity.js
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'Assets/singularity.js'
+      - 'Assets/singularity.json'
+      - '**.md'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: singularity-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install build deps
+        run: npm install --no-save --no-audit --no-fund esbuild html-minifier-terser
+
+      - name: Build Assets/singularity.js
+        run: node tools/singularity/build.mjs
+
+      - name: Commit if changed
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Assets/singularity.js Assets/singularity.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "build: singularity bundle"
+          git pull --rebase origin main
+          git push
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Purge jsDelivr cache
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          for f in singularity.js singularity.json; do
+            curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/Assets/$f" || true
+          done
