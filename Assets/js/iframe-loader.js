@@ -12,6 +12,24 @@ export function init(K) {
   const IFRAME_ALLOW = 'document-picture-in-picture; picture-in-picture; display-capture; clipboard-write; autoplay';
   K.IFRAME_ALLOW = IFRAME_ALLOW;
 
+  const LOCAL_SCRIPT = /<script\b([^>]*?)\bsrc=(["'])(?!https?:|\/\/|data:|blob:)([^"']+)\2([^>]*)>\s*<\/script>/gi;
+
+  K.fetchPageHtml = async path => {
+    const html = await K.fetchWithProxy(path, true);
+    const dir = path.replace(/[^/]*$/, '');
+    const wanted = new Set();
+    html.replace(LOCAL_SCRIPT, (m, a, q, src) => { wanted.add(src); return m; });
+    if (!wanted.size) return html;
+    const loaded = {};
+    await Promise.all(Array.from(wanted).map(async src => {
+      loaded[src] = await K.fetchWithProxy(dir + src.replace(/^\.\//, ''), true);
+    }));
+    return html.replace(LOCAL_SCRIPT, (m, a, q, src, b) => {
+      const attrs = (a + ' ' + b).replace(/\s+/g, ' ').trim();
+      return `<script${attrs ? ' ' + attrs : ''}>${loaded[src].replace(/<\/script/gi, '<\\/script')}</script>`;
+    });
+  };
+
   K.lastIframeHtml = {};
   K.iframeLoadFailed = {};
   K.iframeLoadTokens = {};
@@ -85,7 +103,7 @@ export function init(K) {
       };
 
       try {
-        const html = preFetchedHtml !== null ? preFetchedHtml : await K.fetchWithProxy(path, true);
+        const html = preFetchedHtml !== null ? preFetchedHtml : await K.fetchPageHtml(path);
         if (stale() || pageIsHidden(f)) return done();
         K.iframeLoadFailed[id] = false;
         K.lastIframeHtml[id] = html;
@@ -121,7 +139,7 @@ export function init(K) {
   K.maybeReloadIframe = async (id, path) => {
     if (isKeepAliveLoaded(id)) return false;
     try {
-      const html = await K.fetchWithProxy(path, true);
+      const html = await K.fetchPageHtml(path);
       if (!K.iframeLoadFailed[id] && K.lastIframeHtml[id] === html) return false;
       const currentIfr = Object.values(K.iframePages).find(p => p.id === id);
       const currentPage = currentIfr && document.querySelector('.page.active');
