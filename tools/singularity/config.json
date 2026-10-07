@@ -2,7 +2,7 @@
   "repo": "lotsacookie/kstuff",
   "include": ["Assets/**", "script.js", "style.css"],
   "exclude": ["Assets/singularity.js", "Assets/singularity.json"],
-  "live": [],
+  "live": ["Assets/pages/**"],
   "maxFileKB": 512,
   "minifyHtml": true
 }
