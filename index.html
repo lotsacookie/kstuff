@@ -14,7 +14,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&family=Orbitron:wght@400..900&family=Poppins:wght@300..700&family=Roboto:wght@300..700&family=Inter:wght@300..700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
-    <script>(()=>{let fe=null;try{fe=window.frameElement}catch(e){}window.__sgChild=/^sgtab-/.test(window.name)||!!(fe&&fe.hasAttribute&&fe.hasAttribute("data-sg-tab"));window.__sgShell=!window.__sgChild;if(window.__sgShell)document.documentElement.classList.add("sg-shell")})();</script>
+    <script>(()=>{let fe=null;try{fe=window.frameElement}catch(e){}window.__sgChild=/^sgtab-/.test(window.name)||!!(fe&&fe.hasAttribute&&fe.hasAttribute("data-sg-tab"));window.__sgShell=!window.__sgChild;if(window.__sgShell)document.documentElement.classList.add("sg-shell");if(window.__sgChild)document.documentElement.classList.add("sg-child");if(window.__sgChild&&window.name!=="sgtab-1")document.documentElement.classList.add("sg-quiet")})();</script>
     <script>window.addEventListener("beforeunload",e=>{if(window.__sgReloading||window.__sgChild)return;e.preventDefault();e.returnValue=""});</script>
     <script>window.kProgress=(()=>{const s={done:0,total:10,base:2,peak:0,label:'Loading'};s.render=()=>{const t=document.getElementById('ld-status'),b=document.getElementById('ld-fill');if(!b)return;s.peak=Math.max(s.peak,s.total?Math.min(s.done,s.total)/s.total:0);b.style.transform='scaleX('+s.peak+')';if(t)t.textContent=s.peak>=1?'Ready':s.label};s.tick=()=>{s.done++;s.render()};s.setTotal=t=>{s.total=t;s.render()};s.say=t=>{s.label=t;s.render()};document.addEventListener('DOMContentLoaded',s.render);return s})();window.kReady=new Promise(r=>{window.kReadyResolve=r});window.kAssetsP=new Promise(r=>{window.kAssetsPR=r});</script>
     <script>
@@ -104,32 +104,19 @@ function legacy(){
         html.sg-fit body #studymaterial-area{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;z-index:50;margin:0;border:0;border-radius:0;box-shadow:none;background:var(--bg-color,#000)}
         #studymaterial-area:fullscreen{width:100vw;height:100vh;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--bg-color,#000)}
         #studymaterial-area:-webkit-full-screen{width:100vw;height:100vh;border:0!important;border-radius:0!important;box-shadow:none!important;background:var(--bg-color,#000)}
+        html.sg-quiet #loading-screen{display:none!important}
         html.sg-shell body>*:not(#sg-shell){display:none!important}
         html.sg-shell,html.sg-shell body{height:100%;margin:0;padding:0;overflow:hidden}
-        html.sg-shell body{display:block;background:var(--sg-bg,#000)!important;color:var(--sg-text,#fff)!important}
-        #sg-shell{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--sg-bg,#000);color:var(--sg-text,#fff);--sg-hair:color-mix(in srgb,var(--sg-text,#fff) 12%,transparent);--sg-tint:color-mix(in srgb,var(--sg-text,#fff) 10%,transparent);--sg-ease:cubic-bezier(.22,1,.36,1)}
-        #sg-shell,#sg-shell *{box-sizing:border-box;font-family:var(--sg-font,"Comfortaa",sans-serif)!important;font-weight:600;-webkit-user-select:none;user-select:none;-webkit-tap-highlight-color:transparent}
-        #sg-tabbar{flex:0 0 auto;display:flex;align-items:flex-end;gap:6px;height:46px;padding:8px 10px 0;background:var(--sg-nav,#111);border-bottom:1px solid var(--sg-hair);position:relative;z-index:2}
-        #sg-tabs{display:flex;align-items:flex-end;gap:3px;flex:0 1 auto;min-width:0;height:100%}
-        .sg-tab{position:relative;display:flex;align-items:center;gap:8px;flex:0 1 210px;min-width:44px;max-width:210px;height:100%;padding:0 6px 0 12px;border:1px solid transparent;border-bottom:none;border-radius:12px 12px 0 0;color:var(--sg-text,#fff);opacity:.6;cursor:pointer;transition:background .2s var(--sg-ease),opacity .2s var(--sg-ease)}
-        .sg-tab:hover{opacity:.92;background:var(--sg-tint)}
-        .sg-tab.active{opacity:1;background:var(--sg-bg,#000);border-color:var(--sg-hair);margin-bottom:-1px;height:calc(100% + 1px)}
-        .sg-tab.new{animation:sg-in .24s var(--sg-ease)}
-        .sg-tab.dragging{opacity:.25}
-        @keyframes sg-in{from{opacity:0;transform:translateY(8px) scale(.94)}to{opacity:1;transform:none}}
-        .sg-fav{flex:0 0 20px;width:20px;height:20px;border-radius:7px;display:grid;place-items:center;font-size:.66rem;font-weight:800;background:var(--sg-tint)}
-        .sg-title{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.8rem}
-        .sg-x{flex:0 0 22px;width:22px;height:22px;padding:0;border:0;border-radius:50%;background:transparent;color:inherit;display:grid;place-items:center;cursor:pointer;opacity:.55;transition:background .15s,opacity .15s}
-        .sg-x:hover{background:var(--sg-tint);opacity:1}
-        .sg-compact .sg-tab:not(.active) .sg-title,.sg-compact .sg-tab:not(.active) .sg-x{display:none}
-        .sg-compact .sg-tab:not(.active){padding:0;justify-content:center;flex-basis:44px}
-        #sg-newtab{flex:0 0 30px;width:30px;height:30px;margin:0 0 7px 2px;padding:0;border:0;border-radius:50%;background:transparent;color:var(--sg-text,#fff);display:grid;place-items:center;cursor:pointer;opacity:.75;transition:background .2s var(--sg-ease),opacity .2s,transform .2s var(--sg-ease)}
-        #sg-newtab:hover:not(:disabled){background:var(--sg-tint);opacity:1;transform:rotate(90deg)}
-        #sg-newtab:disabled{opacity:.25;cursor:not-allowed}
-        #sg-frames{position:relative;flex:1 1 auto;min-height:0}
-        #sg-frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent}
-        #sg-shell.sg-immersive #sg-tabbar{display:none}
-        @media (prefers-reduced-motion:reduce){.sg-tab.new{animation:none}}
+        html.sg-shell body{display:block;background:var(--sg-bg,#000)!important}
+        #sg-shell{position:fixed;inset:0;background:var(--sg-bg,#000)}
+        #sg-frames{position:absolute;inset:0}
+        #sg-frames iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;display:none}
+        #sg-frames iframe.sg-booting{opacity:0;pointer-events:none}
+        #sg-frames iframe.sg-reveal{transition:opacity .22s ease}
+        #sg-shell::after{content:"";position:absolute;left:0;top:0;height:2px;width:100%;z-index:5;pointer-events:none;opacity:0;background:linear-gradient(90deg,transparent,var(--sg-text,#fff),transparent);transform:translateX(-100%)}
+        #sg-shell.sg-loading::after{opacity:.55;animation:sg-bar 1s linear infinite}
+        @keyframes sg-bar{to{transform:translateX(100%)}}
+        @media (prefers-reduced-motion:reduce){#sg-shell.sg-loading::after{animation:none;transform:none}}
     </style>
 </head>
 <body class="theme-pitch-black nav-left text-hide size-small floating-on">
@@ -442,11 +429,16 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fsEl()&&root.class
 if(!window.__sgShell)return;
 const MAX=12;
 const NAMES={home:'Home',games:'Games',apps:'Apps',music:'Music',tv:'TV',ai:'AI',vms:'VMS',chat:'Chat'};
-const ICON_PLUS='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
-const ICON_X='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 const ALLOW='fullscreen; autoplay; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; gamepad; pointer-lock';
-const state={tabs:[],active:0,seq:0,html:''};
-let shell,tabsEl,framesEl,newBtn,dragEl=null;
+const state={tabs:[],active:0,shown:0,seq:0,html:''};
+const listeners=new Set();
+let shell,framesEl;
+
+const find=id=>state.tabs.find(t=>t.id===id);
+
+function emit(){
+  listeners.forEach(fn=>{try{fn()}catch{}});
+}
 
 function titleFor(v){
   if(!v)return 'New Tab';
@@ -469,48 +461,49 @@ function readTab(t){
     const inp=d&&d.getElementById('textbook-input');
     v=inp?inp.value.trim():'';
   }catch{}
-  if(!v)return;
+  if(!v)return false;
   const title=titleFor(v);
-  if(title===t.title)return;
+  if(title===t.title)return false;
   t.title=title;
-  t.el.querySelector('.sg-title').textContent=title;
-  t.el.querySelector('.sg-fav').textContent=(title.charAt(0)||'?').toUpperCase();
-  t.el.title=title;
+  return true;
+}
+
+function readAll(){
+  let changed=false;
+  state.tabs.forEach(t=>{if(readTab(t))changed=true});
+  if(changed)emit();
 }
 
 function syncTheme(){
-  const t=state.tabs.find(x=>x.id===state.active);
+  const t=find(state.shown);
   if(!t)return;
   try{
-    const w=t.frame.contentWindow,d=w.document;
-    const cs=w.getComputedStyle(d.body);
-    const map={'--sg-bg':'--bg-color','--sg-text':'--text-color','--sg-nav':'--nav-bg','--sg-card':'--card-bg','--sg-font':'--font'};
-    for(const k in map){
-      const v=cs.getPropertyValue(map[k]).trim();
-      if(v)shell.style.setProperty(k,v);
-    }
-    const r=d.documentElement.classList;
-    shell.classList.toggle('sg-immersive',r.contains('sg-fit')||r.contains('sg-fs'));
+    const w=t.frame.contentWindow;
+    const cs=w.getComputedStyle(w.document.body);
+    const bg=cs.getPropertyValue('--bg-color').trim();
+    const tx=cs.getPropertyValue('--text-color').trim();
+    if(bg)shell.style.setProperty('--sg-bg',bg);
+    if(tx)shell.style.setProperty('--sg-text',tx);
   }catch{}
 }
 
-function refresh(){
-  state.tabs.forEach(readTab);
-  newBtn.disabled=state.tabs.length>=MAX;
-  const narrow=state.tabs.some(t=>!t.el.classList.contains('active')&&t.el.offsetWidth<92);
-  tabsEl.classList.toggle('sg-compact',narrow);
+function updateLoading(){
+  const a=find(state.active);
+  shell.classList.toggle('sg-loading',!!(a&&a.booting));
 }
 
-function activate(id){
-  state.active=id;
+function applyShown(){
   state.tabs.forEach(t=>{
-    const on=t.id===id;
-    t.el.classList.toggle('active',on);
-    t.el.setAttribute('aria-selected',on?'true':'false');
-    t.frame.style.display=on?'block':'none';
+    const on=t.id===state.shown;
+    t.frame.style.display=(on||t.booting)?'block':'none';
+    t.frame.style.zIndex=on?'2':'1';
+    t.frame.classList.toggle('sg-booting',t.booting&&!on);
   });
-  const t=state.tabs.find(x=>x.id===id);
-  if(!t)return;
+}
+
+function showTab(t){
+  state.shown=t.id;
+  applyShown();
   requestAnimationFrame(()=>{
     try{
       t.frame.contentWindow.dispatchEvent(new Event('resize'));
@@ -518,7 +511,39 @@ function activate(id){
     }catch{}
   });
   syncTheme();
-  refresh();
+}
+
+function activate(id){
+  const t=find(id);
+  if(!t)return;
+  state.active=id;
+  if(!t.booting)showTab(t);
+  updateLoading();
+  emit();
+}
+
+function whenReady(tab){
+  const start=Date.now();
+  const reveal=()=>{
+    if(!state.tabs.includes(tab))return;
+    tab.booting=false;
+    tab.frame.classList.add('sg-reveal');
+    if(state.active===tab.id)showTab(tab);
+    else applyShown();
+    updateLoading();
+    emit();
+  };
+  const tick=()=>{
+    if(!state.tabs.includes(tab))return;
+    let ok=false;
+    try{
+      const l=tab.frame.contentDocument&&tab.frame.contentDocument.getElementById('loading-screen');
+      ok=!!(l&&l.classList.contains('hidden'));
+    }catch{}
+    if(ok||Date.now()-start>20000)reveal();
+    else setTimeout(tick,60);
+  };
+  tick();
 }
 
 function closeTab(id){
@@ -528,10 +553,29 @@ function closeTab(id){
   t.frame.style.display='none';
   try{t.frame.removeAttribute('srcdoc');t.frame.src='about:blank'}catch{}
   setTimeout(()=>t.frame.remove(),400);
-  t.el.remove();
   if(!state.tabs.length){openTab();return}
-  if(state.active===id)activate(state.tabs[Math.min(i,state.tabs.length-1)].id);
-  else refresh();
+  if(state.active===id){
+    const n=state.tabs[Math.min(i,state.tabs.length-1)];
+    state.active=n.id;
+    if(!n.booting)showTab(n);
+  }
+  if(state.shown===id||!find(state.shown)){
+    const a=find(state.active);
+    const fallback=(a&&!a.booting)?a:state.tabs.find(x=>!x.booting);
+    if(fallback)showTab(fallback);
+  }
+  updateLoading();
+  emit();
+}
+
+function move(id,beforeId){
+  const i=state.tabs.findIndex(t=>t.id===id);
+  if(i<0)return;
+  const t=state.tabs.splice(i,1)[0];
+  const j=beforeId?state.tabs.findIndex(x=>x.id===beforeId):-1;
+  if(j<0)state.tabs.push(t);
+  else state.tabs.splice(j,0,t);
+  emit();
 }
 
 function onKey(e){
@@ -557,31 +601,24 @@ function openTab(){
   frame.setAttribute('data-sg-tab',String(id));
   frame.setAttribute('allow',ALLOW);
   frame.setAttribute('allowfullscreen','');
-  frame.style.display='none';
-  const el=document.createElement('div');
-  el.className='sg-tab new';
-  el.setAttribute('role','tab');
-  el.draggable=true;
-  el.innerHTML='<span class="sg-fav">H</span><span class="sg-title">Home</span><button class="sg-x" type="button" aria-label="Close tab">'+ICON_X+'</button>';
-  const tab={id,frame,el,title:'Home'};
+  const tab={id,frame,title:'Home',booting:id>1};
   state.tabs.push(tab);
-  tabsEl.appendChild(el);
   framesEl.appendChild(frame);
-  el.addEventListener('click',e=>{
-    if(e.target.closest('.sg-x'))closeTab(id);
-    else activate(id);
-  });
-  el.addEventListener('mousedown',e=>{if(e.button===1)e.preventDefault()});
-  el.addEventListener('auxclick',e=>{if(e.button===1){e.preventDefault();closeTab(id)}});
-  el.addEventListener('animationend',()=>el.classList.remove('new'));
   frame.addEventListener('load',()=>{
     if(!state.tabs.includes(tab))return;
     hookKeys(tab);
-    readTab(tab);
-    if(state.active===id)syncTheme();
+    if(readTab(tab))emit();
   });
   frame.srcdoc=state.html;
-  activate(id);
+  state.active=id;
+  if(tab.booting){
+    applyShown();
+    whenReady(tab);
+  }else{
+    showTab(tab);
+  }
+  updateLoading();
+  emit();
 }
 
 function init(){
@@ -591,38 +628,125 @@ function init(){
   root.classList.add('sg-shell');
   shell=document.createElement('div');
   shell.id='sg-shell';
-  shell.innerHTML='<div id="sg-tabbar"><div id="sg-tabs" role="tablist"></div><button id="sg-newtab" type="button" aria-label="New tab" title="New tab">'+ICON_PLUS+'</button></div><div id="sg-frames"></div>';
+  shell.innerHTML='<div id="sg-frames"></div>';
   document.body.appendChild(shell);
-  tabsEl=document.getElementById('sg-tabs');
   framesEl=document.getElementById('sg-frames');
-  newBtn=document.getElementById('sg-newtab');
-  newBtn.addEventListener('click',openTab);
-  tabsEl.addEventListener('dragstart',e=>{
+  window.__sgTabs={
+    max:MAX,
+    list:()=>state.tabs.map(t=>({id:t.id,title:t.title,booting:t.booting})),
+    active:()=>state.active,
+    open:openTab,
+    close:closeTab,
+    activate,
+    move,
+    subscribe(fn){listeners.add(fn);return()=>listeners.delete(fn)}
+  };
+  window.addEventListener('keydown',onKey);
+  setInterval(()=>{if(document.hidden)return;readAll();syncTheme()},700);
+  openTab();
+}
+
+document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
+})();
+    </script>
+    <script>
+(()=>{
+if(!window.__sgChild)return;
+let api=null;
+try{api=window.parent.__sgTabs}catch{}
+if(!api)return;
+const PLUS='<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
+const XICON='<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+
+function init(){
+  const bar=document.createElement('div');
+  bar.className='sg-tabbar';
+  bar.setAttribute('role','tablist');
+  document.body.appendChild(bar);
+  let dragId=0,pending=false;
+
+  function compact(){
+    const n=bar.querySelectorAll('.sg-tab').length||1;
+    bar.classList.toggle('sg-compact',(bar.clientWidth-60)/n<112);
+  }
+
+  function render(){
+    if(dragId){pending=true;return}
+    pending=false;
+    const tabs=api.list(),active=api.active();
+    bar.textContent='';
+    tabs.forEach(t=>{
+      const el=document.createElement('div');
+      el.className='sg-tab'+(t.id===active?' active':'')+(t.booting?' booting':'');
+      el.dataset.id=String(t.id);
+      el.draggable=true;
+      el.title=t.title;
+      el.setAttribute('role','tab');
+      el.setAttribute('aria-selected',t.id===active?'true':'false');
+      el.innerHTML='<span class="sg-fav"></span><span class="sg-title"></span><button class="sg-x" type="button" aria-label="Close tab">'+XICON+'</button>';
+      el.querySelector('.sg-fav').textContent=(t.title.charAt(0)||'?').toUpperCase();
+      el.querySelector('.sg-title').textContent=t.title;
+      bar.appendChild(el);
+    });
+    const plus=document.createElement('button');
+    plus.className='sg-newtab study-nav-btn';
+    plus.type='button';
+    plus.title='New tab';
+    plus.setAttribute('aria-label','New tab');
+    plus.innerHTML=PLUS;
+    plus.disabled=tabs.length>=api.max;
+    bar.appendChild(plus);
+    compact();
+  }
+
+  bar.addEventListener('click',e=>{
+    if(e.target.closest('.sg-newtab')){api.open();return}
     const el=e.target.closest('.sg-tab');
     if(!el)return;
-    dragEl=el;
+    const id=Number(el.dataset.id);
+    if(e.target.closest('.sg-x'))api.close(id);
+    else api.activate(id);
+  });
+  bar.addEventListener('mousedown',e=>{if(e.button===1&&e.target.closest('.sg-tab'))e.preventDefault()});
+  bar.addEventListener('auxclick',e=>{
+    const el=e.target.closest('.sg-tab');
+    if(e.button===1&&el){e.preventDefault();api.close(Number(el.dataset.id))}
+  });
+  bar.addEventListener('dragstart',e=>{
+    const el=e.target.closest('.sg-tab');
+    if(!el)return;
+    dragId=Number(el.dataset.id);
     el.classList.add('dragging');
     e.dataTransfer.effectAllowed='move';
-    try{e.dataTransfer.setData('text/plain','sg')}catch{}
+    try{e.dataTransfer.setData('text/plain','tab')}catch{}
   });
-  tabsEl.addEventListener('dragover',e=>{
-    if(!dragEl)return;
+  bar.addEventListener('dragover',e=>{
+    if(!dragId)return;
     e.preventDefault();
     const over=e.target.closest('.sg-tab');
-    if(!over||over===dragEl)return;
+    const cur=bar.querySelector('.sg-tab.dragging');
+    if(!over||!cur||over===cur)return;
     const r=over.getBoundingClientRect();
-    tabsEl.insertBefore(dragEl,e.clientX<r.left+r.width/2?over:over.nextSibling);
+    bar.insertBefore(cur,e.clientX<r.left+r.width/2?over:over.nextSibling);
   });
-  tabsEl.addEventListener('dragend',()=>{
-    if(!dragEl)return;
-    dragEl.classList.remove('dragging');
-    dragEl=null;
-    state.tabs=Array.from(tabsEl.children).map(el=>state.tabs.find(t=>t.el===el)).filter(Boolean);
+  bar.addEventListener('dragend',()=>{
+    if(!dragId)return;
+    const cur=bar.querySelector('.sg-tab.dragging');
+    const id=dragId;
+    dragId=0;
+    let beforeId=0;
+    if(cur){
+      cur.classList.remove('dragging');
+      const next=cur.nextElementSibling;
+      if(next&&next.classList.contains('sg-tab'))beforeId=Number(next.dataset.id);
+    }
+    api.move(id,beforeId);
+    if(pending)render();
   });
-  window.addEventListener('keydown',onKey);
-  window.addEventListener('resize',refresh);
-  setInterval(()=>{if(document.hidden)return;refresh();syncTheme()},700);
-  openTab();
+  window.addEventListener('resize',compact);
+  const off=api.subscribe(render);
+  window.addEventListener('pagehide',off);
+  render();
 }
 
 document.readyState==='loading'?document.addEventListener('DOMContentLoaded',init):init();
