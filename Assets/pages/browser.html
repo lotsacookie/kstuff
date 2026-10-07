@@ -13,38 +13,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">    <link href="https://fonts.googleapis.com/css2?family=Sixtyfour&display=swap" rel="stylesheet">    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">    <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
-    <script>
-(function () {
-    if (new Date().getMonth() !== 9) return;
-    var key = 'kstuff_gh_Assets/js/holiday.js';
-    var api = 'https://api.github.com/repos/lotsacookie/kstuff/contents/Assets/js/holiday.js?ref=main';
-    function decode(b64) {
-        var bin = atob(b64.replace(/\s/g, ''));
-        var bytes = new Uint8Array(bin.length);
-        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        return new TextDecoder().decode(bytes);
-    }
-    function run(src) {
-        var s = document.createElement('script');
-        s.textContent = src;
-        document.head.appendChild(s);
-    }
-    function useCache() {
-        try {
-            var cached = JSON.parse(localStorage.getItem(key));
-            if (cached && cached.text) run(cached.text);
-        } catch (e) {}
-    }
-    fetch(api, { headers: { Accept: 'application/vnd.github+json' } })
-        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(function (d) {
-            var text = decode(d.content);
-            localStorage.setItem(key, JSON.stringify({ sha: d.sha, text: text }));
-            run(text);
-        })
-        .catch(useCache);
-})();
-    </script>
+    <script src="js/b-init.js"></script>
     <style>
 @property --border-angle {
     syntax: '<angle>';
@@ -52,8 +21,6 @@
     inherits: false;
 }
 
-/* Colour tokens: --bg / --text / --card / --nav can be overridden by the parent theme.
-   Everything below derives from them, so nothing is hard-coded to one palette. */
 :root {
     --bg: #1a1216;
     --text: #ffb8d9;
@@ -66,7 +33,6 @@
     --muted: color-mix(in srgb, var(--text) 68%, transparent);
     --radius: 12px;
 
-    /* Logo and title scale with both width and height of the tab and can never exceed their caps */
     --logo-size: clamp(2.1rem, min(9vw, 11vh), 3.6rem);
     --title-size: clamp(1.5rem, min(8.2vw, 10vh), 3.2rem);
 }
@@ -105,9 +71,6 @@ html, body {
     overflow: hidden;
 }
 
-/* The home page scrolls when the tab is small. The two ::before/::after spacers centre the
-   content when there is room and collapse to nothing when there isn't, so the top and the
-   change log are always reachable. */
 .library-home-page {
     position: absolute;
     inset: 0;
@@ -287,8 +250,6 @@ html, body {
     }
 }
 
-/* `* { font-family: Comfortaa !important }` also matches the letter <span>s directly, which beats
-   inheritance from the h1, so the title font has to be set on the spans as well. */
 .library-home-title,
 .library-home-title span {
     font-family: "Rajdhani", sans-serif !important;
@@ -453,7 +414,6 @@ html, body {
     fill: currentColor;
 }
 
-/* Bottom padding leaves room for the hover name tags, which hang below each tile */
 .shortcuts-row {
     display: flex;
     flex-wrap: wrap;
@@ -597,8 +557,6 @@ html, body {
     transform: translateY(0);
 }
 
-/* "Create shortcut": an empty slot that has the same size, radius and ink as the real tiles.
-   Dashed outline = nothing here yet; on hover it fills in like a real tile and the plus turns. */
 .add-flashcard-btn {
     width: 56px;
     height: 56px;
@@ -673,8 +631,6 @@ html, body {
     transform: translateY(-1px) scale(0.98);
 }
 
-/* Change log: its own height follows the tab (never a fixed 112px), and because the whole
-   home page scrolls, the panel is reachable in full even in a very small tab. */
 .changelog {
     width: 100%;
     max-width: 480px;
@@ -944,7 +900,6 @@ html, body {
     to { opacity: 1; transform: translateY(0); }
 }
 
-/* Small tabs: stack the brand, tighten the vertical rhythm */
 @media (max-width: 420px) {
     .library-brand {
         flex-direction: column;
@@ -1083,168 +1038,7 @@ html, body {
         </div>
     </div>
 
-<script src="https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/pages/js/b.js?1"></script>
-<script>
-(function () {
-    var logoWrap = document.getElementById('logo-wrap');
-    if (logoWrap) {
-        logoWrap.addEventListener('click', function () {
-            logoWrap.classList.remove('burst');
-            void logoWrap.offsetWidth;
-            logoWrap.classList.add('burst');
-        });
-        logoWrap.addEventListener('animationend', function (e) {
-            if (e.target === logoWrap && e.animationName === 'logo-click') {
-                logoWrap.classList.remove('burst');
-            }
-        });
-    }
-
-    var box = document.getElementById('changelog');
-    var body = document.getElementById('changelog-body');
-    var sources = [
-        'https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/json/change-log.json',
-        'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/change-log.json'
-    ];
-
-    function toText(item) {
-        if (item == null) return '';
-        if (typeof item === 'string') return item;
-        if (typeof item === 'number') return String(item);
-        return item.text || item.message || item.description || item.title || item.name || '';
-    }
-
-    function toList(value) {
-        if (value == null) return [];
-        if (Array.isArray(value)) return value.map(toText).filter(Boolean);
-        if (typeof value === 'string') return [value];
-        return [toText(value)].filter(Boolean);
-    }
-
-    function normalize(data) {
-        var list = null;
-        if (Array.isArray(data)) {
-            list = data;
-        } else if (data && typeof data === 'object') {
-            var keys = ['changelog', 'changeLog', 'changes', 'entries', 'log', 'versions', 'updates', 'releases'];
-            for (var i = 0; i < keys.length; i++) {
-                if (Array.isArray(data[keys[i]])) {
-                    list = data[keys[i]];
-                    break;
-                }
-            }
-            if (!list) {
-                if (data.version || data.date) {
-                    list = [data];
-                } else {
-                    list = Object.keys(data).map(function (k) {
-                        return { version: k, changes: data[k] };
-                    });
-                }
-            }
-        }
-        if (!list) return [];
-        var entries = list.map(function (e) {
-            if (typeof e === 'string') return { changes: [e] };
-            var version = e.version || e.v || e.tag || '';
-            var title = e.title || e.name || '';
-            if (!version && title) {
-                version = title;
-                title = '';
-            }
-            var items = e.changes || e.items || e.notes || e.changelog || e.log || e.list || e.description || e.text || [];
-            return {
-                version: String(version || ''),
-                title: String(title || ''),
-                date: String(e.date || e.time || e.released || ''),
-                changes: toList(items)
-            };
-        }).filter(function (e) {
-            return e.version || e.title || e.changes.length;
-        });
-        var allDated = entries.length > 1 && entries.every(function (e) {
-            return e.date && !isNaN(Date.parse(e.date));
-        });
-        if (allDated) {
-            entries.sort(function (a, b) {
-                return Date.parse(b.date) - Date.parse(a.date);
-            });
-        }
-        return entries.slice(0, 4);
-    }
-
-    function render(entries) {
-        body.textContent = '';
-        entries.forEach(function (e) {
-            var wrap = document.createElement('div');
-            var head = document.createElement('div');
-            head.className = 'changelog-entry-head';
-            if (e.version) {
-                var v = document.createElement('span');
-                v.className = 'changelog-version';
-                v.textContent = e.version;
-                head.appendChild(v);
-            }
-            if (e.title) {
-                var t = document.createElement('span');
-                t.className = 'changelog-title';
-                t.textContent = e.title;
-                head.appendChild(t);
-            }
-            if (e.date) {
-                var d = document.createElement('span');
-                d.className = 'changelog-date';
-                d.textContent = e.date;
-                head.appendChild(d);
-            }
-            wrap.appendChild(head);
-            if (e.changes.length) {
-                var ul = document.createElement('ul');
-                ul.className = 'changelog-list';
-                e.changes.forEach(function (c) {
-                    var li = document.createElement('li');
-                    li.textContent = c;
-                    ul.appendChild(li);
-                });
-                wrap.appendChild(ul);
-            }
-            body.appendChild(wrap);
-        });
-    }
-
-    function showStatus(text) {
-        body.textContent = '';
-        var s = document.createElement('div');
-        s.className = 'changelog-status';
-        s.textContent = text;
-        body.appendChild(s);
-    }
-
-    function load(index) {
-        if (index >= sources.length) {
-            showStatus('Change log unavailable');
-            return;
-        }
-        fetch(sources[index], { cache: 'no-cache' })
-            .then(function (res) {
-                if (!res.ok) throw new Error('bad status');
-                return res.json();
-            })
-            .then(function (data) {
-                var entries = normalize(data);
-                if (!entries.length) throw new Error('empty');
-                render(entries);
-            })
-            .catch(function (err) {
-                console.warn('Change log source failed:', sources[index], err);
-                load(index + 1);
-            });
-    }
-
-    box.hidden = false;
-    showStatus('Loading...');
-    load(0);
-})();
-</script>
+<script src="js/b.js"></script>
+<script src="js/b-app.js"></script>
 </body>
 </html>
