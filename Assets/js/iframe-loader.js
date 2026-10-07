@@ -22,10 +22,13 @@ export function init(K) {
     if (!wanted.size) return html;
     const loaded = {};
     await Promise.all(Array.from(wanted).map(async src => {
-      loaded[src] = await K.fetchWithProxy(dir + src.replace(/^\.\//, ''), true);
+      const rel = dir + src.replace(/^\.\//, '');
+      try { loaded[src] = await K.fetchWithProxy(rel, true); }
+      catch { loaded[src] = null; }
     }));
     return html.replace(LOCAL_SCRIPT, (m, a, q, src, b) => {
       const attrs = (a + ' ' + b).replace(/\s+/g, ' ').trim();
+      if (loaded[src] === null) return `<script${attrs ? ' ' + attrs : ''} src="https://cdn.jsdelivr.net/gh/${K.MAIN_REPO}@main/${dir}${src.replace(/^\.\//, '')}"></script>`;
       return `<script${attrs ? ' ' + attrs : ''}>${loaded[src].replace(/<\/script/gi, '<\\/script')}</script>`;
     });
   };
