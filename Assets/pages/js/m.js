@@ -104,8 +104,6 @@ function richMetaFrom(obj) {
     };
 }
 
-const INVIDIOUS_BASE = "https://invidious.f5.si";
-
 const WISP_LIST_URL = "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json";
 
 let WISP_URLS = [];
@@ -115,7 +113,8 @@ const DEEZER_API = "https://api.deezer.com";
 const APPLE_CHARTS_API = "https://rss.applemarketingtools.com/api/v2/us/music/most-played";
 const ITUNES_SEARCH_API = "https://itunes.apple.com/search";
 
-const CATALOG_SEARCH_LIMIT = 40;
+const CATALOG_SEARCH_LIMIT = 100;
+const CATALOG_STREAM_LIMIT = 40;
 
 const HOME_SHELVES = [
     { id: "trending", title: "Trending Now", genre: 0 },
@@ -133,8 +132,6 @@ const SHELF_SIZE = 30;
 const SHELF_SKELETONS = 8;
 const SHELF_CACHE_KEY = "shelfCacheV3";
 const SHELF_TTL_MS = 30 * 60 * 1000;
-
-const MAX_VIDEOS_TRIED = 10;
 
 const DEFAULT_ART_DATA_URI = "data:image/svg+xml;utf8," + encodeURIComponent(
     `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#2a1c22"/><circle cx="100" cy="78" r="32" fill="#57323f"/><rect x="42" y="128" width="116" height="42" rx="10" fill="#57323f"/></svg>`
@@ -425,24 +422,7 @@ function createLimiter(max) {
 const externalLimiter = createLimiter(3);
 const musicApiLimiter = createLimiter(4);
 const imageLimiter = createLimiter(3);
-const cacheDownloadLimiter = createLimiter(2);
 const searchLimiter = createLimiter(4);
-
-async function fetchInvidiousJSON(path, proxyTimeout = 20000, directTimeout = 8000) {
-    const url = `${INVIDIOUS_BASE}${path}`;
-
-    try {
-        const response = await wispFetch(url, proxyTimeout);
-        if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
-        return await response.json();
-    } catch (proxyError) {
-        console.warn("Wisp fetch failed, trying direct:", proxyError && proxyError.message ? proxyError.message : proxyError);
-    }
-
-    const response = await fetchWithTimeout(url, directTimeout);
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return await response.json();
-}
 
 async function fetchBlobViaWisp(url, mime, timeoutMs = 60000, critical = true) {
     const response = await wispFetch(url, timeoutMs, critical);
@@ -488,7 +468,7 @@ function fetchExternalJSON(url) {
 
 function fetchMusicApiJSON(url) {
     return musicApiLimiter(async () => {
-        const data = await fetchExternalOnce(url, 8000, 5000);
+        const data = await fetchDirectThenWisp(url, 5000, 10000);
         if (data && data.error) {
             throw new Error(`API error: ${JSON.stringify(data.error).slice(0, 120)}`);
         }
@@ -521,10 +501,7 @@ function fetchSearchJSON(url) {
 }
 
 function ytThumbUrls(videoId) {
-    return [
-        `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`,
-        `${INVIDIOUS_BASE}/vi/${videoId}/mqdefault.jpg`
-    ];
+    return [`https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`];
 }
 
 function stripDiacritics(s) {
@@ -591,11 +568,9 @@ function makeSong({ source, id, title, titleShort, artist, cover, duration, stre
         artist: artist || "Unknown artist",
         cover: cover || "",
         duration: Number(duration) || 0,
-        videoId: null,
         streamId: streamId || null,
         isrc: isrc || null,
-        providerSource: providerSource || null,
-        videos: []
+        providerSource: providerSource || null
     };
 }
 
@@ -653,22 +628,6 @@ function matchVideoToSong(video, song) {
     return { score, confident, titleCov, artistCov, mismatch };
 }
 
-function rankVideos(videos, song) {
-    const good = [];
-    const poor = [];
-    const seen = new Set();
-    for (const video of videos) {
-        if (!video || !video.videoId || seen.has(video.videoId)) continue;
-        seen.add(video.videoId);
-        const m = matchVideoToSong(video, song);
-        (m.confident ? good : poor).push({ video, score: m.score });
-    }
-    const byScore = (a, b) => b.score - a.score;
-    good.sort(byScore);
-    poor.sort(byScore);
-    return { good: good.map(x => x.video), poor: poor.map(x => x.video) };
-}
-
 function streamSongAsVideo(song) {
     return { title: song.title, author: song.artist, lengthSeconds: song.duration };
 }
@@ -719,16 +678,14 @@ function mergeSongLists(lists) {
     return dedupeSongs(merged);
 }
 
-function buildSongQueries(song) {
-    const title = stripFeat(song.titleShort || song.title);
-    const artist = song.artist || "";
-    const queries = [
-        `${artist} - ${title}`,
-        `${title} ${artist} official audio`,
-        `${title} ${artist} lyrics`,
-        `${artist} ${title} topic`
-    ].map(q => q.replace(/\s+/g, " ").trim());
-    return [...new Set(queries)];
+function mergeTieredSongs(entries) {
+    const tiers = [...new Set(entries.map(entry => entry.tier))].sort((a, b) => a - b);
+    const ordered = [];
+    for (const tier of tiers) {
+        const lists = entries.filter(entry => entry.tier === tier).map(entry => entry.songs);
+        ordered.push(...mergeSongLists(lists));
+    }
+    return dedupeSongs(ordered);
 }
 
 function buildStreamQueries(song) {
@@ -751,7 +708,6 @@ function serializeTrack(t) {
         artist: t.artist,
         cover: t.cover,
         duration: t.duration,
-        videoId: t.videoId || null,
         streamId: t.streamId || null,
         isrc: t.isrc || null,
         providerSource: t.providerSource || null
@@ -902,9 +858,19 @@ function searchDeezerCatalog(query) {
     });
 }
 
+function searchRippleCatalog(query) {
+    return searchStreamApi(query, CATALOG_STREAM_LIMIT);
+}
+
+function searchCherrionCatalog(query) {
+    return searchCherrionApi(query, CATALOG_STREAM_LIMIT);
+}
+
 const CATALOG_SEARCH_SOURCES = [
-    { name: "iTunes", run: searchItunesCatalog },
-    { name: "Deezer", run: searchDeezerCatalog }
+    { name: "iTunes", tier: 0, run: searchItunesCatalog },
+    { name: "Deezer", tier: 0, run: searchDeezerCatalog },
+    { name: "Ripple", tier: 1, run: searchRippleCatalog },
+    { name: "Cherrion", tier: 1, run: searchCherrionCatalog }
 ];
 
 async function fetchDeezerChart(genreId) {
@@ -932,15 +898,6 @@ async function fetchItunesSearchChart(term) {
 
 const videoSearchCache = new Map();
 
-async function searchVideosCached(query) {
-    if (videoSearchCache.has(query)) return videoSearchCache.get(query);
-    const data = await fetchInvidiousJSON(`/api/v1/search?q=${encodeURIComponent(query)}&type=video`);
-    const videos = (Array.isArray(data) ? data : []).filter(v => v && v.videoId && !v.liveNow);
-    if (videoSearchCache.size > 80) videoSearchCache.clear();
-    videoSearchCache.set(query, videos);
-    return videos;
-}
-
 function normalizeTrack(t) {
     if (!t) return t;
     if (!t.artist && t.author) t.artist = t.author;
@@ -949,7 +906,6 @@ function normalizeTrack(t) {
     if (!t.titleShort) t.titleShort = t.title;
     if (!t.cover && t.videoId) t.cover = ytThumbUrls(t.videoId)[0];
     if (!t.streamId && t.source === "ripple") t.streamId = String(t.id);
-    if (!Array.isArray(t.videos)) t.videos = [];
     return t;
 }
 
@@ -960,27 +916,6 @@ try {
     playlists = { "Favorites": [] };
 }
 Object.values(playlists).forEach(list => list.forEach(normalizeTrack));
-
-let workingVideos = {};
-try {
-    workingVideos = JSON.parse(localStorage.getItem("songVideoMap")) || {};
-} catch (e) {
-    workingVideos = {};
-}
-
-function rememberWorkingVideo(key, videoId) {
-    delete workingVideos[key];
-    workingVideos[key] = videoId;
-    const keys = Object.keys(workingVideos);
-    if (keys.length > 800) keys.slice(0, keys.length - 800).forEach(k => delete workingVideos[k]);
-    try { localStorage.setItem("songVideoMap", JSON.stringify(workingVideos)); } catch (e) {}
-}
-
-function forgetWorkingVideo(key) {
-    if (!(key in workingVideos)) return;
-    delete workingVideos[key];
-    try { localStorage.setItem("songVideoMap", JSON.stringify(workingVideos)); } catch (e) {}
-}
 
 let workingStreams = {};
 try {
@@ -1222,8 +1157,6 @@ function trackCoverUrls(track, big = false) {
         if (big) urls.push(upscaleCover(track.cover));
         urls.push(track.cover);
     }
-    const videoId = track.videoId || (track.videos && track.videos[0] && track.videos[0].videoId);
-    if (videoId) urls.push(...ytThumbUrls(videoId));
     return [...new Set(urls)];
 }
 
@@ -1859,7 +1792,7 @@ function writeShelfCache(id, tracks) {
 
 async function getShelfTracks(shelf) {
     const cached = readShelfCache()[shelf.id];
-    const hydrate = list => list.map(t => normalizeTrack({ ...t, videos: [] }));
+    const hydrate = list => list.map(t => normalizeTrack({ ...t }));
 
     if (cached && Array.isArray(cached.tracks) && cached.tracks.length && Date.now() - cached.t < SHELF_TTL_MS) {
         return hydrate(cached.tracks);
@@ -2004,7 +1937,7 @@ function runCatalogSearch(query, onUpdate) {
                 })
                 .finally(() => {
                     settled++;
-                    const merged = mergeSongLists(lists.filter(Boolean));
+                    const merged = mergeTieredSongs(CATALOG_SEARCH_SOURCES.map((source, i) => ({ tier: source.tier, songs: lists[i] })).filter(entry => entry.songs));
                     onUpdate(merged, settled === CATALOG_SEARCH_SOURCES.length);
                     if (settled === CATALOG_SEARCH_SOURCES.length) {
                         resolve({ songs: merged, failures });
@@ -2030,7 +1963,7 @@ async function search() {
 
     const outcome = await runCatalogSearch(query, songs => {
         if (myToken !== searchToken) return;
-        if (songs.length > 0) renderSearchResults(songs.map(song => ({ ...song, videos: [] })));
+        if (songs.length > 0) renderSearchResults(songs);
     });
     if (myToken !== searchToken) return;
 
@@ -2272,154 +2205,6 @@ async function playViaStreamApi(track, myToken) {
     return "fail";
 }
 
-async function getAudioFormats(videoId) {
-    const data = await fetchInvidiousJSON(`/api/v1/videos/${encodeURIComponent(videoId)}`, 25000, 8000);
-
-    const adaptive = (data && data.adaptiveFormats) || [];
-    if (adaptive.length === 0) throw new Error("No adaptiveFormats found in the response.");
-
-    let audioFormats = adaptive.filter(f => {
-        const type = f.type || f.mimeType || "";
-        return type.includes("audio") && f.url;
-    });
-    if (audioFormats.length === 0) throw new Error("No audio formats found for this video.");
-
-    const playable = audioFormats.filter(f => {
-        const type = f.type || f.mimeType || "";
-        return audioPlayer.canPlayType(type) !== "";
-    });
-    if (playable.length > 0) audioFormats = playable;
-
-    audioFormats.sort((a, b) => (Number(b.bitrate) || 0) - (Number(a.bitrate) || 0));
-
-    return audioFormats.map(f => {
-        const type = f.type || f.mimeType || "";
-        return { url: f.url, mime: type.split(";")[0].trim(), bitrate: Number(f.bitrate) || 0 };
-    });
-}
-
-async function tryPlayVideo(videoId, myToken) {
-    const cachedUrl = await getCachedAudioObjectURL(videoId);
-    if (myToken !== playRequestToken) return "stale";
-    if (cachedUrl) {
-        try {
-            audioPlayer.src = cachedUrl;
-            audioPlayer.volume = volumeBar.value;
-            await attemptToPlay(audioPlayer);
-            return myToken === playRequestToken ? "ok" : "stale";
-        } catch (e) {}
-    }
-
-    let formats = [];
-    try {
-        formats = await getAudioFormats(videoId);
-    } catch (e) {
-        console.warn(`Could not get audio formats for ${videoId}:`, e.message);
-    }
-    if (myToken !== playRequestToken) return "stale";
-    if (formats.length === 0) return "fail";
-
-    for (const fmt of formats.slice(0, 3)) {
-        if (myToken !== playRequestToken) return "stale";
-        try {
-            audioPlayer.src = fmt.url;
-            audioPlayer.volume = volumeBar.value;
-            await attemptToPlay(audioPlayer, 9000);
-            if (myToken !== playRequestToken) return "stale";
-
-            if (myToken === playRequestToken) {
-                cacheDownloadLimiter(() => fetchWithTimeout(fmt.url, 15000))
-                    .then(r => (r.ok ? r.blob() : null))
-                    .then(blob => {
-                        if (blob && blob.size > 0 && myToken === playRequestToken) cacheAudioBlob(videoId, blob);
-                    })
-                    .catch(() => {});
-            }
-
-            return "ok";
-        } catch (err) {}
-    }
-
-    for (const fmt of formats.slice(0, 2)) {
-        if (myToken !== playRequestToken) return "stale";
-        try {
-            const blob = await fetchBlobViaWisp(fmt.url, fmt.mime);
-            if (myToken !== playRequestToken) return "stale";
-
-            const objectUrl = await cacheAudioBlob(videoId, blob);
-            audioPlayer.src = objectUrl;
-            audioPlayer.volume = volumeBar.value;
-            await attemptToPlay(audioPlayer, 10000);
-            return myToken === playRequestToken ? "ok" : "stale";
-        } catch (err) {
-            console.warn("Wisp audio fallback failed:", err);
-        }
-    }
-
-    return "fail";
-}
-
-async function playViaInvidious(track, myToken) {
-    const tried = new Set();
-    let attempts = 0;
-
-    const attempt = async (videoId) => {
-        if (!videoId || tried.has(videoId)) return "fail";
-        tried.add(videoId);
-        attempts++;
-        if (attempts > 1) setLoadingHint(track, `trying backup source ${attempts}`);
-
-        const result = await tryPlayVideo(videoId, myToken);
-        if (result === "ok") onPlaybackStarted(track, { type: "video", id: videoId });
-        return result;
-    };
-
-    const attemptAll = async (videos) => {
-        for (const video of videos) {
-            if (tried.size >= MAX_VIDEOS_TRIED) break;
-            const result = await attempt(video.videoId || video);
-            if (result !== "fail") return result;
-        }
-        return "fail";
-    };
-    if (track.source === "youtube") {
-        return attempt(track.videoId);
-    }
-
-    const remembered = workingVideos[track.key];
-    for (const id of [remembered, track.videoId]) {
-        const result = await attempt(id);
-        if (result !== "fail") return result;
-        if (id && id === remembered) forgetWorkingVideo(track.key);
-    }
-
-    const initial = rankVideos(track.videos || [], track);
-    let result = await attemptAll(initial.good);
-    if (result !== "fail") return result;
-
-    const leftovers = [...initial.poor];
-    for (const query of buildSongQueries(track)) {
-        if (tried.size >= MAX_VIDEOS_TRIED) break;
-        setLoadingHint(track, "searching backup source");
-
-        let found = [];
-        try {
-            found = await searchVideosCached(query);
-        } catch (e) {
-            console.warn("Source search failed:", e.message);
-        }
-        if (myToken !== playRequestToken) return "stale";
-
-        const ranked = rankVideos(found, track);
-        result = await attemptAll(ranked.good);
-        if (result !== "fail") return result;
-        leftovers.push(...ranked.poor);
-    }
-
-    result = await attemptAll(leftovers.slice(0, 3));
-    return result;
-}
-
 function showTrackInDock(track, loading) {
     nowPlayingTitle.innerHTML = loading
         ? `${SVG_ICONS.spinner} ${escapeHTML(track.title)}`
@@ -2441,9 +2226,6 @@ function onPlaybackStarted(track, via) {
     } else if (via.type === "cherrion") {
         track.streamId = via.id;
         if (track.source !== "cherrion") rememberWorkingCherrion(track.key, via.meta);
-    } else if (via.type === "video") {
-        track.videoId = via.id;
-        if (track.source !== "youtube") rememberWorkingVideo(track.key, via.id);
     }
     showTrackInDock(track, false);
     updatePlayButton();
@@ -2454,14 +2236,7 @@ function onPlaybackStarted(track, via) {
 }
 
 async function resolveAndPlay(track, myToken) {
-    if (track.source !== "youtube") {
-        const result = await playViaStreamApi(track, myToken);
-        if (result !== "fail") return result;
-        if (myToken !== playRequestToken) return "stale";
-        setLoadingHint(track, "using backup source");
-    }
-
-    return playViaInvidious(track, myToken);
+    return playViaStreamApi(track, myToken);
 }
 
 async function playTrack(track) {
@@ -2514,9 +2289,8 @@ confirmAddBtn.addEventListener("click", () => {
 
     if (targetPlaylist && playlists[targetPlaylist] && currentTrackInfo) {
         const entry = serializeTrack(currentTrackInfo);
-        if (!entry.videoId) entry.videoId = workingVideos[currentTrackInfo.key] || null;
         if (!entry.streamId) entry.streamId = workingStreams[currentTrackInfo.key] || null;
-        playlists[targetPlaylist].push(normalizeTrack({ ...entry, videos: [] }));
+        playlists[targetPlaylist].push(normalizeTrack({ ...entry }));
         savePlaylists();
         updatePlaylistDropdowns();
         sidebarPlaylistSelect.value = targetPlaylist;
