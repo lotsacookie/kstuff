@@ -1257,9 +1257,8 @@ window.mReady.then(function (loaded) {
             }
             if (!track || !target || !playlists[target]) return;
             const entry = serializeTrack(track);
-            if (!entry.videoId) entry.videoId = workingVideos[track.key] || null;
             if (!entry.streamId) entry.streamId = workingStreams[track.key] || null;
-            playlists[target].push(normalizeTrack({ ...entry, videos: [] }));
+            playlists[target].push(normalizeTrack({ ...entry }));
             savePlaylists();
             updatePlaylistDropdowns();
             sidebarPlaylistSelect.value = target;
