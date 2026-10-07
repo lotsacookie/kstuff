@@ -214,7 +214,7 @@ export function init(K) {
       K.dbg('link timeout, trying next backend url');
       K.backendAttempts = Math.min(K.backendAttempts + 1, 6);
       K.backendUrlIndex++;
-      startBackend();
+      retryBackend();
     }, K.BACKEND_LINK_TIMEOUT);
 
     try {
@@ -229,8 +229,16 @@ export function init(K) {
       clearTimeout(K.backendLinkTimer);
       K.backendAttempts = Math.min(K.backendAttempts + 1, 6);
       K.backendUrlIndex++;
-      startBackend();
+      retryBackend();
     }
+  };
+
+  const retryBackend = () => {
+    clearTimeout(K.backendRetryTimer);
+    const urls = (K.BACKEND_URLS && K.BACKEND_URLS.length) || 1;
+    const cycle = K.backendAttempts % urls === 0;
+    const delay = cycle ? Math.min(30000, 1000 * 2 ** K.backendAttempts) : 250;
+    K.backendRetryTimer = setTimeout(startBackend, delay);
   };
 
   function startBackend() {
