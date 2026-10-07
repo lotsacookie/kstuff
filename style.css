@@ -19,7 +19,8 @@
     --btn-text-size: 0.7rem;
     --btn-icon-hide-size: 1rem;
     --transition-speed: 0.3s;
-    --header-height: 58px;
+    --header-h: 58px;
+    --tabs-h: 0px;
     --footer-height: 36px;
     --footer-space: var(--footer-height);
     --fg: 12px;
@@ -91,26 +92,30 @@ body.size-large.text-hide {
     border-bottom: 1px solid var(--hairline);
     z-index: 11;
     flex-shrink: 0;
-    height: var(--header-height);
+    height: var(--header-h);
     width: 100%;
     box-sizing: border-box;
     position: fixed;
-    top: 0;
+    top: var(--tabs-h);
     left: 0;
 }
 
-.nav-left .learning-header {
+.nav-left .learning-header,
+.nav-left .sg-tabbar {
     width: calc(100% - var(--nav-width));
     left: var(--nav-width);
 }
 
-.nav-right .learning-header {
+.nav-right .learning-header,
+.nav-right .sg-tabbar {
     width: calc(100% - var(--nav-width));
     left: 0;
 }
 
 .nav-top .learning-header,
-.nav-bottom .learning-header {
+.nav-bottom .learning-header,
+.nav-top .sg-tabbar,
+.nav-bottom .sg-tabbar {
     width: 100%;
     left: 0;
 }
@@ -1734,7 +1739,7 @@ body.floating-on {
 }
 
 body.floating-on .learning-header {
-    top: var(--fg);
+    top: calc(var(--fg) + var(--tabs-h));
     border: 1px solid var(--hairline);
     border-radius: var(--fr);
     box-shadow: var(--lift);
@@ -1785,6 +1790,7 @@ body.floating-on.nav-left #teachertouchbar {
 }
 
 body.floating-on.nav-left .learning-header,
+body.floating-on.nav-left .sg-tabbar,
 body.floating-on.nav-left .learning-footer {
     left: calc(var(--nav-width) + 2 * var(--fg));
     width: calc(100% - var(--nav-width) - 4 * var(--fg));
@@ -1804,6 +1810,7 @@ body.floating-on.nav-right #teachertouchbar {
 }
 
 body.floating-on.nav-right .learning-header,
+body.floating-on.nav-right .sg-tabbar,
 body.floating-on.nav-right .learning-footer {
     left: calc(2 * var(--fg));
     width: calc(100% - var(--nav-width) - 4 * var(--fg));
@@ -1823,6 +1830,7 @@ body.floating-on.nav-top #teachertouchbar {
 }
 
 body.floating-on.nav-top .learning-header,
+body.floating-on.nav-top .sg-tabbar,
 body.floating-on.nav-top .learning-footer {
     left: var(--fg);
     width: calc(100% - 2 * var(--fg));
@@ -1842,6 +1850,7 @@ body.floating-on.nav-bottom #teachertouchbar {
 }
 
 body.floating-on.nav-bottom .learning-header,
+body.floating-on.nav-bottom .sg-tabbar,
 body.floating-on.nav-bottom .learning-footer {
     left: var(--fg);
     width: calc(100% - 2 * var(--fg));
@@ -2157,4 +2166,151 @@ button:focus-visible,
         animation-duration: 0.01ms !important;
         transition-duration: 0.01ms !important;
     }
+}
+
+body {
+    --header-height: calc(var(--header-h) + var(--tabs-h));
+}
+
+html.sg-child body {
+    --tabs-h: 42px;
+}
+
+html.sg-child body.floating-on {
+    --tabs-h: calc(42px + var(--fg));
+}
+
+html.sg-fit body,
+html.sg-fs body {
+    --tabs-h: 0px !important;
+}
+
+html.sg-fit .sg-tabbar,
+html.sg-fs .sg-tabbar {
+    display: none;
+}
+
+.sg-tabbar {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 8px;
+    height: 42px;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 12;
+    background-color: var(--nav-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--hairline);
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+html.sg-child .sg-tabbar {
+    display: flex;
+}
+
+body.floating-on .sg-tabbar {
+    top: var(--fg);
+    border: 1px solid var(--hairline);
+    border-radius: var(--fr);
+    box-shadow: var(--lift);
+}
+
+.sg-tab {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 0 1 200px;
+    min-width: 38px;
+    max-width: 200px;
+    height: 100%;
+    padding: 0 6px 0 10px;
+    box-sizing: border-box;
+    border-radius: 12px;
+    color: var(--text-color);
+    opacity: 0.7;
+    cursor: pointer;
+    transition: background 0.2s var(--ease), opacity 0.2s var(--ease);
+}
+
+.sg-tab:hover {
+    opacity: 1;
+    background: var(--tint);
+}
+
+.sg-tab.active {
+    opacity: 1;
+    background: var(--tint-strong);
+    box-shadow: inset 0 0 0 1px var(--hairline);
+}
+
+.sg-tab.booting {
+    opacity: 0.5;
+}
+
+.sg-tab.dragging {
+    opacity: 0.25;
+}
+
+.sg-fav {
+    flex: 0 0 20px;
+    width: 20px;
+    height: 20px;
+    border-radius: 7px;
+    display: grid;
+    place-items: center;
+    font-size: 0.66rem;
+    font-weight: 800;
+    background: var(--tint);
+}
+
+.sg-title {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 0.8rem;
+}
+
+.sg-x {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: inherit;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.sg-x:hover {
+    background: var(--tint);
+    opacity: 1;
+}
+
+.sg-newtab {
+    flex: 0 0 auto;
+    margin-left: 2px;
+}
+
+.sg-compact .sg-tab:not(.active) .sg-title,
+.sg-compact .sg-tab:not(.active) .sg-x {
+    display: none;
+}
+
+.sg-compact .sg-tab:not(.active) {
+    padding: 0;
+    justify-content: center;
+    flex-basis: 38px;
 }
