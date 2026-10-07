@@ -7,6 +7,8 @@ export function init(K) {
   };
   const MUSIC_PAGE_ID = 'gradebook';
   const INACTIVE_STATUSES = ['error', 'ended', 'idle', 'stopped'];
+  const BEAT_MS = 2000;
+  const MIRROR_TTL = 10000;
 
   document.head.appendChild(K.el('style', {
     textContent: `
@@ -48,6 +50,14 @@ export function init(K) {
 
   K.musicState = null;
   let lastState = null;
+  let mirror = null;
+  let playStart = 0;
+  let prevStatus = '';
+  const mirrors = new Map();
+  const TAB_ID = Math.random().toString(36).slice(2) + Date.now().toString(36);
+  let channel = null;
+  try { if (typeof BroadcastChannel === 'function') channel = new BroadcastChannel('kstuff-music'); } catch {}
+  const post = msg => { try { if (channel) channel.postMessage({ ...msg, tab: TAB_ID }); } catch {} };
 
   const musicIframe = () => K.$(K.MUSIC_IFRAME_ID);
   const hasLiveTrack = s => !!(s && s.hasTrack && !INACTIVE_STATUSES.includes(s.status));
@@ -80,17 +90,7 @@ export function init(K) {
     ifr.src = 'about:blank';
   }
 
-  function renderMiniPlayer(state) {
-    lastState = state || null;
-    K.musicState = state && state.hasTrack ? state : null;
-    miniPlayer.hidden = false;
-
-    if (!K.musicState) {
-      resetMiniPlayer();
-      closeMusicIfIdle();
-      return;
-    }
-
+  function paint(state) {
     miniTitle.textContent = state.title || '';
     miniTitle.title = state.title || '';
     miniArtist.textContent =
@@ -110,8 +110,41 @@ export function init(K) {
     miniToggle.disabled = state.status === 'loading' || state.status === 'error';
     miniPrev.disabled = !state.hasPrev;
     miniNext.disabled = !state.hasNext;
+  }
 
+  function pickMirror() {
+    let best = null;
+    mirrors.forEach(m => {
+      if (!hasLiveTrack(m.state)) return;
+      if (!best || (m.state.startedAt || 0) > (best.state.startedAt || 0)) best = m;
+    });
+    return best;
+  }
+
+  function refreshDisplay() {
+    mirror = K.musicState ? null : pickMirror();
+    const shown = K.musicState || (mirror && mirror.state);
+    if (shown) paint(shown);
+    else resetMiniPlayer();
+  }
+
+  function broadcastLocal() {
+    if (hasLiveTrack(lastState)) post({ t: 'state', state: { ...lastState, startedAt: playStart } });
+    else post({ t: 'state', state: null });
+  }
+
+  function renderMiniPlayer(state) {
+    lastState = state || null;
+    K.musicState = state && state.hasTrack ? state : null;
+    miniPlayer.hidden = false;
+
+    const status = hasLiveTrack(lastState) ? lastState.status : '';
+    if (status === 'playing' && prevStatus !== 'playing') playStart = Date.now();
+    prevStatus = status;
+
+    refreshDisplay();
     closeMusicIfIdle();
+    broadcastLocal();
   }
   K.renderMiniPlayer = renderMiniPlayer;
 
@@ -120,7 +153,9 @@ export function init(K) {
     if (!iframeEl.hasAttribute('srcdoc') && iframeEl.getAttribute('src') === 'about:blank') {
       lastState = null;
       K.musicState = null;
-      resetMiniPlayer();
+      prevStatus = '';
+      refreshDisplay();
+      broadcastLocal();
     }
   });
 
@@ -133,7 +168,9 @@ export function init(K) {
 
   miniPlayer.addEventListener('click', e => {
     const btn = e.target.closest('button[data-act]');
-    if (btn && !btn.disabled) sendMusicCmd(btn.dataset.act);
+    if (!btn || btn.disabled) return;
+    if (K.musicState) sendMusicCmd(btn.dataset.act);
+    else if (mirror) post({ t: 'cmd', to: mirror.tab, action: btn.dataset.act });
   });
 
   window.addEventListener('message', e => {
@@ -142,4 +179,48 @@ export function init(K) {
     if (e.source !== musicIframe()?.contentWindow) return;
     renderMiniPlayer(data.state);
   });
+
+  if (channel) {
+    channel.onmessage = e => {
+      const m = e.data;
+      if (!m || !m.t || m.tab === TAB_ID) return;
+      if (m.t === 'state') {
+        if (m.state && hasLiveTrack(m.state)) {
+          mirrors.set(m.tab, { tab: m.tab, state: m.state, at: Date.now() });
+          const localPlaying = hasLiveTrack(lastState) && lastState.status === 'playing';
+          if (m.state.status === 'playing' && localPlaying && (m.state.startedAt || 0) > playStart) sendMusicCmd('toggle');
+        } else {
+          mirrors.delete(m.tab);
+        }
+        refreshDisplay();
+      } else if (m.t === 'beat') {
+        const known = mirrors.get(m.tab);
+        if (known) known.at = Date.now();
+        else post({ t: 'hello' });
+      } else if (m.t === 'gone') {
+        mirrors.delete(m.tab);
+        refreshDisplay();
+      } else if (m.t === 'hello') {
+        if (hasLiveTrack(lastState)) broadcastLocal();
+      } else if (m.t === 'cmd' && m.to === TAB_ID) {
+        sendMusicCmd(m.action);
+      }
+    };
+
+    setInterval(() => {
+      if (hasLiveTrack(lastState)) post({ t: 'beat' });
+      const now = Date.now();
+      let changed = false;
+      mirrors.forEach((m, k) => {
+        if (now - m.at > MIRROR_TTL) {
+          mirrors.delete(k);
+          changed = true;
+        }
+      });
+      if (changed) refreshDisplay();
+    }, BEAT_MS);
+
+    window.addEventListener('pagehide', () => post({ t: 'gone' }));
+    post({ t: 'hello' });
+  }
 }
