@@ -10,7 +10,7 @@ if (!esbuild) console.warn('! esbuild not installed: JS/CSS will not be minified
 const cfg = JSON.parse(await readFile('tools/singularity/config.json', 'utf8'));
 const TEXT = new Set(['html', 'css', 'js', 'mjs', 'json', 'svg', 'txt', 'xml']);
 const globRe = g => new RegExp('^' + g.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*\*/g, '\0').replace(/\*/g, '[^/]*').replace(/\0/g, '.*') + '$');
-const inc = cfg.include.map(globRe), exc = cfg.exclude.map(globRe);
+const inc = cfg.include.map(globRe), exc = cfg.exclude.map(globRe), liv = (cfg.live || []).map(globRe);
 
 async function walk(dir, out = []) {
   for (const e of await readdir(dir, { withFileTypes: true })) {
@@ -38,10 +38,11 @@ async function shrink(p, text) {
   return text;
 }
 
-const files = {}, skipped = [];
+const files = {}, skipped = [], live = [];
 let rawBytes = 0;
 for (const p of (await walk('.')).map(f => f.replace(/^\.\//, '')).sort()) {
   if (!inc.some(r => r.test(p)) || exc.some(r => r.test(p))) continue;
+  if (liv.some(r => r.test(p))) { live.push(p); continue; }
   const ext = p.split('.').pop().toLowerCase();
   const buf = await readFile(p);
   if (!TEXT.has(ext)) { skipped.push(`${p} (not text)`); continue; }
@@ -57,7 +58,7 @@ const hash = createHash('sha256')
   .digest('hex').slice(0, 12);
 
 const runtime = await readFile('tools/singularity/runtime.js', 'utf8');
-let code = `(function(SG_HASH,SG_FILES,SG_CFG){${runtime}\n})(${JSON.stringify(hash)},${JSON.stringify(files)},${JSON.stringify({ repo: cfg.repo, live: cfg.live })});`;
+let code = `(function(SG_HASH,SG_FILES,SG_CFG){${runtime}\n})(${JSON.stringify(hash)},${JSON.stringify(files)},${JSON.stringify({ repo: cfg.repo, live })});`;
 if (esbuild) code = (await esbuild.transform(code, { minify: true, legalComments: 'none' })).code;
 code = `/*!sg:${hash}*/` + code;
 
@@ -67,4 +68,5 @@ await writeFile('Assets/singularity.json', JSON.stringify({ hash, files: Object.
 
 const kb = n => (n / 1024).toFixed(1) + ' KB';
 console.log(`singularity ${hash}: ${Object.keys(files).length} files, source ${kb(rawBytes)} -> bundle ${kb(Buffer.byteLength(code))} (gzip ${kb(wire.gzip)}, brotli ${kb(wire.brotli)})`);
+if (live.length) console.log(`always fetched live (${live.length} files)`);
 if (skipped.length) console.log('left on the network:\n  ' + skipped.join('\n  '));
