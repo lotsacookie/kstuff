@@ -115,6 +115,8 @@ const DEEZER_API = "https://api.deezer.com";
 const APPLE_CHARTS_API = "https://rss.applemarketingtools.com/api/v2/us/music/most-played";
 const ITUNES_SEARCH_API = "https://itunes.apple.com/search";
 
+const CATALOG_SEARCH_LIMIT = 40;
+
 const HOME_SHELVES = [
     { id: "trending", title: "Trending Now", genre: 0 },
     { id: "pop", title: "Pop", genre: 132 },
@@ -424,6 +426,7 @@ const externalLimiter = createLimiter(3);
 const musicApiLimiter = createLimiter(4);
 const imageLimiter = createLimiter(3);
 const cacheDownloadLimiter = createLimiter(2);
+const searchLimiter = createLimiter(4);
 
 async function fetchInvidiousJSON(path, proxyTimeout = 20000, directTimeout = 8000) {
     const url = `${INVIDIOUS_BASE}${path}`;
@@ -486,6 +489,30 @@ function fetchExternalJSON(url) {
 function fetchMusicApiJSON(url) {
     return musicApiLimiter(async () => {
         const data = await fetchExternalOnce(url, 8000, 5000);
+        if (data && data.error) {
+            throw new Error(`API error: ${JSON.stringify(data.error).slice(0, 120)}`);
+        }
+        return data;
+    });
+}
+
+async function fetchDirectThenWisp(url, directMs = 6000, wispMs = 12000) {
+    try {
+        const response = await fetchWithTimeout(url, directMs);
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+    } catch (directError) {
+        console.warn("Direct search request failed, retrying through wisp:", directError && directError.message ? directError.message : directError);
+    }
+
+    const response = await wispFetch(url, wispMs);
+    if (!response.ok) throw new Error(`Proxy HTTP ${response.status}`);
+    return await response.json();
+}
+
+function fetchSearchJSON(url) {
+    return searchLimiter(async () => {
+        const data = await fetchDirectThenWisp(url);
         if (data && data.error) {
             throw new Error(`API error: ${JSON.stringify(data.error).slice(0, 120)}`);
         }
@@ -569,22 +596,6 @@ function makeSong({ source, id, title, titleShort, artist, cover, duration, stre
         isrc: isrc || null,
         providerSource: providerSource || null,
         videos: []
-    };
-}
-
-function rawTrackFromVideo(video) {
-    return {
-        key: `yt:${video.videoId}`,
-        source: "youtube",
-        id: video.videoId,
-        title: video.title || "Untitled",
-        titleShort: video.title || "Untitled",
-        artist: cleanChannelName(video.author) || video.author || "Unknown artist",
-        cover: ytThumbUrls(video.videoId)[0],
-        duration: Number(video.lengthSeconds) || 0,
-        videoId: video.videoId,
-        streamId: null,
-        videos: [video]
     };
 }
 
@@ -695,6 +706,17 @@ function dedupeSongs(songs) {
         seen.add(sig);
         return true;
     });
+}
+
+function mergeSongLists(lists) {
+    const merged = [];
+    const longest = Math.max(0, ...lists.map(list => list.length));
+    for (let i = 0; i < longest; i++) {
+        for (const list of lists) {
+            if (i < list.length) merged.push(list[i]);
+        }
+    }
+    return dedupeSongs(merged);
 }
 
 function buildSongQueries(song) {
@@ -848,6 +870,42 @@ function songFromItunes(r) {
         duration: r.trackTimeMillis ? r.trackTimeMillis / 1000 : 0
     });
 }
+
+const catalogSearchCache = new Map();
+
+function cachedCatalogSearch(cacheKey, loader) {
+    if (catalogSearchCache.has(cacheKey)) return catalogSearchCache.get(cacheKey);
+    const job = loader().catch(err => {
+        catalogSearchCache.delete(cacheKey);
+        throw err;
+    });
+    if (catalogSearchCache.size > 100) catalogSearchCache.clear();
+    catalogSearchCache.set(cacheKey, job);
+    return job;
+}
+
+function searchItunesCatalog(query) {
+    return cachedCatalogSearch(`itunes|${query.toLowerCase()}`, async () => {
+        const url = `${ITUNES_SEARCH_API}?media=music&entity=song&country=US&limit=${CATALOG_SEARCH_LIMIT}&term=${encodeURIComponent(query)}`;
+        const data = await fetchSearchJSON(url);
+        const results = Array.isArray(data && data.results) ? data.results : [];
+        return dedupeSongs(results.filter(r => !r.kind || r.kind === "song").map(songFromItunes).filter(Boolean));
+    });
+}
+
+function searchDeezerCatalog(query) {
+    return cachedCatalogSearch(`deezer|${query.toLowerCase()}`, async () => {
+        const url = `${DEEZER_API}/search?q=${encodeURIComponent(query)}&limit=${CATALOG_SEARCH_LIMIT}`;
+        const data = await fetchSearchJSON(url);
+        const results = Array.isArray(data && data.data) ? data.data : [];
+        return dedupeSongs(results.map(songFromDeezer).filter(Boolean));
+    });
+}
+
+const CATALOG_SEARCH_SOURCES = [
+    { name: "iTunes", run: searchItunesCatalog },
+    { name: "Deezer", run: searchDeezerCatalog }
+];
 
 async function fetchDeezerChart(genreId) {
     const data = await fetchExternalJSON(`${DEEZER_API}/chart/${genreId}/tracks?limit=${SHELF_SIZE}`);
@@ -1929,6 +1987,33 @@ function showMessage(html) {
     resultsList.innerHTML = `<div class="grid-message">${html}</div>`;
 }
 
+function runCatalogSearch(query, onUpdate) {
+    const lists = CATALOG_SEARCH_SOURCES.map(() => null);
+    let failures = 0;
+
+    return new Promise(resolve => {
+        let settled = 0;
+        CATALOG_SEARCH_SOURCES.forEach((source, index) => {
+            source.run(query)
+                .then(songs => {
+                    lists[index] = songs;
+                })
+                .catch(err => {
+                    failures++;
+                    console.warn(`${source.name} search failed:`, err && err.message ? err.message : err);
+                })
+                .finally(() => {
+                    settled++;
+                    const merged = mergeSongLists(lists.filter(Boolean));
+                    onUpdate(merged, settled === CATALOG_SEARCH_SOURCES.length);
+                    if (settled === CATALOG_SEARCH_SOURCES.length) {
+                        resolve({ songs: merged, failures });
+                    }
+                });
+        });
+    });
+}
+
 async function search() {
     const query = searchInput.value.trim();
     if (!query) {
@@ -1943,50 +2028,19 @@ async function search() {
     resultsList.hidden = false;
     showMessage(`${SVG_ICONS.spinner} Searching...`);
 
-    let songs = [];
-    try {
-        songs = await searchStreamApi(query, STREAM_SEARCH_LIMIT);
-    } catch (e) {
-        console.warn("Music API search failed, falling back to Cherrion:", e.message);
-    }
-    if (myToken !== searchToken) return;
-
-    if (songs.length === 0) {
-        try {
-            songs = await searchCherrionApi(query, CHERRION_SEARCH_LIMIT);
-        } catch (e) {
-            console.warn("Cherrion search failed, falling back to Invidious:", e.message);
-        }
+    const outcome = await runCatalogSearch(query, songs => {
         if (myToken !== searchToken) return;
-    }
-
-    if (songs.length > 0) {
-        renderSearchResults(songs.map(song => ({ ...song, videos: [] })));
-        return;
-    }
-
-    showMessage(`${SVG_ICONS.spinner} Searching backup source...`);
-
-    let videos = [];
-    let videoError = null;
-    try {
-        videos = await searchVideosCached(query);
-    } catch (e) {
-        videoError = e;
-    }
+        if (songs.length > 0) renderSearchResults(songs.map(song => ({ ...song, videos: [] })));
+    });
     if (myToken !== searchToken) return;
 
-    if (videos.length === 0) {
-        if (videoError) {
-            console.error("Search failed:", videoError);
-            showMessage(`${SVG_ICONS.warning} Search error: Unable to connect to streaming network.`);
-        } else {
-            showMessage("No results found.");
-        }
-        return;
-    }
+    if (outcome.songs.length > 0) return;
 
-    renderSearchResults(videos.map(rawTrackFromVideo));
+    if (outcome.failures === CATALOG_SEARCH_SOURCES.length) {
+        showMessage(`${SVG_ICONS.warning} Search error: Unable to reach the music search services.`);
+    } else {
+        showMessage("No results found.");
+    }
 }
 
 function renderSearchResults(tracks) {
