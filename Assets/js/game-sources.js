@@ -98,6 +98,43 @@ export function init(K) {
     }));
   }
 
+  const AD_CLASS = /^(ads?|ad-[\w-]+|adsbygoogle)$/i;
+  const AD_ID = /^(ads?([-_].*)?|ad[-_].*|ad(Rectangle|Leaderboard|Banner|Skyscraper|Container|Slot|Unit)\w*)$/i;
+  const AD_WRITE = /document\.write\(\s*['"]<div[^>]*style=["']?[^>]*width:\s*\d+px;\s*height:\s*\d+px/i;
+  const HTML_NS = 'http://www.w3.org/1999/xhtml';
+
+  K.isSeraphUrl = url => /gmshelf\/seraph/i.test(String(url || ''));
+
+  K.cleanSeraphHtml = html => {
+    let doc;
+    try { doc = new DOMParser().parseFromString(html, 'text/html'); } catch { return html; }
+    if (!doc || !doc.documentElement) return html;
+
+    doc.querySelectorAll('script[src]').forEach(s => {
+      if (/(^|\/)cloak\.js(\?|#|$)/i.test(s.getAttribute('src') || '')) s.remove();
+    });
+
+    doc.querySelectorAll('title').forEach(t => { if (t.namespaceURI === HTML_NS) t.remove(); });
+
+    doc.querySelectorAll('[class]').forEach(el => {
+      if (!el.isConnected) return;
+      const cls = (el.getAttribute('class') || '').split(/\s+/).filter(Boolean);
+      if (cls.some(c => AD_CLASS.test(c))) el.remove();
+    });
+
+    doc.querySelectorAll('[id]').forEach(el => {
+      if (!el.isConnected) return;
+      if (AD_ID.test(el.id)) el.remove();
+    });
+
+    doc.querySelectorAll('script:not([src])').forEach(s => {
+      if (AD_WRITE.test(s.textContent || '')) s.remove();
+    });
+
+    const dt = doc.doctype ? `<!DOCTYPE ${doc.doctype.name}>` : '';
+    return dt + doc.documentElement.outerHTML;
+  };
+
   K.fetchExtraGames = async () => {
     const lists = await Promise.all([
       source('lumin', fetchLumin),
