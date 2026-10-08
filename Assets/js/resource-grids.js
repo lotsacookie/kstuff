@@ -65,8 +65,9 @@ export function init(K) {
 
   const launchInline = async (ifr, url, stale, onLoad) => {
     const res = await fetch(url);
-    const text = await res.text();
+    let text = await res.text();
     if (stale()) return;
+    if (K.isSeraphUrl && K.isSeraphUrl(url)) text = K.cleanSeraphHtml(text);
 
     const doc = ifr.contentDocument;
     if (!doc) throw new Error('iframe document unavailable');
