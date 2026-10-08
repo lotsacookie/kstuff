@@ -3,7 +3,7 @@ function initApp() {
   const MODULE_DIR = 'Assets/js';
   const SHA_FETCH_TIMEOUT = 6000;
   const IMPORT_TIMEOUT = 10000;
-  const MODULE_NAMES = ['core', 'theme-settings', 'auth-backend', 'iframe-loader', 'game-sources', 'resource-grids', 'music-player', 'navigation', 'ui-extras'];
+  const MODULE_NAMES = ['core', 'theme-settings', 'auth-backend', 'iframe-loader', 'game-sources', 'resource-grids', 'music-player', 'navigation', 'tabs', 'ui-extras'];
 
   let shaPromise = null;
 
