@@ -18,7 +18,7 @@ export function init(K) {
     return (h >>> 0).toString(36) + ':' + str.length;
   };
 
-  const resourceIframeFor = pageId => K.$(`${pageId}-resource-iframe`);
+  const resourceIframeFor = (pageId, create = false) => K.$(`${pageId}-resource-iframe`) || (create && K.ensureFrame ? K.ensureFrame(`${pageId}-resource-iframe`) : null);
   K.resourceIframeFor = resourceIframeFor;
 
   const showResourceGrid = (pageId, show) => {
@@ -89,7 +89,7 @@ export function init(K) {
     if (!item) return;
     const pageId = opts.pageId || document.querySelector('.page.active')?.id;
     if (!pageId || !grids[pageId]) return;
-    const ifr = resourceIframeFor(pageId);
+    const ifr = resourceIframeFor(pageId, true);
     if (!ifr) return;
 
     K.tooltipEl.style.display = 'none';
@@ -676,4 +676,4 @@ export function init(K) {
     console.error('init failed:', error);
     K.toggleLoader(false);
   });
-}
+  }
