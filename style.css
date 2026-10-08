@@ -2172,11 +2172,11 @@ body {
     --header-height: calc(var(--header-h) + var(--tabs-h));
 }
 
-html.sg-child body {
+body {
     --tabs-h: 42px;
 }
 
-html.sg-child body.floating-on {
+body.floating-on {
     --tabs-h: calc(42px + var(--fg));
 }
 
@@ -2191,7 +2191,7 @@ html.sg-fs .sg-tabbar {
 }
 
 .sg-tabbar {
-    display: none;
+    display: flex;
     align-items: center;
     gap: 4px;
     padding: 5px 8px;
@@ -2208,10 +2208,6 @@ html.sg-fs .sg-tabbar {
     border-bottom: 1px solid var(--hairline);
     -webkit-user-select: none;
     user-select: none;
-}
-
-html.sg-child .sg-tabbar {
-    display: flex;
 }
 
 body.floating-on .sg-tabbar {
@@ -2313,4 +2309,17 @@ body.floating-on .sg-tabbar {
     padding: 0;
     justify-content: center;
     flex-basis: 38px;
+}
+
+.sg-tab.new {
+    animation: sg-tab-in 0.22s var(--ease);
+}
+
+@keyframes sg-tab-in {
+    from { opacity: 0; transform: translateY(6px) scale(0.96); }
+    to { opacity: 0.7; transform: none; }
+}
+
+iframe.sg-frame-hidden {
+    display: none !important;
 }
