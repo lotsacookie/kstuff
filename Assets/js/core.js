@@ -26,6 +26,7 @@ export function init(K) {
     return keywords.some(k => lower.includes(k));
   };
 
+  K.frameHooks = [];
   K.iframePages = {
     mathworksheets: { id: 'mathworksheets-iframe', path: 'Assets/pages/browser.html' },
     gradebook: { id: 'gradebook-iframe', path: 'Assets/pages/music.html' },
@@ -354,4 +355,4 @@ export function init(K) {
   if (!K.getStorage('kstuff_font')) K.setStorage('kstuff_font', 'Comfortaa, sans-serif');
   if (!K.getStorage('kstuff_search_engine')) K.setStorage('kstuff_search_engine', 'duckduckgo');
   if (!K.getStorage('kstuff_floating_ui')) K.setStorage('kstuff_floating_ui', 'floating-on');
-}
+  }
