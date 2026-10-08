@@ -89,17 +89,9 @@ export function init(K) {
     setCursorSuppressed(d.action === 'enter');
   });
 
-  Object.values(K.iframePages).forEach(p => {
-    const f = K.$(p.id);
-    if (!f) return;
+  K.frameHooks.push((id, f) => {
     f.addEventListener('mouseenter', () => setCursorSuppressed(true));
     f.addEventListener('mouseleave', () => setCursorSuppressed(false));
-  });
-  ['readingcorner', 'sciencequiz'].forEach(pageId => {
-    const ifr = K.resourceIframeFor(pageId);
-    if (!ifr) return;
-    ifr.addEventListener('mouseenter', () => setCursorSuppressed(true));
-    ifr.addEventListener('mouseleave', () => setCursorSuppressed(false));
   });
 
   let indicator = K.navBar?.querySelector('.nav-indicator') || (K.navBar && (K.navBar.prepend(K.el('div', { className: 'nav-indicator' })), K.navBar.querySelector('.nav-indicator')));
@@ -251,7 +243,7 @@ export function init(K) {
         K.refreshGridSource(tId);
       } else if (K.iframePages[tId]) {
         const iframeData = K.iframePages[tId];
-        const iframeEl = K.$(iframeData.id);
+        const iframeEl = K.ensureFrame(iframeData.id);
         if (iframeEl) iframeEl.style.display = 'block';
         if (customSrc && iframeEl) {
           K.cancelIframeLoads(iframeData.id);
@@ -336,6 +328,7 @@ export function init(K) {
   });
 
   window.addEventListener('message', event => {
+    if (K.isActiveSource && !K.isActiveSource(event.source)) return;
     if (typeof event.data === 'string' && event.data.startsWith('nav: ')) {
       const pageName = event.data.replace('nav: ', '').trim().toLowerCase();
       const targetMap = { 'home': 'mathworksheets', 'games': 'readingcorner', 'apps': 'sciencequiz', 'music': 'gradebook', 'ai': 'lessonplanner', 'vms': 'vms', 'chat': 'studyhall' };
@@ -416,16 +409,18 @@ export function init(K) {
   K.sHome?.addEventListener('click', () => loadBrowserUrl('singularity://home'));
 
   let activePort = null;
-  const mathworksIframe = K.$('mathworksheets-iframe');
 
-  if (mathworksIframe) {
-    mathworksIframe.addEventListener('load', () => {
+  K.frameHooks.push((id, f) => {
+    if (id !== 'mathworksheets-iframe') return;
+    f.addEventListener('load', () => {
       try {
         const channel = new MessageChannel();
-        activePort = channel.port1;
+        const port = channel.port1;
+        activePort = port;
 
-        activePort.onmessage = (event) => {
+        port.onmessage = event => {
           if (event.data && event.data.type === 'tabData') {
+            if (K.isFrameActive && !K.isFrameActive(f)) return;
             const reportedUrl = event.data.url;
 
             if (document.activeElement === K.tbInput) return;
@@ -446,15 +441,16 @@ export function init(K) {
           }
         };
 
-        if (mathworksIframe.contentWindow) {
-          mathworksIframe.contentWindow.postMessage('init-port', '*', [channel.port2]);
+        if (f.contentWindow) {
+          f.contentWindow.postMessage('init-port', '*', [channel.port2]);
         }
       } catch (e) {
       }
     });
-  }
+  });
 
   window.addEventListener('message', (event) => {
+    if (K.isActiveSource && !K.isActiveSource(event.source)) return;
     if (event.data && typeof event.data === 'string') {
       const data = event.data.trim();
       if (
@@ -536,4 +532,4 @@ export function init(K) {
   });
 
   setInterval(autoRefreshActivePage, 200000);
-}
+  }
