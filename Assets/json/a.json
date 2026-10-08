@@ -5,6 +5,13 @@
     "image": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQFTk57Cdso9HE-k300t2yIHaccKcusaMZrquMcbeOXcQ&s"
   },
   {
+    "title": "DeepAI",
+    "description": "",
+    "category": "Cloud",
+    "url": "${static}https://deepai.org/chat",
+    "image": "https://play-lh.googleusercontent.com/65PbclRYL2JEh4WKHgRAoHw-IP446aam-RLvi3w0xQewSrGjzFdxZ0GfZ8heN2KomudJ8Wef81gjkoHLxvK7"
+  },
+  {
     "title": "Webtoon",
     "description": "",
     "category": "Entertainment",
