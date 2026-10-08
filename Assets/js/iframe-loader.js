@@ -157,5 +157,5 @@ export function init(K) {
     }
   };
 
-  K.$(K.MUSIC_IFRAME_ID)?.addEventListener('load', () => K.renderMiniPlayer?.(null));
+  K.frameHooks.push((id, f) => { if (id === K.MUSIC_IFRAME_ID) f.addEventListener('load', () => K.renderMiniPlayer?.(null)); });
 }
