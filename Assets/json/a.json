@@ -25,4 +25,11 @@
     "url": "${static}https://tubi.tv/",
     "image": "https://play-lh.googleusercontent.com/JcI8o5IHBMbNZ3tNE88Xnw8nwZYMZghNRTJ8JaiU_jXA4J2ShN1kybxOColfQW5UeRyykv3AFL6TcrmHGTRL9g"
   },
+  {
+    "title": "Soundcloud",
+    "description": "",
+    "category": "Entertainment",
+    "url": "${static}https://soundcloud.com/",
+    "image": "https://play-lh.googleusercontent.com/pdTFc9Tc8qMXBbb0BpL7gwTK0-7te3YvKxPtuYmTfEhx8GgGF7U_gXZa1p9NGvCKpu0"
+  }
 ]
