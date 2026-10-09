@@ -561,6 +561,11 @@
     "category": "Multiplayer"
   },
   {
+    "title": "Ships3D",
+    "category": "Multiplayer"
+    "url": "${static}https://yp3d.com/ships3d/"
+  },
+  {
     "title": "Suika Watermelon",
     "category": "Puzzle"
   },
