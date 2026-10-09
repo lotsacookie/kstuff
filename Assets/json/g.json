@@ -520,10 +520,6 @@
     "category": "Arcade"
   },
   {
-    "title": "Ships 3D",
-    "category": "Multiplayer"
-  },
-  {
     "title": "Slither.io",
     "category": "Multiplayer",
     "url": "${static}https://slither.io"
@@ -561,7 +557,7 @@
     "category": "Multiplayer"
   },
   {
-    "title": "Ships3D",
+    "title": "Ships 3D",
     "category": "Multiplayer"
     "url": "${static}https://yp3d.com/ships3d/"
   },
