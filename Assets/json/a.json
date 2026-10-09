@@ -17,5 +17,12 @@
     "category": "Entertainment",
     "url": "${static}https://webtoons.com/",
     "image": "https://play-lh.googleusercontent.com/he2lEwx_2GRMBKxpN78dcnwbtTntaOOvUlnBpPJ0G5xXBetmzkdXgYuu_6xqwMTrjlYMb74NW1bb5RUwvp2pmQ"
-  }
+  },
+  {
+    "title": "Tubi",
+    "description": "",
+    "category": "Entertainment",
+    "url": "${static}https://tubi.tv/",
+    "image": "https://play-lh.googleusercontent.com/JcI8o5IHBMbNZ3tNE88Xnw8nwZYMZghNRTJ8JaiU_jXA4J2ShN1kybxOColfQW5UeRyykv3AFL6TcrmHGTRL9g"
+  },
 ]
