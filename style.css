@@ -35,6 +35,14 @@
 
 body {
     font-family: 'Segoe UI', system-ui, sans-serif;
+    /* grid pattern. The body never scrolls (height 100vh, overflow hidden), so the old
+       "background-attachment: fixed" was not needed and made every repaint more expensive. */
+    background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text-color) 7%, transparent), transparent 70%),
+        linear-gradient(to right, rgba(128, 128, 128, 0.045) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(128, 128, 128, 0.045) 1px, transparent 1px);
+    background-size: 100% 100%, 44px 44px, 44px 44px;
+    background-position: 0 0;
     color: var(--text-color);
     height: 100vh;
     overflow: hidden;
@@ -2317,20 +2325,6 @@ iframe.sg-frame-hidden {
     display: none !important;
 }
 
-body::after {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    will-change: transform;
-    background-image:
-        radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text-color) 7%, transparent), transparent 70%),
-        linear-gradient(to right, rgba(128, 128, 128, 0.045) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(128, 128, 128, 0.045) 1px, transparent 1px);
-    background-size: 100% 100%, 44px 44px, 44px 44px;
-}
-
 .learning-header,
 .learning-footer,
 #teachertouchbar,
@@ -2341,7 +2335,19 @@ body.floating-on .learning-footer .footer-item {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }
-.modal-overlay { background: rgba(0, 0, 0, 0.62); }
-body.floating-on .learning-footer .footer-item { background: color-mix(in srgb, var(--nav-bg) 88%, transparent); }
-.footer-item { contain: layout paint style; }
-.round-btn { transition: scale 0.28s var(--ease) !important; }
+
+.modal-overlay {
+    background: rgba(0, 0, 0, 0.62);
+}
+
+body.floating-on .learning-footer .footer-item {
+    background: color-mix(in srgb, var(--nav-bg) 88%, transparent);
+}
+
+.footer-item {
+    contain: layout paint style;
+}
+
+.round-btn {
+    transition: scale 0.28s var(--ease) !important;
+}
