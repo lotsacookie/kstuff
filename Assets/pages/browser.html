@@ -12,6 +12,7 @@
     <meta property="og:description" content="Study.com is a trusted educational resource for K–12 students. Providing interactive worksheets, practice questions, and study guides." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://unpkg.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">    <link href="https://fonts.googleapis.com/css2?family=Sixtyfour&display=swap" rel="stylesheet">    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&display=swap" rel="stylesheet">    <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
     <script src="js/b-init.js"></script>
     <style>
@@ -58,7 +59,25 @@ html, body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: background 0.3s ease, color 0.3s ease;
+    transition: background 0.3s ease, color 0.3s ease, opacity 0.25s ease;
+}
+
+/* Hold the page invisible until icons/fonts/Halloween theme are in, then fade in once. */
+html:not(.ready) body {
+    opacity: 0;
+    animation: sg-failsafe 0.01s linear 2.4s forwards;
+}
+html:not(.ready) body * {
+    animation-play-state: paused !important;
+}
+@keyframes sg-failsafe {
+    to { opacity: 1; }
+}
+
+.library-search-container,
+.changelog {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 .campus-viewport {
@@ -87,7 +106,6 @@ html, body {
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--line-strong) transparent;
-    animation: fadeIn 0.4s ease;
 }
 
 .library-home-page::before,
@@ -198,8 +216,8 @@ html, body {
     opacity: 0;
     transform: scale(0.2) rotate(-200deg);
     animation:
-        logo-appear 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards,
-        logo-glow 4s ease-in-out 1.2s infinite;
+        logo-appear 1s cubic-bezier(0.16, 1, 0.3, 1) 0.1s forwards;
+    filter: drop-shadow(0 0 6px color-mix(in srgb, var(--text) 40%, transparent));
 }
 
 .logo-base {
@@ -283,7 +301,7 @@ html, body {
     -webkit-text-fill-color: transparent;
     animation:
         letter-slide-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i) * 0.06s + 0.05s) forwards,
-        letter-shine 5s ease-in-out calc(var(--i) * 0.07s + 1.3s) infinite;
+        letter-shine 5s ease-in-out calc(var(--i) * 0.07s + 1.3s) 1;
 }
 
 @keyframes letter-slide-in {
@@ -349,7 +367,7 @@ html, body {
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    animation: border-spin 3.5s linear infinite;
+    animation: border-spin 3.5s steps(70, end) infinite;
     pointer-events: none;
     opacity: 0.85;
 }
@@ -641,7 +659,6 @@ html, body {
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
     overflow: hidden;
-    animation: fadeIn 0.5s ease;
 }
 
 .changelog[hidden] {
