@@ -62,6 +62,7 @@ export function init(K) {
     miniArtist.textContent = '';
     miniCover.removeAttribute('src');
     miniCover.classList.add('no-art');
+    miniToggle.dataset.icon = 'play';
     miniToggle.innerHTML = MINI_ICONS.play;
     miniToggle.disabled = true;
     miniPrev.disabled = true;
@@ -106,7 +107,8 @@ export function init(K) {
       miniCover.classList.add('no-art');
     }
 
-    miniToggle.innerHTML = state.status === 'playing' ? MINI_ICONS.pause : MINI_ICONS.play;
+    const icon = state.status === 'playing' ? 'pause' : 'play';
+    if (miniToggle.dataset.icon !== icon) { miniToggle.dataset.icon = icon; miniToggle.innerHTML = MINI_ICONS[icon]; }
     miniToggle.disabled = state.status === 'loading' || state.status === 'error';
     miniPrev.disabled = !state.hasPrev;
     miniNext.disabled = !state.hasNext;
