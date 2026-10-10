@@ -38,6 +38,15 @@ function initApp() {
 
   async function loadModule(name) {
     try {
+      const sg = window.singularity;
+      if (sg && sg.has(`${MODULE_DIR}/${name}.js`)) {
+        try {
+          return await sg.module(name);
+        } catch (err) {
+          console.warn('bundled module failed, falling back to network:', name, err);
+        }
+      }
+
       const sha = await getRepoSha();
       const candidates = [];
       if (sha) candidates.push(`https://cdn.jsdelivr.net/gh/${MAIN_REPO}@${sha}/${MODULE_DIR}/${name}.js`);
