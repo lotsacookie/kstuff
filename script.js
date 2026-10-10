@@ -3,7 +3,7 @@ function initApp() {
   const MODULE_DIR = 'Assets/js';
   const SHA_FETCH_TIMEOUT = 6000;
   const IMPORT_TIMEOUT = 10000;
-  const MODULE_NAMES = ['core', 'theme-settings', 'auth-backend', 'iframe-loader', 'game-sources', 'resource-grids', 'music-player', 'navigation', 'tabs', 'ui-extras'];
+  const MODULE_NAMES = ['core', 'live-json', 'theme-settings', 'auth-backend', 'iframe-loader', 'game-sources', 'resource-grids', 'music-player', 'navigation', 'tabs', 'ui-extras'];
 
   let shaPromise = null;
 
@@ -38,6 +38,8 @@ function initApp() {
 
   async function loadModule(name) {
     try {
+      // Fast path: the singularity bundle already holds every module, so
+      // import it from memory (blob URL) with no GitHub API call and no CDN trip.
       const sg = window.singularity;
       if (sg && sg.has(`${MODULE_DIR}/${name}.js`)) {
         try {
