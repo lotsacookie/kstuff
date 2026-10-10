@@ -84,11 +84,11 @@ export function init(K) {
           if (settled) return;
           settled = true;
           clearTimeout(f.__kShowTimer);
+          window.removeEventListener('message', onReady);
           if (!stale() && !pageIsHidden(f)) {
             f.style.display = 'block';
             K.toggleLoader(false);
           }
-          window.removeEventListener('message', onReady);
           done();
         };
         const onReady = e => {
@@ -102,7 +102,6 @@ export function init(K) {
           if (!stale() && id === 'studyhall-iframe' && K.currentUser) {
             try { f.contentWindow?.postMessage({ type: 'set_user', username: K.currentUser.username }, '*'); } catch {}
           }
-          // wait (briefly) for the page to say its fonts/icons are ready
           clearTimeout(f.__kShowTimer);
           f.__kShowTimer = setTimeout(finish, 900);
         };
@@ -164,6 +163,4 @@ export function init(K) {
       return false;
     }
   };
-
-  K.frameHooks.push((id, f) => { if (id === K.MUSIC_IFRAME_ID) f.addEventListener('load', () => K.renderMiniPlayer?.(null)); });
 }
