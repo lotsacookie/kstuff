@@ -1,30 +1,39 @@
 (function () {
     if (new Date().getMonth() !== 9) return;
-    var key = 'kstuff_gh_Assets/js/holiday.js';
-    var api = 'https://api.github.com/repos/lotsacookie/kstuff/contents/Assets/js/holiday.js?ref=main';
-    function decode(b64) {
-        var bin = atob(b64.replace(/\s/g, ''));
-        var bytes = new Uint8Array(bin.length);
-        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        return new TextDecoder().decode(bytes);
-    }
+    var PATH = 'Assets/js/holiday.js';
+    var KEY = 'kstuff_hw_js_v1';
+
     function run(src) {
         var s = document.createElement('script');
         s.textContent = src;
-        document.head.appendChild(s);
+        (document.head || document.documentElement).appendChild(s);
+        s.remove();
     }
-    function useCache() {
+    function bundled() {
         try {
-            var cached = JSON.parse(localStorage.getItem(key));
-            if (cached && cached.text) run(cached.text);
+            var sg = window.parent && window.parent !== window && window.parent.singularity;
+            if (sg && sg.has(PATH)) return sg.text(PATH);
         } catch (e) {}
+        return null;
     }
-    fetch(api, { headers: { Accept: 'application/vnd.github+json' } })
-        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-        .then(function (d) {
-            var text = decode(d.content);
-            localStorage.setItem(key, JSON.stringify({ sha: d.sha, text: text }));
-            run(text);
+    function readCache() { try { return localStorage.getItem(KEY) || ''; } catch (e) { return ''; } }
+    function writeCache(t) { try { localStorage.setItem(KEY, t); } catch (e) {} }
+
+    var src = bundled();
+    if (src) {
+        run(src);
+        if (src !== readCache()) writeCache(src);
+        return;
+    }
+
+    var cached = readCache();
+    if (cached) run(cached);
+
+    fetch('https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/' + PATH)
+        .then(function (r) { if (!r.ok) throw new Error(r.status); return r.text(); })
+        .then(function (t) {
+            writeCache(t);
+            if (!cached) run(t);
         })
-        .catch(useCache);
+        .catch(function () {});
 })();
