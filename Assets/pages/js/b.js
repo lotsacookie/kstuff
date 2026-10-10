@@ -65,14 +65,25 @@ const examCancelBtn = document.getElementById('exam-cancel-btn');
 let currentModalCallback = null;
 
 async function fetchLatestQuote() {
+    const KEY = 'kstuff_messages_cache_v1';
+    const show = list => {
+        if (!Array.isArray(list) || !list.length) return false;
+        cachedQuote = `"${list[Math.floor(Math.random() * list.length)]}"`;
+        document.querySelectorAll('.library-home-quote').forEach(el => { el.textContent = cachedQuote; });
+        return true;
+    };
     try {
-        const commitData = await (await fetch('https://api.github.com/repos/lotsacookie/kstuff/commits/main')).json();
-        const messages = await (await fetch(`https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@${commitData.sha || 'main'}/Assets/json/messages.json`)).json();
-        
-        if (Array.isArray(messages) && messages.length > 0) {
-            cachedQuote = `"${messages[Math.floor(Math.random() * messages.length)]}"`;
-            document.querySelectorAll('.library-home-quote').forEach(el => el.textContent = cachedQuote);
-        }
+        const sg = window.parent && window.parent !== window && window.parent.singularity;
+        if (sg && sg.has('Assets/json/messages.json') && show(sg.json('Assets/json/messages.json'))) return;
+    } catch (e) {}
+    let shown = false;
+    try { shown = show(JSON.parse(localStorage.getItem(KEY))); } catch (e) {}
+    try {
+        const r = await fetch('https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/messages.json');
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const list = await r.json();
+        try { localStorage.setItem(KEY, JSON.stringify(list)); } catch (e) {}
+        if (!shown) show(list);
     } catch (err) {
         console.warn('Could not load random quote:', err);
     }
