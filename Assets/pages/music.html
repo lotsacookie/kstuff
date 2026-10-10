@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
 <style>
@@ -13,6 +13,7 @@
     font-family: "Comfortaa", sans-serif !important;
     font-weight: bold !important;
     -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
     -webkit-user-select: none;
     user-select: none;
 }
@@ -21,7 +22,7 @@
     --bg: #1a1216;
     --text: #ffb8d9;
     --card: rgba(255, 255, 255, 0.06);
-    --nav: rgba(26, 18, 22, 0.85);
+    --nav: rgba(26, 18, 22, 0.94);
 
     --hover: color-mix(in srgb, var(--text) 14%, transparent);
     --hover-strong: color-mix(in srgb, var(--text) 24%, transparent);
@@ -38,11 +39,11 @@ body:has(.audio-dock.visible) { --footer-h: 96px; }
 
 body {
     background-color: var(--bg);
+    /* no background-attachment: fixed (it forces a full repaint on every frame) */
     background-image:
         linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
         linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
     background-size: 40px 40px;
-    background-attachment: fixed;
     color: var(--text);
     min-height: 100vh;
     overflow-x: hidden;
@@ -67,9 +68,9 @@ button { font: inherit; color: inherit; }
     gap: 12px;
     padding: 0 16px;
     background: var(--nav);
-    backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--border);
 }
+.mob-title { display: none; }
 
 .round-btn {
     width: 48px;
@@ -142,7 +143,6 @@ button { font: inherit; color: inherit; }
     margin: 8px 0 8px 8px;
     border-radius: 10px;
     background: var(--nav);
-    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     overflow: hidden;
     transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
@@ -401,7 +401,8 @@ main {
 .pl-cover:hover .pl-cover-edit { opacity: 1; }
 .pl-info h1 { font-size: clamp(2rem, 6vw, 4rem); line-height: 1.1; margin: 8px 0; word-break: break-word; }
 .pl-info p { color: var(--muted); }
-.pl-actions { display: flex; align-items: center; gap: 12px; padding: 8px 8px 16px; }
+.pl-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 12px; padding: 8px 8px 16px; }
+.pl-back { display: none; }
 .play-big {
     width: 56px;
     height: 56px;
@@ -428,6 +429,7 @@ main {
     transition: border-color 0.15s;
 }
 .ghost-btn:hover { border-color: var(--text); }
+.ghost-btn.small { height: 32px; padding: 0 14px; font-size: 0.85rem; }
 
 .row {
     display: grid;
@@ -484,9 +486,10 @@ main {
 }
 body.queue-open .lyrics-view { right: 376px; }
 
-.lyrics-head { flex: none; padding: 22px 32px 0; }
+.lyrics-head { flex: none; padding: 22px 32px 0; position: relative; }
 .lyrics-title { font-size: 1.1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lyrics-artist { margin-top: 4px; font-size: 0.9rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lyrics-close { display: none; position: absolute; top: 8px; right: 8px; }
 
 .lyrics-scroll {
     flex: 1;
@@ -544,11 +547,11 @@ body.queue-open .lyrics-view { right: 376px; }
     border-radius: 10px;
     overflow: hidden;
     background: var(--nav);
-    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
 }
 .queue-head { flex: none; display: flex; align-items: center; justify-content: space-between; padding: 12px 8px 8px 20px; }
 .queue-head h3 { font-size: 1.2rem; }
+.queue-head-r { display: flex; align-items: center; gap: 6px; }
 .queue-body {
     flex: 1;
     overflow-y: auto;
@@ -573,6 +576,25 @@ body.queue-open .lyrics-view { right: 376px; }
 .q-text { min-width: 0; flex: 1; }
 .q-title, .q-artist { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .q-artist { margin-top: 3px; font-size: 0.85rem; color: var(--muted); }
+.q-x {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, color 0.15s;
+}
+.q-row:hover .q-x { opacity: 1; }
+.q-x:hover { color: var(--text); }
+.q-row.now .q-x { display: none; }
+@media (hover: none) { .q-x { opacity: 1; } }
 
 .audio-dock {
     position: fixed;
@@ -587,11 +609,12 @@ body.queue-open .lyrics-view { right: 376px; }
     gap: 20px;
     padding: 0 20px;
     background: var(--nav);
-    backdrop-filter: blur(12px);
     border-top: 1px solid var(--border);
     box-shadow: 0 -8px 25px rgba(0, 0, 0, 0.5);
 }
 .audio-dock.visible { display: grid; }
+
+.np-collapse { display: none; }
 
 .now-playing { display: flex; align-items: center; gap: 14px; min-width: 0; }
 .now-cover { width: 64px; height: 64px; flex: none; border-radius: 6px; object-fit: cover; background: var(--card); }
@@ -746,35 +769,273 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
 .modal-actions button:hover { transform: scale(1.04); }
 .modal-actions .btn-primary { width: auto; border-radius: 500px; background: var(--text); color: var(--bg); }
 
+.ctx-scrim { position: fixed; inset: 0; z-index: 2000; background: transparent; }
+.ctx-menu {
+    position: fixed;
+    z-index: 2001;
+    min-width: 230px;
+    max-width: min(330px, 92vw);
+    max-height: 80vh;
+    overflow-y: auto;
+    padding: 6px;
+    border-radius: 10px;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.65);
+    scrollbar-width: thin;
+}
+.ctx-head { display: flex; align-items: center; gap: 12px; padding: 8px 10px 12px; margin-bottom: 6px; border-bottom: 1px solid var(--border); }
+.ctx-head img { width: 44px; height: 44px; border-radius: 6px; object-fit: cover; background: var(--hover); flex: none; }
+.ctx-head-t { min-width: 0; }
+.ctx-head-t div { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ctx-head-t div + div { margin-top: 3px; font-size: 0.8rem; color: var(--muted); }
+.ctx-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text);
+    font-size: 0.95rem;
+    text-align: left;
+    cursor: pointer;
+}
+.ctx-item:hover { background: var(--hover); }
+.ctx-item.danger { color: #ff7b8f; }
+.ctx-sep { height: 1px; margin: 6px 4px; background: var(--border); }
+
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(var(--footer-h) + 18px);
+    z-index: 3000;
+    max-width: 90vw;
+    padding: 11px 20px;
+    border-radius: 500px;
+    background: var(--text);
+    color: var(--bg);
+    font-size: 0.9rem;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.55);
+    transform: translate(-50%, 12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s, transform 0.2s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.mob-nav, .mob-only { display: none; }
+
 @media (max-width: 900px) {
-    .audio-dock { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; }
-    .player-right > :not(.keep-mobile) { display: none; }
-    body.queue-open .lyrics-view { right: 8px; }
-    .queue-panel { width: min(360px, calc(100vw - 16px)); }
+    body:not(.mobile) .audio-dock { grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr) auto; }
+    body:not(.mobile) .player-right > :not(.keep-mobile) { display: none; }
+    body:not(.mobile).queue-open .lyrics-view { right: 8px; }
+    body:not(.mobile) .queue-panel { width: min(360px, calc(100vw - 16px)); }
 }
 
-@media (max-width: 650px) {
-    :root { --side: 88px; }
-    body:has(.audio-dock.visible) { --footer-h: 224px; }
-    .audio-dock { grid-template-columns: 1fr; height: 224px; gap: 6px; padding: 10px 14px; align-content: center; }
-    .player-right { justify-content: center; }
-    .now-cover { width: 48px; height: 48px; }
-    .transport { gap: 6px; }
-    .pl-cover { width: 160px; height: 160px; }
-    .row { grid-template-columns: 28px 44px 1fr 40px; }
-    .row-dur { display: none; }
-    #volumeBar { width: 80px; }
-    .lyrics-head { padding: 16px 20px 0; }
-    .lyrics-scroll { padding: 0 20px; }
+body.mobile {
+    --header-h: 56px;
+    --nav-h: calc(58px + env(safe-area-inset-bottom, 0px));
+    --footer-h: var(--nav-h);
+    --tile-size: 140px;
 }
+body.mobile:has(.audio-dock.visible) { --footer-h: calc(var(--nav-h) + 76px); }
+
+body.mobile .app-header { padding: 0 14px; gap: 10px; }
+body.mobile #homeBtn,
+body.mobile .app-header > div[aria-hidden] { display: none; }
+body.mobile .mob-title { display: block; flex: 1; font-size: 1.5rem; }
+body.mobile[data-tab="search"] .mob-title { display: none; }
+body.mobile:not([data-tab="search"]) .search-container { display: none; }
+body.mobile .search-container { width: 100%; height: 44px; margin: 0; }
+
+body.mobile main { margin: var(--header-h) 12px calc(var(--footer-h) + 16px) 12px; padding-top: 4px; }
+body.mobile .shelf-head { margin: 18px 2px 2px; }
+body.mobile .shelf-head h2 { font-size: 1.25rem; }
+body.mobile .results-list { grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 12px; }
+body.mobile .card { padding: 10px; }
+
+body.mobile .sidebar {
+    display: none;
+    top: var(--header-h);
+    left: 0;
+    right: 0;
+    bottom: var(--footer-h);
+    width: auto;
+    margin: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    z-index: 10;
+}
+body.mobile.mob-lib-open .sidebar { display: flex; }
+body.mobile.mob-lib-open main { display: none; }
+body.mobile .lib-head { height: 52px; padding: 0 14px; }
+body.mobile .lib-toggle { pointer-events: none; color: var(--text); padding: 0; }
+body.mobile .lib-toggle svg { display: none; }
+body.mobile .lib-toggle span { display: block !important; font-size: 1.3rem; }
+body.mobile .lib-add { display: flex !important; }
+body.mobile .lib-text { display: block !important; }
+body.mobile .lib-list { padding: 0 10px 8px; align-items: stretch !important; }
+body.mobile .lib-item { width: 100% !important; padding: 8px 6px !important; }
+
+body.mobile .pl-head { flex-direction: column; align-items: center; text-align: center; gap: 14px; padding: 8px 4px 12px; }
+body.mobile .pl-cover { width: 190px; height: 190px; }
+body.mobile .pl-info h1 { font-size: 1.9rem; }
+body.mobile .pl-back { display: flex; align-self: flex-start; }
+body.mobile .pl-actions { justify-content: center; padding: 4px 4px 14px; }
+body.mobile .row { grid-template-columns: 28px 44px 1fr 40px; padding: 8px 6px; gap: 10px; }
+body.mobile .row-dur { display: none; }
+body.mobile .mob-only { display: flex; }
+
+body.mobile .mob-nav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: var(--nav-h);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    z-index: 35;
+    background: linear-gradient(to top, var(--bg) 72%, transparent);
+}
+body.mobile .mob-nav button {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    border: 0;
+    background: transparent;
+    color: var(--muted);
+    font-size: 0.7rem;
+    cursor: pointer;
+}
+body.mobile .mob-nav button.on { color: var(--text); }
+body.mobile.np-open .mob-nav { display: none; }
+
+body.mobile .audio-dock {
+    left: 8px;
+    right: 8px;
+    bottom: calc(var(--nav-h) + 6px);
+    height: 62px;
+    padding: 0 8px;
+    gap: 8px;
+    grid-template-columns: minmax(0, 1fr) auto;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: color-mix(in srgb, var(--bg) 90%, var(--text) 10%);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+    overflow: hidden;
+}
+body.mobile .audio-dock::after {
+    content: "";
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: 3px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--text) var(--mp, 0%), var(--hover-strong) var(--mp, 0%));
+}
+body.mobile .now-playing { cursor: pointer; gap: 10px; }
+body.mobile .now-cover { width: 44px; height: 44px; }
+body.mobile #nowPlayingTitle { font-size: 0.95rem; }
+body.mobile #nowPlayingArtist { margin-top: 2px; font-size: 0.78rem; }
+body.mobile .player-center,
+body.mobile .transport { display: contents; }
+body.mobile .transport > :not(#playPauseBtn),
+body.mobile .seek-row,
+body.mobile .player-right,
+body.mobile #addToPlaylistBtn { display: none; }
+body.mobile #playPauseBtn { width: 44px; height: 44px; background: transparent; color: var(--text); }
+body.mobile #playPauseBtn:hover { color: var(--text); }
+
+body.mobile .audio-dock.expanded {
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    height: auto;
+    padding: 58px 24px calc(18px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    gap: 14px;
+    border: 0;
+    border-radius: 0;
+    z-index: 40;
+    overflow-y: auto;
+    background: linear-gradient(180deg, var(--np-color, var(--hover-strong)) 0%, var(--bg) 88%);
+}
+body.mobile .audio-dock.expanded::after { display: none; }
+body.mobile .audio-dock.expanded .np-collapse { display: flex; position: absolute; top: 8px; left: 8px; }
+body.mobile .audio-dock.expanded .now-playing {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 22px;
+    align-items: center;
+    margin-top: 6px;
+    flex: none;
+    cursor: default;
+}
+body.mobile .audio-dock.expanded .now-cover {
+    grid-column: 1 / -1;
+    width: min(100%, 50vh);
+    height: auto;
+    aspect-ratio: 1;
+    justify-self: center;
+    border-radius: 10px;
+    box-shadow: 0 18px 44px rgba(0, 0, 0, 0.55);
+}
+body.mobile .audio-dock.expanded #nowPlayingTitle { font-size: 1.4rem; }
+body.mobile .audio-dock.expanded #nowPlayingArtist { font-size: 1rem; }
+body.mobile .audio-dock.expanded #addToPlaylistBtn { display: flex; }
+body.mobile .audio-dock.expanded .player-center { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+body.mobile .audio-dock.expanded .transport { display: flex; justify-content: space-between; width: 100%; }
+body.mobile .audio-dock.expanded .transport > :not(#playPauseBtn) { display: flex; }
+body.mobile .audio-dock.expanded .seek-row { display: flex; order: -1; }
+body.mobile .audio-dock.expanded #playPauseBtn { width: 66px; height: 66px; background: var(--text); color: var(--bg); }
+body.mobile .audio-dock.expanded #playPauseBtn:hover { color: var(--bg); }
+body.mobile .audio-dock.expanded .player-right { display: flex; justify-content: space-between; padding: 0 6px; }
+body.mobile .audio-dock.expanded .player-right > :not(.keep-mobile) { display: none; }
+
+body.mobile .lyrics-view,
+body.mobile.queue-open .lyrics-view { top: 0; left: 0; right: 0; bottom: 0; border: 0; border-radius: 0; z-index: 50; }
+body.mobile .lyrics-head { padding: 54px 22px 0; }
+body.mobile .lyrics-scroll { padding: 0 22px; }
+body.mobile .lyrics-close { display: flex; }
+body.mobile .queue-panel { top: 0; left: 0; right: 0; bottom: 0; width: auto; border: 0; border-radius: 0; z-index: 51; }
+body.mobile .queue-head { padding-top: 14px; }
+
+body.mobile .ctx-scrim { background: rgba(0, 0, 0, 0.55); }
+body.mobile .ctx-menu {
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    bottom: 0 !important;
+    max-width: none;
+    max-height: 78vh;
+    padding: 8px 8px calc(10px + env(safe-area-inset-bottom, 0px));
+    border-radius: 16px 16px 0 0;
+    animation: sheet-up 0.2s ease-out;
+}
+body.mobile .ctx-item { padding: 14px 14px; font-size: 1rem; }
+@keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 </style>
 </head>
 <body>
+<script>document.body.classList.toggle('mobile', window.matchMedia('(max-width: 760px)').matches);</script>
 
 <header class="app-header">
     <button id="homeBtn" class="round-btn" title="Home">
         <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
     </button>
+    <div class="mob-title" id="mobTitle">Home</div>
     <div class="search-container">
         <input type="text" id="searchInput" placeholder="What do you want to play?">
         <button id="searchBtn" class="btn-primary" title="Search">
@@ -813,6 +1074,9 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
 
 <section class="lyrics-view" id="lyricsView" hidden>
     <div class="lyrics-head">
+        <button class="control-button lyrics-close" id="lyricsCloseBtn" title="Close lyrics">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+        </button>
         <div class="lyrics-title" id="lyricsTitle"></div>
         <div class="lyrics-artist" id="lyricsArtist"></div>
     </div>
@@ -825,11 +1089,22 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
 <aside class="queue-panel" id="queuePanel" hidden>
     <div class="queue-head">
         <h3>Queue</h3>
-        <button class="control-button" id="queueCloseBtn" title="Close queue">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
-        </button>
+        <div class="queue-head-r">
+            <button class="ghost-btn small" id="queueClearBtn" type="button">Clear</button>
+            <button class="control-button" id="queueCloseBtn" title="Close queue">
+                <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+            </button>
+        </div>
     </div>
-    <div class="queue-body" id="queueBody"></div>
+    <div class="queue-body" id="queueBody">
+        <div class="queue-label" id="qlNow">Now playing</div>
+        <div id="qNow"></div>
+        <div class="queue-label" id="qlUser">Next in queue</div>
+        <div id="qUser"></div>
+        <div class="queue-label" id="qlNext">Next up</div>
+        <div id="qNext"></div>
+        <div class="queue-note" id="qNote" hidden></div>
+    </div>
 </aside>
 
 <input type="file" id="coverInput" accept="image/*" hidden>
@@ -846,7 +1121,26 @@ input[type="range"]:hover::-webkit-slider-thumb, input[type="range"]:active::-we
     </div>
 </div>
 
+<div class="ctx-scrim" id="ctxScrim" hidden></div>
+<div class="ctx-menu" id="ctxMenu" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<nav class="mob-nav" id="mobNav">
+    <button type="button" data-tab="home" class="on">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>Home
+    </button>
+    <button type="button" data-tab="search">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/></svg>Search
+    </button>
+    <button type="button" data-tab="library">
+        <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><path d="M4 22V2h2v20H4zm5 0V2h2v20H9zm4.6-18.3l1.9-.5 5.2 19.3-1.9.5-5.2-19.3z"/></svg>Your Library
+    </button>
+</nav>
+
 <div class="audio-dock" id="audioDock">
+    <button class="control-button np-collapse" id="npCollapseBtn" title="Minimize">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z"/></svg>
+    </button>
     <div class="now-playing">
         <img id="nowPlayingCover" class="now-cover" alt="">
         <div class="now-text">
