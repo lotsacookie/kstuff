@@ -2,6 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <script>try{document.documentElement.style.background=localStorage.getItem('kstuff_bg')||'#000'}catch(e){}</script>
+    <script>(()=>{try{if(new Date().getMonth()!==9)return;document.documentElement.classList.add('halloween-season');const c=localStorage.getItem('kstuff_hw_css_v1');if(c){const s=document.createElement('style');s.id='halloween-style';s.textContent=c;document.head.appendChild(s)}}catch(e){}})();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study.com - Math, Language Arts, Science</title>
     <meta property="og:title" content="Study.com | K-12 Online Learning and Worksheet Portal" />
@@ -47,9 +49,7 @@ function legacy(){
       if(m.hash===cached.hash){sessionStorage.removeItem('sgR');return}
       const code=await bundle(m.hash);if(!code)return;
       await dbSet({hash:m.hash,code});
-      const l=document.getElementById('loading-screen');
-      if(l&&!l.classList.contains('hidden')&&!sessionStorage.sgR){sessionStorage.sgR=1;window.__sgReloading=true;location.reload()}
-      else window.dispatchEvent(new Event('singularity:update'));
+      window.dispatchEvent(new Event('singularity:update'));
     }).catch(()=>{});
     return;
   }
@@ -131,7 +131,7 @@ function legacy(){
         <div class="ld-status" id="ld-status">Loading</div>
     </div>
     
-    <script>window.addEventListener('load',async()=>{await window.kAssetsP;if(window.kModulesStarted)await Promise.race([window.kReady,new Promise(res=>setTimeout(res,20000))]);if(document.fonts&&document.fonts.ready){await document.fonts.ready;}const p=window.kProgress;if(p){p.done=p.total;p.render();}await new Promise(res=>setTimeout(res,250));const l=document.getElementById('loading-screen');if(l){l.classList.add('hidden');setTimeout(()=>{document.body.style.removeProperty('--bg-color');document.body.style.removeProperty('--text-color');},600);}});</script>
+    <script>window.addEventListener('load',async()=>{await window.kAssetsP;if(window.kModulesStarted)await Promise.race([window.kReady,new Promise(res=>setTimeout(res,20000))]);if(document.fonts&&document.fonts.ready){await document.fonts.ready;}const p=window.kProgress;if(p){p.done=p.total;p.render();}await new Promise(res=>setTimeout(res,250));const l=document.getElementById('loading-screen');if(l){l.classList.add('hidden');setTimeout(()=>{document.body.style.removeProperty('--bg-color');document.body.style.removeProperty('--text-color');try{localStorage.setItem('kstuff_bg',getComputedStyle(document.body).backgroundColor)}catch(e){}},600);}});</script>
 
     <div style="display:none;" aria-hidden="true">
         <h1>Educational Resources and Online Learning Platform</h1><p>Comprehensive education platform for students, teachers, and lifelong learners. Access online courses, study materials, exam preparation resources, and interactive learning tools.</p>
