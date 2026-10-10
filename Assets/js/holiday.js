@@ -4,6 +4,9 @@
     if (new Date().getMonth() !== 9) return;
 
     var REPO = 'lotsacookie/kstuff';
+    var CSS_PATH = 'Assets/css/halloween.css';
+    var CSS_CACHE = 'kstuff_hw_css_v1';
+    var root = document.documentElement;
 
     var PUMPKIN = '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
         '<ellipse cx="21" cy="37" rx="12" ry="14" fill="#f06000"/>' +
@@ -25,32 +28,51 @@
         '  content: none !important;' +
         '}';
 
-    function decode(b64) {
-        var bin = atob(b64.replace(/\s/g, ''));
-        var bytes = new Uint8Array(bin.length);
-        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        return new TextDecoder().decode(bytes);
+    function bundled(path) {
+        var wins = [window];
+        try { if (window.parent && window.parent !== window) wins.push(window.parent); } catch (e) {}
+        for (var i = 0; i < wins.length; i++) {
+            try {
+                var sg = wins[i].singularity;
+                if (sg && sg.has(path)) return sg.text(path);
+            } catch (e) {}
+        }
+        return null;
     }
 
-    function fetchRepoFile(path) {
-        var key = 'kstuff_gh_' + path;
-        var api = 'https://api.github.com/repos/' + REPO + '/contents/' + path + '?ref=main';
-        return fetch(api, { headers: { Accept: 'application/vnd.github+json' } })
-            .then(function (res) {
-                if (!res.ok) throw new Error('GitHub API ' + res.status);
-                return res.json();
+    function readCache() { try { return localStorage.getItem(CSS_CACHE) || ''; } catch (e) { return ''; } }
+    function writeCache(css) { try { localStorage.setItem(CSS_CACHE, css); } catch (e) {} }
+
+    function applyCss(css) {
+        if (!css) return;
+        var style = document.getElementById('halloween-style');
+        if (!style) {
+            style = document.createElement('style');
+            style.id = 'halloween-style';
+            (document.head || root).appendChild(style);
+        }
+        if (style.textContent !== css) style.textContent = css;
+    }
+
+    function refreshFromNetwork(hadCss) {
+        fetch('https://cdn.jsdelivr.net/gh/' + REPO + '@main/' + CSS_PATH)
+            .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+            .then(function (css) {
+                writeCache(css);
+                if (!hadCss || css !== readCache()) applyCss(css);
             })
-            .then(function (data) {
-                var text = decode(data.content);
-                localStorage.setItem(key, JSON.stringify({ sha: data.sha, text: text }));
-                return text;
-            })
-            .catch(function (err) {
-                var cached = null;
-                try { cached = JSON.parse(localStorage.getItem(key)); } catch (e) {}
-                if (cached && cached.text) return cached.text;
-                throw err;
-            });
+            .catch(function (err) { if (!hadCss) console.error('halloween.css failed', err); });
+    }
+
+    root.classList.add('halloween-season');
+    var css = bundled(CSS_PATH);
+    if (css) {
+        applyCss(css);
+        if (css !== readCache()) writeCache(css);
+    } else {
+        css = readCache();
+        applyCss(css);
+        refreshFromNetwork(!!css);
     }
 
     function addPumpkin(el) {
@@ -67,37 +89,21 @@
         wrap.appendChild(badge);
     }
 
-    function init() {
-        document.documentElement.classList.add('halloween-season');
-
-        // browser.html already has its own background, so keep it clear
-        if (document.getElementById('library-home')) {
+    function decorate() {
+        if (document.getElementById('library-home') && !document.getElementById('halloween-no-bg')) {
             var reset = document.createElement('style');
             reset.id = 'halloween-no-bg';
             reset.textContent = NO_BACKGROUND_CSS;
             document.head.appendChild(reset);
         }
-
         ['#nav-logo', '#loading-screen .ld-logo', '#logo-wrap'].forEach(function (sel) {
             addPumpkin(document.querySelector(sel));
-        });
-
-        fetchRepoFile('Assets/css/halloween.css').then(function (css) {
-            var style = document.getElementById('halloween-style');
-            if (!style) {
-                style = document.createElement('style');
-                style.id = 'halloween-style';
-                document.head.appendChild(style);
-            }
-            style.textContent = css;
-        }).catch(function (err) {
-            console.error('halloween.css failed', err);
         });
     }
 
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', decorate);
     } else {
-        init();
+        decorate();
     }
 })();
