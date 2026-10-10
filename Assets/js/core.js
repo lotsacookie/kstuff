@@ -153,6 +153,8 @@ export function init(K) {
     if (K.scramTemplatePromise) return K.scramTemplatePromise;
 
     K.scramTemplatePromise = (async () => {
+      const sg = window.singularity;
+      if (sg && sg.has(K.SCRAM_PATH)) return sg.text(K.SCRAM_PATH);
       let sha = '';
       try {
         const data = await K.timedFetch(
@@ -281,8 +283,16 @@ export function init(K) {
     return K.fetchFromSources(path, asText, sources);
   };
 
-  K.fetchWithProxy = (path, asText = false) =>
-    K.fetchRepoFile(K.MAIN_REPO, path, asText, K.FETCH_TIMEOUT, [['', K.FETCH_TIMEOUT]]);
+  K.fetchWithProxy = (path, asText = false) => {
+    const sg = window.singularity;
+    if (sg && sg.has(path)) {
+      const t = sg.text(path);
+      if (t != null) {
+        try { return Promise.resolve(asText ? t : JSON.parse(t)); } catch {}
+      }
+    }
+    return K.fetchRepoFile(K.MAIN_REPO, path, asText, K.FETCH_TIMEOUT, [['', K.FETCH_TIMEOUT]]);
+  };
 
   K.applyCustomDropdown = selectEl => {
     if (!selectEl || (selectEl.dataset.customized && !selectEl.nextElementSibling?.classList.contains('custom-select-wrapper'))) return;
@@ -355,4 +365,4 @@ export function init(K) {
   if (!K.getStorage('kstuff_font')) K.setStorage('kstuff_font', 'Comfortaa, sans-serif');
   if (!K.getStorage('kstuff_search_engine')) K.setStorage('kstuff_search_engine', 'duckduckgo');
   if (!K.getStorage('kstuff_floating_ui')) K.setStorage('kstuff_floating_ui', 'floating-on');
-  }
+}
