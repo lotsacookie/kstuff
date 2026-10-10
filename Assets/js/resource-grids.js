@@ -434,7 +434,9 @@ export function init(K) {
     try {
       const n = await K.fetchWithProxy(p).catch(err => { console.error('rData fetch failed', p, err); return null; });
       if (!Array.isArray(n)) { if (!silent) K.toggleLoader(false); return false; }
+      if (grids[t].sig && n === grids[t].lastRaw) { if (!silent) K.toggleLoader(false); return false; }
       const sig = hashSig(JSON.stringify(n));
+      grids[t].lastRaw = n;
       if (sig === grids[t].sig) { if (!silent) K.toggleLoader(false); return false; }
       if (t === 'sciencequiz') K.rawSciencequizData = n;
       const processed = proc(n);
@@ -534,17 +536,26 @@ export function init(K) {
     const manualList = Array.isArray(manualRes) ? manualRes : [];
 
     const [zones, extras] = await Promise.all([
-      K.fetchRepoFile('freebuisness/assets', 'zones.json', false, 12000)
-        .then(json => {
+      K.fetchRepoFile('freebuisness/assets', 'zones.json', true, 12000)
+        .then(text => {
+          if (K._zonesRows && text === K._zonesText) return K._zonesRows; // unchanged: reuse
+          const json = JSON.parse(text);
           if (!Array.isArray(json)) throw new Error('zones.json is not an array');
-          return json.map(z => ({ source: 'gn-math', name: z.name, url: z.url, cover: z.cover }));
+          K._zonesText = text;
+          K._zonesSig = hashSig(text);
+          return (K._zonesRows = json.map(z => ({ source: 'gn-math', name: z.name, url: z.url, cover: z.cover })));
         })
         .catch(e => { console.error('fetchReadingCornerRaw zones failed', e); return []; }),
       K.fetchExtraGames ? K.fetchExtraGames().catch(e => { console.error('extra game sources failed', e); return []; }) : []
     ]);
 
     let sig = '';
-    try { sig = hashSig(JSON.stringify([manualList, zones, extras])); } catch {}
+    try {
+      if (manualList !== K._manualRef) { K._manualRef = manualList; K._manualSig = hashSig(JSON.stringify(manualList)); }
+      let ex = extras.length;
+      for (let i = 0; i < extras.length; i++) { const x = extras[i]; ex = (ex * 31 + (x.name || '').length * 7 + (x.url || '').length) | 0; }
+      sig = hashSig(`${K._manualSig}|${K._zonesSig || ''}|${ex}`);
+    } catch {}
     if (prevSig && sig === prevSig) return { unchanged: true, sig };
 
     const manualMap = new Map();
@@ -637,8 +648,42 @@ export function init(K) {
       : rData('sciencequiz', 'Assets/json/a.json', false, 'updating', silent));
   };
 
-  K.$('readingcorner-refresh-btn')?.addEventListener('click', () => { K.lastGridRefresh.readingcorner = Date.now(); refreshReadingCorner(); });
-  K.$('sciencequiz-refresh-btn')?.addEventListener('click', () => { K.lastGridRefresh.sciencequiz = Date.now(); rData('sciencequiz', 'Assets/json/a.json'); });
+  // Hard refresh: bypass the freshness cache, forget the "nothing changed" signature, drop images, redraw.
+  const hardRefreshGrid = async type => {
+    const grid = grids[type];
+    if (!grid || K.resourceOpenFor[type] || grid.refreshing) return false;
+    grid.refreshing = true;
+    K.liveForce = true;
+    K.toggleLoader(true, 'updating');
+    try {
+      grid.sig = '';
+      grid.lastRaw = null;
+      clearGridPool(type);
+      if (type === 'readingcorner') await refreshReadingCorner(true, 'updating');
+      else await rData('sciencequiz', 'Assets/json/a.json', true, 'updating');
+      renderGrid(type, true);
+    } finally {
+      K.liveForce = false;
+      grid.refreshing = false;
+      K.lastGridRefresh[type] = Date.now();
+      K.toggleLoader(false);
+    }
+    return true;
+  };
+  K.hardRefreshGrid = hardRefreshGrid;
+  K.$('readingcorner-refresh-btn')?.addEventListener('click', () => hardRefreshGrid('readingcorner'));
+  K.$('sciencequiz-refresh-btn')?.addEventListener('click', () => hardRefreshGrid('sciencequiz'));
+
+  // live-json.js found newer g.json / a.json: pick it up automatically
+  window.addEventListener('kstuff:live-json', e => {
+    const p = e.detail && e.detail.path;
+    const type = p === 'Assets/json/g.json' ? 'readingcorner' : p === 'Assets/json/a.json' ? 'sciencequiz' : '';
+    if (!type) return;
+    K.lastGridRefresh[type] = 0;
+    if (document.querySelector('.page.active')?.id !== type || K.resourceOpenFor[type]) return;
+    if (type === 'readingcorner') refreshReadingCorner(false, 'updating', true);
+    else rData('sciencequiz', 'Assets/json/a.json', false, 'updating', true);
+  });
 
   K.rawReadingCornerData = [];
   K.rawSciencequizData = [];
@@ -661,6 +706,7 @@ export function init(K) {
     grids.readingcorner.sig = readingResult?.sig || '';
     grids.sciencequiz.data = proc(K.rawSciencequizData);
     try { grids.sciencequiz.sig = hashSig(JSON.stringify(K.rawSciencequizData)); } catch { grids.sciencequiz.sig = ''; }
+    grids.sciencequiz.lastRaw = K.rawSciencequizData;
 
     const now = Date.now();
     K.lastGridRefresh.readingcorner = now;
@@ -676,4 +722,4 @@ export function init(K) {
     console.error('init failed:', error);
     K.toggleLoader(false);
   });
-  }
+}
