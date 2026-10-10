@@ -1,4 +1,23 @@
 (function () {
+    var root = document.documentElement;
+
+    window.__kReadyPending = true;
+    function markReady() {
+        if (root.classList.contains('ready')) return;
+        root.classList.add('ready');
+        window.__kReadySent = true;
+        try { window.parent.postMessage({ type: 'kstuff-frame-ready' }, '*'); } catch (e) {}
+    }
+    function whenSettled() {
+        var fonts = (document.fonts && document.fonts.ready) || Promise.resolve();
+        Promise.race([fonts, new Promise(function (r) { setTimeout(r, 1200); })]).then(function () {
+            requestAnimationFrame(function () { requestAnimationFrame(markReady); });
+        });
+    }
+    if (document.readyState === 'complete') whenSettled();
+    else window.addEventListener('load', whenSettled);
+    setTimeout(markReady, 2000);
+
     var logoWrap = document.getElementById('logo-wrap');
     if (logoWrap) {
         logoWrap.addEventListener('click', function () {
@@ -15,9 +34,11 @@
 
     var box = document.getElementById('changelog');
     var body = document.getElementById('changelog-body');
+    var CACHE_KEY = 'kstuff_changelog_cache_v1';
+    var BUNDLE_PATH = 'Assets/json/change-log.json';
     var sources = [
-        'https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/json/change-log.json',
-        'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/change-log.json'
+        'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/change-log.json',
+        'https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/json/change-log.json'
     ];
 
     function toText(item) {
@@ -123,6 +144,7 @@
             }
             body.appendChild(wrap);
         });
+        box.hidden = false;
     }
 
     function showStatus(text) {
@@ -131,30 +153,54 @@
         s.className = 'changelog-status';
         s.textContent = text;
         body.appendChild(s);
+        box.hidden = false;
     }
 
-    function load(index) {
+    function saveCache(entries) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(entries)); } catch (e) {} }
+    function readCache() {
+        try {
+            var c = JSON.parse(localStorage.getItem(CACHE_KEY));
+            return Array.isArray(c) && c.length ? c : null;
+        } catch (e) { return null; }
+    }
+
+    function fetchJson(url, ms) {
+        var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+        var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, ms) : 0;
+        return fetch(url, { cache: 'no-cache', signal: ctrl ? ctrl.signal : undefined })
+            .then(function (res) { if (!res.ok) throw new Error('bad status'); return res.json(); })
+            .finally(function () { clearTimeout(timer); });
+    }
+
+    function loadNetwork(index, hadContent) {
         if (index >= sources.length) {
-            showStatus('Change log unavailable');
+            if (!hadContent) showStatus('Change log unavailable');
             return;
         }
-        fetch(sources[index], { cache: 'no-cache' })
-            .then(function (res) {
-                if (!res.ok) throw new Error('bad status');
-                return res.json();
-            })
+        fetchJson(sources[index], 5000)
             .then(function (data) {
                 var entries = normalize(data);
                 if (!entries.length) throw new Error('empty');
-                render(entries);
+                saveCache(entries);
+                if (!hadContent) render(entries);
             })
             .catch(function (err) {
                 console.warn('Change log source failed:', sources[index], err);
-                load(index + 1);
+                loadNetwork(index + 1, hadContent);
             });
     }
 
-    box.hidden = false;
-    showStatus('Loading...');
-    load(0);
+    var shown = false;
+    try {
+        var sg = window.parent && window.parent !== window && window.parent.singularity;
+        if (sg && sg.has(BUNDLE_PATH)) {
+            var entries = normalize(sg.json(BUNDLE_PATH));
+            if (entries.length) { render(entries); saveCache(entries); shown = true; }
+        }
+    } catch (e) {}
+    if (!shown) {
+        var cached = readCache();
+        if (cached) { render(cached); shown = true; }
+        loadNetwork(0, shown);
+    }
 })();
