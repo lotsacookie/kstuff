@@ -73,6 +73,10 @@ export function init(K) {
 
   document.addEventListener('pointermove', e => {
     lastPointerEvent = e;
+    {
+      const o = cursorIsHand ? K.CURSOR_OFFSETS.hand : K.CURSOR_OFFSETS.arrow;
+      cursorEl.style.transform = `translate(${e.clientX - o[0]}px, ${e.clientY - o[1]}px)`;
+    }
     if (cursorSuppressed && !(e.target instanceof HTMLIFrameElement)) cursorSuppressed = false;
     if (!pointerPending) { pointerPending = true; requestAnimationFrame(onPointerFrame); }
     showCustomCursor();
@@ -405,7 +409,56 @@ export function init(K) {
 
   K.sBack?.addEventListener('click', () => { if (K.historyIndex > 0) { K.historyIndex--; loadBrowserUrl(K.history[K.historyIndex], true); } });
   K.sFwd?.addEventListener('click', () => { if (K.historyIndex < K.history.length - 1) { K.historyIndex++; loadBrowserUrl(K.history[K.historyIndex], true); } });
-  K.sReload?.addEventListener('click', () => { if (K.studyIframe) { try { K.studyIframe.contentWindow.location.reload(); } catch(e) { K.studyIframe.src = K.studyIframe.src; } } });
+  // The old handler reloaded K.studyIframe, which does not exist in this layout, so it did nothing.
+  const reloadActivePage = async () => {
+    const page = document.querySelector('.page.active');
+    if (!page || K.isNavigating) return;
+    const tId = page.id;
+    K.isNavigating = true;
+    try {
+      K.toggleLoader(true, 'loading');
+
+      // a game / app that is open inside Games or Apps
+      if (K.grids[tId] && K.resourceOpenFor[tId]) {
+        await K.openResource(K.resourceOpenFor[tId], { pageId: tId, isHistory: true });
+        return;
+      }
+
+      // Games / Apps list: re-pull the data and redraw
+      if (K.grids[tId]) {
+        await K.hardRefreshGrid(tId);
+        return;
+      }
+
+      // Home tab showing an external site through the proxy
+      const addr = (K.tbInput?.value || '').trim();
+      if (tId === 'mathworksheets' && addr && !/^(singularity|kstuff):\/\//i.test(addr)) {
+        const ifr = K.$('mathworksheets-iframe');
+        if (ifr) { await K.embedInFrame(ifr, addr); return; }
+      }
+
+      // built-in pages (home, music, tv, ai, vms, chat)
+      const info = K.iframePages[tId];
+      if (info) {
+        const f = K.$(info.id);
+        K.cancelIframeLoads(info.id);
+        K.iframeLoadFailed[info.id] = false;
+        delete K.lastIframeHtml[info.id];
+        if (info.id === K.MUSIC_IFRAME_ID) K.renderMiniPlayer?.(null); // otherwise keep-alive skips the reload
+        if (f) { f.removeAttribute('srcdoc'); f.src = 'about:blank'; }
+        await K.loadIframePage(info.id, info.path);
+        const nf = K.$(info.id);
+        if (nf) nf.style.display = 'block';
+      }
+    } catch (err) {
+      console.error('Reload failed:', err);
+    } finally {
+      K.isNavigating = false;
+      K.toggleLoader(false);
+    }
+  };
+  K.reloadActivePage = reloadActivePage;
+  K.sReload?.addEventListener('click', reloadActivePage);
   K.sHome?.addEventListener('click', () => loadBrowserUrl('singularity://home'));
 
   let activePort = null;
