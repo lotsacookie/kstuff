@@ -80,8 +80,7 @@ const sg = {
     }
     const holiday = SG_FILES['Assets/js/holiday.js'];
     if (holiday && new Date().getMonth() === 9) {
-      const go = () => { try { run(holiday); } catch (e) { console.error(e); } };
-      D.readyState === 'loading' ? D.addEventListener('DOMContentLoaded', go) : go();
+      try { run(holiday); } catch (e) { console.error(e); }
     }
     if (SG_FILES['script.js'] != null) run(SG_FILES['script.js']);
     P && P.tick && (P.tick(), P.tick());
