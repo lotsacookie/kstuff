@@ -265,6 +265,11 @@
     "category": "Rhythm"
   },
   {
+    "title": "Floating Sandbox",
+    "category": "Sandbox"
+    "url": "${static}https://lotsacookie.github.io/Floating-Sandbox-Web-Port"
+  },
+  {
     "title": "Funny Battle Simulator",
     "category": "Strategy"
   },
