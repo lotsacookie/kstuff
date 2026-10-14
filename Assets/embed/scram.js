@@ -13,6 +13,8 @@
     const REPO = "lotsacookie/Singuloxy";
     const BRANCH = "main";
     const DIST_PATH = "dist/sandstone.js";
+    const WISP_CACHE_KEY = "eg-best-wisp";
+    const WISP_CACHE_MS = 30 * 60 * 1000;
 
     const loadScript = (src) => new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -104,11 +106,6 @@
         }
     });
 
-    const PROBE_URLS = [
-        "https://www.cloudflare.com/cdn-cgi/trace",
-        "https://www.roblox.com/robots.txt"
-    ];
-
     const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error("timeout")), ms);
         promise.then(
@@ -126,59 +123,95 @@
         libcurl.events.addEventListener("libcurl_load", () => resolve(), { once: true });
     });
 
-    const probeWisp = async (url) => {
-        sandstone.libcurl.set_websocket(url);
-        const results = await Promise.allSettled(PROBE_URLS.map(async (probeUrl) => {
-            const res = await withTimeout(sandstone.libcurl.fetch(probeUrl), 8000);
-            try { await res.body?.cancel(); } catch (e) {}
-            return true;
+    const readCache = () => {
+        try {
+            const raw = JSON.parse(localStorage.getItem(WISP_CACHE_KEY) || "null");
+            if (!raw || Date.now() - raw.time > WISP_CACHE_MS) return null;
+            return raw;
+        } catch (e) {
+            return null;
+        }
+    };
+
+    const writeCache = (best, ranked) => {
+        try {
+            localStorage.setItem(WISP_CACHE_KEY, JSON.stringify({ time: Date.now(), best: best, ranked: ranked }));
+        } catch (e) {}
+    };
+
+    const loadWispList = async () => {
+        const outerRes = await fetch("https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json");
+        if (!outerRes.ok) throw new Error("Failed to fetch wss.json");
+        const outerArr = await outerRes.json();
+        if (!Array.isArray(outerArr) || outerArr.length === 0) throw new Error("wss.json is empty or not an array");
+        const wssUrls = JSON.parse(atob(outerArr[0]));
+        if (!Array.isArray(wssUrls) || wssUrls.length === 0) throw new Error("Decoded WSS list is empty");
+        return wssUrls;
+    };
+
+    const rankWithBenchmark = async (wssUrls) => {
+        const network = sandstone.network;
+        if (!network || typeof network.pick_best_wisp !== "function") return null;
+        const reachable = [];
+        await Promise.all(wssUrls.map(async (url) => {
+            if (await testWisp(url)) reachable.push(url);
         }));
-        return results.filter((result) => result.status === "fulfilled").length;
+        const candidates = wssUrls.filter((url) => reachable.includes(url));
+        if (candidates.length === 0) return null;
+        setStatus("Benchmarking " + candidates.length + " wisp servers...");
+        const outcome = await network.pick_best_wisp(candidates, {
+            limit: 12,
+            timeout_ms: 9000,
+            verbose: false,
+            apply: true,
+            on_progress: (result) => {
+                console.log("EasyGame: wisp bench", result.url, Math.round((result.rate || 0) / 1024) + " KB/s", result.reason);
+            }
+        });
+        if (!outcome || !outcome.best) return null;
+        return {
+            best: outcome.best,
+            ranked: outcome.ranked.map((entry) => entry.url)
+        };
     };
 
     const setupWisp = async () => {
-        setStatus("Finding a working wisp server...");
+        setStatus("Finding the fastest wisp server...");
         try {
-            const outerRes = await fetch("https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json");
-            if (!outerRes.ok) throw new Error("Failed to fetch wss.json");
-            const outerArr = await outerRes.json();
-
-            if (!Array.isArray(outerArr) || outerArr.length === 0) throw new Error("wss.json is empty or not an array");
-
-            const innerJson = atob(outerArr[0]);
-            const wssUrls = JSON.parse(innerJson);
-
-            if (!Array.isArray(wssUrls) || wssUrls.length === 0) throw new Error("Decoded WSS list is empty");
-
             await withTimeout(waitForLibcurl(), 10000).catch(() => {});
 
-            let chosen = null;
-            let best = null;
-            let bestScore = 0;
+            const cached = readCache();
+            if (cached && Array.isArray(cached.ranked) && cached.ranked.length > 0) {
+                sandstone.libcurl.set_websocket(cached.best);
+                if (typeof sandstone.network?.set_wisp_pool === "function") {
+                    sandstone.network.set_wisp_pool(cached.ranked);
+                }
+                console.log("EasyGame: Using cached wisp server:", cached.best);
+                return;
+            }
 
+            const wssUrls = await loadWispList();
+            const ranked = await rankWithBenchmark(wssUrls);
+
+            if (ranked) {
+                writeCache(ranked.best, ranked.ranked);
+                console.log("EasyGame: Using fastest wisp server:", ranked.best);
+                return;
+            }
+
+            let selected = null;
             for (const url of wssUrls) {
-                if (!(await testWisp(url))) continue;
-                setStatus("Testing " + url + " ...");
-                const score = await probeWisp(url);
-                console.log("EasyGame: wisp probe", url, score + "/" + PROBE_URLS.length);
-                if (score === PROBE_URLS.length) {
-                    chosen = url;
+                if (await testWisp(url)) {
+                    selected = url;
                     break;
                 }
-                if (score > bestScore) {
-                    best = url;
-                    bestScore = score;
-                }
             }
-
-            const selected = chosen || best || wssUrls[0];
+            selected = selected || wssUrls[0];
             sandstone.libcurl.set_websocket(selected);
-            console.log("EasyGame: Using wisp server:", selected);
-
-            const pool = [selected, ...wssUrls.filter((url) => url !== selected)];
             if (typeof sandstone.network?.set_wisp_pool === "function") {
-                sandstone.network.set_wisp_pool(pool);
+                sandstone.network.set_wisp_pool([selected, ...wssUrls.filter((url) => url !== selected)]);
             }
+            console.log("EasyGame: Using fallback wisp server:", selected);
         } catch (err) {
             console.error("EasyGame: Wisp setup failed:", err);
         }
