@@ -1,6 +1,43 @@
 <html>
   <head>
-    <script src="https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@latest/Assets/embed/scram.js?szq0z"></script>
+    <script>
+      (async function () {
+        var repo = "lotsacookie/kstuff";
+        var file = "Assets/embed/scram.js";
+
+        var load = function (src) {
+          return new Promise(function (resolve, reject) {
+            var s = document.createElement("script");
+            var timer = setTimeout(function () { s.remove(); reject(); }, 8000);
+            s.src = src;
+            s.onload = function () { clearTimeout(timer); resolve(); };
+            s.onerror = function () { clearTimeout(timer); s.remove(); reject(); };
+            document.head.appendChild(s);
+          });
+        };
+
+        var ref = "main";
+        try {
+          var ctrl = new AbortController();
+          var t = setTimeout(function () { ctrl.abort(); }, 2500);
+          var res = await fetch("https://data.jsdelivr.com/v1/packages/gh/" + repo + "/resolved?specifier=main", { signal: ctrl.signal, cache: "no-store" });
+          clearTimeout(t);
+          var data = await res.json();
+          if (data && typeof data.version === "string" && /^[0-9a-f]{40}$/i.test(data.version)) ref = data.version;
+        } catch (e) {}
+
+        var hosts = ["cdn", "fastly", "gcore"];
+        for (var i = 0; i < hosts.length; i++) {
+          try {
+            await load("https://" + hosts[i] + ".jsdelivr.net/gh/" + repo + "@" + ref + "/" + file);
+            return;
+          } catch (e) {}
+        }
+        if (ref !== "main") {
+          try { await load("https://cdn.jsdelivr.net/gh/" + repo + "@main/" + file); } catch (e) {}
+        }
+      })();
+    </script>
     <style>
       html, body {
         margin: 0;
