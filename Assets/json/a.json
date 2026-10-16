@@ -31,5 +31,9 @@
     "category": "Entertainment",
     "url": "${static}https://soundcloud.com/",
     "image": "https://play-lh.googleusercontent.com/pdTFc9Tc8qMXBbb0BpL7gwTK0-7te3YvKxPtuYmTfEhx8GgGF7U_gXZa1p9NGvCKpu0"
+  },
+  {
+    "title": "Kloud",
+    "url": "https://cdn.jsdelivr.net/gh/L0tzie-Bug/Spectra-Cloud@main/kloud.html"
   }
 ]
