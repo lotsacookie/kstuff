@@ -229,7 +229,7 @@ export function init(K) {
 
   const gridImageStyle = document.createElement('style');
   gridImageStyle.textContent = `
-    .round-btn{position:relative;overflow:hidden;aspect-ratio:1/1;contain:layout paint style;content-visibility:auto;contain-intrinsic-size:auto 220px;}
+    .round-btn{position:relative;overflow:hidden;aspect-ratio:1/1;contain:layout paint style;}
     .round-btn>img{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:cover!important;object-position:center;}
     .round-btn>img[src=""]{display:none!important;}
   `;
@@ -401,8 +401,6 @@ export function init(K) {
     setC('sciencequiz-category-select', c.Apps, 'sciencequiz');
   }).catch(err => console.error('categories.json failed', err));
 
-  // Page URLs with a mirror placeholder are kept as-is so openResource can embed them via scram.
-  // Image URLs with a placeholder are dropped, as before.
   const appB = (s, isPage = false) => {
     if (typeof s !== 'string') return s;
     if (K.MIRROR_PH.test(s)) return isPage ? s : '';
@@ -538,7 +536,7 @@ export function init(K) {
     const [zones, extras] = await Promise.all([
       K.fetchRepoFile('freebuisness/assets', 'zones.json', true, 12000)
         .then(text => {
-          if (K._zonesRows && text === K._zonesText) return K._zonesRows; // unchanged: reuse
+          if (K._zonesRows && text === K._zonesText) return K._zonesRows;
           const json = JSON.parse(text);
           if (!Array.isArray(json)) throw new Error('zones.json is not an array');
           K._zonesText = text;
@@ -648,7 +646,6 @@ export function init(K) {
       : rData('sciencequiz', 'Assets/json/a.json', false, 'updating', silent));
   };
 
-  // Hard refresh: bypass the freshness cache, forget the "nothing changed" signature, drop images, redraw.
   const hardRefreshGrid = async type => {
     const grid = grids[type];
     if (!grid || K.resourceOpenFor[type] || grid.refreshing) return false;
@@ -674,7 +671,6 @@ export function init(K) {
   K.$('readingcorner-refresh-btn')?.addEventListener('click', () => hardRefreshGrid('readingcorner'));
   K.$('sciencequiz-refresh-btn')?.addEventListener('click', () => hardRefreshGrid('sciencequiz'));
 
-  // live-json.js found newer g.json / a.json: pick it up automatically
   window.addEventListener('kstuff:live-json', e => {
     const p = e.detail && e.detail.path;
     const type = p === 'Assets/json/g.json' ? 'readingcorner' : p === 'Assets/json/a.json' ? 'sciencequiz' : '';
