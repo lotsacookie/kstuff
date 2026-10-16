@@ -17,13 +17,22 @@
         };
 
         var ref = "main";
+        var okSha = function (v) { return typeof v === "string" && /^[0-9a-f]{40}$/i.test(v); };
+        var ask = function (url, pick) {
+          return new Promise(function (resolve, reject) {
+            var ctrl = new AbortController();
+            var t = setTimeout(function () { ctrl.abort(); reject(); }, 3500);
+            fetch(url, { signal: ctrl.signal, cache: "no-store" })
+              .then(function (r) { return r.json(); })
+              .then(function (d) { clearTimeout(t); var v = pick(d); okSha(v) ? resolve(v) : reject(); })
+              .catch(function () { clearTimeout(t); reject(); });
+          });
+        };
         try {
-          var ctrl = new AbortController();
-          var t = setTimeout(function () { ctrl.abort(); }, 2500);
-          var res = await fetch("https://data.jsdelivr.com/v1/packages/gh/" + repo + "/resolved?specifier=main", { signal: ctrl.signal, cache: "no-store" });
-          clearTimeout(t);
-          var data = await res.json();
-          if (data && typeof data.version === "string" && /^[0-9a-f]{40}$/i.test(data.version)) ref = data.version;
+          ref = await Promise.any([
+            ask("https://data.jsdelivr.com/v1/packages/gh/" + repo + "/resolved?specifier=main", function (d) { return d && d.version; }),
+            ask("https://api.github.com/repos/" + repo + "/commits/main", function (d) { return d && d.sha; })
+          ]);
         } catch (e) {}
 
         var hosts = ["cdn", "fastly", "gcore"];
