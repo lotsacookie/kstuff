@@ -760,6 +760,91 @@ function _renderModelSelect(grouped) {
       _persistChat(_0xab9ea);
     }
   };
+  _aiBuildModelDropdown();
+}
+let _aiDropdownDocBound = false;
+function _aiBuildModelDropdown() {
+  const sel = document.getElementById("aiModelSelect");
+  if (!sel) {
+    return;
+  }
+  let wrap = sel.nextElementSibling;
+  if (!wrap || !wrap.classList.contains("ai-select-wrapper")) {
+    wrap = document.createElement("div");
+    wrap.className = "ai-select-wrapper";
+    sel.parentNode.insertBefore(wrap, sel.nextSibling);
+  }
+  sel.style.display = "none";
+  wrap.innerHTML = "";
+  const trig = document.createElement("div");
+  trig.className = "ai-select-trigger";
+  trig.tabIndex = 0;
+  const label = document.createElement("span");
+  const current = sel.options[sel.selectedIndex];
+  label.textContent = current ? current.text : "";
+  trig.appendChild(label);
+  trig.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>');
+  const opts = document.createElement("div");
+  opts.className = "ai-select-options";
+  const addOption = opt => {
+    const o = document.createElement("div");
+    o.className = "ai-select-option" + (opt.value === sel.value ? " selected" : "");
+    o.textContent = opt.text;
+    o.title = opt.text;
+    o.onclick = e => {
+      e.stopPropagation();
+      sel.value = opt.value;
+      label.textContent = opt.text;
+      opts.querySelectorAll(".ai-select-option").forEach(item => item.classList.remove("selected"));
+      o.classList.add("selected");
+      opts.classList.remove("open");
+      trig.classList.remove("open");
+      sel.dispatchEvent(new Event("change"));
+    };
+    opts.appendChild(o);
+  };
+  Array.from(sel.children).forEach(child => {
+    if (child.tagName === "OPTGROUP") {
+      const head = document.createElement("div");
+      head.className = "ai-select-group";
+      head.textContent = child.label;
+      opts.appendChild(head);
+      Array.from(child.children).forEach(addOption);
+    } else {
+      addOption(child);
+    }
+  });
+  const closeAll = () => {
+    document.querySelectorAll(".ai-select-options.open").forEach(el => el.classList.remove("open"));
+    document.querySelectorAll(".ai-select-trigger.open").forEach(el => el.classList.remove("open"));
+  };
+  const toggle = e => {
+    e.stopPropagation();
+    const willOpen = !opts.classList.contains("open");
+    closeAll();
+    if (willOpen) {
+      opts.classList.add("open");
+      trig.classList.add("open");
+      const chosen = opts.querySelector(".ai-select-option.selected");
+      if (chosen) {
+        opts.scrollTop = Math.max(0, chosen.offsetTop - opts.clientHeight / 2);
+      }
+    }
+  };
+  trig.onclick = toggle;
+  trig.onkeydown = e => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      toggle(e);
+    } else if (e.key === "Escape") {
+      closeAll();
+    }
+  };
+  wrap.append(trig, opts);
+  if (!_aiDropdownDocBound) {
+    _aiDropdownDocBound = true;
+    document.addEventListener("click", closeAll);
+  }
 }
 function _initAIInputHandlers() {
   if (_aiHandlersBound) {
@@ -1718,6 +1803,7 @@ function _loadChat(chatId) {
     const _0x24_0x323 = document.getElementById("aiModelSelect");
     if (_0x24_0x323 && [..._0x24_0x323.options].some(o => o.value === _0xe356bg.model)) {
       _0x24_0x323.value = _0xe356bg.model;
+      _aiBuildModelDropdown();
     }
   }
   _renderRecents();
