@@ -30,6 +30,26 @@
         );
     });
 
+    const SHA_RE = /^[0-9a-f]{40}$/i;
+    const resolveSha = async (repo) => {
+        const viaJsdelivr = withTimeout(
+            fetch("https://data.jsdelivr.com/v1/packages/gh/" + repo + "/resolved?specifier=main", { cache: "no-store" })
+                .then((r) => r.json())
+                .then((d) => (d && SHA_RE.test(d.version || "") ? d.version : Promise.reject(new Error("bad sha")))),
+            3500,
+            "jsdelivr api"
+        );
+        const viaGithub = withTimeout(
+            fetch("https://api.github.com/repos/" + repo + "/commits/main", { cache: "no-store" })
+                .then((r) => r.json())
+                .then((d) => (d && SHA_RE.test(d.sha || "") ? d.sha : Promise.reject(new Error("bad sha")))),
+            3500,
+            "github api"
+        );
+        try { return await Promise.any([viaJsdelivr, viaGithub]); } catch (e) { return null; }
+    };
+    const kstuffShaP = resolveSha("lotsacookie/kstuff");
+
     const loadScript = (src, ms) => new Promise((resolve, reject) => {
         const script = document.createElement('script');
         const timer = setTimeout(() => {
@@ -47,14 +67,18 @@
     });
 
     const loadSandstone = async () => {
-        const path = "/gh/" + REPO + "@" + BRANCH + "/" + DIST_PATH;
         const hosts = ["cdn", "fastly", "gcore"];
-        for (const host of hosts) {
-            try {
-                await loadScript("https://" + host + ".jsdelivr.net" + path, 8000);
-                if (window.sandstone) return;
-            } catch (err) {
-                console.warn("EasyGame: CDN failed:", err.message);
+        const sha = await resolveSha(REPO);
+        const refs = sha ? [sha, BRANCH] : [BRANCH];
+        for (const ref of refs) {
+            const path = "/gh/" + REPO + "@" + ref + "/" + DIST_PATH;
+            for (const host of hosts) {
+                try {
+                    await loadScript("https://" + host + ".jsdelivr.net" + path, 8000);
+                    if (window.sandstone) return;
+                } catch (err) {
+                    console.warn("EasyGame: CDN failed:", err.message);
+                }
             }
         }
     };
@@ -95,9 +119,17 @@
         return index > 0 ? selfSrc.slice(0, index) : "";
     })();
 
-    const kstuffBases = () => {
+    const kstuffBases = async () => {
         const bases = [];
-        if (selfBase) bases.push(selfBase);
+        const sha = await kstuffShaP;
+        if (selfBase && !/@main\//.test(selfBase)) bases.push(selfBase);
+        if (sha) {
+            for (const host of ["cdn", "fastly", "gcore"]) {
+                const base = "https://" + host + ".jsdelivr.net/gh/" + KSTUFF_REPO + "@" + sha + "/";
+                if (!bases.includes(base)) bases.push(base);
+            }
+        }
+        if (selfBase && !bases.includes(selfBase)) bases.push(selfBase);
         for (const host of ["cdn", "fastly", "gcore"]) {
             const base = "https://" + host + ".jsdelivr.net/gh/" + KSTUFF_REPO + "@main/";
             if (!bases.includes(base)) bases.push(base);
@@ -125,11 +157,11 @@
 
     const hostWisp = () => {
         const direct = normalizeWisp(readHost("wlspServer"));
-        if (direct) return Promise.resolve(direct);
+        if (direct && typeof readHost("WlspPing") === "number") return Promise.resolve(direct);
         const promise = readHost("kWispP");
         if (promise && typeof promise.then === "function") {
             return withTimeout(Promise.resolve(promise), WISP_WAIT_MS, "host wisp")
-                .then(normalizeWisp)
+                .then((url) => (typeof readHost("WlspPing") === "number" ? normalizeWisp(url) : null))
                 .catch((err) => {
                     console.warn("EasyGame: host wisp unavailable:", err.message);
                     return null;
@@ -139,7 +171,7 @@
     };
 
     const loadWispModule = async () => {
-        for (const base of kstuffBases()) {
+        for (const base of await kstuffBases()) {
             try {
                 return await withTimeout(import(base + WISP_MODULE_PATH), 8000, "wisp.js import");
             } catch (err) {
@@ -151,7 +183,7 @@
 
     const fetchWispList = async (path) => {
         let lastError = null;
-        for (const base of kstuffBases()) {
+        for (const base of await kstuffBases()) {
             try {
                 const response = await withTimeout(fetch(base + path, { cache: "no-store" }), 6000, "wisp list");
                 if (response.ok) return await response.json();
@@ -167,7 +199,7 @@
         if (!mod || typeof mod.init !== "function") return null;
         mod.init({ fetchWithProxy: fetchWispList });
         const url = await withTimeout(Promise.resolve(window.kWispP), WISP_WAIT_MS, "wisp resolve");
-        return normalizeWisp(url);
+        return typeof window.WlspPing === "number" ? normalizeWisp(url) : null;
     };
 
     const BUILTIN_WISPS = [
@@ -224,7 +256,8 @@
     const openRace = async () => {
         await new Promise((r) => setTimeout(r, 3500));
         const list = await loadPool();
-        const candidates = [...new Set([...BUILTIN_WISPS, ...shuffle(list).slice(0, 12)])];
+        const hostGuess = normalizeWisp(readHost("wlspServer"));
+        const candidates = [...new Set([...(hostGuess ? [hostGuess] : []), ...BUILTIN_WISPS, ...shuffle(list).slice(0, 12)])];
         return new Promise((resolve) => {
             let pending = candidates.length;
             const overall = setTimeout(() => resolve(null), 7000);
@@ -299,13 +332,14 @@
         } catch (e) {}
     });
 
-    applyWisp(normalizeWisp(readHost("wlspServer")) || readCache() || WISP_FALLBACK);
+    applyWisp(readCache() || normalizeWisp(readHost("wlspServer")) || WISP_FALLBACK);
 
     setStatus("Finding a wisp server...");
     const results = await Promise.all([waitForLibcurl(), resolveWisp()]);
     const wisp = results[1];
     applyWisp(wisp);
     if (wisp !== WISP_FALLBACK) writeCache(wisp);
+    console.log("EasyGame: build 5 wisp", wisp, "kstuff", await kstuffShaP);
     try {
         if (!sandstone.libcurl.ready) {
             sandstone.libcurl.events.addEventListener("libcurl_load", () => applyWisp(wisp), { once: true });
