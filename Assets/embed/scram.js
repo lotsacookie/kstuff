@@ -19,8 +19,8 @@
     const WISP_MODULE_PATH = "Assets/js/wisp.js";
     const WISP_LIST_PATH = "Assets/json/wss.json";
     const WISP_FALLBACK = "wss://api.personalloanonline.net/ws/";
-    const WISP_WAIT_MS = 15000;
-    const WISP_TOTAL_MS = 20000;
+    const WISP_WAIT_MS = 22000;
+    const WISP_TOTAL_MS = 24000;
 
     const withTimeout = (promise, ms, label) => new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error((label || "operation") + " timed out")), ms);
@@ -182,16 +182,28 @@
         return WISP_FALLBACK;
     };
 
-    const applyWisp = (best) => {
+    const CACHE_KEY = "kWispLast";
+    const readCache = () => {
+        try { return normalizeWisp(localStorage.getItem(CACHE_KEY)); } catch (e) { return null; }
+    };
+    const writeCache = (url) => {
+        try { localStorage.setItem(CACHE_KEY, url); } catch (e) {}
+    };
+
+    const applyWisp = (best, attempt) => {
+        const tries = attempt || 0;
+        let ok = false;
         try {
             sandstone.libcurl.set_websocket(best);
+            ok = true;
             const pool = readHost("wispUrls");
             if (typeof sandstone.network?.set_wisp_pool === "function") {
                 const rest = Array.isArray(pool) ? pool.filter((u) => u !== best) : [];
                 sandstone.network.set_wisp_pool([best, ...rest]);
             }
         } catch (e) {
-            console.error("EasyGame: applyWisp failed:", e);
+            if (!ok && tries < 40) setTimeout(() => applyWisp(best, tries + 1), 250);
+            else console.error("EasyGame: applyWisp failed:", e);
         }
     };
 
@@ -213,10 +225,13 @@
         } catch (e) {}
     });
 
+    applyWisp(normalizeWisp(readHost("wlspServer")) || readCache() || WISP_FALLBACK);
+
     setStatus("Finding a wisp server...");
     const results = await Promise.all([waitForLibcurl(), resolveWisp()]);
     const wisp = results[1];
     applyWisp(wisp);
+    if (wisp !== WISP_FALLBACK) writeCache(wisp);
     try {
         if (!sandstone.libcurl.ready) {
             sandstone.libcurl.events.addEventListener("libcurl_load", () => applyWisp(wisp), { once: true });
