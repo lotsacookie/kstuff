@@ -170,13 +170,86 @@
         return normalizeWisp(url);
     };
 
+    const BUILTIN_WISPS = [
+        WISP_FALLBACK,
+        "wss://athollcottage.com/connection/",
+        "wss://kristenblackburnvolleyballcamps.com/socket/",
+        "wss://southpadreislandkiteboarding.com/socket/"
+    ];
+    let wispPool = [];
+
+    const shuffle = (arr) => {
+        const a = arr.slice();
+        for (let i = a.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]];
+        }
+        return a;
+    };
+
+    const testOpen = (url, ms) => new Promise((resolve) => {
+        let ws;
+        try {
+            ws = new WebSocket(url);
+        } catch (e) {
+            resolve(false);
+            return;
+        }
+        const timer = setTimeout(() => {
+            try { ws.close(); } catch (e) {}
+            resolve(false);
+        }, ms);
+        ws.onopen = () => {
+            clearTimeout(timer);
+            try { ws.close(); } catch (e) {}
+            resolve(true);
+        };
+        ws.onerror = () => {
+            clearTimeout(timer);
+            resolve(false);
+        };
+    });
+
+    const loadPool = async () => {
+        try {
+            const outer = await fetchWispList(WISP_LIST_PATH);
+            const list = JSON.parse(atob(outer[0]));
+            wispPool = list.filter((u) => typeof u === "string" && /^wss:\/\//i.test(u));
+        } catch (e) {
+            console.warn("EasyGame: wss.json unavailable:", e && e.message ? e.message : e);
+        }
+        return wispPool;
+    };
+
+    const openRace = async () => {
+        await new Promise((r) => setTimeout(r, 3500));
+        const list = await loadPool();
+        const candidates = [...new Set([...BUILTIN_WISPS, ...shuffle(list).slice(0, 12)])];
+        return new Promise((resolve) => {
+            let pending = candidates.length;
+            const overall = setTimeout(() => resolve(null), 7000);
+            candidates.forEach((url) => {
+                testOpen(url, 3500).then((ok) => {
+                    if (ok) {
+                        clearTimeout(overall);
+                        resolve(url);
+                    } else if (--pending === 0) {
+                        clearTimeout(overall);
+                        resolve(null);
+                    }
+                });
+            });
+        });
+    };
+
     const resolveWisp = async () => {
         const fromHost = hostWisp();
         const fromOwn = ownWisp().catch((err) => {
             console.warn("EasyGame: wisp.js resolve failed:", err.message);
             return null;
         });
-        const found = await firstValid([fromHost, fromOwn], WISP_TOTAL_MS);
+        const fromOpen = openRace().catch(() => null);
+        const found = await firstValid([fromHost, fromOwn, fromOpen], WISP_TOTAL_MS);
         if (found) return found;
         console.warn("EasyGame: no wisp resolved, using built-in fallback");
         return WISP_FALLBACK;
@@ -196,9 +269,10 @@
         try {
             sandstone.libcurl.set_websocket(best);
             ok = true;
-            const pool = readHost("wispUrls");
+            const hostPool = readHost("wispUrls");
+            const pool = Array.isArray(hostPool) && hostPool.length ? hostPool : wispPool;
             if (typeof sandstone.network?.set_wisp_pool === "function") {
-                const rest = Array.isArray(pool) ? pool.filter((u) => u !== best) : [];
+                const rest = pool.filter((u) => u !== best).slice(0, 30);
                 sandstone.network.set_wisp_pool([best, ...rest]);
             }
         } catch (e) {
