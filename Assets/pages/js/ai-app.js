@@ -2617,8 +2617,50 @@ function _startPipObserver() {
   _pipObserver.observe(target, { "childList": true, "subtree": true, "characterData": true });
 }
 window._pipChat = { "open": _openPip, "close": _closePip, "sync": _syncPipMessages };
+function _aiBindSidebarToggle() {
+  const sidebar = document.getElementById("aiSidebar");
+  const backdrop = document.getElementById("aiSidebarBackdrop");
+  const toggle = document.getElementById("aiSidebarToggle");
+  if (!sidebar || !backdrop || !toggle) {
+    return;
+  }
+  const setOpen = open => {
+    sidebar.classList.toggle("open", open);
+    backdrop.classList.toggle("open", open);
+    toggle.classList.toggle("active", open);
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+  toggle.onclick = e => {
+    e.stopPropagation();
+    setOpen(!sidebar.classList.contains("open"));
+  };
+  backdrop.onclick = () => setOpen(false);
+  const newChatBtn = document.getElementById("aiNewChatBtn");
+  if (newChatBtn) {
+    newChatBtn.addEventListener("click", () => setOpen(false));
+  }
+  const recents = document.getElementById("aiRecentsList");
+  if (recents) {
+    recents.addEventListener("click", e => {
+      if (e.target.closest(".ai-recent-item-title")) {
+        setOpen(false);
+      }
+    });
+  }
+  window.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+      setOpen(false);
+    }
+  });
+  window.addEventListener("resize", () => {
+    if (window.innerWidth > 720) {
+      setOpen(false);
+    }
+  });
+}
 function _aiBootstrap() {
   _aiBuildModelDropdown();
+  _aiBindSidebarToggle();
   openAI();
   _startPipObserver();
   const btn = document.getElementById('aiPipBtn');
