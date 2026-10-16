@@ -1,4 +1,5 @@
 (async function () {
+    const selfSrc = document.currentScript && document.currentScript.src ? document.currentScript.src : "";
     const statusEl = document.getElementById('eg-status');
     const setStatus = (msg) => {
         if (!statusEl) return;
@@ -13,7 +14,13 @@
     const REPO = "lotsacookie/Singuloxy";
     const BRANCH = "main";
     const DIST_PATH = "dist/sandstone.js";
-    const WISP_WAIT_MS = 12000;
+    const KSTUFF_REPO = "lotsacookie/kstuff";
+    const SELF_PATH = "Assets/embed/scram.js";
+    const WISP_MODULE_PATH = "Assets/js/wisp.js";
+    const WISP_LIST_PATH = "Assets/json/wss.json";
+    const WISP_FALLBACK = "wss://api.personalloanonline.net/ws/";
+    const WISP_WAIT_MS = 15000;
+    const WISP_TOTAL_MS = 20000;
 
     const withTimeout = (promise, ms, label) => new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error((label || "operation") + " timed out")), ms);
@@ -83,29 +90,96 @@
         return url.includes("://") ? url : "wss://" + url + "/";
     };
 
-    const resolveWisp = async () => {
+    const selfBase = (() => {
+        const index = selfSrc.indexOf(SELF_PATH);
+        return index > 0 ? selfSrc.slice(0, index) : "";
+    })();
+
+    const kstuffBases = () => {
+        const bases = [];
+        if (selfBase) bases.push(selfBase);
+        for (const host of ["cdn", "fastly", "gcore"]) {
+            const base = "https://" + host + ".jsdelivr.net/gh/" + KSTUFF_REPO + "@main/";
+            if (!bases.includes(base)) bases.push(base);
+        }
+        return bases;
+    };
+
+    const firstValid = (promises, ms) => new Promise((resolve) => {
+        let pending = promises.length;
+        const timer = setTimeout(() => resolve(null), ms);
+        const settle = (value) => {
+            if (value) {
+                clearTimeout(timer);
+                resolve(value);
+                return;
+            }
+            pending -= 1;
+            if (pending <= 0) {
+                clearTimeout(timer);
+                resolve(null);
+            }
+        };
+        promises.forEach((p) => p.then(settle, () => settle(null)));
+    });
+
+    const hostWisp = () => {
+        const direct = normalizeWisp(readHost("wlspServer"));
+        if (direct) return Promise.resolve(direct);
         const promise = readHost("kWispP");
         if (promise && typeof promise.then === "function") {
-            try {
-                const url = normalizeWisp(await withTimeout(promise, WISP_WAIT_MS, "wisp resolve"));
-                if (url) return url;
-            } catch (err) {
-                console.warn("EasyGame: wisp resolve slow:", err.message);
-            }
+            return withTimeout(Promise.resolve(promise), WISP_WAIT_MS, "host wisp")
+                .then(normalizeWisp)
+                .catch((err) => {
+                    console.warn("EasyGame: host wisp unavailable:", err.message);
+                    return null;
+                });
         }
-        const direct = normalizeWisp(readHost("wlspServer"));
-        if (direct) return direct;
-        const host = hostWindows().map((w) => {
-            try { return w.K; } catch (e) { return null; }
-        }).find((k) => k && typeof k.revalidateWisp === "function");
-        if (host) {
+        return Promise.resolve(null);
+    };
+
+    const loadWispModule = async () => {
+        for (const base of kstuffBases()) {
             try {
-                return normalizeWisp(await withTimeout(host.revalidateWisp(), WISP_WAIT_MS, "wisp revalidate"));
+                return await withTimeout(import(base + WISP_MODULE_PATH), 8000, "wisp.js import");
             } catch (err) {
-                console.warn("EasyGame: wisp revalidate failed:", err.message);
+                console.warn("EasyGame: wisp.js failed to load:", err.message);
             }
         }
         return null;
+    };
+
+    const fetchWispList = async (path) => {
+        let lastError = null;
+        for (const base of kstuffBases()) {
+            try {
+                const response = await withTimeout(fetch(base + path, { cache: "no-store" }), 6000, "wisp list");
+                if (response.ok) return await response.json();
+            } catch (err) {
+                lastError = err;
+            }
+        }
+        throw lastError || new Error("wisp list unavailable");
+    };
+
+    const ownWisp = async () => {
+        const mod = await loadWispModule();
+        if (!mod || typeof mod.init !== "function") return null;
+        mod.init({ fetchWithProxy: fetchWispList });
+        const url = await withTimeout(Promise.resolve(window.kWispP), WISP_WAIT_MS, "wisp resolve");
+        return normalizeWisp(url);
+    };
+
+    const resolveWisp = async () => {
+        const fromHost = hostWisp();
+        const fromOwn = ownWisp().catch((err) => {
+            console.warn("EasyGame: wisp.js resolve failed:", err.message);
+            return null;
+        });
+        const found = await firstValid([fromHost, fromOwn], WISP_TOTAL_MS);
+        if (found) return found;
+        console.warn("EasyGame: no wisp resolved, using built-in fallback");
+        return WISP_FALLBACK;
     };
 
     const applyWisp = (best) => {
@@ -140,14 +214,14 @@
     });
 
     setStatus("Finding a wisp server...");
-    await waitForLibcurl();
-    const wisp = await resolveWisp();
-    if (wisp) {
-        applyWisp(wisp);
-    } else {
-        setStatus("No working wisp server was found.\nThe proxy may not connect.");
-        console.error("EasyGame: no validated wisp available on window.");
-    }
+    const results = await Promise.all([waitForLibcurl(), resolveWisp()]);
+    const wisp = results[1];
+    applyWisp(wisp);
+    try {
+        if (!sandstone.libcurl.ready) {
+            sandstone.libcurl.events.addEventListener("libcurl_load", () => applyWisp(wisp), { once: true });
+        }
+    } catch (e) {}
 
     const decodeUrl = (str) => {
         try {
@@ -218,6 +292,6 @@
         attributeFilter: ['eg-url']
     });
 
-    if (wisp) hideStatus();
+    hideStatus();
     replacePTags();
 })();
