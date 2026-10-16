@@ -176,6 +176,163 @@ function extractWspUrlsFromJson(decoded) {
     return [];
 }
 
+function _wvUrl(entry) {
+    return entry.includes("://") ? entry : `wss://${entry}/`;
+}
+function _wvTest(entry, timeoutMs) {
+    return new Promise(resolve => {
+      let ws;
+      try {
+        ws = new WebSocket(_wvUrl(entry));
+      } catch (e) {
+        resolve(null);
+        return;
+      }
+      ws.binaryType = "arraybuffer";
+      let sent = false;
+      let t = 0;
+      let timer = 0;
+      const id = Math.floor(Math.random() * 0xFFFFFFFE) + 1 >>> 0;
+      const finish = ping => {
+        clearTimeout(timer);
+        ws.onmessage = ws.onerror = ws.onclose = null;
+        try {
+          ws.close();
+        } catch (e) {}
+        resolve(ping);
+      };
+      timer = setTimeout(() => finish(null), timeoutMs);
+      ws.onmessage = e => {
+        if (!(e.data instanceof ArrayBuffer) || e.data.byteLength < 5) {
+          return;
+        }
+        const v = new DataView(e.data);
+        const type = v.getUint8(0);
+        const stream = v.getUint32(1, true);
+        if (!sent) {
+          if (type === 5 && stream === 0) {
+            ws.send(new Uint8Array([5, 0, 0, 0, 0, 2, 1]));
+          } else if (type === 3 && stream === 0) {
+            sent = true;
+            const host = new TextEncoder().encode("127.0.0.1");
+            const buf = new ArrayBuffer(8 + host.length);
+            const dv = new DataView(buf);
+            dv.setUint8(0, 1);
+            dv.setUint32(1, id, true);
+            dv.setUint8(5, 1);
+            dv.setUint16(6, 1, true);
+            new Uint8Array(buf).set(host, 8);
+            t = performance.now();
+            ws.send(buf);
+          }
+          return;
+        }
+        if (stream !== id) {
+          return;
+        }
+        finish(Math.round(performance.now() - t));
+      };
+      ws.onerror = ws.onclose = () => finish(null);
+    });
+}
+function _wvPick(entries, storageKey, opts) {
+    opts = opts || {};
+    const timeoutMs = opts.timeout || 3000;
+    const concurrency = opts.concurrency || 6;
+    const list = [...new Set((entries || []).filter(e => typeof e === "string" && e.trim()).map(e => e.trim()))];
+    const pings = new Map();
+    let stored = null;
+    try {
+      stored = localStorage.getItem(storageKey);
+    } catch (e) {}
+    const queue = stored && list.includes(stored) ? [stored, ...list.filter(e => e !== stored)] : list.slice();
+    const order = () => {
+      const ok = list.filter(e => typeof pings.get(e) === "number").sort((a, b) => pings.get(a) - pings.get(b));
+      const untested = list.filter(e => !pings.has(e));
+      const failed = list.filter(e => pings.has(e) && pings.get(e) === null);
+      return [...ok, ...untested, ...failed];
+    };
+    return new Promise(resolve => {
+      let next = 0;
+      let finished = 0;
+      let settled = false;
+      const settle = () => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        const urls = order();
+        const best = urls.find(u => typeof pings.get(u) === "number") || null;
+        resolve({
+          "urls": best ? urls : list.slice(),
+          "best": best,
+          "validated": !!best
+        });
+      };
+      const launch = () => {
+        if (next >= queue.length) {
+          return;
+        }
+        const entry = queue[next++];
+        _wvTest(entry, timeoutMs).then(ping => {
+          pings.set(entry, ping);
+          if (ping !== null) {
+            try {
+              localStorage.setItem(storageKey, entry);
+            } catch (e) {}
+            settle();
+          }
+          finished++;
+          if (finished === queue.length) {
+            const wasSettled = settled;
+            settle();
+            if (wasSettled && opts.onUpdate) {
+              opts.onUpdate(order());
+            }
+          } else {
+            launch();
+          }
+        });
+      };
+      if (!queue.length) {
+        settle();
+        return;
+      }
+      for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
+        launch();
+      }
+    });
+}
+
+function applyWispOrder(ordered) {
+    if (epoxyClientInstance || epoxyClientPromise || !ordered || ordered.length === 0) return;
+    WISP_URLS = ordered;
+    wispFails = WISP_URLS.map(() => 0);
+    wispIndex = 0;
+}
+
+let wispRevalidating = false;
+let wispRevalidatedAt = 0;
+
+async function revalidateWisps() {
+    if (wispRevalidating || WISP_URLS.length === 0 || Date.now() - wispRevalidatedAt < 30000) return;
+    wispRevalidating = true;
+    wispRevalidatedAt = Date.now();
+    try {
+        try { localStorage.removeItem("MusicWisp"); } catch (e) {}
+        const picked = await _wvPick(WISP_URLS.slice(), "MusicWisp", { timeout: 3000, concurrency: 6 });
+        if (picked.validated) {
+            WISP_URLS = picked.urls;
+            wispFails = WISP_URLS.map(() => 0);
+            wispIndex = 0;
+            resetEpoxyClient();
+        }
+    } catch (e) {
+    } finally {
+        wispRevalidating = false;
+    }
+}
+
 async function loadWispUrlsFromRemote() {
     try {
         const response = await fetchWithTimeout(WISP_LIST_URL, 8000);
@@ -194,7 +351,17 @@ async function loadWispUrlsFromRemote() {
         const urls = extractWspUrlsFromJson(decodedJson);
         if (urls.length === 0) throw new Error("Decoded wisp list contained no wss:// urls");
 
-        WISP_URLS = urls;
+        let ordered = urls;
+        try {
+            const picked = await _wvPick(urls, "MusicWisp", {
+                timeout: 3000,
+                concurrency: 6,
+                onUpdate: applyWispOrder
+            });
+            ordered = picked.urls;
+        } catch (e) {}
+
+        WISP_URLS = ordered;
         wispFails = WISP_URLS.map(() => 0);
         wispIndex = 0;
     } catch (e) {
@@ -393,6 +560,7 @@ async function wispFetch(url, timeoutMs = 15000, critical = true) {
             await sleep(150);
         }
     }
+    revalidateWisps();
     throw lastErr || new Error("Wisp fetch failed");
 }
 
