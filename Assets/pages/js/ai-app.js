@@ -1,4 +1,4 @@
-  const _aiDevHosts = ["localhost", "127.0.0.1", "eerf-korgn".split("").reverse().join("")];
+const _aiDevHosts = ["localhost", "127.0.0.1", "eerf-korgn".split("").reverse().join("")];
 window.devMode = _aiDevHosts.includes(location.hostname) || _aiDevHosts.includes(location.hostname.split(".").at(-2) || location.hostname);
 window.serverList = ["cdn.northstreetumc.org", "cdn.vipersfutbol.com", "cdn.pcesc.org", "cdn.kcchallengevbc.com", "cdn.slcbmooc.org", "wss://athollcottage.com/connection/", "wss://kristenblackburnvolleyballcamps.com/socket/", "wss://southpadreislandkiteboarding/socket/"];
 
@@ -6,6 +6,137 @@ const AI_CONNECT_TIMEOUT = 5000;
 const AI_CONNECT_STAGGER = 1200;
 const AI_STALL_MS = 90000;
 const AI_LAST_GOOD_KEY = "AIWS";
+const AI_VALID_KEY = "AIWID";
+const AI_VALIDATE_TIMEOUT = 3000;
+let _aiValidated = [];
+
+function _wvUrl(entry) {
+  return entry.includes("://") ? entry : `wss://${entry}/`;
+}
+function _wvTest(entry, timeoutMs) {
+  return new Promise(resolve => {
+    let ws;
+    try {
+      ws = new WebSocket(_wvUrl(entry));
+    } catch (e) {
+      resolve(null);
+      return;
+    }
+    ws.binaryType = "arraybuffer";
+    let sent = false;
+    let t = 0;
+    let timer = 0;
+    const id = Math.floor(Math.random() * 0xFFFFFFFE) + 1 >>> 0;
+    const finish = ping => {
+      clearTimeout(timer);
+      ws.onmessage = ws.onerror = ws.onclose = null;
+      try {
+        ws.close();
+      } catch (e) {}
+      resolve(ping);
+    };
+    timer = setTimeout(() => finish(null), timeoutMs);
+    ws.onmessage = e => {
+      if (!(e.data instanceof ArrayBuffer) || e.data.byteLength < 5) {
+        return;
+      }
+      const v = new DataView(e.data);
+      const type = v.getUint8(0);
+      const stream = v.getUint32(1, true);
+      if (!sent) {
+        if (type === 5 && stream === 0) {
+          ws.send(new Uint8Array([5, 0, 0, 0, 0, 2, 1]));
+        } else if (type === 3 && stream === 0) {
+          sent = true;
+          const host = new TextEncoder().encode("127.0.0.1");
+          const buf = new ArrayBuffer(8 + host.length);
+          const dv = new DataView(buf);
+          dv.setUint8(0, 1);
+          dv.setUint32(1, id, true);
+          dv.setUint8(5, 1);
+          dv.setUint16(6, 1, true);
+          new Uint8Array(buf).set(host, 8);
+          t = performance.now();
+          ws.send(buf);
+        }
+        return;
+      }
+      if (stream !== id) {
+        return;
+      }
+      finish(Math.round(performance.now() - t));
+    };
+    ws.onerror = ws.onclose = () => finish(null);
+  });
+}
+function _wvPick(entries, storageKey, opts) {
+  opts = opts || {};
+  const timeoutMs = opts.timeout || 3000;
+  const concurrency = opts.concurrency || 6;
+  const list = [...new Set((entries || []).filter(e => typeof e === "string" && e.trim()).map(e => e.trim()))];
+  const pings = new Map();
+  let stored = null;
+  try {
+    stored = localStorage.getItem(storageKey);
+  } catch (e) {}
+  const queue = stored && list.includes(stored) ? [stored, ...list.filter(e => e !== stored)] : list.slice();
+  const order = () => {
+    const ok = list.filter(e => typeof pings.get(e) === "number").sort((a, b) => pings.get(a) - pings.get(b));
+    const untested = list.filter(e => !pings.has(e));
+    const failed = list.filter(e => pings.has(e) && pings.get(e) === null);
+    return [...ok, ...untested, ...failed];
+  };
+  return new Promise(resolve => {
+    let next = 0;
+    let finished = 0;
+    let settled = false;
+    const settle = () => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      const urls = order();
+      const best = urls.find(u => typeof pings.get(u) === "number") || null;
+      resolve({
+        "urls": best ? urls : list.slice(),
+        "best": best,
+        "validated": !!best
+      });
+    };
+    const launch = () => {
+      if (next >= queue.length) {
+        return;
+      }
+      const entry = queue[next++];
+      _wvTest(entry, timeoutMs).then(ping => {
+        pings.set(entry, ping);
+        if (ping !== null) {
+          try {
+            localStorage.setItem(storageKey, entry);
+          } catch (e) {}
+          settle();
+        }
+        finished++;
+        if (finished === queue.length) {
+          const wasSettled = settled;
+          settle();
+          if (wasSettled && opts.onUpdate) {
+            opts.onUpdate(order());
+          }
+        } else {
+          launch();
+        }
+      });
+    };
+    if (!queue.length) {
+      settle();
+      return;
+    }
+    for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
+      launch();
+    }
+  });
+}
 
 const AI_WS_PATH = "ia/".split("").reverse().join("");
 
@@ -34,6 +165,7 @@ function _aiCandidateUrls() {
     }
   };
   const list = Array.isArray(window.serverList) ? window.serverList : [];
+  _aiValidated.forEach(add);
   try {
     add(localStorage.getItem(AI_LAST_GOOD_KEY));
   } catch (e) {}
@@ -332,10 +464,30 @@ async function _connectAI() {
   _aiReconnectTimer = null;
   _dropAISocket();
   _setAIStatus("connecting…");
+  try {
+    const entries = Array.isArray(window.serverList) ? window.serverList.slice() : [];
+    if (window.wlspServer && !entries.includes(window.wlspServer)) {
+      entries.unshift(window.wlspServer);
+    }
+    const picked = await _wvPick(entries, AI_VALID_KEY, {
+      "timeout": AI_VALIDATE_TIMEOUT,
+      "concurrency": 6,
+      "onUpdate": ordered => {
+        _aiValidated = ordered;
+      }
+    });
+    _aiValidated = picked.urls;
+  } catch (e) {
+    _aiValidated = [];
+  }
   let found;
   try {
     found = await _aiOpenFirst(_aiCandidateUrls());
   } catch (e) {
+    _aiValidated = [];
+    try {
+      localStorage.removeItem(AI_VALID_KEY);
+    } catch (err) {}
     _aiConnecting = false;
     _setAIStatus("server unreachable - retrying…");
     _scheduleAIReconnect();
