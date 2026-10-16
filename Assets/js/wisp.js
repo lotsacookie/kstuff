@@ -17,7 +17,7 @@ export function init(K) {
     'wss://southpadreislandkiteboarding.com/socket/'
   ];
   K.WISP_FALLBACK = 'wss://api.personalloanonline.net/ws/';
-  K.WISP_VERSION = 3;
+  K.WISP_VERSION = 4;
   console.log('[wisp] module loaded, build', K.WISP_VERSION);
   K.wispUrls = [];
   window.serverList = K.WISP_SERVERS;
@@ -107,6 +107,22 @@ export function init(K) {
         if (p !== null && (best === -1 || p < pings[best])) best = j;
       });
       if (best !== -1) return accept(i + best, pings[best]);
+    }
+    let extra = [];
+    try { extra = (await K.fetchWisps()) || []; } catch {}
+    extra = extra.filter(u => !list.includes(u)).slice(0, 12);
+    for (let i = 0; i < extra.length; i += WAVE) {
+      const wave = extra.slice(i, i + WAVE);
+      const pings = await Promise.all(wave.map(entry => testWlspDomain(entry)));
+      let best = -1;
+      pings.forEach((p, j) => {
+        if (p !== null && (best === -1 || p < pings[best])) best = j;
+      });
+      if (best !== -1) {
+        window.WlspPing = pings[best];
+        window.WlspIsBackup = true;
+        return wlspUrl(wave[best]);
+      }
     }
     window.WlspPing = undefined;
     window.WlspIsBackup = isBackupServer(K.WISP_FALLBACK);
