@@ -111,15 +111,23 @@ function _wvPick(entries, storageKey, opts) {
       _wvTest(entry, timeoutMs).then(ping => {
         pings.set(entry, ping);
         if (ping !== null) {
-          try {
-            localStorage.setItem(storageKey, entry);
-          } catch (e) {}
+          if (!settled) {
+            try {
+              localStorage.setItem(storageKey, entry);
+            } catch (e) {}
+          }
           settle();
         }
         finished++;
         if (finished === queue.length) {
           const wasSettled = settled;
           settle();
+          const bestNow = order()[0];
+          if (typeof pings.get(bestNow) === "number") {
+            try {
+              localStorage.setItem(storageKey, bestNow);
+            } catch (e) {}
+          }
           if (wasSettled && opts.onUpdate) {
             opts.onUpdate(order());
           }
