@@ -1,9 +1,8 @@
 {
-  "timestamp": "September 29th | 🖤",
+  "timestamp": "October | 🖤",
   "changes": [
-    "Updated Proxy",
-    "Added Ships3D",
-    "Added Tubi (Only LIVE for now), Duck.ai, DeepAI, and Web Toon",
-    "Heavily optimized"
+    "Fixed music and AI",
+    "Fixed the slow proxy",
+    "Fixed the disappearing Games and Apps page"
   ]
 }
