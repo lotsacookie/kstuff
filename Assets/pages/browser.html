@@ -62,7 +62,6 @@ html, body {
     transition: background 0.3s ease, color 0.3s ease, opacity 0.25s ease;
 }
 
-/* Hold the page invisible until icons/fonts/Halloween theme are in, then fade in once. */
 html:not(.ready) body {
     opacity: 0;
     animation: sg-failsafe 0.01s linear 2.4s forwards;
@@ -968,9 +967,9 @@ html:not(.ready) body * {
                 <div class="logo-wrap" id="logo-wrap">
                     <svg class="singularity-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <defs>
-                            <g id="sing-arm" fill="none" stroke="currentColor" stroke-linecap="round">
-                                <path d="M50 5 C82 5 96 36 79 58 C67 73 44 73 38 58 C33 46 44 38 52 42" stroke-width="5.5"/>
-                                <path d="M50 14 C74 14 86 36 74 53 C65 65 49 65 45 55" stroke-width="2.2" opacity="0.7"/>
+                            <g id="sing-arm" fill="none" stroke="currentColor" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
+                                <path d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/>
+                                <path d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/>
                             </g>
                             <g id="sing-arms">
                                 <use href="#sing-arm"/>
@@ -985,8 +984,7 @@ html:not(.ready) body * {
                             <mask id="sing-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
                                 <g style="color:#fff"><use href="#sing-arms"/></g>
                                 <g class="logo-core">
-                                    <circle cx="50" cy="50" r="6" fill="#fff"/>
-                                    <path d="M50 28 L53.5 46.5 L72 50 L53.5 53.5 L50 72 L46.5 53.5 L28 50 L46.5 46.5 Z" fill="#fff"/>
+                                    <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z" fill="#fff"/>
                                 </g>
                             </mask>
                         </defs>
@@ -994,8 +992,7 @@ html:not(.ready) body * {
                             <use href="#sing-arms"/>
                         </g>
                         <g class="logo-core">
-                            <circle cx="50" cy="50" r="6" fill="currentColor"/>
-                            <path d="M50 28 L53.5 46.5 L72 50 L53.5 53.5 L50 72 L46.5 53.5 L28 50 L46.5 46.5 Z" fill="currentColor"/>
+                            <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z" fill="currentColor"/>
                         </g>
                         <g mask="url(#sing-mask)">
                             <rect class="logo-shine-band" x="-80" y="-10" width="34" height="120" fill="url(#sing-shine-grad)"/>
