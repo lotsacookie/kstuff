@@ -13,10 +13,7 @@
     const REPO = "lotsacookie/Singuloxy";
     const BRANCH = "main";
     const DIST_PATH = "dist/sandstone.js";
-    const WISP_LIST_URL = "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json";
-    const CACHE_KEY = "eg-wisp-cache";
-    const REFRESH_MS = 30 * 60 * 1000;
-    const FALLBACK_WISP = "wss://girlspreples.org/wi/";
+    const WISP_WAIT_MS = 12000;
 
     const withTimeout = (promise, ms, label) => new Promise((resolve, reject) => {
         const timer = setTimeout(() => reject(new Error((label || "operation") + " timed out")), ms);
@@ -25,15 +22,6 @@
             (e) => { clearTimeout(timer); reject(e); }
         );
     });
-
-    const shuffle = (arr) => {
-        const a = arr.slice();
-        for (let i = a.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [a[i], a[j]] = [a[j], a[i]];
-        }
-        return a;
-    };
 
     const loadScript = (src, ms) => new Promise((resolve, reject) => {
         const script = document.createElement('script');
@@ -74,97 +62,63 @@
         return;
     }
 
-    const applyWisp = (best, pool) => {
+    const hostWindows = () => {
+        const list = [window];
+        try { if (window.parent && window.parent !== window) list.push(window.parent); } catch (e) {}
+        try { if (window.top && !list.includes(window.top)) list.push(window.top); } catch (e) {}
+        return list;
+    };
+
+    const readHost = (key) => {
+        for (const w of hostWindows()) {
+            try {
+                if (w[key] !== undefined && w[key] !== null) return w[key];
+            } catch (e) {}
+        }
+        return undefined;
+    };
+
+    const normalizeWisp = (url) => {
+        if (typeof url !== "string" || !url) return null;
+        return url.includes("://") ? url : "wss://" + url + "/";
+    };
+
+    const resolveWisp = async () => {
+        const promise = readHost("kWispP");
+        if (promise && typeof promise.then === "function") {
+            try {
+                const url = normalizeWisp(await withTimeout(promise, WISP_WAIT_MS, "wisp resolve"));
+                if (url) return url;
+            } catch (err) {
+                console.warn("EasyGame: wisp resolve slow:", err.message);
+            }
+        }
+        const direct = normalizeWisp(readHost("wlspServer"));
+        if (direct) return direct;
+        const host = hostWindows().map((w) => {
+            try { return w.K; } catch (e) { return null; }
+        }).find((k) => k && typeof k.revalidateWisp === "function");
+        if (host) {
+            try {
+                return normalizeWisp(await withTimeout(host.revalidateWisp(), WISP_WAIT_MS, "wisp revalidate"));
+            } catch (err) {
+                console.warn("EasyGame: wisp revalidate failed:", err.message);
+            }
+        }
+        return null;
+    };
+
+    const applyWisp = (best) => {
         try {
             sandstone.libcurl.set_websocket(best);
+            const pool = readHost("wispUrls");
             if (typeof sandstone.network?.set_wisp_pool === "function") {
-                sandstone.network.set_wisp_pool([best, ...(pool || []).filter((u) => u !== best)]);
+                const rest = Array.isArray(pool) ? pool.filter((u) => u !== best) : [];
+                sandstone.network.set_wisp_pool([best, ...rest]);
             }
         } catch (e) {
             console.error("EasyGame: applyWisp failed:", e);
         }
-    };
-
-    const readCache = () => {
-        try {
-            const raw = JSON.parse(localStorage.getItem(CACHE_KEY) || "null");
-            if (!raw || typeof raw.best !== "string") return null;
-            return {
-                time: raw.time || 0,
-                best: raw.best,
-                ranked: Array.isArray(raw.ranked) ? raw.ranked : [],
-                list: Array.isArray(raw.list) ? raw.list : []
-            };
-        } catch (e) {
-            return null;
-        }
-    };
-
-    const writeCache = (best, ranked, list) => {
-        try {
-            const prev = readCache();
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
-                time: Date.now(),
-                best: best,
-                ranked: ranked,
-                list: list || (prev && prev.list) || []
-            }));
-        } catch (e) {}
-    };
-
-    const testWisp = (url, ms) => new Promise((resolve) => {
-        let ws;
-        try {
-            ws = new WebSocket(url);
-        } catch (e) {
-            resolve(false);
-            return;
-        }
-        const timer = setTimeout(() => {
-            try { ws.close(); } catch (e) {}
-            resolve(false);
-        }, ms);
-        ws.onopen = () => {
-            clearTimeout(timer);
-            try { ws.close(); } catch (e) {}
-            resolve(true);
-        };
-        ws.onerror = () => {
-            clearTimeout(timer);
-            resolve(false);
-        };
-    });
-
-    const firstReachable = (urls, ms) => new Promise((resolve) => {
-        if (!urls.length) return resolve(null);
-        let pending = urls.length;
-        const overall = setTimeout(() => resolve(null), ms + 500);
-        urls.forEach((url) => {
-            testWisp(url, ms).then((ok) => {
-                if (ok) {
-                    clearTimeout(overall);
-                    resolve(url);
-                } else if (--pending === 0) {
-                    clearTimeout(overall);
-                    resolve(null);
-                }
-            });
-        });
-    });
-
-    const allReachable = async (urls, ms) => {
-        const results = await Promise.all(urls.map(async (u) => (await testWisp(u, ms)) ? u : null));
-        return results.filter(Boolean);
-    };
-
-    const fetchWispList = async () => {
-        const res = await withTimeout(fetch(WISP_LIST_URL), 5000, "wss.json fetch");
-        if (!res.ok) throw new Error("wss.json status " + res.status);
-        const outer = await res.json();
-        if (!Array.isArray(outer) || !outer.length) throw new Error("wss.json empty");
-        const urls = JSON.parse(atob(outer[0]));
-        if (!Array.isArray(urls) || !urls.length) throw new Error("decoded list empty");
-        return urls;
     };
 
     const waitForLibcurl = () => new Promise((resolve) => {
@@ -185,96 +139,14 @@
         } catch (e) {}
     });
 
-    const refreshCache = async (list, current) => {
-        try {
-            const sample = shuffle(list).slice(0, 10);
-            const working = await allReachable(sample, 2500);
-            if (current && !working.includes(current)) working.unshift(current);
-            if (!working.length) return;
-
-            let ranked = working;
-            const network = sandstone.network;
-            if (working.length > 1 && network && typeof network.pick_best_wisp === "function") {
-                try {
-                    const outcome = await withTimeout(
-                        network.pick_best_wisp(working.slice(0, 4), {
-                            limit: 4,
-                            timeout_ms: 4000,
-                            verbose: false,
-                            apply: false
-                        }),
-                        20000,
-                        "benchmark"
-                    );
-                    if (outcome && outcome.best && Array.isArray(outcome.ranked)) {
-                        const order = outcome.ranked.map((e) => e.url);
-                        ranked = [...order, ...working.filter((u) => !order.includes(u))];
-                    }
-                } catch (e) {}
-            }
-            writeCache(ranked[0], ranked, list);
-        } catch (e) {}
-    };
-
-    const setupWisp = async () => {
-        const cached = readCache();
-        let list = cached ? cached.list : [];
-        const tried = new Set();
-
-        if (cached) {
-            tried.add(cached.best);
-            if (await testWisp(cached.best, 1500)) {
-                applyWisp(cached.best, cached.ranked);
-                if (Date.now() - cached.time > REFRESH_MS && list.length) refreshCache(list, cached.best);
-                return;
-            }
-            const others = cached.ranked.filter((u) => !tried.has(u)).slice(0, 6);
-            others.forEach((u) => tried.add(u));
-            const alt = await firstReachable(others, 2000);
-            if (alt) {
-                applyWisp(alt, cached.ranked);
-                writeCache(alt, [alt, ...cached.ranked.filter((u) => u !== alt)], list);
-                if (list.length) refreshCache(list, alt);
-                return;
-            }
-        }
-
-        setStatus("Finding a wisp server...");
-        if (!list.length || cached) {
-            try {
-                list = await fetchWispList();
-            } catch (err) {
-                console.warn("EasyGame: wisp list unavailable:", err.message);
-            }
-        }
-
-        const pool = shuffle(list.filter((u) => !tried.has(u))).slice(0, 8);
-        const pick = await firstReachable(pool, 2500);
-        if (pick) {
-            applyWisp(pick, list);
-            writeCache(pick, [pick], list);
-            refreshCache(list, pick);
-            return;
-        }
-
-        if (!tried.has(FALLBACK_WISP) && await testWisp(FALLBACK_WISP, 2500)) {
-            applyWisp(FALLBACK_WISP, list);
-            writeCache(FALLBACK_WISP, [FALLBACK_WISP], list);
-            return;
-        }
-
-        applyWisp(cached ? cached.best : (list[0] || FALLBACK_WISP), list);
-        if (list.length) refreshCache(list, null);
-    };
-
-    const startCache = readCache();
-    applyWisp(startCache ? startCache.best : FALLBACK_WISP, startCache ? startCache.ranked : []);
-
+    setStatus("Finding a wisp server...");
     await waitForLibcurl();
-    try {
-        await withTimeout(setupWisp(), 9000, "wisp setup");
-    } catch (err) {
-        console.warn("EasyGame: wisp setup slow, continuing:", err.message);
+    const wisp = await resolveWisp();
+    if (wisp) {
+        applyWisp(wisp);
+    } else {
+        setStatus("No working wisp server was found.\nThe proxy may not connect.");
+        console.error("EasyGame: no validated wisp available on window.");
     }
 
     const decodeUrl = (str) => {
@@ -346,6 +218,6 @@
         attributeFilter: ['eg-url']
     });
 
-    hideStatus();
+    if (wisp) hideStatus();
     replacePTags();
 })();
