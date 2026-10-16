@@ -1,67 +1,892 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet"> 
-    <style>
-        :root {
-            --bg: #1a1216;
-            --text: #ffb8d9;
-            --card: rgba(255, 255, 255, 0.06);
-            --nav: rgba(26, 18, 22, 0.85);
-        }
-        * {
-            font-family: "Comfortaa", sans-serif !important;
-            color: var(--text);
-        }
-        .coming-soon-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: none;            
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;           
-            color: var(--text);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+<style>
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: "Comfortaa", sans-serif !important;
+    -webkit-tap-highlight-color: transparent;
+}
 
-        .coming-soon-content {
-            text-align: center;
-            animation: pulseFade 2.5s infinite ease-in-out;
-        }
+:root {
+    --bg: #1a1216;
+    --text: #ffb8d9;
+    --card: rgba(255, 255, 255, 0.06);
+    --nav: rgba(26, 18, 22, 0.94);
+    --hover: color-mix(in srgb, var(--text) 14%, transparent);
+    --hover-strong: color-mix(in srgb, var(--text) 24%, transparent);
+    --muted: color-mix(in srgb, var(--text) 62%, transparent);
+    --border: color-mix(in srgb, var(--text) 16%, transparent);
+    --tabs-h: 64px;
+}
 
-        .coming-soon-content h1 {
-            font-size: 2.5rem;
-            margin: 0 0 10px 0;
-            letter-spacing: 2px;
-            font-weight: 600;
-            color: var(--text);
-        }
+html, body { min-height: 100%; }
 
-        .coming-soon-content p {
-            font-size: 1.1rem;
-            margin: 0;
-            color: var(--text);
-        }
+body {
+    background-color: var(--bg);
+    background-image:
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    color: var(--text);
+    overflow-x: hidden;
+}
 
+[hidden] { display: none !important; }
+button { font: inherit; color: inherit; }
+svg { display: block; flex-shrink: 0; }
 
-    </style>
+.tabs {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: var(--tabs-h);
+    padding: 0 16px;
+    background: var(--nav);
+    border-bottom: 1px solid var(--border);
+}
+
+.tab {
+    height: 42px;
+    padding: 0 24px;
+    border: 1px solid var(--border);
+    border-radius: 500px;
+    background: var(--card);
+    color: var(--muted);
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, transform 0.15s;
+}
+.tab:hover { background: var(--hover); color: var(--text); }
+.tab[aria-selected="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+.tab:focus-visible { outline: 2px solid var(--text); outline-offset: 2px; }
+
+.panel { padding: 16px; }
+
+.soon {
+    min-height: calc(100vh - var(--tabs-h) - 32px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
+    animation: pulseFade 2.5s infinite ease-in-out;
+}
+.soon h1 { font-size: 2.5rem; letter-spacing: 2px; font-weight: 700; }
+.soon p { font-size: 1.1rem; color: var(--muted); max-width: 460px; }
+@keyframes pulseFade { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+
+.live {
+    max-width: 1500px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+}
+@media (min-width: 1000px) {
+    .live { grid-template-columns: minmax(0, 1.5fr) minmax(320px, 1fr); align-items: start; }
+    .stage { position: sticky; top: calc(var(--tabs-h) + 16px); }
+}
+
+.stage {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+}
+
+.screen {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: 72vh;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    border: 1px solid var(--border);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+}
+.screen video { width: 100%; height: 100%; display: block; background: #000; }
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 24px;
+    text-align: center;
+    background: rgba(0, 0, 0, 0.72);
+    pointer-events: none;
+}
+.overlay.click { pointer-events: auto; }
+.overlay-text { font-size: 1.05rem; color: var(--text); }
+
+.spinner {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 3px solid var(--hover-strong);
+    border-top-color: var(--text);
+    animation: spin 0.9s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.now {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    min-width: 0;
+}
+.now-logo {
+    width: 56px;
+    height: 56px;
+    flex: none;
+    border-radius: 8px;
+    background: var(--hover);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    font-weight: 700;
+}
+.now-logo img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
+.now-text { min-width: 0; flex: 1; }
+.now-name, .now-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.now-name { font-size: 1.1rem; font-weight: 700; }
+.now-meta { margin-top: 4px; font-size: 0.85rem; color: var(--muted); }
+
+.ghost-btn {
+    height: 38px;
+    padding: 0 16px;
+    border: 1px solid var(--border);
+    border-radius: 500px;
+    background: transparent;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: border-color 0.15s, background 0.15s;
+}
+.ghost-btn:hover { border-color: var(--text); background: var(--hover); }
+.ghost-btn:disabled { opacity: 0.35; pointer-events: none; }
+
+.browser { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+
+.filters { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.search-box {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    height: 46px;
+    padding: 0 18px;
+    border-radius: 500px;
+    background: var(--card);
+    border: 2px solid var(--border);
+    transition: border-color 0.2s, background 0.2s;
+}
+.search-box:hover { background: var(--hover); }
+.search-box:focus-within { border-color: var(--text); }
+.search-box input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--text);
+    font-size: 1rem;
+}
+.search-box input::placeholder { color: var(--muted); }
+
+.select {
+    width: 100%;
+    height: 42px;
+    padding: 0 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.95rem;
+    outline: none;
+    cursor: pointer;
+}
+.select:focus { border-color: var(--text); }
+.select option { background: var(--bg); color: var(--text); }
+
+.count { font-size: 0.85rem; color: var(--muted); padding: 0 4px; }
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 8px;
+}
+
+.ch {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: var(--card);
+    text-align: left;
+    cursor: pointer;
+    min-width: 0;
+    transition: background 0.2s, border-color 0.2s;
+}
+.ch:hover, .ch:focus-visible { background: var(--hover); border-color: var(--border); outline: none; }
+.ch.active { background: var(--hover-strong); border-color: var(--text); }
+
+.ch-logo {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    border-radius: 8px;
+    background: var(--hover);
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+.ch-logo img { width: 100%; height: 100%; object-fit: contain; padding: 8px; }
+.ch-name, .ch-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ch-name { font-size: 0.95rem; font-weight: 700; }
+.ch-meta { margin-top: -6px; font-size: 0.78rem; color: var(--muted); }
+
+.message { grid-column: 1 / -1; padding: 36px 8px; text-align: center; color: var(--muted); }
+.message .ghost-btn { margin-top: 14px; }
+
+.more { display: flex; justify-content: center; padding: 8px 0 24px; }
+.sentinel { height: 1px; }
+
+.skeleton {
+    aspect-ratio: 1;
+    border-radius: 10px;
+    background: var(--card);
+    animation: pulse 1.4s ease-in-out infinite;
+}
+@keyframes pulse { 50% { opacity: 0.45; } }
+
+@media (max-width: 600px) {
+    .tab { padding: 0 16px; font-size: 0.9rem; }
+    .panel { padding: 10px; }
+    .soon h1 { font-size: 1.8rem; }
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .now-logo { width: 46px; height: 46px; }
+}
+</style>
 </head>
 <body>
 
-    <div class="coming-soon-overlay">
-        <div class="coming-soon-content">
-            <h1>COMING SOON</h1>
-            <p>You've come across an unfinished page; this will arrive along with much more content!</p>
+<div class="tabs" role="tablist" aria-label="TV sections">
+    <button class="tab" role="tab" id="tab-movies" aria-controls="panel-movies" aria-selected="false" data-tab="movies" type="button">Movies</button>
+    <button class="tab" role="tab" id="tab-shows" aria-controls="panel-shows" aria-selected="false" data-tab="shows" type="button">Shows</button>
+    <button class="tab" role="tab" id="tab-live" aria-controls="panel-live" aria-selected="true" data-tab="live" type="button">Live TV</button>
+</div>
+
+<section class="panel" id="panel-movies" role="tabpanel" aria-labelledby="tab-movies" hidden>
+    <div class="soon">
+        <h1>COMING SOON</h1>
+        <p>Movies are on the way. Check back soon.</p>
+    </div>
+</section>
+
+<section class="panel" id="panel-shows" role="tabpanel" aria-labelledby="tab-shows" hidden>
+    <div class="soon">
+        <h1>COMING SOON</h1>
+        <p>Shows are on the way. Check back soon.</p>
+    </div>
+</section>
+
+<section class="panel" id="panel-live" role="tabpanel" aria-labelledby="tab-live">
+    <div class="live">
+        <div class="stage">
+            <div class="screen">
+                <video id="video" controls playsinline autoplay></video>
+                <div class="overlay" id="overlay">
+                    <div class="overlay-text">Pick a channel to start watching.</div>
+                </div>
+            </div>
+            <div class="now" id="now" hidden>
+                <div class="now-logo" id="nowLogo"></div>
+                <div class="now-text">
+                    <div class="now-name" id="nowName"></div>
+                    <div class="now-meta" id="nowMeta"></div>
+                </div>
+                <button class="ghost-btn" id="altBtn" type="button" hidden>Try another feed</button>
+            </div>
+        </div>
+
+        <div class="browser">
+            <div class="filters">
+                <label class="search-box">
+                    <input type="text" id="search" placeholder="Search channels" autocomplete="off" spellcheck="false">
+                </label>
+                <select class="select" id="country" aria-label="Country"></select>
+                <select class="select" id="category" aria-label="Category"></select>
+            </div>
+            <div class="count" id="count"></div>
+            <div class="grid" id="grid"></div>
+            <div class="sentinel" id="sentinel"></div>
         </div>
     </div>
+</section>
 
+<script>
+(function () {
+    var API_BASE = 'https://iptv-org.github.io/api/';
+    var MIRROR_BASE = 'https://cdn.jsdelivr.net/gh/iptv-org/api@gh-pages/';
+    var HLS_SRC = 'https://cdn.jsdelivr.net/npm/hls.js@1/dist/hls.min.js';
+    var PAGE_SIZE = 48;
+    var STALL_MS = 15000;
+    var HLS_MIME = 'application/vnd.apple.mpegurl';
+
+    var el = function (id) { return document.getElementById(id); };
+    var tabs = Array.prototype.slice.call(document.querySelectorAll('.tab'));
+    var panels = { movies: el('panel-movies'), shows: el('panel-shows'), live: el('panel-live') };
+    var video = el('video');
+    var overlay = el('overlay');
+    var nowBox = el('now');
+    var nowLogo = el('nowLogo');
+    var nowName = el('nowName');
+    var nowMeta = el('nowMeta');
+    var altBtn = el('altBtn');
+    var searchInput = el('search');
+    var countrySelect = el('country');
+    var categorySelect = el('category');
+    var countEl = el('count');
+    var grid = el('grid');
+    var sentinel = el('sentinel');
+
+    var store = {
+        get: function (key) { try { return localStorage.getItem(key); } catch (e) { return null; } },
+        set: function (key, value) { try { localStorage.setItem(key, value); } catch (e) {} }
+    };
+
+    var channels = [];
+    var countryNames = {};
+    var countryFlags = {};
+    var categoryNames = {};
+    var filtered = [];
+    var shown = 0;
+    var cards = {};
+    var current = null;
+    var streamIndex = 0;
+    var hls = null;
+    var hlsPromise = null;
+    var stallTimer = 0;
+    var playToken = 0;
+    var livePromise = null;
+    var liveReady = false;
+    var observer = null;
+    var searchTimer = 0;
+
+    function fetchJSON(url) {
+        var controller = new AbortController();
+        var timer = setTimeout(function () { controller.abort(); }, 30000);
+        return fetch(url, { signal: controller.signal }).then(function (res) {
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            return res.json();
+        }).then(function (data) {
+            clearTimeout(timer);
+            return data;
+        }, function (err) {
+            clearTimeout(timer);
+            throw err;
+        });
+    }
+
+    function getApi(name) {
+        return fetchJSON(API_BASE + name).catch(function () { return fetchJSON(MIRROR_BASE + name); });
+    }
+
+    function qualityValue(q) {
+        var n = parseInt(q, 10);
+        return isNaN(n) ? 0 : n;
+    }
+
+    function initials(name) {
+        var words = String(name || '').trim().split(/\s+/).filter(Boolean);
+        if (!words.length) return 'TV';
+        if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+        return (words[0][0] + words[1][0]).toUpperCase();
+    }
+
+    function setLogo(box, channel) {
+        box.textContent = '';
+        if (channel.logo) {
+            var img = document.createElement('img');
+            img.alt = '';
+            img.loading = 'lazy';
+            img.decoding = 'async';
+            img.referrerPolicy = 'no-referrer';
+            img.onerror = function () {
+                box.textContent = initials(channel.name);
+            };
+            img.src = channel.logo;
+            box.appendChild(img);
+        } else {
+            box.textContent = initials(channel.name);
+        }
+    }
+
+    function countryLabel(code) {
+        if (!code) return '';
+        var flag = countryFlags[code] || '';
+        var name = countryNames[code] || code;
+        return (flag ? flag + ' ' : '') + name;
+    }
+
+    function categoryLabel(channel) {
+        if (!channel.categories.length) return '';
+        return channel.categories.map(function (id) { return categoryNames[id] || id; }).join(', ');
+    }
+
+    function metaLine(channel) {
+        var parts = [countryLabel(channel.country), categoryLabel(channel)].filter(Boolean);
+        return parts.join(' · ');
+    }
+
+    function setOverlay(text, spinning, clickable) {
+        overlay.hidden = false;
+        overlay.className = 'overlay' + (clickable ? ' click' : '');
+        overlay.textContent = '';
+        if (spinning) {
+            var spin = document.createElement('div');
+            spin.className = 'spinner';
+            overlay.appendChild(spin);
+        }
+        var label = document.createElement('div');
+        label.className = 'overlay-text';
+        label.textContent = text;
+        overlay.appendChild(label);
+    }
+
+    function hideOverlay() {
+        overlay.hidden = true;
+    }
+
+    function loadHls() {
+        if (window.Hls) return Promise.resolve(window.Hls);
+        if (!hlsPromise) {
+            hlsPromise = new Promise(function (resolve, reject) {
+                var s = document.createElement('script');
+                s.src = HLS_SRC;
+                s.async = true;
+                s.onload = function () { resolve(window.Hls); };
+                s.onerror = function () { reject(new Error('hls.js failed to load')); };
+                document.head.appendChild(s);
+            });
+            hlsPromise.catch(function () { hlsPromise = null; });
+        }
+        return hlsPromise;
+    }
+
+    function clearStall() {
+        clearTimeout(stallTimer);
+        stallTimer = 0;
+    }
+
+    function stopStream() {
+        clearStall();
+        if (hls) {
+            try { hls.destroy(); } catch (e) {}
+            hls = null;
+        }
+        try { video.pause(); } catch (e) {}
+        video.removeAttribute('src');
+        try { video.load(); } catch (e) {}
+    }
+
+    function updateAltButton() {
+        if (!current) {
+            altBtn.hidden = true;
+            return;
+        }
+        altBtn.hidden = current.streams.length < 2;
+        altBtn.textContent = 'Try another feed (' + (streamIndex + 1) + '/' + current.streams.length + ')';
+    }
+
+    function failChannel(token) {
+        if (token !== playToken) return;
+        clearStall();
+        if (current && streamIndex + 1 < current.streams.length) {
+            streamIndex++;
+            updateAltButton();
+            startStream(token);
+            return;
+        }
+        stopStream();
+        setOverlay('This channel is not available right now. Try another one.', false, false);
+    }
+
+    function startStream(existingToken) {
+        var token = existingToken || ++playToken;
+        if (existingToken) playToken = existingToken;
+        var url = current.streams[streamIndex].url;
+        stopStream();
+        setOverlay('Loading ' + current.name + '...', true, false);
+        stallTimer = setTimeout(function () { failChannel(token); }, STALL_MS);
+
+        var native = video.canPlayType(HLS_MIME);
+
+        loadHls().then(function (Hls) {
+            if (token !== playToken) return;
+            if (Hls && Hls.isSupported()) {
+                hls = new Hls({ enableWorker: true, lowLatencyMode: false, manifestLoadingMaxRetry: 1, levelLoadingMaxRetry: 1, fragLoadingMaxRetry: 2 });
+                hls.on(Hls.Events.MANIFEST_PARSED, function () {
+                    if (token !== playToken) return;
+                    var p = video.play();
+                    if (p && p.catch) p.catch(function () {
+                        if (token === playToken) setOverlay('Tap to play', false, true);
+                    });
+                });
+                hls.on(Hls.Events.ERROR, function (event, data) {
+                    if (token !== playToken || !data || !data.fatal) return;
+                    failChannel(token);
+                });
+                hls.loadSource(url);
+                hls.attachMedia(video);
+            } else if (native) {
+                video.src = url;
+                var p2 = video.play();
+                if (p2 && p2.catch) p2.catch(function () {});
+            } else {
+                failChannel(token);
+            }
+        }, function () {
+            if (token !== playToken) return;
+            if (native) {
+                video.src = url;
+                var p3 = video.play();
+                if (p3 && p3.catch) p3.catch(function () {});
+            } else {
+                failChannel(token);
+            }
+        });
+    }
+
+    function playChannel(channel) {
+        current = channel;
+        streamIndex = 0;
+        Object.keys(cards).forEach(function (id) { cards[id].classList.remove('active'); });
+        if (cards[channel.id]) cards[channel.id].classList.add('active');
+        nowBox.hidden = false;
+        setLogo(nowLogo, channel);
+        nowName.textContent = channel.name;
+        nowMeta.textContent = metaLine(channel);
+        updateAltButton();
+        startStream();
+    }
+
+    video.addEventListener('playing', function () {
+        clearStall();
+        hideOverlay();
+    });
+    video.addEventListener('waiting', function () {
+        if (current && !video.paused && !video.ended) setOverlay('Buffering...', true, false);
+    });
+    video.addEventListener('canplay', function () {
+        if (!video.paused) hideOverlay();
+    });
+    video.addEventListener('error', function () {
+        if (!current || hls || !video.getAttribute('src')) return;
+        failChannel(playToken);
+    });
+
+    overlay.addEventListener('click', function () {
+        if (!overlay.classList.contains('click')) return;
+        var p = video.play();
+        if (p && p.catch) p.catch(function () {});
+    });
+
+    altBtn.addEventListener('click', function () {
+        if (!current || current.streams.length < 2) return;
+        streamIndex = (streamIndex + 1) % current.streams.length;
+        updateAltButton();
+        startStream();
+    });
+
+    function makeCard(channel) {
+        var card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'ch' + (current && current.id === channel.id ? ' active' : '');
+        card.dataset.id = channel.id;
+        card.title = channel.name;
+
+        var logo = document.createElement('div');
+        logo.className = 'ch-logo';
+        setLogo(logo, channel);
+
+        var name = document.createElement('div');
+        name.className = 'ch-name';
+        name.textContent = channel.name;
+
+        var meta = document.createElement('div');
+        meta.className = 'ch-meta';
+        meta.textContent = metaLine(channel) || ' ';
+
+        card.appendChild(logo);
+        card.appendChild(name);
+        card.appendChild(meta);
+        card.addEventListener('click', function () { playChannel(channel); });
+        cards[channel.id] = card;
+        return card;
+    }
+
+    function renderMore() {
+        if (shown >= filtered.length) return;
+        var frag = document.createDocumentFragment();
+        var end = Math.min(shown + PAGE_SIZE, filtered.length);
+        for (var i = shown; i < end; i++) frag.appendChild(makeCard(filtered[i]));
+        shown = end;
+        grid.appendChild(frag);
+    }
+
+    function updateCount() {
+        if (!liveReady) { countEl.textContent = ''; return; }
+        countEl.textContent = filtered.length + (filtered.length === 1 ? ' channel' : ' channels');
+    }
+
+    function applyFilters() {
+        var q = searchInput.value.trim().toLowerCase();
+        var country = countrySelect.value;
+        var category = categorySelect.value;
+        filtered = channels.filter(function (c) {
+            if (country && c.country !== country) return false;
+            if (category && c.categories.indexOf(category) === -1) return false;
+            if (q && c.search.indexOf(q) === -1) return false;
+            return true;
+        });
+        shown = 0;
+        cards = {};
+        grid.textContent = '';
+        if (!filtered.length) {
+            var msg = document.createElement('div');
+            msg.className = 'message';
+            msg.textContent = 'No channels match your filters.';
+            grid.appendChild(msg);
+        } else {
+            renderMore();
+        }
+        updateCount();
+    }
+
+    function showSkeleton() {
+        grid.textContent = '';
+        for (var i = 0; i < 12; i++) {
+            var s = document.createElement('div');
+            s.className = 'skeleton';
+            grid.appendChild(s);
+        }
+    }
+
+    function showLoadError() {
+        grid.textContent = '';
+        var box = document.createElement('div');
+        box.className = 'message';
+        box.textContent = 'Could not load the channel list.';
+        var retry = document.createElement('button');
+        retry.type = 'button';
+        retry.className = 'ghost-btn';
+        retry.textContent = 'Try again';
+        retry.addEventListener('click', function () { ensureLive(); });
+        box.appendChild(document.createElement('br'));
+        box.appendChild(retry);
+        grid.appendChild(box);
+    }
+
+    function fillSelect(select, firstLabel, items) {
+        select.textContent = '';
+        var first = document.createElement('option');
+        first.value = '';
+        first.textContent = firstLabel;
+        select.appendChild(first);
+        items.forEach(function (item) {
+            var o = document.createElement('option');
+            o.value = item.value;
+            o.textContent = item.label;
+            select.appendChild(o);
+        });
+    }
+
+    function buildData(raw) {
+        var channelList = raw[0] || [];
+        var streamList = raw[1] || [];
+        var logoList = raw[2] || [];
+        var categoryList = raw[3] || [];
+        var countryList = raw[4] || [];
+
+        countryList.forEach(function (c) {
+            countryNames[c.code] = c.name;
+            countryFlags[c.code] = c.flag || '';
+        });
+        categoryList.forEach(function (c) { categoryNames[c.id] = c.name; });
+
+        var streamMap = {};
+        streamList.forEach(function (s) {
+            if (!s || !s.channel || !s.url) return;
+            if (!/^https:\/\//i.test(s.url)) return;
+            if (s.referrer || s.user_agent) return;
+            var list = streamMap[s.channel] || (streamMap[s.channel] = []);
+            for (var i = 0; i < list.length; i++) if (list[i].url === s.url) return;
+            list.push({ url: s.url, q: qualityValue(s.quality) });
+        });
+        Object.keys(streamMap).forEach(function (id) {
+            streamMap[id].sort(function (a, b) { return b.q - a.q; });
+        });
+
+        var logoMap = {};
+        logoList.forEach(function (l) {
+            if (!l || !l.channel || !l.url || !/^https:\/\//i.test(l.url)) return;
+            var existing = logoMap[l.channel];
+            if (!existing || (l.in_use && !existing.in_use)) logoMap[l.channel] = l;
+        });
+
+        channels = [];
+        channelList.forEach(function (c) {
+            if (!c || c.is_nsfw || c.closed) return;
+            var st = streamMap[c.id];
+            if (!st || !st.length) return;
+            var alt = Array.isArray(c.alt_names) ? c.alt_names.join(' ') : '';
+            channels.push({
+                id: c.id,
+                name: c.name,
+                country: c.country || '',
+                categories: Array.isArray(c.categories) ? c.categories : [],
+                logo: logoMap[c.id] ? logoMap[c.id].url : '',
+                streams: st,
+                search: (c.name + ' ' + alt).toLowerCase()
+            });
+        });
+        channels.sort(function (a, b) { return a.name.localeCompare(b.name); });
+
+        var usedCountries = {};
+        var usedCategories = {};
+        channels.forEach(function (c) {
+            if (c.country) usedCountries[c.country] = true;
+            c.categories.forEach(function (id) { usedCategories[id] = true; });
+        });
+
+        var countryItems = Object.keys(usedCountries).map(function (code) {
+            return { value: code, label: (countryFlags[code] ? countryFlags[code] + ' ' : '') + (countryNames[code] || code), sort: countryNames[code] || code };
+        }).sort(function (a, b) { return a.sort.localeCompare(b.sort); });
+
+        var categoryItems = Object.keys(usedCategories).map(function (id) {
+            return { value: id, label: categoryNames[id] || id };
+        }).sort(function (a, b) { return a.label.localeCompare(b.label); });
+
+        fillSelect(countrySelect, 'All countries', countryItems);
+        fillSelect(categorySelect, 'All categories', categoryItems);
+
+        var saved = store.get('tvCountry');
+        var wanted = saved;
+        if (wanted === null) {
+            var region = ((navigator.language || 'en-US').split('-')[1] || '').toUpperCase();
+            wanted = usedCountries[region] ? region : 'US';
+        }
+        countrySelect.value = usedCountries[wanted] ? wanted : '';
+
+        var savedCategory = store.get('tvCategory');
+        categorySelect.value = savedCategory && usedCategories[savedCategory] ? savedCategory : '';
+    }
+
+    function ensureLive() {
+        if (liveReady) return Promise.resolve();
+        if (livePromise) return livePromise;
+        showSkeleton();
+        countEl.textContent = 'Loading channels...';
+        livePromise = Promise.all([
+            getApi('channels.json'),
+            getApi('streams.json'),
+            getApi('logos.json').catch(function () { return []; }),
+            getApi('categories.json').catch(function () { return []; }),
+            getApi('countries.json').catch(function () { return []; })
+        ]).then(function (raw) {
+            buildData(raw);
+            liveReady = true;
+            applyFilters();
+        }).catch(function () {
+            livePromise = null;
+            countEl.textContent = '';
+            showLoadError();
+        });
+        return livePromise;
+    }
+
+    function selectTab(name) {
+        if (!panels[name]) name = 'live';
+        tabs.forEach(function (t) {
+            t.setAttribute('aria-selected', t.dataset.tab === name ? 'true' : 'false');
+            t.tabIndex = t.dataset.tab === name ? 0 : -1;
+        });
+        Object.keys(panels).forEach(function (key) { panels[key].hidden = key !== name; });
+        store.set('tvTab', name);
+        if (name === 'live') {
+            ensureLive();
+        } else if (current && !video.paused) {
+            try { video.pause(); } catch (e) {}
+        }
+    }
+
+    tabs.forEach(function (t, i) {
+        t.addEventListener('click', function () { selectTab(t.dataset.tab); });
+        t.addEventListener('keydown', function (e) {
+            var next = -1;
+            if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
+            else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+            if (next === -1) return;
+            e.preventDefault();
+            tabs[next].focus();
+            selectTab(tabs[next].dataset.tab);
+        });
+    });
+
+    searchInput.addEventListener('input', function () {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(function () { if (liveReady) applyFilters(); }, 180);
+    });
+    countrySelect.addEventListener('change', function () {
+        store.set('tvCountry', countrySelect.value);
+        if (liveReady) applyFilters();
+    });
+    categorySelect.addEventListener('change', function () {
+        store.set('tvCategory', categorySelect.value);
+        if (liveReady) applyFilters();
+    });
+
+    if ('IntersectionObserver' in window) {
+        observer = new IntersectionObserver(function (entries) {
+            if (entries[0] && entries[0].isIntersecting && liveReady) renderMore();
+        }, { rootMargin: '400px 0px' });
+        observer.observe(sentinel);
+    } else {
+        window.addEventListener('scroll', function () {
+            if (!liveReady) return;
+            var rect = sentinel.getBoundingClientRect();
+            if (rect.top < window.innerHeight + 400) renderMore();
+        }, { passive: true });
+    }
+
+    selectTab(store.get('tvTab') || 'live');
+})();
+</script>
 </body>
 </html>
