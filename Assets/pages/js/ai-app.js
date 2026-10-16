@@ -781,7 +781,7 @@ function _aiBuildModelDropdown() {
   trig.tabIndex = 0;
   const label = document.createElement("span");
   const current = sel.options[sel.selectedIndex];
-  label.textContent = current ? current.text : "";
+  label.textContent = current ? current.text : "Loading models...";
   trig.appendChild(label);
   trig.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>');
   const opts = document.createElement("div");
@@ -2618,6 +2618,7 @@ function _startPipObserver() {
 }
 window._pipChat = { "open": _openPip, "close": _closePip, "sync": _syncPipMessages };
 function _aiBootstrap() {
+  _aiBuildModelDropdown();
   openAI();
   _startPipObserver();
   const btn = document.getElementById('aiPipBtn');
