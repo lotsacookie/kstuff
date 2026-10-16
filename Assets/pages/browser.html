@@ -62,6 +62,7 @@ html, body {
     transition: background 0.3s ease, color 0.3s ease, opacity 0.25s ease;
 }
 
+/* Hold the page invisible until icons/fonts/Halloween theme are in, then fade in once. */
 html:not(.ready) body {
     opacity: 0;
     animation: sg-failsafe 0.01s linear 2.4s forwards;
@@ -794,70 +795,135 @@ html:not(.ready) body * {
     inset: 0;
     width: 100%;
     height: 100%;
-    padding: 16px;
-    background: rgba(0, 0, 0, 0.7);
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.62);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 9999;
     opacity: 0;
     visibility: hidden;
-    transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    pointer-events: none;
+    transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
 .exam-modal-overlay.active {
     opacity: 1;
     visibility: visible;
+    pointer-events: auto;
 }
 
 .exam-modal-content {
     background: var(--nav);
-    border: 1px solid var(--line);
-    padding: 24px;
-    border-radius: 16px;
-    width: min(340px, 100%);
+    color: var(--text);
+    width: min(400px, 100%);
     max-height: 100%;
-    overflow-y: auto;
+    border-radius: 28px;
+    border: 1px solid color-mix(in srgb, var(--text) 10%, transparent);
     display: flex;
     flex-direction: column;
-    gap: 16px;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-    transform: scale(0.9);
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+    box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.2);
+    transform: translateY(16px) scale(0.97);
+    opacity: 0;
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.25s ease;
 }
 
 .exam-modal-overlay.active .exam-modal-content {
-    transform: scale(1);
+    transform: none;
+    opacity: 1;
 }
 
 .exam-modal-header {
-    font-size: 1.1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+    padding: 0.85rem 1rem 0.85rem 1.25rem;
+    background: color-mix(in srgb, var(--text) 4%, transparent);
+    border-bottom: 1px solid rgba(128, 128, 128, 0.18);
+}
+
+.exam-modal-header > span {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    font-size: 1.05rem;
     font-weight: 900 !important;
+    letter-spacing: 0.02em;
+}
+
+.exam-modal-header > span > i {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    font-size: 1.05rem;
+}
+
+.exam-modal-close {
+    background: var(--card);
+    border: 1px solid var(--line);
     color: var(--text);
+    font-size: 1.05rem;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.85;
+    transition: all 0.2s ease;
+}
+
+.exam-modal-close:hover {
+    opacity: 1;
+    background: var(--text);
+    color: var(--bg);
+    border-color: var(--text);
+    transform: rotate(90deg);
+}
+
+.exam-modal-body {
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    overflow-y: auto;
 }
 
 .exam-input-group {
     display: flex;
     flex-direction: column;
-    gap: 6px;
 }
 
 .exam-input-group label {
-    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.6rem;
+    font-size: 0.95rem;
     font-weight: 900 !important;
-    color: var(--muted);
+    color: var(--text);
 }
 
 .exam-input {
+    width: 100%;
     background: var(--card);
-    border: 1px solid var(--line);
+    border: 1px solid rgba(128, 128, 128, 0.3);
     color: var(--text);
-    padding: 10px 12px;
+    padding: 0.75rem 0.9rem;
     border-radius: 10px;
     outline: none;
-    font-size: 0.9rem;
+    font-size: 1rem;
     font-weight: bold;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
     -webkit-user-select: text;
     -moz-user-select: text;
     -ms-user-select: text;
@@ -865,39 +931,25 @@ html:not(.ready) body * {
 }
 
 .exam-input:focus {
-    background: color-mix(in srgb, var(--text) 8%, var(--card));
     border-color: var(--text);
-    box-shadow: 0 0 0 3px var(--glow);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--text) 18%, transparent);
 }
 
 .exam-actions {
     display: flex;
-    justify-content: flex-end;
-    gap: 10px;
-    margin-top: 8px;
+    gap: 0.75rem;
+    margin-top: 0.25rem;
 }
 
 .exam-btn {
-    padding: 9px 18px;
+    flex: 1;
+    padding: 11px;
     border-radius: 10px;
-    border: none;
+    border: 2px solid var(--text);
     cursor: pointer;
-    font-weight: 900 !important;
-    font-size: 0.85rem;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.exam-btn-cancel {
-    background: var(--card);
-    border: 1px solid var(--line);
-    color: var(--text);
-    opacity: 0.8;
-}
-
-.exam-btn-cancel:hover {
-    opacity: 1;
-    background: color-mix(in srgb, var(--text) 14%, var(--card));
-    border-color: var(--line-strong);
+    font-weight: bold !important;
+    font-size: 1rem;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .exam-btn-save {
@@ -906,9 +958,14 @@ html:not(.ready) body * {
 }
 
 .exam-btn-save:hover {
-    opacity: 0.92;
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px var(--glow);
+    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.exam-btn-save:active {
+    transform: translateY(0);
+    box-shadow: none;
 }
 
 @keyframes fadeIn {
@@ -1036,18 +1093,22 @@ html:not(.ready) body * {
 
     <div class="exam-modal-overlay" id="exam-modal">
         <div class="exam-modal-content">
-            <div class="exam-modal-header">Add Shortcut</div>
-            <div class="exam-input-group">
-                <label>Name</label>
-                <input type="text" class="exam-input" id="exam-name-input" placeholder="e.g. Science" />
+            <div class="exam-modal-header">
+                <span><i class="ph ph-link"></i> Add Shortcut</span>
+                <button class="exam-modal-close" id="exam-cancel-btn" aria-label="Close"><i class="ph ph-x"></i></button>
             </div>
-            <div class="exam-input-group">
-                <label>URL</label>
-                <input type="text" class="exam-input" id="exam-url-input" placeholder="https://..." />
-            </div>
-            <div class="exam-actions">
-                <button class="exam-btn exam-btn-cancel" id="exam-cancel-btn">Cancel</button>
-                <button class="exam-btn exam-btn-save" id="exam-save-btn">Done</button>
+            <div class="exam-modal-body">
+                <div class="exam-input-group">
+                    <label for="exam-name-input"><i class="ph ph-text-aa"></i> Name</label>
+                    <input type="text" class="exam-input" id="exam-name-input" placeholder="e.g. Science" />
+                </div>
+                <div class="exam-input-group">
+                    <label for="exam-url-input"><i class="ph ph-globe"></i> URL</label>
+                    <input type="text" class="exam-input" id="exam-url-input" placeholder="https://..." />
+                </div>
+                <div class="exam-actions">
+                    <button class="exam-btn exam-btn-save" id="exam-save-btn">Done</button>
+                </div>
             </div>
         </div>
     </div>
