@@ -5,28 +5,24 @@
 
     var REPO = 'lotsacookie/kstuff';
     var CSS_PATH = 'Assets/css/halloween.css';
-    var CSS_CACHE = 'kstuff_hw_css_v1';
+    var CSS_CACHE = 'kstuff_hw_css_v2';
     var root = document.documentElement;
 
     var PUMPKIN = '<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' +
-        '<ellipse cx="21" cy="37" rx="12" ry="14" fill="#f06000"/>' +
-        '<ellipse cx="43" cy="37" rx="12" ry="14" fill="#f06000"/>' +
-        '<ellipse cx="32" cy="37" rx="13" ry="14" fill="#ff7a1a"/>' +
-        '<rect x="29" y="11" width="6" height="9" rx="2" fill="#4caf50"/>' +
-        '<path d="M28 13q4-3 8 0" stroke="#2e7d32" stroke-width="2" fill="none" stroke-linecap="round"/>' +
-        '<path d="M19 32l5 7 5-7z" fill="#1a0a00"/>' +
-        '<path d="M37 32l5 7 5-7z" fill="#1a0a00"/>' +
-        '<path d="M20 46q12 9 24 0z" fill="#1a0a00"/>' +
+        '<path d="M29 3L36 5L38 14L27 14Z" fill="#3f6b1c"/>' +
+        '<path d="M36 5L42 3L40 9L38 14Z" fill="#2c4e12"/>' +
+        '<path d="M6 36L13 21L25 15L24 54L13 50Z" fill="#c24400"/>' +
+        '<path d="M58 36L51 21L39 15L40 54L51 50Z" fill="#c24400"/>' +
+        '<path d="M32 13L44 17L48 36L43 54L32 58L21 54L16 36L20 17Z" fill="#ff7a1a"/>' +
+        '<path d="M32 13L44 17L48 36L43 54L38 56L41 36L38 16Z" fill="#e85d00"/>' +
+        '<path d="M32 13L20 17L16 36L21 54L26 56L23 36L26 16Z" fill="#ff9330"/>' +
+        '<g class="hw-face" stroke="#2a1000" stroke-width="1.4" stroke-linejoin="miter" fill="#ffd23f">' +
+        '<path d="M16 29L28 35L19 40Z"/>' +
+        '<path d="M48 29L36 35L45 40Z"/>' +
+        '<path d="M32 38L36 46L28 46Z"/>' +
+        '<path d="M14 46L22 49L25 44L29 51L32 46L35 51L39 44L42 49L50 46L45 57L38 54L32 59L26 54L19 57Z"/>' +
+        '</g>' +
         '</svg>';
-
-    var NO_BACKGROUND_CSS =
-        'html.halloween-season, html.halloween-season body {' +
-        '  background: none !important;' +
-        '  background-color: transparent !important;' +
-        '}' +
-        'html.halloween-season body::before {' +
-        '  content: none !important;' +
-        '}';
 
     function bundled(path) {
         var wins = [window];
@@ -64,6 +60,8 @@
             .catch(function (err) { if (!hadCss) console.error('halloween.css failed', err); });
     }
 
+    try { localStorage.removeItem('kstuff_hw_css_v1'); } catch (e) {}
+
     root.classList.add('halloween-season');
     var css = bundled(CSS_PATH);
     if (css) {
@@ -90,12 +88,6 @@
     }
 
     function decorate() {
-        if (document.getElementById('library-home') && !document.getElementById('halloween-no-bg')) {
-            var reset = document.createElement('style');
-            reset.id = 'halloween-no-bg';
-            reset.textContent = NO_BACKGROUND_CSS;
-            document.head.appendChild(reset);
-        }
         ['#nav-logo', '#loading-screen .ld-logo', '#logo-wrap'].forEach(function (sel) {
             addPumpkin(document.querySelector(sel));
         });
