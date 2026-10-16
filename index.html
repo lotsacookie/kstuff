@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <script>try{document.documentElement.style.background=localStorage.getItem('kstuff_bg')||'#000'}catch(e){}</script>
-    <script>(()=>{try{if(new Date().getMonth()!==9)return;document.documentElement.classList.add('halloween-season');const c=localStorage.getItem('kstuff_hw_css_v1');if(c){const s=document.createElement('style');s.id='halloween-style';s.textContent=c;document.head.appendChild(s)}}catch(e){}})();</script>
+    <script>(()=>{try{if(new Date().getMonth()!==9)return;document.documentElement.classList.add('halloween-season');const c=localStorage.getItem('kstuff_hw_css_v2');if(c){const s=document.createElement('style');s.id='halloween-style';s.textContent=c;document.head.appendChild(s)}}catch(e){}})();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study.com - Math, Language Arts, Science</title>
     <meta property="og:title" content="Study.com | K-12 Online Learning and Worksheet Portal" />
@@ -125,9 +125,9 @@ function legacy(){
     <div id="loading-screen">
         <svg class="ld-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <defs>
-                <g id="ld-arm" fill="none" stroke-linecap="round">
-                    <path pathLength="1" d="M50 5 C82 5 96 36 79 58 C67 73 44 73 38 58 C33 46 44 38 52 42" stroke-width="5.5"/>
-                    <path pathLength="1" d="M50 14 C74 14 86 36 74 53 C65 65 49 65 45 55" stroke-width="2.2" opacity="0.7"/>
+                <g id="ld-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
+                    <path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/>
+                    <path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/>
                 </g>
             </defs>
             <g class="ld-arms" stroke="currentColor">
@@ -136,8 +136,7 @@ function legacy(){
                 <use href="#ld-arm" transform="rotate(240 50 50)"/>
             </g>
             <g class="ld-core" fill="currentColor">
-                <circle cx="50" cy="50" r="6"/>
-                <path d="M50 28 L53.5 46.5 L72 50 L53.5 53.5 L50 72 L46.5 53.5 L28 50 L46.5 46.5 Z"/>
+                <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/>
             </g>
         </svg>
         <div class="ld-word">Singularity</div>
@@ -178,9 +177,9 @@ function legacy(){
             <div class="nav-logo is-home" id="nav-logo" role="button" tabindex="0" aria-label="Singularity" data-tooltip="Singularity">
                 <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                     <defs>
-                        <g id="nl-arm" fill="none" stroke-linecap="round">
-                            <path d="M50 5 C82 5 96 36 79 58 C67 73 44 73 38 58 C33 46 44 38 52 42" stroke-width="5.5"/>
-                            <path d="M50 14 C74 14 86 36 74 53 C65 65 49 65 45 55" stroke-width="2.2" opacity="0.7"/>
+                        <g id="nl-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
+                            <path d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/>
+                            <path d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/>
                         </g>
                         <g id="nl-arms">
                             <use href="#nl-arm"/>
@@ -195,16 +194,14 @@ function legacy(){
                         <mask id="nl-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
                             <g stroke="#fff"><use href="#nl-arms"/></g>
                             <g class="nl-core">
-                                <circle cx="50" cy="50" r="6" fill="#fff"/>
-                                <path d="M50 28 L53.5 46.5 L72 50 L53.5 53.5 L50 72 L46.5 53.5 L28 50 L46.5 46.5 Z" fill="#fff"/>
+                                <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z" fill="#fff"/>
                             </g>
                         </mask>
                     </defs>
                     <g class="nl-base" stroke="currentColor"><use href="#nl-arms"/></g>
                     <g class="nl-core-wrap">
                         <g class="nl-core" fill="currentColor">
-                            <circle cx="50" cy="50" r="6"/>
-                            <path d="M50 28 L53.5 46.5 L72 50 L53.5 53.5 L50 72 L46.5 53.5 L28 50 L46.5 46.5 Z"/>
+                            <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/>
                         </g>
                         <g mask="url(#nl-mask)">
                             <rect class="nl-shine" x="-80" y="-10" width="34" height="120" fill="url(#nl-shine-grad)"/>
