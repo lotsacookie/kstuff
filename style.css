@@ -2161,11 +2161,10 @@ button:focus-visible,
 }
 
 @media (prefers-reduced-motion: reduce) {
-    *,
-    *::before,
-    *::after {
-        animation-duration: 0.01ms !important;
-        transition-duration: 0.01ms !important;
+    .nav-logo svg,
+    .nav-logo .nl-core,
+    .nav-logo .nl-shine {
+        animation: none !important;
     }
 }
 
