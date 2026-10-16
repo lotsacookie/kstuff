@@ -29,9 +29,16 @@ const dbGet=async()=>{try{const d=await idb();return await new Promise(r=>{const
 const dbSet=async v=>{try{(await idb()).transaction('s','readwrite').objectStore('s').put(v,'bundle')}catch{}};
 const hashOf=c=>c.startsWith('/*!sg:')?c.slice(6,18):'';
 const run=c=>{const s=document.createElement('script');s.textContent=c;document.head.appendChild(s);s.remove();return !!window.singularity};
-const manifest=()=>Promise.any([cdn[1],cdn[0],cdn[2]].map(b=>get(b+MAN+'?t='+Date.now(),5000,'json')));
+const sha=()=>window.kShaP||(window.kShaP=get('https://api.github.com/repos/'+R+'/commits/main',3500,'json').then(d=>d&&/^[0-9a-f]{40}$/i.test(d.sha)?d.sha:'').catch(()=>''));
+const pinned=async()=>{const s=await sha();return s?`https://cdn.jsdelivr.net/gh/${R}@${s}/`:null};
+const manifest=async()=>{
+  const t='?t='+Date.now();
+  try{return await Promise.any([pinned().then(b=>b?get(b+MAN+t,5000,'json'):Promise.reject(0)),get(cdn[1]+MAN+t,5000,'json')])}catch{}
+  return Promise.any([cdn[0],cdn[2]].map(b=>get(b+MAN+t,5000,'json')));
+};
 async function bundle(want){
-  for(const b of cdn){try{const c=await get(b+BUN+(want?'?h='+want:''),30000,'text');const h=hashOf(c);if(h&&(!want||h===want))return c}catch{}}
+  const p=await pinned();
+  for(const b of [p,cdn[1],cdn[0],cdn[2],''].filter(b=>b!==null)){try{const c=await get(b+BUN+(want?'?h='+want:''),30000,'text');const h=hashOf(c);if(h&&(!want||h===want))return c}catch{}}
   return null;
 }
 function legacy(){
@@ -42,19 +49,26 @@ function legacy(){
 (async()=>{
   P.say('Checking for updates');
   const cached=await dbGet();
-  if(cached&&cached.code&&run(cached.code)){
+  const have=cached&&cached.code?cached:null;
+  const mp=manifest().catch(()=>null);
+  let m=have?await Promise.race([mp,new Promise(r=>setTimeout(()=>r(null),5000))]):await mp;
+  if(have&&m&&m.hash&&m.hash!==have.hash){
+    P.say('Downloading...');
+    const code=await bundle(m.hash);
+    if(code&&run(code)){dbSet({hash:hashOf(code),code});window.singularity.start();return}
+  }
+  if(have&&run(have.code)){
     window.singularity.start();
-    manifest().then(async m=>{
-      if(!m||!m.hash)return;
-      if(m.hash===cached.hash){sessionStorage.removeItem('sgR');return}
-      const code=await bundle(m.hash);if(!code)return;
-      await dbSet({hash:m.hash,code});
+    if(!m)mp.then(async n=>{
+      if(!n||!n.hash||n.hash===have.hash)return;
+      const code=await bundle(n.hash);if(!code)return;
+      await dbSet({hash:n.hash,code});
       window.dispatchEvent(new Event('singularity:update'));
-    }).catch(()=>{});
+    });
     return;
   }
-  P.say('Downloading');
-  let m=null;try{m=await manifest()}catch{}
+  P.say('Downloading...');
+  if(!m)m=await mp;
   const code=await bundle(m&&m.hash);
   if(code&&run(code)){dbSet({hash:hashOf(code),code});window.singularity.start()}else legacy();
 })();
