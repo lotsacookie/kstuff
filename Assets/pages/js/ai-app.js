@@ -1,11 +1,36 @@
 const _aiDevHosts = ["localhost", "127.0.0.1", "eerf-korgn".split("").reverse().join("")];
 window.devMode = _aiDevHosts.includes(location.hostname) || _aiDevHosts.includes(location.hostname.split(".").at(-2) || location.hostname);
-window.serverList = ["cdn.northstreetumc.org", "cdn.vipersfutbol.com", "cdn.pcesc.org", "cdn.kcchallengevbc.com", "cdn.slcbmooc.org", "wss://athollcottage.com/connection/", "wss://kristenblackburnvolleyballcamps.com/socket/", "wss://southpadreislandkiteboarding/socket/"];
+window.serverList = ["cdn.northstreetumc.org", "cdn.vipersfutbol.com", "cdn.pcesc.org", "cdn.kcchallengevbc.com", "cdn.slcbmooc.org", "cdn.topstargym.net", "cdn.goaplytexas.org", "wss://athollcottage.com/connection/", "wss://api.personalloanonline.net/ws/", "wss://kristenblackburnvolleyballcamps.com/socket/", "wss://southpadreislandkiteboarding.com/socket/"];
 
 const AI_CONNECT_TIMEOUT = 5000;
 const AI_CONNECT_STAGGER = 1200;
 const AI_STALL_MS = 90000;
 const AI_LAST_GOOD_KEY = "AIWS";
+const _aiParent = (() => {
+  try {
+    return window.parent && window.parent !== window ? window.parent : null;
+  } catch (e) {
+    return null;
+  }
+})();
+
+async function _aiSyncParentWisp() {
+  if (!_aiParent) {
+    return;
+  }
+  try {
+    if (_aiParent.kWispP) {
+      await Promise.race([_aiParent.kWispP, new Promise(r => setTimeout(r, 6000))]);
+    }
+    if (Array.isArray(_aiParent.serverList) && _aiParent.serverList.length) {
+      window.serverList = _aiParent.serverList.slice();
+    }
+    if (_aiParent.wlspServer) {
+      window.wlspServer = _aiParent.wlspServer;
+    }
+  } catch (e) {}
+}
+
 const AI_VALID_KEY = "AIWID";
 const AI_VALIDATE_TIMEOUT = 3000;
 let _aiValidated = [];
@@ -472,6 +497,7 @@ async function _connectAI() {
   _aiReconnectTimer = null;
   _dropAISocket();
   _setAIStatus("connecting…");
+  await _aiSyncParentWisp();
   try {
     const entries = Array.isArray(window.serverList) ? window.serverList.slice() : [];
     if (window.wlspServer && !entries.includes(window.wlspServer)) {
