@@ -14,6 +14,8 @@ const _aiParent = (() => {
   }
 })();
 
+console.log("[ai] ai-app loaded, wisp-validate build 3, parent:", !!_aiParent);
+
 async function _aiSyncParentWisp() {
   if (!_aiParent) {
     return;
@@ -431,10 +433,11 @@ function _aiOpenFirst(urls) {
       };
       attempts.push(a);
       alive++;
-      const kill = () => {
+      const kill = ev => {
         if (a.dead) {
           return;
         }
+        console.warn("[ai] socket failed:", url, ev && ev.type ? ev.type : "timeout", ev && ev.code !== undefined ? ev.code : "");
         a.dead = true;
         clearTimeout(a.timeout);
         if (a.ws) {
@@ -458,10 +461,11 @@ function _aiOpenFirst(urls) {
       try {
         a.ws = new WebSocket(url);
       } catch (e) {
-        kill();
+        console.warn("[ai] socket threw:", url, e && e.message);
+        kill({ "type": "throw" });
         return;
       }
-      a.timeout = setTimeout(kill, AI_CONNECT_TIMEOUT);
+      a.timeout = setTimeout(() => kill(null), AI_CONNECT_TIMEOUT);
       a.ws.onmessage = ev => {
         if (done) {
           return;
@@ -470,6 +474,7 @@ function _aiOpenFirst(urls) {
         const ws = a.ws;
         ws.onerror = ws.onclose = null;
         cleanup(ws);
+        console.log("[ai] connected:", url);
         resolve({
           "ws": ws,
           "url": url,
@@ -511,12 +516,15 @@ async function _connectAI() {
       }
     });
     _aiValidated = picked.urls;
+    console.log("[ai] wisp validation:", picked.validated ? "ok" : "none passed (using full list)", "best:", picked.best, "parent wlspServer:", window.wlspServer);
   } catch (e) {
     _aiValidated = [];
   }
   let found;
   try {
-    found = await _aiOpenFirst(_aiCandidateUrls());
+    const candidates = _aiCandidateUrls();
+    console.log("[ai] trying", candidates.length, "candidates:", candidates);
+    found = await _aiOpenFirst(candidates);
   } catch (e) {
     _aiValidated = [];
     try {
