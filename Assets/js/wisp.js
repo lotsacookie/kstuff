@@ -17,6 +17,8 @@ export function init(K) {
     'wss://southpadreislandkiteboarding.com/socket/'
   ];
   K.WISP_FALLBACK = 'wss://api.personalloanonline.net/ws/';
+  K.WISP_VERSION = 3;
+  console.log('[wisp] module loaded, build', K.WISP_VERSION);
   K.wispUrls = [];
   window.serverList = K.WISP_SERVERS;
 
@@ -116,6 +118,7 @@ export function init(K) {
       .catch(() => wlspUrl(K.WISP_FALLBACK))
       .then(url => {
         window.wlspServer = url;
+        console.log('[wisp] wlspServer:', url, 'ping:', window.WlspPing, 'backup:', window.WlspIsBackup);
         return url;
       });
     return window.kWispP;
