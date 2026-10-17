@@ -1,7 +1,7 @@
 export function init(K) {
   const WISP_LIST_PATH = 'Assets/json/wss.json';
   const TEST_TIMEOUT = 3000;
-  const WAVE = 4;
+  const PROBE_WAVE = 6;
   const SPEED_TARGETS = [
     { host: 'speedtest.tele2.net', path: '/10MB.zip' },
     { host: 'ipv4.download.thinkbroadband.com', path: '/10MB.zip' }
@@ -30,7 +30,7 @@ export function init(K) {
     'wss://southpadreislandkiteboarding.com/socket/'
   ];
   K.WISP_FALLBACK = 'wss://api.personalloanonline.net/ws/';
-  K.WISP_VERSION = 5;
+  K.WISP_VERSION = 6;
   console.log('[wisp] module loaded, build', K.WISP_VERSION);
   K.wispUrls = [];
   window.serverList = K.WISP_SERVERS;
@@ -82,7 +82,7 @@ export function init(K) {
             dv.setUint8(0, 1);
             dv.setUint32(1, streamId, true);
             dv.setUint8(5, 1);
-            dv.setUint16(6, 1, true);
+            dv.setUint16(6, 69, true);
             new Uint8Array(buf).set(host, 8);
             sentAt = performance.now();
             ws.send(buf);
@@ -279,12 +279,16 @@ export function init(K) {
       if (ping !== null) return acceptBackup(stored.entry, ping, stored.bps);
       recordOutcome(stored.entry, false);
     }
-    const pings = await Promise.all(unique.map(entry => testWlspDomain(entry)));
-    const alive = unique
-      .map((entry, i) => ({ entry, ping: pings[i] }))
-      .filter(row => row.ping !== null)
-      .sort((a, b) => a.ping - b.ping);
-    unique.forEach((entry, i) => { if (pings[i] === null) recordOutcome(entry, false); });
+    const alive = [];
+    for (let i = 0; i < unique.length && alive.length < SPEED_CANDIDATES; i += PROBE_WAVE) {
+      const wave = unique.slice(i, i + PROBE_WAVE);
+      const pings = await Promise.all(wave.map(entry => testWlspDomain(entry)));
+      wave.forEach((entry, j) => {
+        if (pings[j] === null) recordOutcome(entry, false);
+        else alive.push({ entry, ping: pings[j] });
+      });
+    }
+    alive.sort((a, b) => a.ping - b.ping);
     if (!alive.length) return null;
     let best = null;
     for (const row of alive.slice(0, SPEED_CANDIDATES)) {
@@ -314,15 +318,10 @@ export function init(K) {
       const ping = await testWlspDomain(list[index]);
       if (ping !== null) return accept(index, ping);
     }
-    const primaries = list.map((entry, i) => i).filter(i => !isBackupServer(list[i]));
-    for (let i = 0; i < primaries.length; i += WAVE) {
-      const wave = primaries.slice(i, i + WAVE);
-      const pings = await Promise.all(wave.map(idx => testWlspDomain(list[idx])));
-      let best = -1;
-      pings.forEach((p, j) => {
-        if (p !== null && (best === -1 || p < pings[best])) best = j;
-      });
-      if (best !== -1) return accept(wave[best], pings[best]);
+    for (let i = 0; i < list.length; i++) {
+      if (isBackupServer(list[i])) continue;
+      const ping = await testWlspDomain(list[i]);
+      if (ping !== null) return accept(i, ping);
     }
     let extra = [];
     try { extra = (await K.fetchWisps()) || []; } catch {}
