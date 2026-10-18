@@ -31,6 +31,18 @@
     });
 
     const SHA_RE = /^[0-9a-f]{40}$/i;
+    const SHA_CACHE_PREFIX = "kSha:";
+    const readSha = (repo) => {
+        try {
+            const value = localStorage.getItem(SHA_CACHE_PREFIX + repo);
+            return SHA_RE.test(value || "") ? value : null;
+        } catch (e) {
+            return null;
+        }
+    };
+    const writeSha = (repo, sha) => {
+        try { localStorage.setItem(SHA_CACHE_PREFIX + repo, sha); } catch (e) {}
+    };
     const resolveSha = async (repo) => {
         const viaJsdelivr = withTimeout(
             fetch("https://data.jsdelivr.com/v1/packages/gh/" + repo + "/resolved?specifier=main", { cache: "no-store" })
@@ -46,7 +58,16 @@
             3500,
             "github api"
         );
-        try { return await Promise.any([viaJsdelivr, viaGithub]); } catch (e) { return null; }
+        const githubSha = viaGithub.catch(() => null);
+        let sha = null;
+        try { sha = await Promise.any([viaJsdelivr, viaGithub]); } catch (e) { sha = null; }
+        if (sha) {
+            const fresh = await Promise.race([githubSha, new Promise((resolve) => setTimeout(() => resolve(null), 1500))]);
+            if (fresh) sha = fresh;
+            writeSha(repo, sha);
+            return sha;
+        }
+        return readSha(repo);
     };
     const kstuffShaP = resolveSha("lotsacookie/kstuff");
 
@@ -75,7 +96,10 @@
             for (const host of hosts) {
                 try {
                     await loadScript("https://" + host + ".jsdelivr.net" + path, 8000);
-                    if (window.sandstone) return;
+                    if (window.sandstone) {
+                        if (SHA_RE.test(ref)) writeSha(REPO, ref);
+                        return;
+                    }
                 } catch (err) {
                     console.warn("EasyGame: CDN failed:", err.message);
                 }
@@ -339,7 +363,7 @@
     const wisp = results[1];
     applyWisp(wisp);
     if (wisp !== WISP_FALLBACK) writeCache(wisp);
-    console.log("EasyGame: build 5 wisp", wisp, "kstuff", await kstuffShaP);
+    console.log("EasyGame: build 6 wisp", wisp, "kstuff", await kstuffShaP);
     try {
         if (!sandstone.libcurl.ready) {
             sandstone.libcurl.events.addEventListener("libcurl_load", () => applyWisp(wisp), { once: true });
