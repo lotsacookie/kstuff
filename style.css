@@ -39,8 +39,8 @@ body {
        "background-attachment: fixed" was not needed and made every repaint more expensive. */
     background-image:
         radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text-color) 7%, transparent), transparent 70%),
-        linear-gradient(to right, rgba(128, 128, 128, 0.045) 1px, transparent 1px),
-        linear-gradient(to bottom, rgba(128, 128, 128, 0.045) 1px, transparent 1px);
+        linear-gradient(to right, color-mix(in srgb, var(--text-color) 13%, transparent) 1px, transparent 1px),
+        linear-gradient(to bottom, color-mix(in srgb, var(--text-color) 13%, transparent) 1px, transparent 1px);
     background-size: 100% 100%, 44px 44px, 44px 44px;
     background-position: 0 0;
     color: var(--text-color);
@@ -2564,5 +2564,43 @@ body.floating-on .learning-footer .footer-item {
 
 .modern-select-wrapper {
     background: color-mix(in srgb, var(--card-bg) 92%, #fff);
+    border-color: var(--line);
+}
+
+/* ---- more browser.html outlines ---- */
+.study-nav-btn:hover:not(:disabled),
+.page-btn:hover,
+.modal-actions button:hover,
+.refresh-btn:hover,
+.setting-group select:hover,
+.modern-select-wrapper:hover {
+    border-color: var(--text-color);
+    box-shadow: 0 0 0 3px var(--glow), 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.modern-select-wrapper:focus-within,
+.setting-group select:focus {
+    border-color: var(--text-color);
+    box-shadow: 0 0 0 3px var(--glow);
+}
+
+.settings-card {
+    box-shadow: inset 0 0 0 1px var(--line), 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.nav-btn {
+    box-shadow: inset 0 0 0 1px transparent;
+    transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.nav-btn:hover {
+    box-shadow: inset 0 0 0 1px var(--line-strong), 0 0 0 3px var(--glow);
+}
+
+.nav-btn.active {
+    box-shadow: inset 0 0 0 1px var(--line-strong);
+}
+
+.modal-content {
     border-color: var(--line);
 }
