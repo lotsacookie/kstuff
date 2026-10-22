@@ -2350,3 +2350,106 @@ body.floating-on .learning-footer .footer-item {
 .round-btn {
     transition: scale 0.28s var(--ease) !important;
 }
+
+/* ===== Motion & polish ===== */
+.round-btn.img-loading::before,
+.round-btn.img-failed::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(100deg,
+        color-mix(in srgb, var(--card-bg) 92%, #fff) 20%,
+        color-mix(in srgb, var(--card-bg) 70%, #fff) 40%,
+        color-mix(in srgb, var(--card-bg) 92%, #fff) 60%);
+    background-size: 250% 100%;
+    animation: k-shimmer 1.3s linear infinite;
+}
+
+.round-btn.img-failed::before {
+    animation: none;
+    background: color-mix(in srgb, var(--card-bg) 88%, #fff);
+}
+
+.round-btn > img {
+    opacity: 0;
+    transform: scale(1.06);
+    transition: opacity 0.45s var(--ease), transform 0.6s var(--ease);
+}
+
+.round-btn > img.loaded {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.round-btn:hover > img.loaded {
+    transform: scale(1.05);
+}
+
+.round-btn::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 3;
+    pointer-events: none;
+    background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.22) 50%, transparent 65%);
+    transform: translateX(-120%);
+}
+
+.round-btn:hover::after {
+    transform: translateX(120%);
+    transition: transform 0.7s var(--ease);
+}
+
+.round-btn.card-in {
+    animation: k-card-in 0.45s var(--ease) both;
+    animation-delay: calc(var(--i, 0) * 18ms);
+}
+
+.page.active {
+    animation: fadeIn 0.4s var(--ease);
+}
+
+.page-btn,
+.nav-btn,
+.filter-bar select,
+.filter-bar input {
+    transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), background-color 0.2s var(--ease), opacity 0.2s var(--ease);
+}
+
+.page-btn:hover:not([style*="not-allowed"]) {
+    transform: translateY(-2px);
+}
+
+.page-btn:active {
+    transform: scale(0.92);
+}
+
+.nav-btn:active {
+    transform: scale(0.94);
+}
+
+.modal-overlay.active > * {
+    animation: k-pop 0.28s var(--ease);
+}
+
+@keyframes k-shimmer {
+    from { background-position: 150% 0; }
+    to { background-position: -100% 0; }
+}
+
+@keyframes k-card-in {
+    from { opacity: 0; transform: translateY(14px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+
+@keyframes k-pop {
+    from { opacity: 0; transform: translateY(8px) scale(0.97); }
+    to { opacity: 1; transform: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .round-btn.img-loading::before { animation: none; }
+    .round-btn.card-in, .page.active, .modal-overlay.active > * { animation: none; }
+    .round-btn > img, .round-btn::after { transition: none; }
+}

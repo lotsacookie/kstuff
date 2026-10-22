@@ -37,6 +37,28 @@ export function init(K) {
     img.removeAttribute('src');
     img.style.display = 'none';
     delete img.dataset.src;
+    img.classList.remove('loaded');
+    img.parentElement?.classList.remove('img-loading', 'img-failed');
+  };
+
+  const armImage = (p, url, alts) => {
+    const card = p.el;
+    card.classList.remove('img-failed');
+    card.classList.add('img-loading');
+    p.img.classList.remove('loaded');
+    p.img.onload = () => {
+      p.img.onload = p.img.onerror = null;
+      card.classList.remove('img-loading');
+      p.img.classList.add('loaded');
+    };
+    p.img.onerror = () => {
+      if (alts.length) { p.img.src = alts.shift(); return; }
+      p.img.onload = p.img.onerror = null;
+      card.classList.remove('img-loading');
+      card.classList.add('img-failed');
+      p.img.style.display = 'none';
+    };
+    p.img.src = url;
   };
 
   function clearGridPool(type) {
@@ -303,9 +325,7 @@ export function init(K) {
           p.img.loading = idx < FIRST_PAINT_IMAGES ? 'eager' : 'lazy';
           p.img.fetchPriority = idx < FIRST_PAINT_IMAGES ? 'auto' : 'low';
           p.img.decoding = 'async';
-          const alts = (item.imageAlts || []).slice();
-          p.img.onerror = () => { if (alts.length) { p.img.onerror = null; p.img.src = alts.shift(); } };
-          p.img.src = wanted;
+          armImage(p, wanted, (item.imageAlts || []).slice());
         } else {
           p.img.style.display = 'none';
           if (item.imageToken && K.resolveLuminImage) {
@@ -315,7 +335,7 @@ export function init(K) {
               if (!url || grid.paginatedData[capturedIdx] !== capturedItem || p.img.dataset.src) return;
               p.img.dataset.src = url;
               p.img.style.display = 'block';
-              p.img.src = url;
+              armImage(p, url, []);
             });
           }
         }
@@ -346,6 +366,16 @@ export function init(K) {
           else if (act === 'next' && grid.page < tp) { grid.page++; renderGrid(type, true); }
         };
       }
+    }
+
+    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+      pool.forEach((p, i) => {
+        if (p.el.style.display === 'none') return;
+        p.el.style.setProperty('--i', Math.min(i, 24));
+        p.el.classList.remove('card-in');
+        void p.el.offsetWidth;
+        p.el.classList.add('card-in');
+      });
     }
 
     if (grid.renderId === myRenderId) {
