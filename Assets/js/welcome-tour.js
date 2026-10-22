@@ -256,6 +256,15 @@ export function init(K) {
   };
   K.startWelcomeTour = start;
 
+  const tourBtn = document.getElementById('take-tour-btn');
+  if (tourBtn) {
+    tourBtn.hidden = false;
+    tourBtn.addEventListener('click', () => {
+      document.getElementById('homeworkhelper-close-btn')?.click();
+      setTimeout(start, 350);
+    });
+  }
+
   if (!forced) {
     if (read()) return;
     if (K.currentUser) { markSeen(); return; }

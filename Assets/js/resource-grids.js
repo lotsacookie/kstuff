@@ -369,13 +369,18 @@ export function init(K) {
     }
 
     if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      pool.forEach((p, i) => {
-        if (p.el.style.display === 'none') return;
-        p.el.style.setProperty('--i', Math.min(i, 24));
-        p.el.classList.remove('card-in');
-        void p.el.offsetWidth;
-        p.el.classList.add('card-in');
-      });
+      const shown = [];
+      for (let i = 0; i < pool.length; i++) {
+        const el = pool[i].el;
+        if (el.style.display === 'none') continue;
+        el.style.setProperty('--i', Math.min(i, 24));
+        el.classList.remove('card-in');
+        shown.push(el);
+      }
+      if (shown.length) {
+        void shown[0].offsetWidth;
+        for (let i = 0; i < shown.length; i++) shown[i].classList.add('card-in');
+      }
     }
 
     if (grid.renderId === myRenderId) {

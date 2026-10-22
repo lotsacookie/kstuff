@@ -999,7 +999,7 @@ body.text-hide .nav-right .nav-divider {
     z-index: 2;
     backdrop-filter: blur(0px);
     -webkit-backdrop-filter: blur(0px);
-    transition: all 0.3s ease;
+    transition: opacity 0.3s ease, background-color 0.3s ease;
     font-weight: bold;
 }
 
@@ -2352,22 +2352,23 @@ body.floating-on .learning-footer .footer-item {
 }
 
 /* ===== Motion & polish ===== */
-.round-btn.img-loading::before,
+.round-btn.img-loading::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 25%, rgba(255,255,255,0.13) 50%, transparent 75%);
+    transform: translateX(-100%);
+    animation: k-slide 1.3s ease-in-out infinite;
+    will-change: transform;
+}
+
 .round-btn.img-failed::before {
     content: "";
     position: absolute;
     inset: 0;
     z-index: 1;
-    background: linear-gradient(100deg,
-        color-mix(in srgb, var(--card-bg) 92%, #fff) 20%,
-        color-mix(in srgb, var(--card-bg) 70%, #fff) 40%,
-        color-mix(in srgb, var(--card-bg) 92%, #fff) 60%);
-    background-size: 250% 100%;
-    animation: k-shimmer 1.3s linear infinite;
-}
-
-.round-btn.img-failed::before {
-    animation: none;
     background: color-mix(in srgb, var(--card-bg) 88%, #fff);
 }
 
@@ -2433,9 +2434,9 @@ body.floating-on .learning-footer .footer-item {
     animation: k-pop 0.28s var(--ease);
 }
 
-@keyframes k-shimmer {
-    from { background-position: 150% 0; }
-    to { background-position: -100% 0; }
+@keyframes k-slide {
+    from { transform: translateX(-100%); }
+    to { transform: translateX(100%); }
 }
 
 @keyframes k-card-in {
