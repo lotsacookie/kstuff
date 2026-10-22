@@ -177,7 +177,7 @@ export function init(K) {
     navLogo.addEventListener('animationend', e => {
       if (e.target === navLogo && e.animationName === 'nl-click') navLogo.classList.remove('burst');
     });
-    setInterval(() => { if (!document.hidden) updateLogoState(); }, 2000);
+    setInterval(() => { if (!document.hidden) updateLogoState(); }, 4000);
     updateLogoState();
   }
 

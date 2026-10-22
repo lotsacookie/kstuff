@@ -80,7 +80,7 @@ function legacy(){
         body{background:var(--bg-color);color:var(--text-color);height:100vh;overflow:hidden;transition:background var(--transition-speed) ease,color var(--transition-speed) ease,font-family var(--transition-speed) ease;font-weight:600}
         #loading-screen{position:fixed;inset:0;width:100vw;height:100vh;background:var(--bg-color,#000000);color:var(--text-color,#ffffff);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.1rem;z-index:999999;transition:opacity .5s ease,visibility .5s ease}
         #loading-screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
-        .ld-logo{width:5.5rem;height:5.5rem;overflow:visible;animation:ld-glow 3.6s ease-in-out infinite}
+        .ld-logo{width:5.5rem;height:5.5rem;overflow:visible;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--text-color,#ffffff) 50%,transparent))}
         .ld-arms{opacity:.8;transform-origin:50px 50px;stroke-dasharray:1;animation:ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both,ld-spin 14s linear 1.2s infinite}
         .ld-core{transform-origin:50px 50px;animation:ld-pulse 2.8s ease-in-out infinite}
         .ld-word{font-size:1.15rem;font-weight:900!important;letter-spacing:.06em}

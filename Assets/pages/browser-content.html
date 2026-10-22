@@ -41,7 +41,9 @@
             iframe.src = targetSite;
         }
 
+        let lastTab = '', lastTabAt = 0;
         setInterval(() => {
+            if (document.hidden) return;
             try {
                 const win = iframe.contentWindow;
                 if (!win) return;
@@ -55,7 +57,11 @@
                     currentFavicon = iconElement.href;
                 }
 
-                if (proxyPort) {
+                const sig = currentTitle + '\u0001' + currentFavicon + '\u0001' + currentUrl;
+                const now = Date.now();
+                if (proxyPort && (sig !== lastTab || now - lastTabAt > 3000)) {
+                    lastTab = sig;
+                    lastTabAt = now;
                     proxyPort.postMessage({
                         type: 'tabData',
                         title: currentTitle,
@@ -65,7 +71,7 @@
                 }
             } catch (e) {
             }
-        }, 100);
+        }, 400);
     </script>
 </body>
 </html>

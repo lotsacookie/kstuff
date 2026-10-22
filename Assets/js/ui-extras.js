@@ -5,7 +5,7 @@ export function init(K) {
   const weatherText = byId('weather-text');
   const weatherIcon = byId('weather-icon');
 
-  const PING_MS = 10000;
+  const PING_MS = 30000;
   const PING_FAIL_MS = 30000;
   const PING_TIMEOUT = 4000;
   const WEATHER_MS = 600000;

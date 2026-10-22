@@ -241,6 +241,9 @@ function handleBackendMessage(data) {
     } 
     else if (data.type === 'get-convs' && data.success) {
         const safeConvs = Array.isArray(data.payload) ? data.payload : [];
+        const convSig = JSON.stringify(safeConvs) + '|' + JSON.stringify(leftGroups) + '|' + [...pendingDeletions].join(',') + '|' + currentActiveRawId + '|' + currentUser;
+        if (convSig === lastConvSig) return;
+        lastConvSig = convSig;
         backendConversationList = safeConvs;
         
         const backendGroups = [];
@@ -329,6 +332,9 @@ function handleBackendMessage(data) {
             }
         }
         
+        const remoteSig = JSON.stringify(remoteMessages);
+        if (chatId === lastRenderedChatId && chatRemoteSigs[chatId] === remoteSig) return;
+        chatRemoteSigs[chatId] = remoteSig;
         let cached = [];
         try { cached = JSON.parse(localStorage.getItem(`chat_msgs_${chatId}`)) || []; } catch(e) {}
         const combined = deduplicateMessages([...cached, ...remoteMessages]).sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
@@ -753,12 +759,12 @@ function stopMediaWatcher() {
     mediaWatcher.listeners = [];
 }
 
+var lastConvSig, chatRemoteSigs = {};
 setInterval(() => {
-    if (backendReady && currentUser) {
-        backendPort.postMessage({ type: 'get-convs', currentUser: currentUser });
-        if (currentActiveRawId) fetchMessages(currentActiveRawId);
-    }
-}, 800);
+    if (document.hidden || !backendReady || !currentUser) return;
+    backendPort.postMessage({ type: 'get-convs', currentUser: currentUser });
+    if (currentActiveRawId) fetchMessages(currentActiveRawId);
+}, 1500);
 
 function sendMessage() {
     let input = document.getElementById('user-input');
