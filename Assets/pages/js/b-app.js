@@ -259,7 +259,7 @@
         if (key === lastKey) return;
         lastKey = key;
         row.textContent = '';
-        if (!items.length) { section.hidden = true; return; }
+        if (!items.length) { section.hidden = false; return; }
         var frag = document.createDocumentFragment();
         items.forEach(function (it, i) { frag.appendChild(tile(it, i)); });
         row.appendChild(frag);
