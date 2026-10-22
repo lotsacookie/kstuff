@@ -82,6 +82,11 @@ function initApp() {
         mod.init(K);
         await yieldToMain();
       }
+
+      // Optional extras: loaded after the app is up and never allowed to break it.
+      loadModule('welcome-tour')
+        .then(mod => mod.init(K))
+        .catch(err => console.warn('welcome tour unavailable', err));
     } catch (err) {
       console.error('singularity module load failed', err);
       const loader = document.querySelector('.section-loader');
