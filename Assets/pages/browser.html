@@ -432,6 +432,125 @@ html:not(.ready) body * {
     fill: currentColor;
 }
 
+.favs-section {
+    width: 100%;
+    max-width: 620px;
+    margin: 0 0 18px;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+
+.favs-head {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text);
+    opacity: 0.75;
+}
+
+.favs-head svg { fill: #ffc83d; }
+
+.favs-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+}
+
+.fav-tile {
+    position: relative;
+    width: 84px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    cursor: pointer;
+    text-align: center;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    animation: fav-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+    animation-delay: calc(var(--i, 0) * 25ms);
+}
+
+.fav-tile:hover { transform: translateY(-4px) scale(1.05); }
+.fav-tile:active { transform: scale(0.97); }
+.fav-tile:focus-visible { outline: 2px solid var(--text); outline-offset: 4px; border-radius: var(--radius); }
+
+.fav-art {
+    position: relative;
+    display: block;
+    width: 84px;
+    height: 84px;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background-color: var(--card);
+    border: 1px solid var(--line);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.fav-tile:hover .fav-art {
+    border-color: var(--text);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35), 0 0 0 3px var(--glow);
+}
+
+.fav-art img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.35s ease;
+}
+
+.fav-art img.loaded { opacity: 1; }
+
+.fav-art.loading::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(100deg, transparent 25%, rgba(255, 255, 255, 0.12) 50%, transparent 75%);
+    transform: translateX(-100%);
+    animation: fav-slide 1.3s ease-in-out infinite;
+}
+
+.fav-letter {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+    font-size: 1.6rem;
+    font-weight: 800;
+    opacity: 0.7;
+}
+
+.fav-name {
+    display: block;
+    margin-top: 8px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@keyframes fav-slide { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+@keyframes fav-in { from { opacity: 0; transform: translateY(10px) scale(0.96); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+    .fav-tile, .fav-art.loading::after { animation: none; }
+    .fav-art img { transition: none; }
+}
+
 .shortcuts-row {
     display: flex;
     flex-wrap: wrap;
@@ -1080,6 +1199,10 @@ html:not(.ready) body * {
             <div class="shortcuts-row">
                 <div class="flashcards-container" id="flashcards-container"></div>
                 <button class="add-flashcard-btn" id="add-flashcard-main-btn" title="Create Shortcut" aria-label="Create shortcut"><span>+</span></button>
+            </div>
+            <div class="favs-section" id="favs-section" hidden>
+                <div class="favs-head"><svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.7l1-5.9L3.5 9.7l5.9-.8z"/></svg>Favorites</div>
+                <div class="favs-row" id="favs-row"></div>
             </div>
             <div class="changelog" id="changelog" hidden>
                 <div class="changelog-head"><span class="changelog-dot"></span>Change Log</div>

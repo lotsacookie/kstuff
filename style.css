@@ -2454,3 +2454,72 @@ body.floating-on .learning-footer .footer-item {
     .round-btn.card-in, .page.active, .modal-overlay.active > * { animation: none; }
     .round-btn > img, .round-btn::after { transition: none; }
 }
+
+/* ===== Favorites ===== */
+.round-btn .fav-btn {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    z-index: 5;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    cursor: pointer;
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.2s var(--ease), transform 0.2s var(--ease), background-color 0.2s ease;
+}
+
+.round-btn .fav-btn svg {
+    fill: none;
+    stroke: currentColor;
+    pointer-events: none;
+    transition: fill 0.2s ease, stroke 0.2s ease;
+}
+
+.round-btn:hover .fav-btn,
+.round-btn:focus-within .fav-btn,
+.round-btn.is-fav .fav-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.round-btn .fav-btn:hover {
+    background: rgba(0, 0, 0, 0.75);
+    transform: scale(1.12);
+}
+
+.round-btn .fav-btn:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
+.round-btn.is-fav .fav-btn svg {
+    fill: #ffc83d;
+    stroke: #ffc83d;
+}
+
+.round-btn .fav-btn.pop {
+    animation: k-star-pop 0.4s var(--ease);
+}
+
+@keyframes k-star-pop {
+    0% { transform: scale(0.8); }
+    45% { transform: scale(1.35); }
+    100% { transform: scale(1); }
+}
+
+@media (hover: none) {
+    .round-btn .fav-btn { opacity: 0.85; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .round-btn .fav-btn, .round-btn .fav-btn svg { transition: none; }
+    .round-btn .fav-btn.pop { animation: none; }
+}

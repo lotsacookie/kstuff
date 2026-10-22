@@ -79,6 +79,7 @@ export function init(K) {
     const localSettings = K.currentUser?.settings;
     K.currentUser = safeUser;
     if (keepLocalSettings && localSettings) K.currentUser.settings = localSettings;
+    K.favorites?.syncFromCloud(safeUser.settings?.favorites, safeUser.username);
     K.setStorage('kstuff_user', JSON.stringify(K.currentUser));
     updateAuthUI();
     if (!keepLocalSettings) K.applyCloudSettings(K.userSettings(K.currentUser));
@@ -294,6 +295,7 @@ export function init(K) {
   ['auth-user', 'auth-pass'].forEach(id => K.$(id)?.addEventListener('input', () => K.$('auth-error-msg') && (K.$('auth-error-msg').style.display = 'none')));
 
   K.$('do-logout-btn')?.addEventListener('click', () => {
+    K.favorites?.onLogout();
     K.currentUser = null;
     localStorage.removeItem('kstuff_user');
     localStorage.removeItem('neocities_last_user');

@@ -73,13 +73,19 @@ function initApp() {
 
   async function start() {
     window.kModulesStarted = true;
-    window.kProgress?.setTotal((window.kProgress.base || 2) + MODULE_NAMES.length);
+    window.kProgress?.setTotal((window.kProgress.base || 2) + MODULE_NAMES.length + 1);
 
     try {
-      const modules = await Promise.all(MODULE_NAMES.map(loadModule));
+      const [favMod, modules] = await Promise.all([
+        loadModule('favorites').catch(err => { console.warn('favorites unavailable', err); return null; }),
+        Promise.all(MODULE_NAMES.map(loadModule))
+      ]);
       const K = {};
-      for (const mod of modules) {
-        mod.init(K);
+      for (let i = 0; i < modules.length; i++) {
+        modules[i].init(K);
+        if (MODULE_NAMES[i] === 'core' && favMod) {
+          try { favMod.init(K); } catch (err) { console.warn('favorites init failed', err); }
+        }
         await yieldToMain();
       }
 

@@ -117,6 +117,7 @@ export function init(K) {
       searchEngine: K.$('search-engine-select')?.value,
       lastUpdated: Date.now()
     };
+    if (K.currentUser && K.favorites) p.favorites = K.favorites.exportAll();
     if (p.theme) K.setStorage('kstuff_theme', p.theme);
     if (p.font) K.setStorage('kstuff_font', p.font);
     if (p.searchEngine) K.setStorage('kstuff_search_engine', p.searchEngine);

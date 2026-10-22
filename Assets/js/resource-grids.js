@@ -222,7 +222,33 @@ export function init(K) {
 
   const cardTemplate = document.createElement('div');
   cardTemplate.className = 'round-btn';
-  cardTemplate.innerHTML = `<img alt="" style="display:none;"><div class="category-label"></div><div class="overlay"><h3></h3><p></p></div>`;
+  const STAR_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.7l1-5.9L3.5 9.7l5.9-.8z" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  cardTemplate.innerHTML = `<img alt="" style="display:none;"><div class="category-label"></div><div class="overlay"><h3></h3><p></p></div><button type="button" class="fav-btn" aria-label="Add to favorites" aria-pressed="false">${STAR_SVG}</button>`;
+
+  const setFavState = (card, on, animate) => {
+    const btn = card.querySelector('.fav-btn');
+    card.classList.toggle('is-fav', on);
+    if (btn) {
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.setAttribute('aria-label', on ? 'Remove from favorites' : 'Add to favorites');
+      if (animate) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
+    }
+  };
+
+  const syncFavStars = () => {
+    Object.keys(grids).forEach(type => {
+      const grid = grids[type];
+      if (!grid.paginatedData) return;
+      grid.pool.forEach((p, i) => {
+        const item = grid.paginatedData[i];
+        if (item && p.el.style.display !== 'none') {
+          const on = !!K.favorites?.has(type, item.title);
+          if (p.el.classList.contains('is-fav') !== on) setFavState(p.el, on, false);
+        }
+      });
+    });
+  };
+  K.favorites?.onChange(syncFavStars);
 
   const buildPool = type => {
     const grid = grids[type];
@@ -236,7 +262,7 @@ export function init(K) {
       for (let i = 0; i < needed; i++) {
         const card = cardTemplate.cloneNode(true);
         card.dataset.index = i;
-        grid.pool.push({ el: card, img: card.querySelector('img'), t: card.querySelector('h3'), d: card.querySelector('p'), c: card.querySelector('.category-label') });
+        grid.pool.push({ el: card, img: card.querySelector('img'), t: card.querySelector('h3'), d: card.querySelector('p'), c: card.querySelector('.category-label'), f: card.querySelector('.fav-btn') });
         frag.appendChild(card);
       }
       grid.gridEl.appendChild(frag);
@@ -244,7 +270,14 @@ export function init(K) {
     }
     grid.gridEl.onclick = e => {
       const c = e.target.closest('.round-btn');
-      if (c && c.style.display !== 'none') openResource(grid.paginatedData?.[c.dataset.index], { pageId: type });
+      if (!c || c.style.display === 'none') return;
+      const item = grid.paginatedData?.[c.dataset.index];
+      if (e.target.closest('.fav-btn')) {
+        e.stopPropagation();
+        if (item && K.favorites) setFavState(c, K.favorites.toggle(type, item), true);
+        return;
+      }
+      openResource(item, { pageId: type });
     };
   };
   K.buildPool = buildPool;
@@ -258,7 +291,8 @@ export function init(K) {
   document.head.appendChild(gridImageStyle);
 
   const getFiltered = grid => {
-    const key = grid.category + '\u0000' + grid.search;
+    const favV = K.favorites ? K.favorites.version : 0;
+    const key = grid.category + '\u0000' + grid.search + '\u0000' + favV;
     const cache = grid.filterCache;
     if (cache && cache.data === grid.data && cache.key === key) return cache.list;
     const search = grid.search;
@@ -267,8 +301,14 @@ export function init(K) {
       (cat === 'All' || i.category === cat) &&
       (!search || (i._lt ?? (i.title || '').toLowerCase()).includes(search))
     );
-    grid.filterCache = { data: grid.data, key, list };
-    return list;
+    let ordered = list;
+    if (K.favorites) {
+      const favs = [], rest = [];
+      for (let i = 0; i < list.length; i++) (K.favorites.has(grid.id, list[i].title) ? favs : rest).push(list[i]);
+      if (favs.length) ordered = favs.concat(rest);
+    }
+    grid.filterCache = { data: grid.data, key, list: ordered };
+    return ordered;
   };
 
   const renderGrid = (type, preload = false, mode = 'loading') => {
@@ -312,6 +352,9 @@ export function init(K) {
       if (p.c && p.c.textContent !== cat) p.c.textContent = cat;
 
       if (p.el.dataset.tooltip !== item.title) p.el.dataset.tooltip = item.title;
+
+      const isFav = !!K.favorites?.has(type, item.title);
+      if (p.el.classList.contains('is-fav') !== isFav) setFavState(p.el, isFav, false);
 
       const wanted = item.image || (item.imageToken && K.luminImgCache?.get(item.imageToken)) || '';
 
