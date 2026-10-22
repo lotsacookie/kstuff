@@ -301,9 +301,36 @@ main {
     aspect-ratio: 1;
     border-radius: 8px;
     background: var(--card);
-    animation: pulse 1.4s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
 }
+.tile.skeleton::after { content: ""; position: absolute; inset: 0; pointer-events: none; background: var(--shimmer); transform: translateX(-100%); animation: mslide 1.4s ease-in-out infinite; }
 @keyframes pulse { 50% { opacity: 0.45; } }
+
+/* ---- image loading shimmer ---- */
+:root { --shimmer: linear-gradient(100deg, transparent 25%, rgba(255, 255, 255, 0.10) 50%, transparent 75%); }
+@keyframes mshim { from { background-position: 150% 0; } to { background-position: -100% 0; } }
+@keyframes mslide { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+/* small/bare images: shimmer on the image itself while it has no pixels yet */
+img.sk, img:not([src]) {
+    background-color: var(--hover);
+    background-image: var(--shimmer);
+    background-size: 250% 100%;
+    background-repeat: no-repeat;
+    animation: mshim 1.4s linear infinite;
+}
+/* big album-art tiles: shimmer on an overlay moved with transform (no repaint per frame) */
+.card-art img.sk, .card-art img:not([src]) { animation: none; background-image: none; opacity: 0; }
+.card-art img { transition: opacity 0.35s ease; }
+.card-art:has(> img.sk)::after, .card-art:has(> img:not([src]))::after {
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: var(--shimmer); transform: translateX(-100%);
+    animation: mslide 1.4s ease-in-out infinite;
+}
+.now-cover.no-art, .now-cover:not([src]) { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+    img.sk, img:not([src]), .tile.skeleton::after, .card-art:has(> img.sk)::after, .card-art:has(> img:not([src]))::after { animation: none; }
+}
 
 .card {
     position: relative;
@@ -1199,6 +1226,7 @@ body.mobile .ctx-item { padding: 14px 14px; font-size: 1rem; }
     <audio id="audioPlayer"></audio>
 </div>
 
+<script>(function(){var d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");if(d&&d.set){Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){if(v&&String(v).slice(0,5)!=="data:")this.classList.add("sk");d.set.call(this,v);}});}function done(e){var t=e.target;if(t&&t.tagName==="IMG")t.classList.remove("sk");}document.addEventListener("load",done,true);document.addEventListener("error",done,true);})();</script>
 <script src="js/m.js"></script>
 <script src="js/m-app.js"></script>
 </body>
