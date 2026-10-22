@@ -1,3 +1,33 @@
+const STORAGE_SOURCES = [
+  'https://cdn.jsdelivr.net/gh/TongSherbet/storage@main/loader.js',
+  'https://raw.githubusercontent.com/TongSherbet/storage/main/loader.js'
+];
+const SYNC_KEY = 'WSYNC';
+const SYNC_TTL = 3600000;
+const SYNC_TIMEOUT = 3500;
+const SYNC_MAX = 32;
+
+const HOST_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
+const WSS_RE = /^wss:\/\/[a-z0-9.-]+(:\d{1,5})?(\/[\w\-./]*)?$/i;
+
+// Reads the serverList array out of TongSherbet/storage's loader.js without eval.
+// Handles \uXXXX escapes and the "ten.xxx".split("").reverse().join("") trick.
+export function parseServerList(src) {
+  if (typeof src !== 'string') return [];
+  const text = src.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
+  const block = text.match(/serverList\s*=\s*\[([\s\S]*?)\]\s*[;,]/);
+  if (!block) return [];
+  const item = /(["'])((?:\\.|(?!\1)[^\\])*)\1(\s*\.split\(\s*(?:""|'')\s*\)\s*\.reverse\(\)\s*\.join\(\s*(?:""|'')\s*\))?/g;
+  const out = [];
+  let m;
+  while ((m = item.exec(block[1]))) {
+    const value = (m[3] ? [...m[2]].reverse().join('') : m[2]).trim();
+    if ((HOST_RE.test(value) || WSS_RE.test(value)) && !out.includes(value)) out.push(value);
+    if (out.length >= SYNC_MAX) break;
+  }
+  return out;
+}
+
 export function init(K) {
   const WISP_LIST_PATH = 'Assets/json/wss.json';
   const TEST_TIMEOUT = 3000;
@@ -24,13 +54,15 @@ export function init(K) {
     'cdn.slcbmooc.org',
     'cdn.topstargym.net',
     'cdn.goaplytexas.org',
+    'cdn.clearfieldswimming.com',
     'wss://athollcottage.com/connection/',
     'wss://api.personalloanonline.net/ws/',
     'wss://kristenblackburnvolleyballcamps.com/socket/',
     'wss://southpadreislandkiteboarding.com/socket/'
   ];
   K.WISP_FALLBACK = 'wss://api.personalloanonline.net/ws/';
-  K.WISP_VERSION = 6;
+  K.WISP_VERSION = 7;
+  K.WISP_BASE = K.WISP_SERVERS.slice();
   console.log('[wisp] module loaded, build', K.WISP_VERSION);
   K.wispUrls = [];
   window.serverList = K.WISP_SERVERS;
@@ -310,7 +342,49 @@ export function init(K) {
     return wlspUrl(entry);
   }
 
+
+  const mergeServers = synced => {
+    const merged = [...new Set([...synced, ...K.WISP_BASE])];
+    K.WISP_SERVERS = merged;
+    window.serverList = merged;
+    return merged;
+  };
+
+  const withTimeout = (promise, ms) => new Promise((resolve, reject) => {
+    const t = setTimeout(() => reject(new Error('timeout')), ms);
+    promise.then(v => { clearTimeout(t); resolve(v); }, e => { clearTimeout(t); reject(e); });
+  });
+
+  let syncPromise = null;
+
+  // Keeps our server list in step with TongSherbet/storage (the origin of the wisp setup).
+  K.syncWispServers = () => {
+    if (syncPromise) return syncPromise;
+    syncPromise = (async () => {
+      const cached = readJson(SYNC_KEY);
+      const cachedList = cached && Array.isArray(cached.list) ? cached.list.filter(u => HOST_RE.test(u) || WSS_RE.test(u)) : [];
+      if (cachedList.length) mergeServers(cachedList);
+      if (cachedList.length && Date.now() - (cached.ts || 0) < SYNC_TTL) return K.WISP_SERVERS;
+      for (const url of STORAGE_SOURCES) {
+        try {
+          const res = await withTimeout(fetch(url, { cache: 'no-store' }), SYNC_TIMEOUT);
+          if (!res.ok) throw new Error('HTTP ' + res.status);
+          const list = parseServerList(await withTimeout(res.text(), SYNC_TIMEOUT));
+          if (!list.length) throw new Error('no servers in loader.js');
+          writeStore(SYNC_KEY, JSON.stringify({ ts: Date.now(), list }));
+          console.log('[wisp] synced', list.length, 'servers from TongSherbet/storage');
+          return mergeServers(list);
+        } catch (err) {
+          console.warn('[wisp] storage sync failed:', url, err && err.message ? err.message : err);
+        }
+      }
+      return K.WISP_SERVERS;
+    })();
+    return syncPromise;
+  };
+
   async function getWlsp() {
+    try { await K.syncWispServers(); } catch {}
     const list = K.WISP_SERVERS;
     const stored = readStore('WID');
     const index = Number(stored);
@@ -352,6 +426,7 @@ export function init(K) {
 
   K.revalidateWisp = () => {
     window.wlspServer = undefined;
+    syncPromise = null;
     return K.resolveWlsp();
   };
 
