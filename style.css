@@ -88,8 +88,8 @@ body.size-large.text-hide {
     gap: 10px;
     padding: 12px 16px;
     background-color: var(--nav-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--hairline);
     z-index: 11;
     flex-shrink: 0;
@@ -127,8 +127,8 @@ body.size-large.text-hide {
     justify-content: space-between;
     padding: 0 16px;
     background-color: var(--nav-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-top: 1px solid var(--hairline);
     z-index: 11;
     flex-shrink: 0;
@@ -380,8 +380,8 @@ body.size-large.text-hide {
     justify-content: flex-start;
     gap: 0.28rem;
     padding: 0.55rem;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     box-shadow: 0 6px 24px rgba(0,0,0,0.14);
     z-index: 10;
     flex-shrink: 0;
@@ -831,8 +831,8 @@ body.text-hide .nav-right .nav-divider {
     border-radius: 24px;
     padding: 0.7rem 1.1rem;
     box-shadow: var(--lift);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     width: fit-content;
     pointer-events: auto;
 }
@@ -2202,8 +2202,8 @@ html.sg-fs .sg-tabbar {
     width: 100%;
     z-index: 12;
     background-color: var(--nav-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border-bottom: 1px solid var(--hairline);
     -webkit-user-select: none;
     user-select: none;
@@ -2521,4 +2521,48 @@ body.floating-on .learning-footer .footer-item {
 @media (prefers-reduced-motion: reduce) {
     .round-btn .fav-btn, .round-btn .fav-btn svg { transition: none; }
     .round-btn .fav-btn.pop { animation: none; }
+}
+
+/* ---- browser.html look: outline details, glow rings, lifted glass ---- */
+:root {
+    --line: color-mix(in srgb, var(--text-color) 14%, transparent);
+    --line-strong: color-mix(in srgb, var(--text-color) 45%, transparent);
+    --glow: color-mix(in srgb, var(--text-color) 30%, transparent);
+    --hairline: var(--line);
+}
+
+.learning-header,
+.learning-footer,
+#teachertouchbar,
+.filter-bar,
+.sg-tabbar {
+    background-color: color-mix(in srgb, var(--nav-bg) 92%, #fff);
+}
+
+#teachertouchbar,
+.filter-bar,
+.sg-tabbar {
+    border: 1px solid var(--line);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+}
+
+.round-btn {
+    border: 1px solid var(--line);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: scale 0.28s var(--ease), border-color 0.3s ease, box-shadow 0.3s ease !important;
+}
+
+.round-btn:hover {
+    border-color: var(--text-color);
+    box-shadow: 0 0 0 3px var(--glow), 0 8px 20px rgba(0, 0, 0, 0.35);
+}
+
+.round-btn:active {
+    border-color: var(--text-color);
+    box-shadow: 0 0 0 3px var(--glow), 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+.modern-select-wrapper {
+    background: color-mix(in srgb, var(--card-bg) 92%, #fff);
+    border-color: var(--line);
 }
