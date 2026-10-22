@@ -159,7 +159,7 @@ export function init(K) {
     K.resourceOpenFor = {};
     K.pendingResourceOpen = {};
     deactivateSections();
-    Object.keys(K.grids).forEach(k => K.clearGridPool(k));
+    Object.keys(K.grids).forEach(k => { K.clearGridPool(k); K.showResourceGrid?.(k, true); });
     K.navBtns.forEach(b => { if (!['homeworkhelper', 'profile'].includes(b.dataset.target)) b.classList.remove('active'); });
     K.updateBrowserNav?.();
     K.loadBrowserUrl('singularity://home', true);

@@ -242,6 +242,7 @@ export function init(K) {
       K.updateLogoState?.();
 
       if (K.grids[tId]) {
+        K.showResourceGrid(tId, !K.resourceOpenFor[tId]);
         K.buildPool(tId);
         await K.renderGrid(tId, false);
         K.refreshGridSource(tId);
@@ -580,9 +581,24 @@ export function init(K) {
   }
   K.autoRefreshActivePage = autoRefreshActivePage;
 
+  const ensureActiveGridVisible = () => {
+    const page = document.querySelector('.page.active');
+    const id = page?.id;
+    if (!id || !K.grids[id]) return;
+    page.style.display = 'block';
+    page.style.opacity = '1';
+    if (!K.resourceOpenFor[id]) {
+      K.showResourceGrid(id, true);
+      if (!K.grids[id].pool.length || K.grids[id].gridEl?.children.length === 0) K.buildPool(id);
+      K.renderGrid(id, false);
+    }
+  };
+  K.ensureActiveGridVisible = ensureActiveGridVisible;
+
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) autoRefreshActivePage();
+    if (!document.hidden) { ensureActiveGridVisible(); autoRefreshActivePage(); }
   });
+  window.addEventListener('pageshow', ensureActiveGridVisible);
 
   setInterval(autoRefreshActivePage, 200000);
   }
