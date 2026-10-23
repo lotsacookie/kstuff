@@ -464,12 +464,21 @@ export function init(K) {
 
   window.addEventListener('message', e => {
     const d = e.data;
-    if (!d || d.sgProxyInfo !== true) return;
+    if (!d || (d.sgProxyInfo !== true && d.sgProxyProgress !== true && d.sgProxyReady !== true)) return;
     let f = null;
     for (const el of document.querySelectorAll('iframe')) {
       if (el.contentWindow === e.source) { f = el; break; }
     }
     if (!f) return;
+    if (d.sgProxyReady === true) { K.releaseProxy(f); return; }
+    if (d.sgProxyProgress === true) {
+      if (K.isFrameActive && !K.isFrameActive(f)) return;
+      const val = Number(d.value) || 0;
+      if (val < 0.99 && K.loader && K.loader.classList.contains('hidden')) K.toggleLoader(true);
+      K.setLoaderProgress(val, typeof d.text === 'string' ? d.text : '');
+      if (val < 0.99) K.holdForProxy(f);
+      return;
+    }
     const url = typeof d.url === 'string' && /^https?:\/\//i.test(d.url) ? d.url : '';
     const title = typeof d.title === 'string' ? d.title.slice(0, 200) : '';
     const icon = typeof d.icon === 'string' && /^data:image\//i.test(d.icon) ? d.icon : '';

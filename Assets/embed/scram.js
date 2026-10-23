@@ -431,6 +431,16 @@
                     parent.postMessage({ sgProxyInfo: true, url: info.url, title: info.title, icon: info.icon }, "*");
                 } catch (e) {}
             };
+            proxyFrame.on_progress = (value, text) => {
+                try {
+                    parent.postMessage({ sgProxyProgress: true, value: value, text: text }, "*");
+                } catch (e) {}
+            };
+            proxyFrame.on_ready = () => {
+                try {
+                    parent.postMessage({ sgProxyReady: true }, "*");
+                } catch (e) {}
+            };
             proxyFrame.on_navigate = () => setStatus("Loading " + url + " ...");
             proxyFrame.on_load = () => hideStatus();
             iframe.addEventListener('error', () => setStatus("The proxied frame failed to load."));

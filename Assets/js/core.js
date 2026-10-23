@@ -202,7 +202,7 @@ export function init(K) {
       if (stale()) return;
       const onLoad = () => {
         ifr.removeEventListener('load', onLoad);
-        if (!stale()) K.toggleLoader(false);
+        if (!stale()) K.holdForProxy(ifr);
       };
       ifr.addEventListener('load', onLoad);
       ifr.removeAttribute('src');
@@ -325,8 +325,48 @@ export function init(K) {
   K.$$('.setting-group select').forEach(K.applyCustomDropdown);
 
   const loaderTextEl = K.loader?.querySelector('.loading-text');
+  let loaderBar = null, loaderFill = null, loaderStatus = null;
+  const ensureLoaderProgress = () => {
+    if (loaderBar || !K.loader) return;
+    loaderBar = document.createElement('div');
+    loaderBar.style.cssText = 'width:min(200px,60vw);height:3px;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--text-color,#fff) 14%,transparent);margin-top:.9rem;display:none';
+    loaderFill = document.createElement('div');
+    loaderFill.style.cssText = 'width:100%;height:100%;background:var(--text-color,#fff);transform-origin:left;transform:scaleX(0);transition:transform .4s cubic-bezier(.22,1,.36,1)';
+    loaderBar.appendChild(loaderFill);
+    loaderStatus = document.createElement('div');
+    loaderStatus.style.cssText = 'font-size:.8rem;opacity:.6;min-height:1.2em;margin-top:.5rem;font-variant-numeric:tabular-nums;display:none';
+    K.loader.appendChild(loaderBar);
+    K.loader.appendChild(loaderStatus);
+  };
+  K.setLoaderProgress = (value, text) => {
+    ensureLoaderProgress();
+    if (!loaderBar) return;
+    const v = Math.max(0, Math.min(1, Number(value) || 0));
+    loaderBar.style.display = 'block';
+    loaderStatus.style.display = 'block';
+    loaderFill.style.transform = 'scaleX(' + v + ')';
+    loaderStatus.textContent = (text ? String(text).slice(0, 80) + ' ' : '') + Math.round(v * 100) + '%';
+  };
+  const resetLoaderProgress = () => {
+    if (!loaderBar) return;
+    loaderBar.style.display = 'none';
+    loaderStatus.style.display = 'none';
+    loaderFill.style.transform = 'scaleX(0)';
+    loaderStatus.textContent = '';
+  };
+  K.holdForProxy = f => {
+    if (!f) return;
+    clearTimeout(f.__holdTimer);
+    f.__holdTimer = setTimeout(() => K.toggleLoader(false), 60000);
+  };
+  K.releaseProxy = f => {
+    if (f) clearTimeout(f.__holdTimer);
+    K.toggleLoader(false);
+  };
+
   K.toggleLoader = (show, mode = 'loading') => {
     if (!K.loader) return;
+    if (!show) setTimeout(() => { if (K.loader.classList.contains('hidden')) resetLoaderProgress(); }, 600);
     if (show && loaderTextEl) loaderTextEl.textContent = mode === 'updating' ? 'Updating' : 'Loading';
     K.loader.style.opacity = show ? '1' : '0';
     K.loader.classList.toggle('hidden', !show);
