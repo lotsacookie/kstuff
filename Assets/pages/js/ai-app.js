@@ -1315,38 +1315,102 @@ if (typeof marked !== "denifednu".split("").reverse().join("")) {
     }));
   }
 }
-const AI_LATEX_CMD_RE = /\\(?:frac|dfrac|tfrac|sqrt|sum|prod|int|iint|iiint|oint|lim|infty|alpha|beta|gamma|delta|epsilon|zeta|eta|theta|iota|kappa|lambda|mu|nu|xi|rho|sigma|tau|upsilon|phi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Sigma|Upsilon|Phi|Psi|Omega|pm|mp|times|div|cdot|leq|geq|neq|approx|equiv|propto|partial|nabla|in|notin|subset|subseteq|supset|cup|cap|emptyset|forall|exists|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|to|mapsto|begin|end|left|right|hat|bar|vec|dot|ddot|overline|underline|binom|log|ln|exp|sin|cos|tan|sec|csc|cot|sinh|cosh|tanh|det|dim|ker|deg|gcd|min|max|sup|inf|text|mathbf|mathit|mathrm|mathcal|boldsymbol|cdots|ldots|vdots|ddots|angle|perp|parallel|circ|degree)\b/;
-function _aiAutoWrapLatex(text) {
-  if (/\$\$?[^$]|\\\(|\\\[/.test(text)) {
-    return text;
+/* ---- Math handling -------------------------------------------------------
+   marked treats "\(" and "\)" as escaped characters and silently drops the backslashes, and
+   the KaTeX plugin only understands $...$ / $$...$$. So math is pulled out *before* markdown
+   runs, rendered with KaTeX directly, and put back into the HTML afterwards.
+   Handles $..$, $$..$$, \(..\), \[..\], \begin{env}..\end{env} and bare LaTeX such as
+   "(\overline{BC} \overline{GH})" that the model forgot to delimit. Code is never touched. */
+const AI_LATEX_NAMES = "frac|dfrac|tfrac|cfrac|sqrt|sum|prod|int|iint|iiint|oint|lim|limsup|liminf|infty|alpha|beta|gamma|delta|epsilon|varepsilon|zeta|eta|theta|vartheta|iota|kappa|lambda|mu|nu|xi|pi|rho|sigma|tau|upsilon|phi|varphi|chi|psi|omega|Gamma|Delta|Theta|Lambda|Xi|Pi|Sigma|Upsilon|Phi|Psi|Omega|pm|mp|times|div|cdot|cdots|ldots|vdots|ddots|dots|leq|geq|le|ge|neq|ne|ll|gg|approx|equiv|cong|sim|simeq|propto|partial|nabla|in|notin|ni|subset|subseteq|supset|supseteq|cup|cap|setminus|emptyset|varnothing|forall|exists|neg|land|lor|oplus|otimes|rightarrow|leftarrow|Rightarrow|Leftarrow|leftrightarrow|Leftrightarrow|longrightarrow|longleftarrow|implies|iff|to|mapsto|uparrow|downarrow|begin|end|left|right|big|Big|bigg|Bigg|hat|widehat|bar|tilde|widetilde|vec|dot|ddot|overline|underline|overrightarrow|overleftarrow|overbrace|underbrace|binom|log|ln|lg|exp|sin|cos|tan|sec|csc|cot|arcsin|arccos|arctan|sinh|cosh|tanh|det|dim|ker|deg|gcd|min|max|sup|inf|arg|mod|bmod|pmod|text|textbf|mathbf|mathbb|mathit|mathrm|mathsf|mathtt|mathcal|mathscr|mathfrak|boldsymbol|operatorname|angle|measuredangle|triangle|square|perp|parallel|nparallel|circ|degree|prime|mid|nmid|therefore|because|quad|qquad|langle|rangle|lfloor|rfloor|lceil|rceil|lbrace|rbrace|star|ast|bullet|checkmark|hbar|ell|Re|Im|aleph|cancel|boxed|displaystyle|textstyle|stackrel|overset|underset|xrightarrow|xleftarrow|not|neq|ldotp|colon|lvert|rvert|lVert|rVert";
+const _AI_BRACE = String.raw`\{(?:[^{}]|\{(?:[^{}]|\{[^{}]*\})*\})*\}`;
+const _AI_ATOM = String.raw`(?:\\sqrt(?:\[[^\]\n]*\])?|\\(?:${AI_LATEX_NAMES}))(?![A-Za-z])(?:[ \t]*${_AI_BRACE})*(?:[_^](?:${_AI_BRACE}|[A-Za-z0-9]))*`;
+const _AI_SEP = String.raw`[ \t]*(?:[=+\-*/<>,≤≥×÷±][ \t]*)?(?:[A-Za-z0-9.]{1,3}(?![A-Za-z])[ \t]*(?:[=+\-*/<>][ \t]*)?)?`;
+const AI_BARE_SPAN_RE = new RegExp(`${_AI_ATOM}(?:${_AI_SEP}${_AI_ATOM})*`, "g");
+const AI_ATOM_RE = new RegExp(_AI_ATOM, "g");
+const _aiTexCache = new Map();
+
+function _aiRenderTex(src, display) {
+  const key = (display ? "D" : "I") + src;
+  const hit = _aiTexCache.get(key);
+  if (hit) return hit;
+  let out;
+  try {
+    out = katex.renderToString(src.trim(), { displayMode: display, throwOnError: false, output: "html", strict: "ignore" });
+  } catch (e) {
+    out = _escapeHtml(src);
   }
-  const lines = text.split("\n");
-  let inFence = false;
-  return lines.map(line => {
-    if (/^\s*```/.test(line)) {
-      inFence = !inFence;
-      return line;
-    }
-    if (inFence) {
-      return line;
-    }
-    const trimmed = line.trim();
-    if (!trimmed || !AI_LATEX_CMD_RE.test(trimmed)) {
-      return line;
-    }
-    return `$$${trimmed}$$`;
-  }).join("\n");
+  if (_aiTexCache.size > 400) _aiTexCache.clear();
+  _aiTexCache.set(key, out);
+  return out;
 }
+
+function _aiExtractMath(text) {
+  const math = [];
+  const stash = [];
+  const hold = (store, prefix, value) => prefix + (store.push(value) - 1) + "X";
+
+  // 1. code is never math
+  text = text.replace(/(^|\n)([ \t]*)(`{3,}|~{3,})[^\n]*\n[\s\S]*?(?:\n[ \t]*\3[`~]*[ \t]*(?=\n|$)|$)/g, m => hold(stash, "KXCODE", m));
+  text = text.replace(/(`+)(?!`)[\s\S]*?[^`]\1(?!`)/g, m => hold(stash, "KXCODE", m));
+
+  const put = (src, display) => {
+    const token = hold(math, "KXMATH", { src, display });
+    return display ? "\n\n" + token + "\n\n" : token;
+  };
+
+  // 2. delimited math
+  text = text.replace(/\$\$([\s\S]+?)\$\$/g, (m, t) => put(t, true));
+  text = text.replace(/\\\[([\s\S]+?)\\\]/g, (m, t) => put(t, true));
+  text = text.replace(/\\begin\{([A-Za-z]+\*?)\}[\s\S]*?\\end\{\1\}/g, m => put(m, true));
+  text = text.replace(/\\\(([\s\S]+?)\\\)/g, (m, t) => put(t, false));
+  text = text.replace(/(?<![\\$])\$(?![\s$])([^$\n]+?)(?<![\s\\])\$(?!\$)/g, (m, t) =>
+    /^[\d.,\s]+$/.test(t) ? m : put(t, false));
+
+  // 3. bare LaTeX the model forgot to delimit
+  text = text.split("\n").map(line => {
+    if (!line.includes("\\")) return line;
+    AI_ATOM_RE.lastIndex = 0;
+    if (!AI_ATOM_RE.test(line)) return line;
+    const rest = line.replace(AI_ATOM_RE, "").replace(/KXMATH\d+X|KXCODE\d+X/g, "");
+    const trimmed = line.trim();
+    if (!/[A-Za-z]{3,}/.test(rest) && !/KXMATH|KXCODE/.test(line) && !/^([-*+>#]|\d+[.)])\s/.test(trimmed)) {
+      return put(trimmed, true);
+    }
+    return line.replace(AI_BARE_SPAN_RE, m => put(m, false));
+  }).join("\n");
+
+  // 4. give code back to markdown
+  const unstash = t => t.replace(/KXCODE(\d+)X/g, (m, i) => stash[+i]);
+  text = unstash(text);
+  return { text, math, unstash };
+}
+
+function _aiRestoreMath(html, math) {
+  math.forEach((m, i) => {
+    const token = "KXMATH" + i + "X";
+    const rendered = _aiRenderTex(m.src, m.display);
+    html = html.split("<p>" + token + "</p>").join(rendered).split(token).join(rendered);
+  });
+  return html;
+}
+
 function _formatMessage(content) {
   if (typeof marked === "undefined") {
     return _escapeHtml(content).replace(new RegExp("n\\".split("").reverse().join(""), "g"), "<br>");
   }
-  const prepared = typeof markedKatex !== "undefined" ? _aiAutoWrapLatex(content) : content;
-  const _0x91c6e = marked.parse(prepared);
-  return typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(_0x91c6e, {
+  let prepared = content;
+  let math = [];
+  if (typeof katex !== "undefined") {
+    const r = _aiExtractMath(content);
+    prepared = r.text;
+    math = r.math;
+  }
+  let html = marked.parse(prepared);
+  if (math.length) html = _aiRestoreMath(html, math);
+  return typeof DOMPurify !== "undefined" ? DOMPurify.sanitize(html, {
     "ADD_TAGS": ["annotation", "semantics", "math", "mrow", "mi", "mo", "mn", "msup", "msub", "msubsup", "msqrt", "mroot", "mfrac", "mtable", "mtr", "mtd", "mspace", "mstyle", "mtext", "mpadded", "menclose", "munder", "mover", "munderover"],
     "ADD_ATTR": ["accent", "stretchy", "xmlns", "encoding", "mathvariant", "columnalign", "display", "rowspan", "columnspan"]
-  }) : _0x91c6e;
+  }) : html;
 }
 function _renderMarkdown(el, content) {
   el.innerHTML = _formatMessage(content);
