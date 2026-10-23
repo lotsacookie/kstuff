@@ -371,16 +371,30 @@
     } catch (e) {}
 
     try {
-        ["log", "info", "warn", "error", "debug"].forEach((m) => {
-            const orig = console[m];
-            console[m] = function (...a) {
+        const LV = ["log", "info", "warn", "error", "debug"];
+        const NC = {};
+        const hook = (m) => {
+            const orig = NC[m] || (NC[m] = console[m]);
+            if (typeof orig !== "function") return;
+            const w = function (...a) {
                 try {
                     const fmt = parent.__sgLogFmt || String;
                     parent.__sgLogPush(m, "embed", a.map((x) => fmt(x)).join(" "));
                 } catch (e) {}
                 return orig.apply(this, a);
             };
-        });
+            w.__sg = 1;
+            try {
+                Object.defineProperty(console, m, { configurable: true, enumerable: true, get: () => w, set: () => {} });
+            } catch (e) {
+                try { console[m] = w; } catch (x) {}
+            }
+        };
+        const ensure = () => {
+            try { LV.forEach((m) => { if (!console[m] || !console[m].__sg) hook(m); }); } catch (e) {}
+        };
+        ensure();
+        setInterval(ensure, 1000);
         window.addEventListener("error", (e) => {
             try { parent.__sgLogPush("error", "embed", e.message || "Error"); } catch (x) {}
         });
@@ -450,6 +464,23 @@
                     parent.postMessage({ sgProxyInfo: true, url: info.url, title: info.title, icon: info.icon }, "*");
                 } catch (e) {}
             };
+            let lastInfoKey = "";
+            let lastTitle = "";
+            setInterval(() => {
+                try {
+                    const href = proxyFrame.url && proxyFrame.url.href ? proxyFrame.url.href : "";
+                    const title = proxyFrame.title || "";
+                    const icon = proxyFrame.icon || "";
+                    if (title !== lastTitle) {
+                        lastTitle = title;
+                        setTimeout(() => { try { proxyFrame.refresh_icon && proxyFrame.refresh_icon(); } catch (e) {} }, 500);
+                    }
+                    const key = href + "\n" + title + "\n" + icon.length;
+                    if (key === lastInfoKey) return;
+                    lastInfoKey = key;
+                    parent.postMessage({ sgProxyInfo: true, url: href, title: title, icon: icon }, "*");
+                } catch (e) {}
+            }, 1500);
             proxyFrame.on_console = (batch) => {
                 try {
                     let host = "site";
