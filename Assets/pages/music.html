@@ -1327,10 +1327,21 @@ var s=v==null?"":String(v);
 if(!s){img.classList.remove("sk");img.removeAttribute("src");return;}
 if(s.slice(0,5)==="data:"){img.classList.remove("sk");d.set.call(img,s);return;}
 img.classList.add("sk");
+/* same image already on screen: no reload needed, just make sure listeners hear about it */
+var cur=img.getAttribute("src");
+if(cur===s&&img.complete&&img.naturalWidth>0){setTimeout(function(){if(img._sgTok===tok)img.dispatchEvent(new Event("load"));},0);return;}
 var pre=new Image();
-pre.onload=function(){if(img._sgTok===tok)d.set.call(img,s);};
+pre.onload=function(){
+if(img._sgTok!==tok)return;
+d.set.call(img,s);
+/* safety net: if the browser never reports a load for an image it already has, report it ourselves */
+setTimeout(function(){if(img._sgTok===tok&&img.classList.contains("sk")){
+if(img.complete&&img.naturalWidth>0)img.dispatchEvent(new Event("load"));
+else if(img.complete)img.dispatchEvent(new Event("error"));}},400);
+};
 pre.onerror=function(){if(img._sgTok!==tok)return;img.classList.remove("sk");img.dispatchEvent(new Event("error"));};
-pre.src=s;
+/* use the original setter: pre.src= would re-enter this patched setter and recurse forever */
+d.set.call(pre,s);
 }});}
 function ok(e){var t=e.target;
 if(t&&t.tagName==="IMG"){t.classList.remove("sk","sg-bad");

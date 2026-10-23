@@ -2096,6 +2096,58 @@ function showMessage(html) {
     resultsList.innerHTML = `<div class="grid-message">${html}</div>`;
 }
 
+/* ---- Search relevance -----------------------------------------------------
+   The sources are interleaved rank-by-rank, which says nothing about how well a result matches
+   what was typed. Score every result against the query so exact title / artist matches come first,
+   and live / remix / karaoke / sped-up style versions only win when they were asked for. */
+const SEARCH_JUNK_VERSIONS = new Set(["karaoke", "cover", "sped", "slowed", "8d", "reaction", "tutorial", "loop", "mashup"]);
+
+function scoreSearchResult(song, q) {
+    const tTokens = tokenize(stripFeat(song.titleShort || song.title));
+    const aTokens = tokenize(song.artist);
+    const tNorm = tTokens.join(" ");
+    const aNorm = aTokens.join(" ");
+    const pool = [...new Set([...tTokens, ...aTokens])];
+
+    let covered = 0;
+    for (const t of q.tokens) {
+        if (pool.includes(t)) covered += 1;
+        else if (t.length >= 2 && pool.some(p => p.startsWith(t))) covered += 0.7;
+    }
+    const coverage = q.tokens.length ? covered / q.tokens.length : 0;
+    let score = coverage * 50;
+    if (coverage < 0.5) score -= 30;
+
+    const titleInQuery = tTokens.length > 0 && tTokens.every(t => q.tokens.includes(t));
+    if (tNorm === q.norm) score += 85;
+    else if (`${aNorm} ${tNorm}` === q.norm || `${tNorm} ${aNorm}` === q.norm) score += 100;
+    else if (coverage >= 0.99 && titleInQuery) score += 70;
+    else if (tNorm.startsWith(q.norm)) score += 50;
+    else if (` ${tNorm} `.includes(` ${q.norm} `)) score += 35;
+
+    if (aNorm && aNorm === q.norm) score += 85;
+    else if (aNorm && ` ${aNorm} `.includes(` ${q.norm} `)) score += 25;
+
+    const extra = tTokens.filter(t => !q.tokens.some(x => t === x || t.startsWith(x))).length;
+    score -= Math.min(extra, 8) * 2;
+
+    const flags = songTokenInfo(song).flags;
+    for (const f of flags) {
+        if (!q.flags.has(f)) score -= SEARCH_JUNK_VERSIONS.has(f) ? 45 : 25;
+    }
+    return score;
+}
+
+function rankSearchResults(songs, query) {
+    const tokens = tokenize(query);
+    if (!tokens.length || songs.length < 2) return songs;
+    const q = { tokens, norm: tokens.join(" "), flags: versionFlags(query) };
+    return songs
+        .map((song, i) => ({ song, i, score: scoreSearchResult(song, q) - i * 0.03 }))
+        .sort((a, b) => b.score - a.score)
+        .map(x => x.song);
+}
+
 function runCatalogSearch(query, onUpdate) {
     const lists = CATALOG_SEARCH_SOURCES.map(() => null);
     let failures = 0;
@@ -2113,7 +2165,7 @@ function runCatalogSearch(query, onUpdate) {
                 })
                 .finally(() => {
                     settled++;
-                    const merged = mergeTieredSongs(CATALOG_SEARCH_SOURCES.map((source, i) => ({ tier: source.tier, songs: lists[i] })).filter(entry => entry.songs));
+                    const merged = rankSearchResults(mergeTieredSongs(CATALOG_SEARCH_SOURCES.map((source, i) => ({ tier: source.tier, songs: lists[i] })).filter(entry => entry.songs)), query);
                     onUpdate(merged, settled === CATALOG_SEARCH_SOURCES.length);
                     if (settled === CATALOG_SEARCH_SOURCES.length) {
                         resolve({ songs: merged, failures });
