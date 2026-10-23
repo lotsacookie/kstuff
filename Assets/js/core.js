@@ -20,7 +20,7 @@ export function init(K) {
   K.isAnyResourceOpen = () => Object.values(K.resourceOpenFor).some(Boolean);
 
   K.HTML_REPO_KEYWORDS = ['freebuisness/html', '{html_url}', 'htm@main'];
-  K.LAUNCH_KEYWORDS = [...K.HTML_REPO_KEYWORDS, 'web-port', 'webport', 'web_port', 'gmshelf/'];
+  K.LAUNCH_KEYWORDS = [...K.HTML_REPO_KEYWORDS, 'web-port', 'webport', 'web_port', 'gmshelf/', 'bubbls/', 'wanocapy/'];
   K.urlHasKeyword = (url, keywords) => {
     const lower = (url || '').toLowerCase();
     return keywords.some(k => lower.includes(k));
