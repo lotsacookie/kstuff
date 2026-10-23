@@ -462,6 +462,31 @@ export function init(K) {
   K.sReload?.addEventListener('click', reloadActivePage);
   K.sHome?.addEventListener('click', () => loadBrowserUrl('singularity://home'));
 
+  window.addEventListener('message', e => {
+    const d = e.data;
+    if (!d || d.sgProxyInfo !== true) return;
+    let f = null;
+    for (const el of document.querySelectorAll('iframe')) {
+      if (el.contentWindow === e.source) { f = el; break; }
+    }
+    if (!f) return;
+    const url = typeof d.url === 'string' && /^https?:\/\//i.test(d.url) ? d.url : '';
+    const title = typeof d.title === 'string' ? d.title.slice(0, 200) : '';
+    const icon = typeof d.icon === 'string' && /^data:image\//i.test(d.icon) ? d.icon : '';
+    const active = !K.isFrameActive || K.isFrameActive(f);
+    if (active && url && K.tbInput && document.activeElement !== K.tbInput) {
+      const norm = u => (u || '').replace(/\/+$/, '').trim().toLowerCase();
+      if (norm(K.tbInput.value) !== norm(url)) K.setAddress(url);
+      if (norm(K.history[K.historyIndex]) !== norm(url)) {
+        K.history = K.history.slice(0, K.historyIndex + 1);
+        K.history.push(url);
+        K.historyIndex++;
+        updateBrowserNav();
+      }
+    }
+    window.__sgTabs?.setInfo?.(f, { url, title, icon });
+  });
+
   let activePort = null;
 
   K.frameHooks.push((id, f) => {

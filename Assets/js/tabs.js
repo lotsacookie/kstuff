@@ -286,7 +286,18 @@ export function init(K) {
       el.setAttribute('role', 'tab');
       el.setAttribute('aria-selected', on ? 'true' : 'false');
       el.innerHTML = '<span class="sg-fav"></span><span class="sg-title"></span><button class="sg-x" type="button" aria-label="Close tab">' + XICON + '</button>';
-      el.querySelector('.sg-fav').textContent = (t.title.charAt(0) || '?').toUpperCase();
+      const fav = el.querySelector('.sg-fav');
+      const letter = (t.title.charAt(0) || '?').toUpperCase();
+      if (t.icon) {
+        const im = document.createElement('img');
+        im.alt = '';
+        im.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:inherit;display:block';
+        im.onerror = () => { im.remove(); fav.textContent = letter; };
+        im.src = t.icon;
+        fav.appendChild(im);
+      } else {
+        fav.textContent = letter;
+      }
       el.querySelector('.sg-title').textContent = t.title;
       bar.appendChild(el);
     });
@@ -352,7 +363,10 @@ export function init(K) {
       const result = baseSetAddress.apply(this, args);
       const t = state.active;
       if (t) {
-        const title = titleFor(K.tbInput ? K.tbInput.value : '');
+        const addr = K.tbInput ? K.tbInput.value : '';
+        const norm = u => (u || '').replace(/\/+$/, '').trim().toLowerCase();
+        if (t.pinfo && norm(t.pinfo.url) !== norm(addr)) { t.pinfo = null; t.icon = ''; }
+        const title = (t.pinfo && t.pinfo.title) || titleFor(addr);
         if (title !== t.title) { t.title = title; emit(); }
       }
       return result;
@@ -364,7 +378,19 @@ export function init(K) {
   state.active = first;
   render();
 
+  const setInfo = (frame, info) => {
+    if (!frame || !info) return;
+    let t = state.tabs.find(x => Array.from(x.frames.values()).includes(frame));
+    if (!t && K.isFrameActive && K.isFrameActive(frame)) t = state.active;
+    if (!t) return;
+    t.pinfo = { url: info.url || '', title: info.title || '' };
+    t.icon = info.icon || '';
+    if (info.title) t.title = info.title;
+    emit();
+  };
+
   window.__sgTabs = {
+    setInfo,
     max: MAX,
     list: () => state.tabs.map(t => ({ id: t.id, title: t.title, page: t === state.active ? (document.querySelector('.page.active')?.id || '') : (t.snapshot ? t.snapshot.page : ''), frames: Array.from(t.frames.keys()) })),
     active: () => (state.active ? state.active.id : 0),

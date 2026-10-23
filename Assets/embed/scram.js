@@ -413,6 +413,24 @@
             let url = decodeUrl(rawUrl);
             if (!/^(https?|sandstone):/.test(url)) url = "https://" + url;
 
+            const readTheme = () => {
+                try {
+                    const cs = parent.getComputedStyle(parent.document.body);
+                    const pick = (name, fallback) => {
+                        const v = cs.getPropertyValue(name).trim();
+                        return /^(#|rgb|hsl)/i.test(v) ? v : fallback;
+                    };
+                    return { bg: pick("--bg-color", cs.backgroundColor), text: pick("--text-color", cs.color) };
+                } catch (e) {
+                    return null;
+                }
+            };
+            proxyFrame.theme = readTheme();
+            proxyFrame.on_info = (info) => {
+                try {
+                    parent.postMessage({ sgProxyInfo: true, url: info.url, title: info.title, icon: info.icon }, "*");
+                } catch (e) {}
+            };
             proxyFrame.on_navigate = () => setStatus("Loading " + url + " ...");
             proxyFrame.on_load = () => hideStatus();
             iframe.addEventListener('error', () => setStatus("The proxied frame failed to load."));
