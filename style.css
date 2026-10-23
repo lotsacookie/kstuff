@@ -343,7 +343,7 @@ body.size-large.text-hide {
     inset: 0;
     width: 100%;
     height: 100%;
-    background: color-mix(in srgb, var(--bg-color) 85%, transparent);
+    background: color-mix(in srgb, var(--bg-color) 14%, transparent);
     display: flex;
     flex-direction: column;
     justify-content: center;
