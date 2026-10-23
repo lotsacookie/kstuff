@@ -370,6 +370,25 @@
         }
     } catch (e) {}
 
+    try {
+        ["log", "info", "warn", "error", "debug"].forEach((m) => {
+            const orig = console[m];
+            console[m] = function (...a) {
+                try {
+                    const fmt = parent.__sgLogFmt || String;
+                    parent.__sgLogPush(m, "embed", a.map((x) => fmt(x)).join(" "));
+                } catch (e) {}
+                return orig.apply(this, a);
+            };
+        });
+        window.addEventListener("error", (e) => {
+            try { parent.__sgLogPush("error", "embed", e.message || "Error"); } catch (x) {}
+        });
+        window.addEventListener("unhandledrejection", (e) => {
+            try { parent.__sgLogPush("error", "embed", "Unhandled rejection: " + (parent.__sgLogFmt || String)(e.reason)); } catch (x) {}
+        });
+    } catch (e) {}
+
     const decodeUrl = (str) => {
         try {
             if (!/^[a-zA-Z0-9+/]*={0,2}$/.test(str) || str.length < 4) return str;
@@ -429,6 +448,13 @@
             proxyFrame.on_info = (info) => {
                 try {
                     parent.postMessage({ sgProxyInfo: true, url: info.url, title: info.title, icon: info.icon }, "*");
+                } catch (e) {}
+            };
+            proxyFrame.on_console = (batch) => {
+                try {
+                    let host = "site";
+                    try { host = new URL(url).hostname; } catch (e) {}
+                    for (const item of batch) parent.__sgLogPush(item[0], host, item[1]);
                 } catch (e) {}
             };
             proxyFrame.on_progress = (value, text) => {

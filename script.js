@@ -90,6 +90,9 @@ function initApp() {
       }
 
       // Optional extras: loaded after the app is up and never allowed to break it.
+      loadModule('console-panel')
+        .then(mod => mod.init(K))
+        .catch(err => console.warn('console panel unavailable', err));
       loadModule('welcome-tour')
         .then(mod => mod.init(K))
         .catch(err => console.warn('welcome tour unavailable', err));

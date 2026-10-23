@@ -17,6 +17,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&family=Orbitron:wght@400..900&family=Poppins:wght@300..700&family=Roboto:wght@300..700&family=Inter:wght@300..700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
     <script>window.addEventListener("beforeunload",e=>{if(window.__sgReloading)return;e.preventDefault();e.returnValue=""});</script>
+    <script>(()=>{if(window.__sgLog)return;const L=window.__sgLog=[];const subs=window.__sgLogSubs=new Set();const fmt=a=>{try{if(typeof a==='string')return a;if(a instanceof Error)return a.stack||a.message;if(typeof a==='function')return String(a);if(a&&typeof a==='object'){try{return JSON.stringify(a,(k,v)=>typeof v==='bigint'?String(v):v,2)}catch(e){return Object.prototype.toString.call(a)}}return String(a)}catch(e){return '[unprintable]'}};window.__sgLogFmt=fmt;const LV=['log','info','warn','error','debug'];const push=(level,src,text)=>{const e={t:Date.now(),level:LV.includes(level)?level:'log',src:String(src||'page').slice(0,40),text:String(text).slice(0,20000)};L.push(e);if(L.length>2000)L.splice(0,L.length-2000);subs.forEach(f=>{try{f(e)}catch(_){}})};window.__sgLogPush=push;LV.forEach(m=>{const o=console[m];console[m]=function(...a){try{push(m,'kstuff',a.map(fmt).join(' '))}catch(e){}return o.apply(this,a)}});addEventListener('error',e=>{try{if(e.target&&e.target!==window){const u=e.target.src||e.target.href;if(u)push('error','kstuff','Failed to load '+u);return}push('error','kstuff',(e.message||'Error')+(e.filename?' ('+e.filename+':'+e.lineno+':'+e.colno+')':''))}catch(_){}},true);addEventListener('unhandledrejection',e=>{try{push('error','kstuff','Unhandled rejection: '+fmt(e.reason))}catch(_){}});addEventListener('message',e=>{const d=e.data;if(d&&d.sgConsole===true&&typeof d.text==='string')push(d.level,d.src,d.text)})})();</script>
     <script>window.kProgress=(()=>{const s={done:0,total:10,base:2,peak:0,label:'Loading'};s.render=()=>{const t=document.getElementById('ld-status'),b=document.getElementById('ld-fill');if(!b)return;s.peak=Math.max(s.peak,s.total?Math.min(s.done,s.total)/s.total:0);b.style.transform='scaleX('+s.peak+')';if(t)t.textContent=s.peak>=1?'Ready':s.label};s.tick=()=>{s.done++;s.render()};s.setTotal=t=>{s.total=t;s.render()};s.say=t=>{s.label=t;s.render()};document.addEventListener('DOMContentLoaded',s.render);return s})();window.kReady=new Promise(r=>{window.kReadyResolve=r});window.kAssetsP=new Promise(r=>{window.kAssetsPR=r});</script>
     <script>
 (()=>{
@@ -208,6 +209,9 @@ function legacy(){
                     <svg viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4z"/></svg>
                 </button>
             </div>
+            <button class="study-nav-btn sg-ico" id="study-console-btn" title="Console" aria-label="Console" aria-pressed="false">
+                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M7 9l3 3-3 3"/><path d="M13 15h4"/></svg>
+            </button>
             <button class="study-nav-btn sg-ico" id="study-fullscreen-btn" title="Full screen" aria-label="Full screen" aria-pressed="false">
                 <svg viewBox="0 0 24 24"><path d="M14 4h6v6"/><path d="M10 20H4v-6"/><path d="M20 4l-7 7"/><path d="M4 20l7-7"/></svg>
             </button>
