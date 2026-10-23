@@ -244,4 +244,114 @@ export function init(K) {
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(moveSettingsIndicator);
     moveSettingsIndicator();
   }
+  const updateBtn = byId('update-site-btn');
+  if (updateBtn && !updateBtn.__sgUpdate) {
+    updateBtn.__sgUpdate = true;
+    const UPDATE_REPO = 'lotsacookie/kstuff';
+    const UPDATE_FETCH_MS = 8000;
+    const updateLabel = updateBtn.querySelector('span');
+    const setUpdateLabel = text => { if (updateLabel) updateLabel.textContent = text; };
+
+    const fetchWithTimeout = async (url, type) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), UPDATE_FETCH_MS);
+      try {
+        const r = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return await r[type]();
+      } finally {
+        clearTimeout(timer);
+      }
+    };
+
+    const looksValid = html => typeof html === 'string' && html.length > 5000 && /<html/i.test(html) && /singularity/i.test(html);
+
+    const fetchLatestHtml = async () => {
+      const bust = '?t=' + Date.now();
+      const urls = [];
+      try {
+        const data = await fetchWithTimeout('https://api.github.com/repos/' + UPDATE_REPO + '/commits/main', 'json');
+        if (data && /^[0-9a-f]{40}$/i.test(data.sha)) urls.push('https://cdn.jsdelivr.net/gh/' + UPDATE_REPO + '@' + data.sha + '/index.html');
+      } catch {}
+      urls.push(
+        'https://raw.githubusercontent.com/' + UPDATE_REPO + '/main/index.html' + bust,
+        'https://cdn.jsdelivr.net/gh/' + UPDATE_REPO + '@main/index.html' + bust,
+        'https://cdn.statically.io/gh/' + UPDATE_REPO + '/main/index.html' + bust
+      );
+      try {
+        const here = location.href.split('#')[0];
+        if (/^https?:/i.test(here)) urls.push(here + (here.includes('?') ? '&' : '?') + 't=' + Date.now());
+      } catch {}
+      for (const url of urls) {
+        try {
+          const html = await fetchWithTimeout(url, 'text');
+          if (looksValid(html)) return html;
+        } catch {}
+      }
+      return null;
+    };
+
+    const clearBundleCache = async () => {
+      try {
+        const db = await new Promise((ok, no) => {
+          const q = indexedDB.open('singularity', 1);
+          q.onupgradeneeded = () => q.result.createObjectStore('s');
+          q.onsuccess = () => ok(q.result);
+          q.onerror = () => no(q.error);
+        });
+        await new Promise(done => {
+          const tx = db.transaction('s', 'readwrite');
+          tx.objectStore('s').delete('bundle');
+          tx.oncomplete = tx.onerror = tx.onabort = () => done();
+        });
+        db.close();
+      } catch {}
+      try {
+        if (window.caches) for (const name of await caches.keys()) await caches.delete(name);
+      } catch {}
+    };
+
+    const teardown = () => {
+      try {
+        const top = setTimeout(() => {}, 0);
+        for (let i = 0; i <= top; i++) { clearTimeout(i); clearInterval(i); }
+      } catch {}
+      try { if (window.__sgLogSubs) window.__sgLogSubs.clear(); } catch {}
+      ['singularity', 'kShaP', 'kWispP', 'kModulesStarted', 'kReady', 'kReadyResolve', 'kAssetsP', 'kAssetsPR', 'kHolidayLoaded'].forEach(key => {
+        try { delete window[key]; } catch { try { window[key] = undefined; } catch {} }
+      });
+    };
+
+    let updating = false;
+    updateBtn.addEventListener('click', async () => {
+      if (updating) return;
+      updating = true;
+      updateBtn.disabled = true;
+      setUpdateLabel('Updating...');
+      try { K.toggleLoader?.(true, 'updating'); } catch {}
+
+      const html = await fetchLatestHtml();
+      if (!html) {
+        try { K.toggleLoader?.(false); } catch {}
+        setUpdateLabel('Update failed - try again');
+        setTimeout(() => { setUpdateLabel('Update Singularity'); updateBtn.disabled = false; }, 2500);
+        updating = false;
+        return;
+      }
+
+      await clearBundleCache();
+      window.__sgReloading = true;
+      teardown();
+      try {
+        document.open();
+        document.write(html);
+        document.close();
+      } catch (err) {
+        console.error('update failed', err);
+        location.reload();
+        return;
+      }
+      setTimeout(() => { window.__sgReloading = false; }, 3000);
+    });
+  }
 }

@@ -38,7 +38,7 @@ function blobUrl(k) {
   return (blobs[k] = URL.createObjectURL(new Blob([t], { type: mime(k) })));
 }
 
-const realFetch = W.fetch.bind(W);
+const realFetch = W.__sgRealFetch || (W.__sgRealFetch = W.fetch.bind(W));
 W.fetch = function (input, init) {
   try {
     const req = typeof Request !== 'undefined' && input instanceof Request ? input : null;
