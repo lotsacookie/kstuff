@@ -2604,3 +2604,48 @@ body.floating-on .learning-footer .footer-item {
 .modal-content {
     border-color: var(--line);
 }
+
+
+/* ===== Default art for grid buttons with no image or a failed one ===== */
+.round-btn .ph-art {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 28% 22%, rgba(255,255,255,0.26), transparent 55%),
+        radial-gradient(circle at 85% 90%, rgba(0,0,0,0.28), transparent 60%),
+        linear-gradient(135deg, hsl(var(--ph-h, 220) 58% 42%), hsl(calc(var(--ph-h, 220) + 50) 62% 24%));
+}
+
+.round-btn .ph-art span {
+    font-size: clamp(2.4rem, 5vw, 4.4rem);
+    font-weight: 900 !important;
+    line-height: 1;
+    color: rgba(255,255,255,0.88);
+    text-shadow: 0 4px 18px rgba(0,0,0,0.35);
+    letter-spacing: 0.02em;
+}
+
+.round-btn.img-failed .ph-art,
+.round-btn.img-none .ph-art {
+    display: flex;
+    animation: k-ph-in 0.45s var(--ease) both;
+}
+
+.round-btn.img-failed::before,
+.round-btn.img-none::before {
+    display: none;
+}
+
+@keyframes k-ph-in {
+    from { opacity: 0; transform: scale(1.04); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .round-btn.img-failed .ph-art, .round-btn.img-none .ph-art { animation: none; }
+}

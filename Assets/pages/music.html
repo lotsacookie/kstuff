@@ -328,6 +328,14 @@ img.sk, img:not([src]) {
     animation: mslide 1.4s ease-in-out infinite;
 }
 .now-cover.no-art, .now-cover:not([src]) { animation: none; }
+/* never show the browser's broken-image icon: hide an image while it is failing, fade it in once it has loaded */
+@keyframes mfade { from { opacity: 0; } to { opacity: 1; } }
+img.sg-bad { opacity: 0 !important; }
+img.sg-in { animation: mfade 0.4s ease both; }
+.card-art img.sg-in { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+    img.sg-in { animation: none; }
+}
 @media (prefers-reduced-motion: reduce) {
     img.sk, img:not([src]), .tile.skeleton::after, .card-art:has(> img.sk)::after, .card-art:has(> img:not([src]))::after { animation: none; }
 }
@@ -1226,7 +1234,7 @@ body.mobile .ctx-item { padding: 14px 14px; font-size: 1rem; }
     <audio id="audioPlayer"></audio>
 </div>
 
-<script>(function(){var d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");if(d&&d.set){Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){if(v&&String(v).slice(0,5)!=="data:")this.classList.add("sk");d.set.call(this,v);}});}function done(e){var t=e.target;if(t&&t.tagName==="IMG")t.classList.remove("sk");}document.addEventListener("load",done,true);document.addEventListener("error",done,true);})();</script>
+<script>(function(){var d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");if(d&&d.set){Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){if(!this.hasAttribute("alt"))this.setAttribute("alt","");this.classList.remove("sg-bad");if(v&&String(v).slice(0,5)!=="data:")this.classList.add("sk");d.set.call(this,v);}});}function ok(e){var t=e.target;if(t&&t.tagName==="IMG"){t.classList.remove("sk","sg-bad");t.classList.remove("sg-in");void t.offsetWidth;t.classList.add("sg-in");}}function bad(e){var t=e.target;if(t&&t.tagName==="IMG"){t.classList.remove("sk");t.classList.add("sg-bad");}}document.addEventListener("load",ok,true);document.addEventListener("error",bad,true);document.addEventListener("animationend",function(e){var t=e.target;if(t&&t.tagName==="IMG"&&e.animationName==="mfade")t.classList.remove("sg-in");},true);})();</script>
 <script src="js/m.js"></script>
 <script src="js/m-app.js"></script>
 </body>

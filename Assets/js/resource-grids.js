@@ -38,12 +38,12 @@ export function init(K) {
     img.style.display = 'none';
     delete img.dataset.src;
     img.classList.remove('loaded');
-    img.parentElement?.classList.remove('img-loading', 'img-failed');
+    img.parentElement?.classList.remove('img-loading', 'img-failed', 'img-none');
   };
 
   const armImage = (p, url, alts) => {
     const card = p.el;
-    card.classList.remove('img-failed');
+    card.classList.remove('img-failed', 'img-none');
     card.classList.add('img-loading');
     p.img.classList.remove('loaded');
     p.img.onload = () => {
@@ -223,7 +223,7 @@ export function init(K) {
   const cardTemplate = document.createElement('div');
   cardTemplate.className = 'round-btn';
   const STAR_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.7l1-5.9L3.5 9.7l5.9-.8z" stroke-width="1.8" stroke-linejoin="round"/></svg>';
-  cardTemplate.innerHTML = `<img alt="" style="display:none;"><div class="category-label"></div><div class="overlay"><h3></h3><p></p></div><button type="button" class="fav-btn" aria-label="Add to favorites" aria-pressed="false">${STAR_SVG}</button>`;
+  cardTemplate.innerHTML = `<div class="ph-art" aria-hidden="true"><span></span></div><img alt="" style="display:none;"><div class="category-label"></div><div class="overlay"><h3></h3><p></p></div><button type="button" class="fav-btn" aria-label="Add to favorites" aria-pressed="false">${STAR_SVG}</button>`;
 
   const setFavState = (card, on, animate) => {
     const btn = card.querySelector('.fav-btn');
@@ -262,7 +262,7 @@ export function init(K) {
       for (let i = 0; i < needed; i++) {
         const card = cardTemplate.cloneNode(true);
         card.dataset.index = i;
-        grid.pool.push({ el: card, img: card.querySelector('img'), t: card.querySelector('h3'), d: card.querySelector('p'), c: card.querySelector('.category-label'), f: card.querySelector('.fav-btn') });
+        grid.pool.push({ el: card, img: card.querySelector('img'), t: card.querySelector('h3'), d: card.querySelector('p'), c: card.querySelector('.category-label'), ph: card.querySelector('.ph-art span'), f: card.querySelector('.fav-btn') });
         frag.appendChild(card);
       }
       grid.gridEl.appendChild(frag);
@@ -343,7 +343,14 @@ export function init(K) {
       }
 
       if (p.el.style.display !== 'block') p.el.style.display = 'block';
-      if (p.t.textContent !== item.title) p.t.textContent = item.title;
+      if (p.t.textContent !== item.title) {
+        p.t.textContent = item.title;
+        let h = 0;
+        const title = String(item.title || '');
+        for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) % 360;
+        p.el.style.setProperty('--ph-h', String(h));
+        if (p.ph) p.ph.textContent = (title.match(/[\p{L}\p{N}]/u) || ['?'])[0].toUpperCase();
+      }
 
       const desc = item.description || '';
       if (p.d.textContent !== desc) p.d.textContent = desc;
@@ -371,6 +378,8 @@ export function init(K) {
           armImage(p, wanted, (item.imageAlts || []).slice());
         } else {
           p.img.style.display = 'none';
+          p.el.classList.remove('img-loading', 'img-failed');
+          p.el.classList.add('img-none');
           if (item.imageToken && K.resolveLuminImage) {
             const capturedItem = item;
             const capturedIdx = idx;
