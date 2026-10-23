@@ -32,6 +32,7 @@ export function init(K) {
 
   let root, spot, card, titleEl, textEl, dotsEl, backBtn, nextBtn, skipBtn, accountBtn;
   let index = 0, active = false, prevFocus = null, resizeRaf = 0;
+  let raf = 0, lastT = 0, cur = null, stepsCache = [];
 
   const injectStyle = () => {
     if (document.getElementById('sg-tour-style')) return;
@@ -41,15 +42,14 @@ export function init(K) {
       #sg-tour{position:fixed;inset:0;z-index:100000;opacity:0;transition:opacity .4s var(--ease,ease);font-family:var(--font,inherit)}
       #sg-tour.on{opacity:1}
       #sg-tour .sg-tour-spot{position:fixed;left:0;top:0;width:0;height:0;border-radius:16px;pointer-events:none;
-        box-shadow:0 0 0 100vmax rgba(0,0,0,.74);
-        transition:transform .55s var(--ease,ease),width .55s var(--ease,ease),height .55s var(--ease,ease),border-radius .55s var(--ease,ease)}
+        box-shadow:0 0 0 100vmax rgba(0,0,0,.74);will-change:transform,width,height}
       #sg-tour .sg-tour-spot.has-target::after{content:"";position:absolute;inset:0;border-radius:inherit;
         border:2px solid var(--text-color,#fff);animation:sg-tour-pulse 1.8s ease-in-out infinite}
       #sg-tour .sg-tour-card{position:fixed;left:0;top:0;width:min(340px,calc(100vw - 24px));box-sizing:border-box;padding:20px 20px 16px;
         border-radius:18px;background:var(--nav-bg,#111);color:var(--text-color,#fff);
         border:1px solid color-mix(in srgb,var(--text-color,#fff) 18%,transparent);
         box-shadow:0 20px 50px rgba(0,0,0,.5);
-        transition:transform .55s var(--ease,ease),opacity .3s ease}
+        will-change:transform;transition:opacity .3s ease}
       #sg-tour .sg-tour-card.big{width:min(420px,calc(100vw - 24px));padding:28px 26px 20px;text-align:center}
       #sg-tour .sg-tour-body{transition:opacity .2s ease,transform .2s ease}
       #sg-tour .sg-tour-body.swap{opacity:0;transform:translateY(6px)}
@@ -131,57 +131,88 @@ export function init(K) {
 
   const visibleSteps = () => STEPS.filter(s => s.center || targetFor(s));
 
-  const place = (animate = true) => {
-    const steps = visibleSteps();
-    const step = steps[index];
-    if (!step) return;
+  const refreshSteps = () => {
+    stepsCache = visibleSteps();
+    if (index > stepsCache.length - 1) index = Math.max(0, stepsCache.length - 1);
+  };
+
+  const computeTarget = () => {
+    const step = stepsCache[index];
+    if (!step) return null;
     const vw = window.innerWidth, vh = window.innerHeight, m = 12, gap = 16;
     const el = targetFor(step);
-
-    card.classList.toggle('big', !!step.center);
     const cw = card.offsetWidth, ch = card.offsetHeight;
+    const clampX = x => Math.max(m, Math.min(x, vw - cw - m));
+    const clampY = y => Math.max(m, Math.min(y, vh - ch - m));
 
     if (!el) {
-      spot.classList.remove('has-target');
-      spot.style.width = '0px';
-      spot.style.height = '0px';
-      spot.style.transform = `translate(${vw / 2}px, ${vh / 2}px)`;
-      card.style.transform = `translate(${Math.round((vw - cw) / 2)}px, ${Math.round((vh - ch) / 2)}px)`;
-      return;
+      return {
+        has: false,
+        x: vw / 2, y: vh / 2, w: 0, h: 0, r: 16,
+        cx: (vw - cw) / 2, cy: (vh - ch) / 2
+      };
     }
 
     const r = el.getBoundingClientRect();
     const pad = 6;
     const sx = r.left - pad, sy = r.top - pad, sw = r.width + pad * 2, sh = r.height + pad * 2;
-    const radius = parseFloat(getComputedStyle(el).borderTopLeftRadius) || 10;
-    spot.classList.add('has-target');
-    spot.style.width = sw + 'px';
-    spot.style.height = sh + 'px';
-    spot.style.borderRadius = (radius + pad) + 'px';
-    spot.style.transform = `translate(${sx}px, ${sy}px)`;
-
-    const clampX = x => Math.max(m, Math.min(x, vw - cw - m));
-    const clampY = y => Math.max(m, Math.min(y, vh - ch - m));
+    const radius = (parseFloat(getComputedStyle(el).borderTopLeftRadius) || 10) + pad;
     const fits = {
       right: sx + sw + gap + cw + m <= vw,
       left: sx - gap - cw - m >= 0,
       bottom: sy + sh + gap + ch + m <= vh,
       top: sy - gap - ch - m >= 0
     };
-    const side = ['right', 'left', 'bottom', 'top'].find(s => fits[s]) || 'bottom';
+    const side = ['right', 'left', 'bottom', 'top'].find(k => fits[k]) || 'bottom';
     let x, y;
-    if (side === 'right') { x = sx + sw + gap; y = clampY(sy + sh / 2 - ch / 2); }
-    else if (side === 'left') { x = sx - gap - cw; y = clampY(sy + sh / 2 - ch / 2); }
-    else if (side === 'bottom') { x = clampX(sx + sw / 2 - cw / 2); y = Math.min(sy + sh + gap, vh - ch - m); }
-    else { x = clampX(sx + sw / 2 - cw / 2); y = Math.max(m, sy - gap - ch); }
-    card.style.transform = `translate(${Math.round(clampX(x))}px, ${Math.round(clampY(y))}px)`;
+    if (side === 'right') { x = sx + sw + gap; y = sy + sh / 2 - ch / 2; }
+    else if (side === 'left') { x = sx - gap - cw; y = sy + sh / 2 - ch / 2; }
+    else if (side === 'bottom') { x = sx + sw / 2 - cw / 2; y = sy + sh + gap; }
+    else { x = sx + sw / 2 - cw / 2; y = sy - gap - ch; }
+    return { has: true, x: sx, y: sy, w: sw, h: sh, r: radius, cx: clampX(x), cy: clampY(y) };
+  };
+
+  const FIELDS = ['x', 'y', 'w', 'h', 'r', 'cx', 'cy'];
+
+  const tick = now => {
+    raf = 0;
+    if (!active || !root) return;
+    const dt = Math.min(0.05, Math.max(0.001, (now - (lastT || now)) / 1000));
+    lastT = now;
+    const t = computeTarget();
+    if (t) {
+      const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      const a = !cur ? 1 : 1 - Math.exp(-(reduce ? 26 : 8) * dt);
+      if (!cur) cur = {};
+      for (const f of FIELDS) {
+        const from = cur[f] === undefined ? t[f] : cur[f];
+        const next = from + (t[f] - from) * a;
+        cur[f] = Math.abs(t[f] - next) < 0.05 ? t[f] : next;
+      }
+      spot.classList.toggle('has-target', t.has);
+      spot.style.width = cur.w + 'px';
+      spot.style.height = cur.h + 'px';
+      spot.style.borderRadius = cur.r + 'px';
+      spot.style.transform = `translate3d(${cur.x}px, ${cur.y}px, 0)`;
+      card.style.transform = `translate3d(${cur.cx}px, ${cur.cy}px, 0)`;
+    }
+    raf = requestAnimationFrame(tick);
+  };
+
+  const startLoop = () => {
+    cur = null;
+    lastT = 0;
+    if (!raf) raf = requestAnimationFrame(tick);
   };
 
   const render = (instant = false) => {
-    const steps = visibleSteps();
+    refreshSteps();
+    const steps = stepsCache;
     const step = steps[index];
     const body = card.querySelector('.sg-tour-body');
     const apply = () => {
+      if (!active || !root) return;
+      card.classList.toggle('big', !!step.center);
       titleEl.textContent = step.title;
       textEl.textContent = step.text;
       dotsEl.innerHTML = steps.map((_, i) => `<i class="${i === index ? 'on' : ''}"></i>`).join('');
@@ -192,7 +223,6 @@ export function init(K) {
       skipBtn.textContent = isLast ? 'Maybe later' : 'Skip';
       skipBtn.hidden = false;
       if (isLast && K.currentUser) accountBtn.hidden = true;
-      place();
       body.classList.remove('swap');
       (isLast && !accountBtn.hidden ? accountBtn : nextBtn).focus({ preventScroll: true });
     };
@@ -202,7 +232,7 @@ export function init(K) {
   };
 
   const go = dir => {
-    const steps = visibleSteps();
+    const steps = stepsCache.length ? stepsCache : visibleSteps();
     const next = index + dir;
     if (next < 0) return;
     if (next >= steps.length) { finish(false); return; }
@@ -226,7 +256,7 @@ export function init(K) {
 
   const onResize = () => {
     if (!active || resizeRaf) return;
-    resizeRaf = requestAnimationFrame(() => { resizeRaf = 0; if (visibleSteps()[index]) place(); });
+    resizeRaf = requestAnimationFrame(() => { resizeRaf = 0; refreshSteps(); });
   };
 
   function finish(openAccount) {
@@ -236,7 +266,8 @@ export function init(K) {
     document.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
     root.classList.remove('on');
-    setTimeout(() => { root.remove(); root = null; }, 450);
+    const closing = root;
+    setTimeout(() => { closing.remove(); if (root === closing) root = null; }, 450);
     try { prevFocus?.focus?.({ preventScroll: true }); } catch {}
     if (openAccount && !K.currentUser) K.authMod?.classList.add('active');
   }
@@ -252,7 +283,8 @@ export function init(K) {
     document.addEventListener('keydown', onKey, true);
     window.addEventListener('resize', onResize);
     render(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => root.classList.add('on')));
+    startLoop();
+    requestAnimationFrame(() => requestAnimationFrame(() => root && root.classList.add('on')));
   };
   K.startWelcomeTour = start;
 
