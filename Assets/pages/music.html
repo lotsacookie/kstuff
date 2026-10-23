@@ -330,6 +330,7 @@ img.sk, img:not([src]) {
 .now-cover.no-art, .now-cover:not([src]) { animation: none; }
 /* never show the browser's broken-image icon: hide an image while it is failing, fade it in once it has loaded */
 @keyframes mfade { from { opacity: 0; } to { opacity: 1; } }
+img { color: transparent; }
 img.sg-bad { opacity: 0 !important; }
 img.sg-in { animation: mfade 0.4s ease both; }
 .card-art img.sg-in { animation: none; }
@@ -1234,7 +1235,40 @@ body.mobile .ctx-item { padding: 14px 14px; font-size: 1rem; }
     <audio id="audioPlayer"></audio>
 </div>
 
-<script>(function(){var d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");if(d&&d.set){Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){if(!this.hasAttribute("alt"))this.setAttribute("alt","");this.classList.remove("sg-bad");if(v&&String(v).slice(0,5)!=="data:")this.classList.add("sk");d.set.call(this,v);}});}function ok(e){var t=e.target;if(t&&t.tagName==="IMG"){t.classList.remove("sk","sg-bad");t.classList.remove("sg-in");void t.offsetWidth;t.classList.add("sg-in");}}function bad(e){var t=e.target;if(t&&t.tagName==="IMG"){t.classList.remove("sk");t.classList.add("sg-bad");}}document.addEventListener("load",ok,true);document.addEventListener("error",bad,true);document.addEventListener("animationend",function(e){var t=e.target;if(t&&t.tagName==="IMG"&&e.animationName==="mfade")t.classList.remove("sg-in");},true);})();</script>
+<script>(function(){
+/* Covers never put a pending or failing URL on the visible <img>: the URL is preloaded off-screen first,
+   so the browser's small broken-image icon can't appear. The img fades in only once real pixels exist. */
+var d=Object.getOwnPropertyDescriptor(HTMLImageElement.prototype,"src");
+if(d&&d.set){Object.defineProperty(HTMLImageElement.prototype,"src",{configurable:true,enumerable:d.enumerable,get:d.get,set:function(v){
+var img=this;
+if(!img.hasAttribute("alt"))img.setAttribute("alt","");
+img.classList.remove("sg-bad");
+var tok=img._sgTok=(img._sgTok||0)+1;
+var s=v==null?"":String(v);
+if(!s){img.classList.remove("sk");img.removeAttribute("src");return;}
+if(s.slice(0,5)==="data:"){img.classList.remove("sk");d.set.call(img,s);return;}
+img.classList.add("sk");
+var pre=new Image();
+pre.onload=function(){if(img._sgTok===tok)d.set.call(img,s);};
+pre.onerror=function(){if(img._sgTok!==tok)return;img.classList.remove("sk");img.dispatchEvent(new Event("error"));};
+pre.src=s;
+}});}
+function ok(e){var t=e.target;
+if(t&&t.tagName==="IMG"){t.classList.remove("sk","sg-bad");
+t.classList.remove("sg-in");
+void t.offsetWidth;
+t.classList.add("sg-in");
+}}
+function bad(e){var t=e.target;
+if(t&&t.tagName==="IMG"){t.classList.remove("sk");
+t.classList.add("sg-bad");
+}}
+document.addEventListener("load",ok,true);
+document.addEventListener("error",bad,true);
+document.addEventListener("animationend",function(e){var t=e.target;
+if(t&&t.tagName==="IMG"&&e.animationName==="mfade")t.classList.remove("sg-in");
+},true);
+})();</script>
 <script src="js/m.js"></script>
 <script src="js/m-app.js"></script>
 </body>

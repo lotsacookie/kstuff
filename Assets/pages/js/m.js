@@ -134,7 +134,7 @@ const SHELF_CACHE_KEY = "shelfCacheV3";
 const SHELF_TTL_MS = 30 * 60 * 1000;
 
 const DEFAULT_ART_DATA_URI = "data:image/svg+xml;utf8," + encodeURIComponent(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><rect width="200" height="200" fill="#2a1c22"/><circle cx="100" cy="78" r="32" fill="#57323f"/><rect x="42" y="128" width="116" height="42" rx="10" fill="#57323f"/></svg>`
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6b3a4c"/><stop offset="1" stop-color="#1f1319"/></linearGradient><radialGradient id="h" cx=".28" cy=".2" r=".75"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient></defs><rect width="200" height="200" fill="url(#g)"/><rect width="200" height="200" fill="url(#h)"/><circle cx="100" cy="100" r="62" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="2"/><circle cx="100" cy="100" r="42" fill="none" stroke="#fff" stroke-opacity=".08" stroke-width="2"/><path d="M88 66l50-12v62a15 12 0 1 1-8-10.5V73l-34 8.5v45a15 12 0 1 1-8-10.5z" fill="#fff" fill-opacity=".86"/></svg>`
 );
 
 function sleep(ms) {

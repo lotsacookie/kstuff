@@ -33,6 +33,7 @@ export function init(K) {
 
   const releaseImage = img => {
     if (!img) return;
+    clearTimeout(img._stall);
     img.onload = img.onerror = null;
     img.removeAttribute('src');
     img.style.display = 'none';
@@ -41,23 +42,37 @@ export function init(K) {
     img.parentElement?.classList.remove('img-loading', 'img-failed', 'img-none');
   };
 
+  const IMAGE_STALL_MS = 15000;
+
   const armImage = (p, url, alts) => {
     const card = p.el;
     card.classList.remove('img-failed', 'img-none');
     card.classList.add('img-loading');
     p.img.classList.remove('loaded');
+    clearTimeout(p.img._stall);
+    const fail = () => {
+      clearTimeout(p.img._stall);
+      p.img.onload = p.img.onerror = null;
+      card.classList.remove('img-loading');
+      card.classList.add('img-failed');
+      p.img.classList.remove('loaded');
+      p.img.style.display = 'none';
+    };
+    const next = () => {
+      if (alts.length) { p.img.src = alts.shift(); return true; }
+      return false;
+    };
     p.img.onload = () => {
+      // a 1px or empty image is a blank tile, treat it like a failed one
+      if (p.img.naturalWidth < 8 || p.img.naturalHeight < 8) { if (!next()) fail(); return; }
+      clearTimeout(p.img._stall);
       p.img.onload = p.img.onerror = null;
       card.classList.remove('img-loading');
       p.img.classList.add('loaded');
     };
-    p.img.onerror = () => {
-      if (alts.length) { p.img.src = alts.shift(); return; }
-      p.img.onload = p.img.onerror = null;
-      card.classList.remove('img-loading');
-      card.classList.add('img-failed');
-      p.img.style.display = 'none';
-    };
+    p.img.onerror = () => { if (!next()) fail(); };
+    // a request that never answers should not leave the card shimmering forever
+    p.img._stall = setTimeout(() => { if (card.classList.contains('img-loading')) fail(); }, IMAGE_STALL_MS);
     p.img.src = url;
   };
 

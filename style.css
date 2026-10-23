@@ -2615,13 +2615,35 @@ body.floating-on .learning-footer .footer-item {
     align-items: center;
     justify-content: center;
     pointer-events: none;
+    overflow: hidden;
     background:
         radial-gradient(circle at 28% 22%, rgba(255,255,255,0.26), transparent 55%),
-        radial-gradient(circle at 85% 90%, rgba(0,0,0,0.28), transparent 60%),
-        linear-gradient(135deg, hsl(var(--ph-h, 220) 58% 42%), hsl(calc(var(--ph-h, 220) + 50) 62% 24%));
+        radial-gradient(circle at 85% 90%, rgba(0,0,0,0.32), transparent 60%),
+        linear-gradient(135deg, hsl(var(--ph-h, 220) 58% 42%), hsl(calc(var(--ph-h, 220) + 50) 62% 22%));
+}
+
+/* soft concentric rings and a diagonal sheen so the default art reads as designed, not empty */
+.round-btn .ph-art::before {
+    content: "";
+    position: absolute;
+    width: 150%;
+    aspect-ratio: 1;
+    left: -25%;
+    top: -38%;
+    border-radius: 50%;
+    background: repeating-radial-gradient(circle, transparent 0 22px, rgba(255,255,255,0.06) 22px 24px);
+}
+
+.round-btn .ph-art::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(160deg, rgba(255,255,255,0.14) 0%, transparent 38%, rgba(0,0,0,0.22) 100%);
 }
 
 .round-btn .ph-art span {
+    position: relative;
+    z-index: 1;
     font-size: clamp(2.4rem, 5vw, 4.4rem);
     font-weight: 900 !important;
     line-height: 1;
