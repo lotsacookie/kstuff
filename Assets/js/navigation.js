@@ -490,6 +490,11 @@ export function init(K) {
     const title = typeof d.title === 'string' ? d.title.slice(0, 200) : '';
     const icon = typeof d.icon === 'string' && /^data:image\//i.test(d.icon) ? d.icon : '';
     const active = !K.isFrameActive || K.isFrameActive(f);
+    const held = (K.tbInput ? K.tbInput.value : '').trim().toLowerCase().startsWith(String(K.SCHEME || 'singularity://').toLowerCase());
+    if (held) {
+      window.__sgTabs?.setInfo?.(f, { url: K.tbInput.value, title: '', icon });
+      return;
+    }
     if (active && url && K.tbInput && document.activeElement !== K.tbInput) {
       const norm = u => (u || '').replace(/\/+$/, '').trim().toLowerCase();
       if (norm(K.tbInput.value) !== norm(url)) K.setAddress(url);
