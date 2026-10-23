@@ -383,6 +383,8 @@ export function init(K) {
       return;
     }
 
+    K.toggleLoader(true);
+
     if (!isHistory && K.history[K.historyIndex] !== targetUrl) {
       K.history = K.history.slice(0, K.historyIndex + 1);
       K.history.push(targetUrl);
