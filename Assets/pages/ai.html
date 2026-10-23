@@ -19,10 +19,10 @@
 
 <style>
 :root {
-  --bg: #1a1216;
-  --text: #ffb8d9;
-  --card: rgba(255, 255, 255, 0.06);
-  --nav: rgba(26, 18, 22, 0.85);
+  --bg: #000000;
+  --text: #ffffff;
+  --card: #141414;
+  --nav: #0a0a0a;
 }
 
 * {
@@ -840,6 +840,82 @@ details[open] .ai-reasoning-chevron {
     max-width: 260px;
   }
 }
+
+/* ===== Restyled Pages: shared tokens, same as the main app ===== */
+:root {
+  --line: color-mix(in srgb, var(--text) 14%, transparent);
+  --line-strong: color-mix(in srgb, var(--text) 45%, transparent);
+  --glow: color-mix(in srgb, var(--text) 30%, transparent);
+  --tint: color-mix(in srgb, var(--text) 9%, transparent);
+  --tint-strong: color-mix(in srgb, var(--text) 16%, transparent);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ring: 0 0 0 3px var(--glow), 0 8px 20px rgba(0, 0, 0, 0.35);
+  --lift: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 28%, transparent) transparent; }
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text) 7%, transparent), transparent 70%),
+    linear-gradient(to right, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 44px 44px, 44px 44px;
+  background-position: 0 0;
+}
+
+#aiScreen { height: 100vh; }
+@media (min-width: 721px) {
+  #aiScreen { padding: 12px; gap: 12px; }
+  #aiMain { gap: 10px; }
+  #aiSidebar { border-radius: 20px; }
+  .ai-topbar { border-radius: 18px; }
+}
+#aiSidebar { background-color: var(--nav); border: 1px solid var(--line); box-shadow: var(--lift); }
+.ai-topbar { background-color: var(--nav); border: 1px solid var(--line); box-shadow: var(--lift); }
+.ai-sidebar-header { border-bottom: 1px solid var(--line); }
+@media (max-width: 720px) {
+  #aiSidebar { border-radius: 0 20px 20px 0; background-color: var(--nav); }
+  .ai-topbar { border-width: 0 0 1px; box-shadow: none; }
+}
+
+#aiNewChatBtn, .ai-composer-tool-btn, #aiSidebarToggle, .ai-select-trigger {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  opacity: 1;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease, transform 0.25s var(--ease);
+}
+#aiNewChatBtn:hover, #aiSidebarToggle:hover, .ai-select-trigger:hover, .ai-select-trigger.open, .ai-select-trigger:focus-visible,
+.ai-composer-tool-btn:hover:not(.active):not(.pip-active) {
+  background-color: var(--card);
+  border-color: var(--text);
+  box-shadow: var(--ring);
+  transform: none;
+}
+.ai-composer-tool-btn.active, #aiPipBtn.pip-active { border-color: var(--text); }
+
+.ai-recent-item { border: 1px solid transparent; border-radius: 12px; opacity: 0.85; }
+.ai-recent-item:hover { background-color: var(--tint); border-color: var(--line); }
+.ai-recent-item.active { background-color: var(--tint-strong); border-color: var(--line); }
+.ai-recent-item-delete:hover { opacity: 1 !important; }
+
+.ai-select-options { background: var(--nav); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--lift); }
+.ai-select-group, .ai-select-option { border-bottom-color: var(--line); }
+.ai-select-option:hover, .ai-select-option.selected { background: var(--tint-strong); }
+
+#aiWelcome h2 { background-image: linear-gradient(135deg, var(--text), color-mix(in srgb, var(--text) 55%, transparent)); }
+.ai-message.user .ai-message-text { background: var(--card); border: 1px solid var(--line); border-radius: 18px; }
+.ai-message-text pre { background: color-mix(in srgb, #000 55%, var(--bg)); border: 1px solid var(--line); border-radius: 14px; }
+.ai-message-action-btn:hover { background-color: var(--tint); }
+
+.ai-composer-inner { background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: var(--lift); }
+.ai-composer-inner:focus-within { border-color: var(--text); box-shadow: 0 0 0 3px var(--glow); }
+#aiAttachPreview { background: var(--tint); }
+#aiSendBtn { border-radius: 12px; }
+
+#aiChatContainer::-webkit-scrollbar-thumb, #aiRecentsList::-webkit-scrollbar-thumb, .ai-reasoning-body::-webkit-scrollbar-thumb,
+.ai-select-options::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 28%, transparent); }
 </style>
 </head>
 <body>

@@ -19,10 +19,10 @@
 }
 
 :root {
-    --bg: #1a1216;
-    --text: #ffb8d9;
-    --card: rgba(255, 255, 255, 0.06);
-    --nav: rgba(26, 18, 22, 0.94);
+    --bg: #000000;
+    --text: #ffffff;
+    --card: #141414;
+    --nav: #0a0a0a;
 
     --hover: color-mix(in srgb, var(--text) 14%, transparent);
     --hover-strong: color-mix(in srgb, var(--text) 24%, transparent);
@@ -1062,6 +1062,85 @@ body.mobile .ctx-menu {
 }
 body.mobile .ctx-item { padding: 14px 14px; font-size: 1rem; }
 @keyframes sheet-up { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ===== Restyled Pages: shared tokens, same as the main app ===== */
+:root {
+  --line: color-mix(in srgb, var(--text) 14%, transparent);
+  --line-strong: color-mix(in srgb, var(--text) 45%, transparent);
+  --glow: color-mix(in srgb, var(--text) 30%, transparent);
+  --tint: color-mix(in srgb, var(--text) 9%, transparent);
+  --tint-strong: color-mix(in srgb, var(--text) 16%, transparent);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ring: 0 0 0 3px var(--glow), 0 8px 20px rgba(0, 0, 0, 0.35);
+  --lift: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 28%, transparent) transparent; }
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text) 7%, transparent), transparent 70%),
+    linear-gradient(to right, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 44px 44px, 44px 44px;
+  background-position: 0 0;
+}
+
+:root { --border: var(--line); }
+
+.app-header { background: var(--nav); border-bottom: 1px solid var(--line); }
+.round-btn { background: var(--card); border: 1px solid var(--line); border-radius: 14px; transition: border-color 0.25s ease, box-shadow 0.25s ease, background-color 0.25s ease; }
+.round-btn:hover { background: var(--card); border-color: var(--text); box-shadow: var(--ring); transform: none; }
+.search-container { background: var(--card); border: 1px solid var(--line); border-radius: 18px; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+.search-container:hover { background: var(--card); border-color: var(--line-strong); }
+.search-container:focus-within { border-color: var(--text); box-shadow: 0 0 0 3px var(--glow); }
+.btn-primary:hover { box-shadow: 0 0 0 3px var(--glow); }
+.btn-primary.text-btn { border-radius: 14px; }
+
+.sidebar { border-radius: 20px; border: 1px solid var(--line); box-shadow: var(--lift); }
+.lib-item { border-radius: 12px; border: 1px solid transparent; }
+.lib-item:hover { background: var(--tint); border-color: var(--line); }
+.lib-item.sel { background: var(--tint-strong); border-color: var(--line); }
+.lib-add:hover { background: var(--tint); }
+.cover { border-radius: 10px; }
+.shelf-arrow { border-radius: 12px; border: 1px solid var(--line); }
+.shelf-arrow:hover { background: var(--card); border-color: var(--text); }
+
+.card { border-radius: 18px; background: var(--card); border: 1px solid var(--line); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22); transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.28s var(--ease); }
+.card:hover, .card:focus-visible { background: var(--card); border-color: var(--text); box-shadow: 0 0 0 3px var(--glow), 0 14px 30px rgba(0, 0, 0, 0.4); transform: translateY(-3px); }
+.card-art { border-radius: 12px; }
+
+.ghost-btn { border: 1px solid var(--line); border-radius: 12px; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+.ghost-btn:hover { border-color: var(--text); box-shadow: var(--ring); }
+.row { border-radius: 12px; }
+.row:hover { background: var(--tint); }
+.row.active { background: var(--tint-strong); }
+.row-img, .q-row img, .ctx-head img { border-radius: 8px; }
+
+.lyrics-view { border-radius: 20px; border: 1px solid var(--line); box-shadow: var(--lift); }
+.queue-panel { border-radius: 20px; border: 1px solid var(--line); box-shadow: var(--lift); }
+.q-row { border-radius: 12px; }
+.q-row:hover { background: var(--tint); }
+.q-row.now { background: var(--tint-strong); }
+.audio-dock { background: var(--nav); border-top: 1px solid var(--line); }
+
+.modal-overlay { backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); background: rgba(0, 0, 0, 0.62); }
+.modal-content { background: var(--nav); border: 1px solid var(--line); border-radius: 28px; box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5); }
+.modal-select, .modal-input { border: 1px solid var(--line); border-radius: 14px; }
+.modal-select:focus, .modal-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px var(--glow); }
+.modal-select option { background: var(--nav); }
+.modal-actions button { border-radius: 14px; }
+.ctx-menu { background: var(--nav); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--lift); }
+.ctx-item { border-radius: 10px; }
+.ctx-item:hover { background: var(--tint); }
+.toast { border-radius: 14px; }
+
+@media (max-width: 720px) {
+  .sidebar, .lyrics-view, .queue-panel { border-radius: 16px; }
+  .modal-content { border-radius: 22px; }
+}
+
+.shelf-row { gap: 12px; padding: 10px 6px 16px; margin: 0 -6px; }
+.results-list { gap: 12px; }
 </style>
 </head>
 <body>

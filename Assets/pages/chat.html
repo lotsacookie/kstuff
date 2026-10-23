@@ -8,10 +8,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300..700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg: #1a1216;
-            --text: #ffb8d9;
-            --card: rgba(255, 255, 255, 0.06);
-            --nav: rgba(26, 18, 22, 0.85);
+            --bg: #000000;
+            --text: #ffffff;
+            --card: #141414;
+            --nav: #0a0a0a;
         }
         * { font-family: "Quicksand", sans-serif !important; box-sizing: border-box; }
         body { background: none; color: var(--text); margin: 0; display: flex; height: 100vh; height: 100dvh; overflow: hidden; font-weight: bold; }
@@ -139,7 +139,74 @@
             .message-row { max-width: 88%; }
             header { padding: 0 14px; }
         }
-    </style>
+    
+/* ===== Restyled Pages: shared tokens, same as the main app ===== */
+:root {
+  --line: color-mix(in srgb, var(--text) 14%, transparent);
+  --line-strong: color-mix(in srgb, var(--text) 45%, transparent);
+  --glow: color-mix(in srgb, var(--text) 30%, transparent);
+  --tint: color-mix(in srgb, var(--text) 9%, transparent);
+  --tint-strong: color-mix(in srgb, var(--text) 16%, transparent);
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --ring: 0 0 0 3px var(--glow), 0 8px 20px rgba(0, 0, 0, 0.35);
+  --lift: 0 12px 32px rgba(0, 0, 0, 0.28);
+}
+html { scrollbar-width: thin; scrollbar-color: color-mix(in srgb, var(--text) 28%, transparent) transparent; }
+body {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text) 7%, transparent), transparent 70%),
+    linear-gradient(to right, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1px);
+  background-size: 100% 100%, 44px 44px, 44px 44px;
+  background-position: 0 0;
+}
+
+.unread-indicator { border-color: var(--nav); }
+@media (min-width: 721px) {
+  body { padding: 12px; gap: 12px; }
+  #sidebar { border-radius: 20px; }
+  #main-content { border-radius: 20px; }
+}
+#sidebar { background-color: var(--nav); border: 1px solid var(--line); box-shadow: var(--lift); }
+#main-content {
+  background: color-mix(in srgb, var(--nav) 55%, transparent);
+  border: 1px solid var(--line);
+  box-shadow: var(--lift);
+  overflow: hidden;
+}
+header { border-bottom: 1px solid var(--line); }
+@media (max-width: 720px) {
+  #sidebar { border-radius: 0; box-shadow: none; border-width: 0 1px 0 0; }
+  #main-content { border: 0; box-shadow: none; }
+}
+
+.sidebar-btn { background-color: var(--card); border: 1px solid var(--line); border-radius: 14px; transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.15s; }
+.sidebar-btn:hover { background-color: var(--card); border-color: var(--text); box-shadow: var(--ring); }
+.chat-item { border: 1px solid transparent; border-radius: 14px; transition: background 0.2s, border-color 0.2s; }
+.chat-item:hover { background-color: var(--tint); border-color: var(--line); }
+.chat-item.active { background-color: var(--tint-strong); border-color: var(--line); }
+.chat-avatar, .header-avatar, .user-list-avatar, .msg-avatar { border-color: var(--line); }
+
+.friend-message { background-color: var(--card); border: 1px solid var(--line); }
+.composer { background: var(--card); border: 1px solid var(--line); border-radius: 22px; box-shadow: var(--lift); }
+.composer:focus-within { border-color: var(--text); box-shadow: 0 0 0 3px var(--glow); }
+button#send-btn { border-radius: 16px; }
+.section-loader { background: color-mix(in srgb, var(--bg) 80%, transparent); }
+
+input[type="text"].modal-input { background: var(--card); border: 1px solid var(--line); border-radius: 14px; }
+input[type="text"].modal-input:focus { border-color: var(--text); box-shadow: 0 0 0 3px var(--glow); }
+.modal-overlay { background: rgba(0, 0, 0, 0.62); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.modal-box { background-color: var(--nav); border: 1px solid var(--line); }
+.modal-header { background: var(--tint); border-bottom: 1px solid var(--line); }
+.modal-title-icon, .modal-close-btn { border-color: var(--line); }
+.user-list-item { border: 1px solid var(--line); border-radius: 14px; }
+.user-list-item.selected { border-color: var(--text); }
+.modal-btn { border: 1px solid var(--line); border-radius: 12px; }
+.modal-btn:hover { border-color: var(--text); box-shadow: var(--ring); opacity: 1; transform: none; }
+.modal-btn.primary { background-color: var(--text); border-color: var(--text); }
+.modal-btn.danger { border-color: #ff3d6e; }
+</style>
 </head>
 <body>
     <div id="sidebar">
