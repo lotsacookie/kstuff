@@ -354,6 +354,7 @@ export function init(K) {
     if (!targetUrl) return;
 
     if (targetUrl.startsWith(K.SCHEME)) {
+      if (K.proxyHold) K.releaseProxy();
       const rest = targetUrl.slice(K.SCHEME.length);
       const slashIdx = rest.indexOf('/');
       const pageSeg = (slashIdx === -1 ? rest : rest.slice(0, slashIdx)).toLowerCase();
@@ -383,7 +384,7 @@ export function init(K) {
       return;
     }
 
-    K.toggleLoader(true);
+    K.beginProxyLoad();
 
     if (!isHistory && K.history[K.historyIndex] !== targetUrl) {
       K.history = K.history.slice(0, K.historyIndex + 1);
@@ -400,7 +401,7 @@ export function init(K) {
       if (ifr) return K.embedInFrame(ifr, targetUrl);
     }).catch(err => {
       console.error('Browser navigation failed:', err);
-      K.toggleLoader(false);
+      K.releaseProxy();
     });
   };
   K.loadBrowserUrl = loadBrowserUrl;
@@ -472,13 +473,17 @@ export function init(K) {
       if (el.contentWindow === e.source) { f = el; break; }
     }
     if (!f) return;
-    if (d.sgProxyReady === true) { K.releaseProxy(f); return; }
+    if (d.sgProxyReady === true) {
+      if (!K.isFrameActive || K.isFrameActive(f)) K.releaseProxy();
+      return;
+    }
     if (d.sgProxyProgress === true) {
       if (K.isFrameActive && !K.isFrameActive(f)) return;
       const val = Number(d.value) || 0;
-      if (val < 0.99 && K.loader && K.loader.classList.contains('hidden')) K.toggleLoader(true);
+      if (val >= 0.99) { K.releaseProxy(); return; }
+      if (K.loader && K.loader.classList.contains('hidden')) K.toggleLoader(true);
       K.setLoaderProgress(val, typeof d.text === 'string' ? d.text : '');
-      if (val < 0.99) K.holdForProxy(f);
+      K.holdForProxy();
       return;
     }
     const url = typeof d.url === 'string' && /^https?:\/\//i.test(d.url) ? d.url : '';

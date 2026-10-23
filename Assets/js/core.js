@@ -196,7 +196,7 @@ export function init(K) {
     const token = ifr.__embedToken = (ifr.__embedToken || 0) + 1;
     const stale = () => ifr.__embedToken !== token;
 
-    K.toggleLoader(true);
+    K.beginProxyLoad();
     try {
       const html = await K.buildScramHtml(rawUrl);
       if (stale()) return;
@@ -210,7 +210,7 @@ export function init(K) {
       ifr.srcdoc = html;
     } catch (err) {
       console.error('Scram embed failed for', rawUrl, err);
-      if (!stale()) K.toggleLoader(false);
+      if (!stale()) K.releaseProxy();
     }
   };
 
@@ -354,18 +354,29 @@ export function init(K) {
     loaderFill.style.transform = 'scaleX(0)';
     loaderStatus.textContent = '';
   };
-  K.holdForProxy = f => {
-    if (!f) return;
-    clearTimeout(f.__holdTimer);
-    f.__holdTimer = setTimeout(() => K.toggleLoader(false), 60000);
+  K.proxyHold = false;
+  K.holdForProxy = () => {
+    K.proxyHold = true;
+    clearTimeout(K.proxyTimer);
+    K.proxyTimer = setTimeout(() => K.releaseProxy(), 30000);
   };
-  K.releaseProxy = f => {
-    if (f) clearTimeout(f.__holdTimer);
+  K.releaseProxy = () => {
+    K.proxyHold = false;
+    clearTimeout(K.proxyTimer);
     K.toggleLoader(false);
+  };
+  K.beginProxyLoad = () => {
+    K.toggleLoader(true);
+    K.holdForProxy();
   };
 
   K.toggleLoader = (show, mode = 'loading') => {
     if (!K.loader) return;
+    if (!show && K.proxyHold) {
+      if (document.querySelector('.page.active')?.id === 'mathworksheets') return;
+      K.proxyHold = false;
+      clearTimeout(K.proxyTimer);
+    }
     if (!show) setTimeout(() => { if (K.loader.classList.contains('hidden')) resetLoaderProgress(); }, 600);
     if (show && loaderTextEl) loaderTextEl.textContent = mode === 'updating' ? 'Updating' : 'Loading';
     K.loader.style.opacity = show ? '1' : '0';
