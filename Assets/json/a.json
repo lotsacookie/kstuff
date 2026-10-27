@@ -44,5 +44,10 @@
     "title": "Desmos Graphing Calculator",
     "url": "${static}https://desmos.com/graphing",
     "image": "https://play-lh.googleusercontent.com/0XIdUexS8PBUJCrxOzrsNus5vRC1I72JmeKUivvUvJBqJo1P3MmK7QXRA6cPNUSoBlXoDNWNxUkEjEMLdhgc4Y8"
+  },
+  {
+    "title": "Astra",
+    "url": "https://cdn.jsdelivr.net/gh/Obamalinkmaker/Astra-OOZ-@latest/logo.svg",
+    "image": ""
   }
 ]
