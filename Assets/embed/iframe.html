@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Full Screen Iframe Viewer</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body, html {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        #input-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+            padding: 20px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+            font-weight: 500;
+            letter-spacing: -0.025em;
+        }
+        input[type="text"] {
+            width: 100%;
+            max-width: 600px;
+            padding: 16px 24px;
+            font-size: 1.1rem;
+            background-color: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 12px;
+            color: #f8fafc;
+            outline: none;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+        input[type="text"]:focus {
+            border-color: #6366f1;
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2), 0 10px 25px -5px rgba(0, 0, 0, 0.3);
+        }
+        .hint {
+            margin-top: 1rem;
+            font-size: 0.875rem;
+            color: #94a3b8;
+        }
+        #viewer-container {
+            display: none;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="input-container">
+        <h1>Enter URL to View</h1>
+        <input type="text" id="urlInput" placeholder="https://example.com" autofocus autocomplete="off" spellcheck="false">
+        <div class="hint">Type a URL and press Enter</div>
+    </div>
+
+    <div id="viewer-container">
+        <iframe id="frameViewer" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+    </div>
+
+    <script>
+        const urlInput = document.getElementById('urlInput');
+        const inputContainer = document.getElementById('input-container');
+        const viewerContainer = document.getElementById('viewer-container');
+        const frameViewer = document.getElementById('frameViewer');
+
+        urlInput.addEventListener('keydown', function(event) {
+            if (event.key === 'Enter') {
+                let url = urlInput.value.trim();
+                if (!url) return;
+
+                // Add https:// automatically if no protocol is provided
+                if (!/^https?:\/\//i.test(url)) {
+                    url = 'https://' + url;
+                }
+
+                frameViewer.src = url;
+                inputContainer.style.display = 'none';
+                viewerContainer.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
