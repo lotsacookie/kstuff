@@ -180,18 +180,6 @@ export function init(K) {
     let targetUrl = item.url.trim();
     if (stale()) return;
 
-    if (targetUrl.startsWith('lumin:')) {
-      try {
-        const luminUrl = await K.luminGameUrl(targetUrl.slice(6));
-        if (stale()) return;
-        if (luminUrl) ifr.src = luminUrl;
-        else K.toggleLoader(false);
-      } catch {
-        if (!stale()) K.toggleLoader(false);
-      }
-      return;
-    }
-
     if (K.MIRROR_PH.test(targetUrl)) {
       await K.embedInFrame(ifr, targetUrl);
       return;
@@ -378,7 +366,7 @@ export function init(K) {
       const isFav = !!K.favorites?.has(type, item.title);
       if (p.el.classList.contains('is-fav') !== isFav) setFavState(p.el, isFav, false);
 
-      const wanted = item.image || (item.imageToken && K.luminImgCache?.get(item.imageToken)) || '';
+      const wanted = item.image || '';
 
       if (p.img.dataset.src !== wanted) {
         p.img.onload = p.img.onerror = null;
@@ -395,16 +383,6 @@ export function init(K) {
           p.img.style.display = 'none';
           p.el.classList.remove('img-loading', 'img-failed');
           p.el.classList.add('img-none');
-          if (item.imageToken && K.resolveLuminImage) {
-            const capturedItem = item;
-            const capturedIdx = idx;
-            K.resolveLuminImage(capturedItem).then(url => {
-              if (!url || grid.paginatedData[capturedIdx] !== capturedItem || p.img.dataset.src) return;
-              p.img.dataset.src = url;
-              p.img.style.display = 'block';
-              armImage(p, url, []);
-            });
-          }
         }
       } else if (wanted && p.img.style.display !== 'block') {
         p.img.style.display = 'block';

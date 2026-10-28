@@ -66,7 +66,7 @@ export function init(K) {
       entries.set(k, { ...cur, u: now, d: 1 });
       on = false;
     } else {
-      const img = item.image || (item.imageToken && K.luminImgCache?.get(item.imageToken)) || '';
+      const img = item.image || '';
       const e = clean({ p: page, t: item.title, i: img, c: item.category, u: now });
       if (!e) return false;
       entries.set(k, e);
