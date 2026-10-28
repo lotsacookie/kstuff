@@ -12,11 +12,36 @@ const WSS_RE = /^wss:\/\/[a-z0-9.-]+(:\d{1,5})?(\/[\w\-./]*)?$/i;
 
 // Reads the serverList array out of TongSherbet/storage's loader.js without eval.
 // Handles \uXXXX escapes and the "ten.xxx".split("").reverse().join("") trick.
+// loader.js is obfuscated: it passes its real code to eval() via globalThis. We run only the
+// decoder arithmetic against a capturing stub (eval never executes) and read the host array.
+function decodeLoaderList(src, depth = 0) {
+  if (depth > 3 || typeof src !== 'string') return [];
+  let code = null;
+  try {
+    const stub = new Proxy({}, { get: (_, k) => (a) => { if (code === null && typeof a === 'string') code = a; } });
+    new Function('globalThis', src)(stub);
+  } catch {}
+  if (!code) return [];
+  const arrays = code.match(/\[(?:\s*"[^"\\]{3,120}"\s*,?)+\s*\]/g) || [];
+  for (const arr of arrays) {
+    let vals;
+    try { vals = JSON.parse(arr.replace(/,\s*\]$/, ']')); } catch { continue; }
+    const out = [];
+    for (const v of vals) {
+      const value = String(v).trim();
+      if ((HOST_RE.test(value) || WSS_RE.test(value)) && !out.includes(value)) out.push(value);
+      if (out.length >= SYNC_MAX) break;
+    }
+    if (out.length >= 3 && out.length >= vals.length * 0.6) return out;
+  }
+  return decodeLoaderList(code, depth + 1);
+}
+
 export function parseServerList(src) {
   if (typeof src !== 'string') return [];
   const text = src.replace(/\\u([0-9a-fA-F]{4})/g, (_, h) => String.fromCharCode(parseInt(h, 16)));
   const block = text.match(/serverList\s*=\s*\[([\s\S]*?)\]\s*[;,]/);
-  if (!block) return [];
+  if (!block) return decodeLoaderList(src);
   const item = /(["'])((?:\\.|(?!\1)[^\\])*)\1(\s*\.split\(\s*(?:""|'')\s*\)\s*\.reverse\(\)\s*\.join\(\s*(?:""|'')\s*\))?/g;
   const out = [];
   let m;
@@ -365,6 +390,8 @@ export function init(K) {
       const cachedList = cached && Array.isArray(cached.list) ? cached.list.filter(u => HOST_RE.test(u) || WSS_RE.test(u)) : [];
       if (cachedList.length) mergeServers(cachedList);
       if (cachedList.length && Date.now() - (cached.ts || 0) < SYNC_TTL) return K.WISP_SERVERS;
+      const failed = readJson(SYNC_KEY + 'F');
+      if (failed && Date.now() - (failed.ts || 0) < 600000) return K.WISP_SERVERS;
       for (const url of STORAGE_SOURCES) {
         try {
           const res = await withTimeout(fetch(url, { cache: 'no-store' }), SYNC_TIMEOUT);
@@ -378,13 +405,14 @@ export function init(K) {
           console.warn('[wisp] storage sync failed:', url, err && err.message ? err.message : err);
         }
       }
+      writeStore(SYNC_KEY + 'F', JSON.stringify({ ts: Date.now() }));
       return K.WISP_SERVERS;
     })();
     return syncPromise;
   };
 
   async function getWlsp() {
-    try { await K.syncWispServers(); } catch {}
+    try { await Promise.race([K.syncWispServers(), new Promise(r => setTimeout(r, 1500))]); } catch {}
     const list = K.WISP_SERVERS;
     const stored = readStore('WID');
     const index = Number(stored);

@@ -278,7 +278,7 @@
     };
 
     const openRace = async () => {
-        await new Promise((r) => setTimeout(r, 3500));
+        await new Promise((r) => setTimeout(r, 1500));
         const list = await loadPool();
         const hostGuess = normalizeWisp(readHost("wlspServer"));
         const candidates = [...new Set([...(hostGuess ? [hostGuess] : []), ...BUILTIN_WISPS, ...shuffle(list).slice(0, 12)])];
@@ -327,7 +327,8 @@
             sandstone.libcurl.set_websocket(best);
             ok = true;
             const hostPool = readHost("wispUrls");
-            const pool = Array.isArray(hostPool) && hostPool.length ? hostPool : wispPool;
+            const synced = (readHost("serverList") || []).map(normalizeWisp).filter(Boolean);
+            const pool = [...new Set([...synced, ...(Array.isArray(hostPool) && hostPool.length ? hostPool : wispPool)])];
             if (typeof sandstone.network?.set_wisp_pool === "function") {
                 const rest = pool.filter((u) => u !== best).slice(0, 30);
                 sandstone.network.set_wisp_pool([best, ...rest]);
