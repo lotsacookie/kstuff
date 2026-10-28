@@ -1,7 +1,7 @@
 export function init(K) {
   const MAX = 12;
   const NAMES = { home: 'Home', games: 'Games', apps: 'Apps', music: 'Music', tv: 'TV', ai: 'AI', vms: 'VMS', chat: 'Chat' };
-  const PAGE_ALLOW = 'fullscreen; autoplay; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; gamepad; pointer-lock';
+  const PAGE_ALLOW = 'cross-origin-isolated; fullscreen; autoplay; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; gamepad; pointer-lock';
   const RESOURCE_ALLOW = 'autoplay; fullscreen; pointer-lock; gamepad';
   const GLOBAL_IDS = new Set([K.MUSIC_IFRAME_ID]);
   const PLUS = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
