@@ -1,8 +1,8 @@
 export function init(K) {
   const MAX = 12;
   const NAMES = { home: 'Home', games: 'Games', apps: 'Apps', music: 'Music', tv: 'TV', ai: 'AI', vms: 'VMS', chat: 'Chat' };
-  const PAGE_ALLOW = 'cross-origin-isolated; fullscreen; autoplay; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; gamepad; pointer-lock';
-  const RESOURCE_ALLOW = 'autoplay; fullscreen; pointer-lock; gamepad';
+  const PAGE_ALLOW = 'cross-origin-isolated; fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; accelerometer; gyroscope; magnetometer; encrypted-media; screen-wake-lock; web-share';
+  const RESOURCE_ALLOW = 'cross-origin-isolated; autoplay; fullscreen; pointer-lock; gamepad';
   const GLOBAL_IDS = new Set([K.MUSIC_IFRAME_ID]);
   const PLUS = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>';
   const XICON = '<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>';

@@ -10,7 +10,7 @@ export function init(K) {
   const KEEP_ALIVE_IFRAMES = new Set([K.MUSIC_IFRAME_ID]);
   K.KEEP_ALIVE_IFRAMES = KEEP_ALIVE_IFRAMES;
 
-  const IFRAME_ALLOW = 'cross-origin-isolated; document-picture-in-picture; picture-in-picture; display-capture; clipboard-write; autoplay';
+  const IFRAME_ALLOW = 'cross-origin-isolated; fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; accelerometer; gyroscope; magnetometer; encrypted-media; screen-wake-lock; web-share';
   K.IFRAME_ALLOW = IFRAME_ALLOW;
 
   const LOCAL_SCRIPT = /<script\b([^>]*?)\bsrc=(["'])(?!https?:|\/\/|data:|blob:)([^"']+)\2([^>]*)>\s*<\/script>/gi;
