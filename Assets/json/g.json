@@ -675,7 +675,7 @@
   },
   {
     "title": "WebBlox",
-    "url": "https://cdn.jsdelivr.net/gh/rtischeduler/WebBlox@main/index.html",
+    "url": "https://cdn.jsdelivr.net/gh/rtischeduler/WebBlox@HEAD/index.html",
     "category": "Adventure"
   }
 ]
