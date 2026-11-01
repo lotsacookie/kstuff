@@ -534,6 +534,7 @@
           () => json(SITE + "/chat_attachments/upload", { method: "POST", body: formData(), headers: { "api-key": apiKey() } })
         ];
         let last = null;
+        const notes = [];
         for (const attempt of attempts) {
           try {
             const body = await attempt();
@@ -542,8 +543,10 @@
           } catch (e) {
             last = e;
           }
+          notes.push(String(last && (last.status || last.code || last.message) || "error"));
+          console.warn("[deepai] upload attempt failed", notes[notes.length - 1]);
         }
-        throw last || new DeepAIError("Upload failed");
+        throw new DeepAIError("Upload failed (" + notes.join(", ") + ")", { status: last && last.status, code: last && last.code, body: last && last.body });
       },
       async taskStatus(taskId) {
         return json("/check_chat_task_status?type=thinking-task&task_id=" + encodeURIComponent(taskId));
@@ -595,7 +598,7 @@
     };
   }
 
-  const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [], games: "" };
+  const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [], games: "", lastSign: 0 };
 
   function say(text) {
     if (typeof _setAIStatus === "function") _setAIStatus(text || "");
@@ -703,6 +706,18 @@
         console.warn("[deepai] account setup failed for", name, error);
       }
     }
+    for (let i = 0; i < 2; i++) {
+      const fresh = "guest" + randomText(8);
+      try {
+        const user = await accountFor(client, fresh);
+        if (user) {
+          store.set(GUEST_KEY, fresh);
+          return user;
+        }
+      } catch (error) {
+        console.warn("[deepai] account setup failed for", fresh, error);
+      }
+    }
     return null;
   }
 
@@ -714,6 +729,13 @@
       state.user = null;
     }
     return !!state.user;
+  }
+
+  async function autoSignIn() {
+    if (state.user) return true;
+    if (!state.client || Date.now() - state.lastSign < 30000) return false;
+    state.lastSign = Date.now();
+    return signIn();
   }
 
   function buildHistory(messages) {
@@ -917,6 +939,7 @@
     const modelValue = owns(value) ? value : PREFIX + value;
     const attachments = options.attachments || [];
     let emitted = false;
+    await autoSignIn();
     const games = wantsGames(options.messages) ? await loadGames() : "";
     const wrapped = {
       thinking: delta => {
@@ -961,9 +984,25 @@
     }
   }
 
+  async function uploadFile(file) {
+    const session = state.user ? await state.client.me().catch(() => null) : null;
+    if (!session) {
+      state.user = null;
+      await signIn();
+    }
+    try {
+      return await state.client.upload(file);
+    } catch (error) {
+      if (!(error && error.status === 404)) throw error;
+      state.user = null;
+      await signIn();
+      return state.client.upload(file);
+    }
+  }
+
   async function upload(file) {
     await ready();
-    return state.client.upload(file);
+    return uploadFile(file);
   }
 
   async function run(attachments) {
@@ -1002,7 +1041,7 @@
     if (file) {
       say("Uploading " + file.name + "…");
       try {
-        const uploaded = await state.client.upload(file);
+        const uploaded = await uploadFile(file);
         attachments.push({ uuid: uploaded.uuid, name: file.name });
       } finally {
         say("");
