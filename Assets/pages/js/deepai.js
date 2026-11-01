@@ -9,6 +9,7 @@
   const USER_KEY = "DAIU";
   const DOMAIN = "singularity.com";
   const CONTEXT = "You are the AI assistant built into Singularity, a web portal. The site you are running on is Singularity, not DeepAI, so never say you are on DeepAI or mention DeepAI. Files and images the user attaches are included with their messages: read and use them directly.";
+  const GAMES_PATH = "Assets/json/g.json";
   const LAST_KEY = "DA_LAST";
   const BAD_KEY = "DA_BAD";
   const BAD_TTL_MS = 6 * 3600000;
@@ -517,9 +518,32 @@
         return [...seen.values()];
       },
       async upload(file) {
-        const body = await post("/chat_attachments/upload", {}, file);
-        if (!body.success || !body.attachment) throw new DeepAIError(body.error || "Upload failed", { body });
-        return body.attachment;
+        const name = String(file.name || "file");
+        const formData = () => {
+          const data = new FormData();
+          data.append("file", file, name);
+          return data;
+        };
+        const attempts = [
+          () => json("/chat_attachments/upload", { method: "POST", body: formData() }),
+          () => json("/chat_attachments/upload", { method: "POST", body: formData(), headers: { "api-key": apiKey() } }),
+          async () => {
+            const packed = await multipart({}, file);
+            return json("/chat_attachments/upload", { method: "POST", body: packed.body, headers: { "Content-Type": packed.type, "api-key": apiKey() } });
+          },
+          () => json(SITE + "/chat_attachments/upload", { method: "POST", body: formData(), headers: { "api-key": apiKey() } })
+        ];
+        let last = null;
+        for (const attempt of attempts) {
+          try {
+            const body = await attempt();
+            if (body && body.success && body.attachment) return body.attachment;
+            last = new DeepAIError(body && body.error || "Upload failed", { body });
+          } catch (e) {
+            last = e;
+          }
+        }
+        throw last || new DeepAIError("Upload failed");
       },
       async taskStatus(taskId) {
         return json("/check_chat_task_status?type=thinking-task&task_id=" + encodeURIComponent(taskId));
@@ -571,7 +595,7 @@
     };
   }
 
-  const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [] };
+  const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [], games: "" };
 
   function say(text) {
     if (typeof _setAIStatus === "function") _setAIStatus(text || "");
@@ -591,7 +615,7 @@
   }
 
   function catalog() {
-    return state.models.map(m => ({ value: PREFIX + m.id, label: m.label, locked: m.locked }));
+    return state.models.filter(m => !m.locked).map(m => ({ value: PREFIX + m.id, label: m.label, locked: false }));
   }
 
   function defaultModel() {
@@ -599,8 +623,7 @@
     if (!list.length) return null;
     const saved = store.get(MODEL_KEY);
     if (saved && list.some(m => m.value === saved)) return saved;
-    const open = list.find(m => !m.locked || state.user);
-    return (open || list[0]).value;
+    return list[0].value;
   }
 
   function rememberModel(value) {
@@ -713,14 +736,51 @@
     return { history, files };
   }
 
-  function withContext(messages) {
-    let done = false;
-    return messages.map(m => {
-      if (!done && m.role === "user") {
-        done = true;
-        return Object.assign({}, m, { content: "[" + CONTEXT + "]\n\n" + m.content });
-      }
-      return m;
+  function userContext() {
+    const name = kstuffUsername();
+    return name ? CONTEXT + " The user's name on Singularity is \"" + name + "\"; use it when it fits naturally." : CONTEXT;
+  }
+
+  function wantsGames(messages) {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === "user") return /\bgames?\b|\bplay\b|\bbored\b/i.test(String(messages[i].content || ""));
+    }
+    return false;
+  }
+
+  async function loadGames() {
+    if (state.games) return state.games;
+    for (const base of LIST_MIRRORS) {
+      try {
+        const list = await fetchText(base + GAMES_PATH, 8000);
+        if (!Array.isArray(list) || !list.length) continue;
+        const groups = {};
+        list.forEach(g => {
+          if (!g || !g.title) return;
+          const key = g.category || "Other";
+          (groups[key] = groups[key] || []).push(g.title);
+        });
+        state.games = Object.keys(groups).map(key => key + ": " + groups[key].join(", ")).join("\n");
+        return state.games;
+      } catch (e) {}
+    }
+    return "";
+  }
+
+  function withContext(messages, games) {
+    let first = -1;
+    let last = -1;
+    messages.forEach((m, i) => {
+      if (m.role !== "user") return;
+      if (first < 0) first = i;
+      last = i;
+    });
+    return messages.map((m, i) => {
+      if (i !== first && !(games && i === last)) return m;
+      let content = m.content;
+      if (games && i === last) content = "[The Singularity games list, grouped by category. If the user asks for a game suggestion, recommend only games from this list.\n" + games + "]\n\n" + content;
+      if (i === first) content = "[" + userContext() + "]\n\n" + content;
+      return Object.assign({}, m, { content });
     });
   }
 
@@ -747,7 +807,7 @@
   }
 
   async function attemptBoot() {
-    say("Connecting to DeepAI…");
+    say("Connecting…");
     const proxy = await createProxy(state.skip);
     state.wisp = proxy.wisp;
     const client = createClient(proxy.fetch);
@@ -857,6 +917,7 @@
     const modelValue = owns(value) ? value : PREFIX + value;
     const attachments = options.attachments || [];
     let emitted = false;
+    const games = wantsGames(options.messages) ? await loadGames() : "";
     const wrapped = {
       thinking: delta => {
         emitted = true;
@@ -876,7 +937,7 @@
         }
         for await (const part of state.client.chat({
           model: modelValue.slice(PREFIX.length),
-          messages: withContext(options.messages),
+          messages: withContext(options.messages, games),
           attachments,
           sessionUuid: options.sessionUuid,
           webAccess: options.webAccess,
@@ -973,7 +1034,24 @@
     fileIcon: FILE_ICON
   };
 
+  function fixConnectingLabel() {
+    document.querySelectorAll(".ai-select-trigger span").forEach(node => {
+      if (node.textContent.indexOf("Connecting to DeepAI") === 0) node.textContent = "Connecting…";
+    });
+  }
+
   function start() {
+    if (typeof window._aiBuildModelDropdown === "function" && !window._aiBuildModelDropdown.wrappedByDeepAI) {
+      const original = window._aiBuildModelDropdown;
+      const wrapped = function () {
+        const result = original.apply(this, arguments);
+        fixConnectingLabel();
+        return result;
+      };
+      wrapped.wrappedByDeepAI = true;
+      window._aiBuildModelDropdown = wrapped;
+    }
+    fixConnectingLabel();
     syncUi();
     setTimeout(() => connect(0), 200);
   }
