@@ -723,6 +723,9 @@ function _renderModelSelect(grouped) {
     return;
   }
   _0xe7f.innerHTML = '';
+  if (window.DeepAI) {
+    grouped = window.DeepAI.mergeGroups(grouped);
+  }
   const _0x21_0xfea = ["tpg".split("").reverse().join(""), "gemma", "llama", "grok", "keespeed".split("").reverse().join(""), "newq".split("").reverse().join(""), "imik".split("").reverse().join(""), "egami".split("").reverse().join(""), "oediv".split("").reverse().join("")];
   const _0xb8e70f = k => {
     const i = _0x21_0xfea.indexOf(k);
@@ -736,7 +739,7 @@ function _renderModelSelect(grouped) {
     grouped[key].forEach(id => {
       const _0xcfea = document.createElement("option");
       _0xcfea.value = id;
-      _0xcfea.textContent = id;
+      _0xcfea.textContent = window.DeepAI && window.DeepAI.owns(id) ? window.DeepAI.label(id) : id;
       _0x52a8fd.appendChild(_0xcfea);
       if (!_0xad_0xb81 && key !== "image" && key !== "video") {
         _0xad_0xb81 = id;
@@ -761,6 +764,9 @@ function _renderModelSelect(grouped) {
     }
   };
   _aiBuildModelDropdown();
+  if (window.DeepAI) {
+    window.DeepAI.syncUi();
+  }
 }
 let _aiDropdownDocBound = false;
 function _aiBuildModelDropdown() {
@@ -962,7 +968,7 @@ function _setAttachedFile(file) {
     }
     return;
   }
-  if (!AI_IMAGE_MIME_RE.test(file.type)) {
+  if (!AI_IMAGE_MIME_RE.test(file.type) && !(window.DeepAI && window.DeepAI.owns(_aiSelectedModel))) {
     _toast("epyt egami detroppusnu".split("").reverse().join(""));
     return;
   }
@@ -973,7 +979,7 @@ function _setAttachedFile(file) {
   _aiAttachedFile = file;
   _aiAttachedPreviewUrl = URL.createObjectURL(file);
   if (_0xc8c12f) {
-    _0xc8c12f.src = _aiAttachedPreviewUrl;
+    _0xc8c12f.src = AI_IMAGE_MIME_RE.test(file.type) || !window.DeepAI ? _aiAttachedPreviewUrl : window.DeepAI.fileIcon;
   }
   if (_0x4b451f) {
     _0x4b451f.textContent = file.name;
@@ -1009,7 +1015,12 @@ function _sendMessage() {
   if (!_0xccc3gf && !_0xa469e || _aiStreaming || _screenshareStreaming) {
     return;
   }
-  if (!_aiSocketOpen()) {
+  const _aiDeep = !!(window.DeepAI && window.DeepAI.owns(_aiSelectedModel));
+  if (_aiCurrentChatId && _aiChatIsDeepAI(_aiCurrentChatId) !== _aiDeep) {
+    _aiCurrentChatId = null;
+    _clearAIMessages();
+  }
+  if (!_aiDeep && !_aiSocketOpen()) {
     _setAIStatus("detcennoc ton".split("").reverse().join(""));
     _ensureAIWs();
     return;
@@ -1020,16 +1031,17 @@ function _sendMessage() {
   }
   _showAIWelcome(false);
   const _0x88eb9f = "m" + ++_idCounter + "_" + Math.random().toString(36).slice(2, 10);
-  const _0xa5f = _0xa469e ? _aiAttachedPreviewUrl : null;
+  const _0xa5f = _0xa469e && AI_IMAGE_MIME_RE.test(_0xa469e.type) ? _aiAttachedPreviewUrl : null;
+  const _aiShown = _0xa469e && !_0xa5f ? (_0xccc3gf ? _0xccc3gf + "\n\n" : '') + "📎 " + _0xa469e.name : _0xccc3gf;
   _pendingUserMsg = {
     "id": _0x88eb9f,
-    "content": _0xccc3gf,
-    "media": _0xa469e ? {
+    "content": _aiShown,
+    "media": _0xa469e && _0xa5f ? {
       "url": _0xa5f,
       "blob": _0xa469e
     } : undefined
   };
-  _renderUserMessage(_0x88eb9f, _0xccc3gf, _0xa5f);
+  _renderUserMessage(_0x88eb9f, _aiShown, _0xa5f);
   _streamPlaceholder = _showThinkingIndicator();
   _0x3c5ae.value = '';
   _0x3c5ae.style.height = "otua".split("").reverse().join("");
@@ -1041,6 +1053,18 @@ function _sendMessage() {
   _aiStreaming = true;
   _streamMedia = null;
   _aiLastProgressAt = Date.now();
+  if (_aiDeep) {
+    if (_0xa469e) {
+      _aiAttachedFile = null;
+      _aiAttachedPreviewUrl = null;
+      const _aiPrev = document.getElementById("weiverPhcattAia".split("").reverse().join(""));
+      if (_aiPrev) {
+        _aiPrev.classList.remove("wohs".split("").reverse().join(""));
+      }
+    }
+    window.DeepAI.send(_0xccc3gf, _0xa469e)["catch"](err => _onStreamError(err.message || "request failed"));
+    return;
+  }
   if (_0xa469e) {
     _aiAttachedFile = null;
     _aiAttachedPreviewUrl = null;
@@ -1620,7 +1644,7 @@ function _retryMessage(asstId) {
   if (_aiStreaming) {
     return;
   }
-  if (!_aiSocketOpen()) {
+  if (!_aiSocketOpen() && !_aiChatIsDeepAI(_aiCurrentChatId)) {
     _setAIStatus("not connected");
     _ensureAIWs();
     return;
@@ -1646,6 +1670,10 @@ function _retryMessage(asstId) {
   _streamMedia = null;
   _streamAsstId = asstId;
   _streamPlaceholder = _showThinkingIndicator();
+  if (_aiChatIsDeepAI(_aiCurrentChatId)) {
+    window.DeepAI.run()["catch"](err => _onStreamError(err.message || "request failed"));
+    return;
+  }
   const sent = _aiSend({
     "type": 'retry',
     "conversationId": _aiCurrentChatId,
@@ -1708,7 +1736,7 @@ function _editAndResend(userMsgId, newContent) {
   if (_aiStreaming) {
     return;
   }
-  if (!_aiSocketOpen()) {
+  if (!_aiSocketOpen() && !_aiChatIsDeepAI(_aiCurrentChatId)) {
     _setAIStatus("not connected");
     _ensureAIWs();
     return;
@@ -1741,6 +1769,10 @@ function _editAndResend(userMsgId, newContent) {
     "content": newContent,
     "media": _0xe98e1d
   };
+  if (_aiChatIsDeepAI(_aiCurrentChatId)) {
+    window.DeepAI.run()["catch"](err => _onStreamError(err.message || "request failed"));
+    return;
+  }
   const sent = _aiSend({
     "type": "edit",
     "conversationId": _aiCurrentChatId,
@@ -1754,6 +1786,10 @@ function _editAndResend(userMsgId, newContent) {
     _onStreamError("not connected");
     _ensureAIWs();
   }
+}
+function _aiChatIsDeepAI(id) {
+  const chat = id ? _aiChats.find(c => c.id === id) : null;
+  return !!(chat && chat.provider === "deepai");
 }
 function _getChat(id) {
   let _0x24614e = _aiChats.find(c => c.id === id);
@@ -1812,6 +1848,10 @@ function _deleteChatRecord(id) {
 }
 function _deleteChat(chatId) {
   if (!chatId) {
+    return;
+  }
+  if (_aiChatIsDeepAI(chatId)) {
+    _onConversationDeleted(chatId);
     return;
   }
   if (!_aiSocketOpen()) {

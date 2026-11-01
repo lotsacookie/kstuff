@@ -916,6 +916,102 @@ body {
 
 #aiChatContainer::-webkit-scrollbar-thumb, #aiRecentsList::-webkit-scrollbar-thumb, .ai-reasoning-body::-webkit-scrollbar-thumb,
 .ai-select-options::-webkit-scrollbar-thumb { background: color-mix(in srgb, var(--text) 28%, transparent); }
+
+#aiDeepAIAccount {
+  display: none;
+  align-items: center;
+  margin-left: auto;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  padding: 7px 12px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+#aiDeepAIAccount:hover {
+  border-color: var(--text);
+  box-shadow: var(--ring);
+}
+
+#aiDeepAIDialog {
+  background: var(--nav);
+  color: var(--text);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  width: min(360px, 92vw);
+  box-shadow: var(--lift);
+  margin: auto;
+}
+#aiDeepAIDialog::backdrop {
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+#aiDeepAIDialog h2 {
+  font-size: 1.1rem;
+  margin-bottom: 12px;
+}
+#aiDeepAIForm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+#aiDeepAIForm input {
+  width: 100%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  outline: none;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+#aiDeepAIForm input:focus {
+  border-color: var(--text);
+}
+#aiDeepAIError {
+  min-height: 1.1em;
+  font-size: 0.8rem;
+  color: #ff6b7a;
+}
+.ai-deepai-actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+.ai-deepai-actions button {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--text);
+  padding: 7px 14px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.ai-deepai-actions button:hover:not(:disabled) {
+  border-color: var(--text);
+  box-shadow: var(--ring);
+}
+.ai-deepai-actions button.primary {
+  background: var(--text);
+  color: var(--bg);
+}
+.ai-deepai-actions button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
 </style>
 </head>
 <body>
@@ -935,6 +1031,7 @@ body {
       <button id="aiSidebarToggle" type="button" title="Chats" aria-label="Show chats" aria-controls="aiSidebar" aria-expanded="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg></button>
       <select id="aiModelSelect"></select>
       <span id="aiStatus"></span>
+      <button id="aiDeepAIAccount" type="button" title="Sign in to DeepAI">Sign in</button>
     </div>
 
     <div id="aiChatContainer">
@@ -1000,6 +1097,20 @@ body {
   </div>
 </div>
 
+<dialog id="aiDeepAIDialog">
+  <form id="aiDeepAIForm" method="dialog">
+    <h2>Sign in to DeepAI</h2>
+    <input type="email" id="aiDeepAIEmail" placeholder="Email" autocomplete="username" required>
+    <input type="password" id="aiDeepAIPassword" placeholder="Password" autocomplete="current-password" required>
+    <div id="aiDeepAIError"></div>
+    <div class="ai-deepai-actions">
+      <button type="button" id="aiDeepAICancel">Cancel</button>
+      <button type="submit" id="aiDeepAISubmit" class="primary">Sign in</button>
+    </div>
+  </form>
+</dialog>
+
 <script src="js/ai-app.js"></script>
+<script src="js/deepai.js"></script>
 </body>
 </html>
