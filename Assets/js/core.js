@@ -230,33 +230,87 @@ export function init(K) {
   };
 
   K.shaStates = {};
+  K.GH_TOKEN_KEY = 'kstuff_gh_token';
+  const SHA_RE = /^[0-9a-f]{40}$/i;
+  const SHA_STORE = 'kstuff_sha_';
 
-  K.getLatestSha = async (force = false, repo = K.MAIN_REPO) => {
-    const st = K.shaStates[repo] || (K.shaStates[repo] = { sha: '', at: 0, failAt: 0, pending: null });
+  const readStoredSha = key => {
+    try {
+      const o = JSON.parse(localStorage.getItem(SHA_STORE + key) || 'null');
+      return o && SHA_RE.test(o.sha) ? o : null;
+    } catch { return null; }
+  };
+  const writeStoredSha = (key, sha) => {
+    try { localStorage.setItem(SHA_STORE + key, JSON.stringify({ sha, at: Date.now() })); } catch {}
+  };
+  const ghHeaders = () => {
+    const h = { Accept: 'application/vnd.github+json' };
+    try {
+      const t = localStorage.getItem(K.GH_TOKEN_KEY);
+      if (t) h.Authorization = 'Bearer ' + t;
+    } catch {}
+    return h;
+  };
+
+  K.getRefSha = async (repo, ref = 'main', force = false) => {
+    const apiRef = !ref || ref === 'latest' ? 'HEAD' : ref;
+    if (SHA_RE.test(apiRef)) return apiRef;
+    const key = repo + '@' + apiRef;
+    const st = K.shaStates[key] || (K.shaStates[key] = { sha: '', at: 0, failAt: 0, blockUntil: 0, pending: null });
     const now = Date.now();
+    if (!st.sha) {
+      const stored = readStoredSha(key);
+      if (stored) { st.sha = stored.sha; st.at = stored.at; }
+    }
+    if (now < st.blockUntil) return st.sha;
     if (!force && st.sha && now - st.at < K.SHA_TTL) return st.sha;
-    if (!force && !st.sha && st.failAt && now - st.failAt < K.SHA_FAIL_TTL) return '';
+    if (!force && st.failAt && now - st.failAt < K.SHA_FAIL_TTL) return st.sha;
     if (st.pending) return st.pending;
     st.pending = (async () => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), K.SHA_FETCH_TIMEOUT);
       try {
-        const data = await K.timedFetch(`https://api.github.com/repos/${repo}/commits/main`, false, K.SHA_FETCH_TIMEOUT);
-        const sha = data?.sha;
-        if (typeof sha === 'string' && /^[0-9a-f]{40}$/i.test(sha)) {
-          st.sha = sha;
-          st.at = Date.now();
-          st.failAt = 0;
-          return sha;
+        const r = await fetch(`https://api.github.com/repos/${repo}/commits/${encodeURIComponent(apiRef)}`, { headers: ghHeaders(), signal: ctrl.signal, cache: 'no-store' });
+        if (r.ok) {
+          const sha = (await r.json())?.sha;
+          if (typeof sha === 'string' && SHA_RE.test(sha)) {
+            st.sha = sha;
+            st.at = Date.now();
+            st.failAt = 0;
+            st.blockUntil = 0;
+            writeStoredSha(key, sha);
+            return sha;
+          }
+        } else if (r.status === 403 || r.status === 429) {
+          const reset = Number(r.headers.get('x-ratelimit-reset')) * 1000;
+          st.blockUntil = reset > Date.now() ? reset : Date.now() + 600000;
         }
-      } catch {}
-      st.sha = '';
+      } catch {} finally { clearTimeout(timer); }
       st.failAt = Date.now();
-      return '';
+      return st.sha;
     })();
     try {
       return await st.pending;
     } finally {
       st.pending = null;
     }
+  };
+
+  K.getLatestSha = (force = false, repo = K.MAIN_REPO) => K.getRefSha(repo, 'main', force);
+
+  const GH_CDN_URL = /^https:\/\/(?:cdn|fastly|gcore)\.jsdelivr\.net\/gh\/([^/@]+\/[^/@]+)(?:@([^/]+))?\/(.*)$/i;
+  const GH_RAW_URL = /^https:\/\/raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/([^/]+)\/(.*)$/i;
+
+  K.pinUrl = async (url, force = true) => {
+    const text = String(url || '');
+    const m = GH_CDN_URL.exec(text) || GH_RAW_URL.exec(text);
+    if (!m) return url;
+    const repo = m[1];
+    const ref = m[2] || 'HEAD';
+    const rest = m[3];
+    if (SHA_RE.test(ref) || /^refs$/i.test(ref)) return url;
+    const sha = await K.getRefSha(repo, ref, force);
+    return sha ? `https://cdn.jsdelivr.net/gh/${repo}@${sha}/${rest}` : url;
   };
 
   K.fetchFromSources = async (path, asText, sources) => {
