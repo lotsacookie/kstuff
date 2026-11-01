@@ -4,6 +4,11 @@
   const PREFIX = "deepai:";
   const COOKIE_KEY = "DAIJ";
   const MODEL_KEY = "DAIM";
+  const CRED_KEY = "DAIC";
+  const GUEST_KEY = "DAIG";
+  const USER_KEY = "DAIU";
+  const DOMAIN = "singularity.com";
+  const CONTEXT = "You are the AI assistant built into Singularity, a web portal. The site you are running on is Singularity, not DeepAI, so never say you are on DeepAI or mention DeepAI. Files and images the user attaches are included with their messages: read and use them directly.";
   const LAST_KEY = "DA_LAST";
   const BAD_KEY = "DA_BAD";
   const BAD_TTL_MS = 6 * 3600000;
@@ -478,6 +483,19 @@
           jar.clear();
         }
       },
+      async register(email, password) {
+        try {
+          await post("/daily-time-sync/registration/", { email, username: email, password1: password, password2: password });
+        } catch (error) {
+          const body = error.body;
+          const first = body && typeof body === "object" ? Object.values(body).flat().find(v => typeof v === "string") : null;
+          throw new DeepAIError(first || error.message, { status: error.status, code: "register", body });
+        }
+        return this.me();
+      },
+      async saveSession(session) {
+        return post("/save_chat_session", { uuid: session.uuid, title: "", chat_style: "chat", chat_model: session.model, messages: JSON.stringify(session.messages) });
+      },
       async me() {
         const response = await raw("/daily-time-sync/user/");
         if (response.status !== 200) return null;
@@ -590,14 +608,120 @@
   }
 
   function syncUi() {
-    const account = document.getElementById("aiDeepAIAccount");
     const input = document.getElementById("aiImageInput");
-    if (account) {
-      account.style.display = "inline-flex";
-      account.textContent = state.user ? (state.user.email || state.user.username || "Account") : "Sign in";
-      account.title = state.user ? "Sign out of DeepAI" : "Sign in to DeepAI";
-    }
     if (input) input.removeAttribute("accept");
+  }
+
+  function slug(text) {
+    return String(text || "").toLowerCase().replace(/[^a-z0-9._-]+/g, "").slice(0, 32);
+  }
+
+  function randomText(length) {
+    const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
+    const bytes = new Uint8Array(length);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, b => chars[b % chars.length]).join("");
+  }
+
+  function kstuffUsername() {
+    const targets = [window];
+    const parent = parentWindow();
+    if (parent) targets.push(parent);
+    for (const target of targets) {
+      try {
+        const saved = JSON.parse(target.localStorage.getItem("kstuff_user"));
+        const name = slug(saved && saved.username);
+        if (name) return name;
+      } catch (e) {}
+    }
+    return "";
+  }
+
+  function guestName() {
+    let guest = store.get(GUEST_KEY);
+    if (!guest) {
+      guest = "guest" + randomText(8);
+      store.set(GUEST_KEY, guest);
+    }
+    return guest;
+  }
+
+  async function accountFor(client, name) {
+    const email = name + "@" + DOMAIN;
+    const creds = store.get(CRED_KEY) || {};
+    const current = await client.me();
+    if (current && store.get(USER_KEY) === email) return current;
+    if (current) await client.logout();
+    const type = await client.userLoginType(email);
+    let user = null;
+    if (type && type.user_exists) {
+      if (!creds[name]) return null;
+      user = await client.login(email, creds[name]);
+    } else {
+      const password = creds[name] || randomText(24);
+      creds[name] = password;
+      store.set(CRED_KEY, creds);
+      user = await client.register(email, password);
+    }
+    if (user) store.set(USER_KEY, email);
+    return user;
+  }
+
+  async function ensureAccount(client) {
+    const names = [];
+    const known = kstuffUsername();
+    if (known) names.push(known);
+    names.push(guestName());
+    for (const name of names) {
+      try {
+        const user = await accountFor(client, name);
+        if (user) return user;
+      } catch (error) {
+        console.warn("[deepai] account setup failed for", name, error);
+      }
+    }
+    return null;
+  }
+
+  async function signIn() {
+    if (!state.client) return false;
+    try {
+      state.user = await ensureAccount(state.client);
+    } catch (e) {
+      state.user = null;
+    }
+    return !!state.user;
+  }
+
+  function buildHistory(messages) {
+    const history = [];
+    const files = [];
+    messages.forEach(m => {
+      if (m.role !== "user" && m.role !== "assistant") return;
+      const ids = m.role === "user" && m.attachments ? m.attachments.map(a => a.uuid).filter(Boolean) : [];
+      const content = m.content || (ids.length ? "Please look at the attached file." : "");
+      if (!content) return;
+      const entry = { role: m.role, content };
+      if (ids.length) {
+        entry.attachment_uuids = ids;
+        ids.forEach(id => {
+          if (!files.includes(id)) files.push(id);
+        });
+      }
+      history.push(entry);
+    });
+    return { history, files };
+  }
+
+  function withContext(messages) {
+    let done = false;
+    return messages.map(m => {
+      if (!done && m.role === "user") {
+        done = true;
+        return Object.assign({}, m, { content: "[" + CONTEXT + "]\n\n" + m.content });
+      }
+      return m;
+    });
   }
 
   function rerender() {
@@ -641,8 +765,10 @@
     }
     let user = null;
     try {
-      user = await withTimeout(client.me(), 15000, "DeepAI did not respond");
-    } catch (e) {}
+      user = await withTimeout(ensureAccount(client), 45000, "account setup timed out");
+    } catch (e) {
+      console.warn("[deepai] account setup failed", e);
+    }
     state.client = client;
     state.models = models;
     state.user = user;
@@ -693,13 +819,12 @@
   function explain(error) {
     const code = error && error.code || "";
     if (code === "anonymous try it exceeded") {
-      openLogin();
-      return "DeepAI free limit reached. Sign in to keep going.";
+      return "Free limit reached for now. Try again later or pick another model.";
     }
     if (code === "pro user out of credits" || code === "chat allowance unavailable") {
-      return error.body && error.body.message ? error.body.message : "DeepAI allowance used up.";
+      return error.body && error.body.message ? error.body.message : "Allowance used up.";
     }
-    return error && error.message || "DeepAI request failed";
+    return error && error.message || "Request failed";
   }
 
   async function followTask(taskId, signal, handlers) {
@@ -730,32 +855,48 @@
     await ready();
     const value = String(options.model);
     const modelValue = owns(value) ? value : PREFIX + value;
-    const found = entryFor(modelValue);
-    if (found && found.locked && !state.user) {
-      openLogin();
-      throw new DeepAIError("Sign in to use " + found.label, { code: "locked" });
-    }
-    try {
-      for await (const part of state.client.chat({
-        model: modelValue.slice(PREFIX.length),
-        messages: options.messages,
-        attachments: options.attachments || [],
-        sessionUuid: options.sessionUuid,
-        webAccess: options.webAccess,
-        signal: options.signal
-      })) {
-        if (part.type === "text") {
-          handlers.content(part.value);
-        } else if (part.value && part.value.task_id) {
-          await followTask(part.value.task_id, options.signal, handlers);
-        } else {
-          const body = part.value || {};
-          handlers.content(typeof body === "string" ? body : body.answer_text || body.output || JSON.stringify(body));
-        }
+    const attachments = options.attachments || [];
+    let emitted = false;
+    const wrapped = {
+      thinking: delta => {
+        emitted = true;
+        handlers.thinking(delta);
+      },
+      content: delta => {
+        emitted = true;
+        handlers.content(delta);
       }
-    } catch (error) {
-      if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
-      throw error;
+    };
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        if (attachments.length) {
+          try {
+            await state.client.saveSession({ uuid: options.sessionUuid, model: modelValue.slice(PREFIX.length), messages: options.messages });
+          } catch (e) {}
+        }
+        for await (const part of state.client.chat({
+          model: modelValue.slice(PREFIX.length),
+          messages: withContext(options.messages),
+          attachments,
+          sessionUuid: options.sessionUuid,
+          webAccess: options.webAccess,
+          signal: options.signal
+        })) {
+          if (part.type === "text") {
+            wrapped.content(part.value);
+          } else if (part.value && part.value.task_id) {
+            await followTask(part.value.task_id, options.signal, wrapped);
+          } else {
+            const body = part.value || {};
+            wrapped.content(typeof body === "string" ? body : body.answer_text || body.output || JSON.stringify(body));
+          }
+        }
+        return;
+      } catch (error) {
+        if (attempt === 0 && !emitted && error && error.code === "anonymous try it exceeded" && await signIn()) continue;
+        if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
+        throw error;
+      }
     }
   }
 
@@ -774,19 +915,13 @@
       const stored = chat.messages.find(m => m.id === pending.id);
       if (stored) stored.attachments = attachments;
     }
-    const history = chat.messages
-      .filter(m => (m.role === "user" || m.role === "assistant") && m.content)
-      .map(m => ({ role: m.role, content: m.content }));
-    const files = [];
-    chat.messages.forEach(m => (m.attachments || []).forEach(a => {
-      if (!files.includes(a.uuid)) files.push(a.uuid);
-    }));
+    const built = buildHistory(chat.messages);
     state.abort = new AbortController();
     try {
       await stream({
         model: owns(chat.model) ? chat.model : _aiSelectedModel,
-        messages: history,
-        attachments: files,
+        messages: built.history,
+        attachments: built.files,
         sessionUuid: chat.sessionUuid,
         webAccess: _aiWebSearchEnabled,
         signal: state.abort.signal
@@ -819,78 +954,14 @@
     if (state.abort) state.abort.abort();
   }
 
-  function openLogin() {
-    const dialog = document.getElementById("aiDeepAIDialog");
-    if (!dialog || dialog.open) return;
-    const err = document.getElementById("aiDeepAIError");
-    if (err) err.textContent = "";
-    dialog.showModal();
-    const email = document.getElementById("aiDeepAIEmail");
-    if (email) email.focus();
-  }
-
-  function bindUi() {
-    const account = document.getElementById("aiDeepAIAccount");
-    const dialog = document.getElementById("aiDeepAIDialog");
-    const form = document.getElementById("aiDeepAIForm");
-    const cancel = document.getElementById("aiDeepAICancel");
-    if (account) {
-      account.addEventListener("click", async () => {
-        try {
-          await boot();
-        } catch (e) {
-          _toast("DeepAI proxy unavailable");
-          return;
-        }
-        if (state.user) {
-          try {
-            await state.client.logout();
-          } catch (e) {}
-          state.user = null;
-          await refreshModels();
-          _toast("Signed out of DeepAI");
-        } else {
-          openLogin();
-        }
-      });
-    }
-    if (cancel && dialog) cancel.addEventListener("click", () => dialog.close());
-    if (form && dialog) {
-      form.addEventListener("submit", async event => {
-        event.preventDefault();
-        const err = document.getElementById("aiDeepAIError");
-        const submit = document.getElementById("aiDeepAISubmit");
-        const email = document.getElementById("aiDeepAIEmail");
-        const password = document.getElementById("aiDeepAIPassword");
-        if (err) err.textContent = "";
-        submit.disabled = true;
-        submit.textContent = "Signing in…";
-        try {
-          await ready();
-          state.user = await state.client.login(email.value.trim(), password.value);
-          password.value = "";
-          dialog.close();
-          await refreshModels();
-          _toast("Signed in to DeepAI");
-        } catch (error) {
-          if (err) err.textContent = error.message || "Sign in failed";
-        } finally {
-          submit.disabled = false;
-          submit.textContent = "Sign in";
-        }
-      });
-    }
-    syncUi();
-  }
-
   window.DeepAI = {
     owns,
     label,
     catalog,
     defaultModel,
     rememberModel,
-    signedIn: () => !!state.user,
     syncUi,
+    history: buildHistory,
     run,
     send,
     stream,
@@ -899,12 +970,11 @@
     explain,
     stop,
     boot,
-    openLogin,
     fileIcon: FILE_ICON
   };
 
   function start() {
-    bindUi();
+    syncUi();
     setTimeout(() => connect(0), 200);
   }
 

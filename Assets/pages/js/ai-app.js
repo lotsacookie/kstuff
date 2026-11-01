@@ -155,7 +155,7 @@ function _renderModelSelect() {
   models.forEach(model => {
     const option = document.createElement("option");
     option.value = model.value;
-    option.textContent = model.label + (model.locked && !deep.signedIn() ? " 🔒" : '');
+    option.textContent = model.label + (model.locked ? " 🔒" : '');
     sel.appendChild(option);
   });
   const current = _aiCurrentChatId ? _aiChats.find(c => c.id === _aiCurrentChatId) : null;
@@ -1503,13 +1503,15 @@ async function _sendScreenshareMessage(promptText, shot) {
     _persistChat(chat);
     _renderRecents();
     _screenshareSetStatus('');
-    const history = chat.messages.filter(m => (m.role === "user" || m.role === "assistant") && m.content).map(m => ({
-      "role": m.role,
-      "content": m.content
-    }));
+    const built = window.DeepAI.history(chat.messages);
+    built.history.forEach((m, i) => {
+      if (i !== built.history.length - 1) {
+        delete m.attachment_uuids;
+      }
+    });
     await window.DeepAI.stream({
       "model": _aiSelectedModel,
-      "messages": history,
+      "messages": built.history,
       "attachments": [uploaded.uuid],
       "sessionUuid": chat.sessionUuid,
       "webAccess": false,
