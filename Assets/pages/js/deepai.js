@@ -3,7 +3,34 @@
   const SITE = "https://deepai.org";
   const PREFIX = "deepai:";
   const COOKIE_KEY = "DAIJ";
-  const WISP_KEY = "DAIW";
+  const MODEL_KEY = "DAIM";
+  const LAST_KEY = "DA_LAST";
+  const BAD_KEY = "DA_BAD";
+  const BAD_TTL_MS = 6 * 3600000;
+  const KSTUFF = "lotsacookie/kstuff";
+  const LIST_PATH = "Assets/json/wss.json";
+  const FALLBACK = "wss://api.personalloanonline.net/ws/";
+  const BUILTIN = [
+    "cdn.northstreetumc.org",
+    "cdn.vipersfutbol.com",
+    "cdn.pcesc.org",
+    "cdn.kcchallengevbc.com",
+    "cdn.slcbmooc.org",
+    "cdn.topstargym.net",
+    "cdn.goaplytexas.org",
+    "cdn.clearfieldswimming.com",
+    "wss://athollcottage.com/connection/",
+    "wss://api.personalloanonline.net/ws/",
+    "wss://kristenblackburnvolleyballcamps.com/socket/",
+    "wss://southpadreislandkiteboarding.com/socket/"
+  ];
+  const LIST_MIRRORS = [
+    "https://cdn.jsdelivr.net/gh/" + KSTUFF + "@main/",
+    "https://fastly.jsdelivr.net/gh/" + KSTUFF + "@main/",
+    "https://gcore.jsdelivr.net/gh/" + KSTUFF + "@main/",
+    "https://raw.githubusercontent.com/" + KSTUFF + "/main/",
+    "https://cdn.statically.io/gh/" + KSTUFF + "/main/"
+  ];
   const SANDSTONE_BASES = [
     "https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/",
     "https://fastly.jsdelivr.net/gh/lotsacookie/Singuloxy@main/"
@@ -67,6 +94,16 @@
       } catch (e) {}
     }
   };
+
+  const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+  function withTimeout(promise, ms, message) {
+    let timer;
+    const timeout = new Promise((resolve, reject) => {
+      timer = setTimeout(() => reject(new Error(message)), ms);
+    });
+    return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+  }
 
   function createJar() {
     const jar = new Map(Object.entries(store.get(COOKIE_KEY) || {}));
@@ -138,6 +175,237 @@
     return { body, type: "multipart/form-data; boundary=" + boundary };
   }
 
+  const toWss = entry => {
+    const text = String(entry || "").trim();
+    if (!text) return null;
+    const url = text.includes("://") ? text : "wss://" + text + "/";
+    return url.endsWith("/") ? url : url + "/";
+  };
+
+  const badList = {
+    live() {
+      const now = Date.now();
+      const out = {};
+      const saved = store.get(BAD_KEY);
+      if (saved && typeof saved === "object" && !Array.isArray(saved)) {
+        for (const key of Object.keys(saved)) {
+          if (typeof saved[key] === "number" && now - saved[key] < BAD_TTL_MS) out[key] = saved[key];
+        }
+      }
+      return out;
+    },
+    has(entry) {
+      const key = toWss(entry);
+      return !!key && Object.prototype.hasOwnProperty.call(this.live(), key);
+    },
+    add(entry) {
+      const key = toWss(entry);
+      if (!key) return;
+      const list = this.live();
+      list[key] = Date.now();
+      store.set(BAD_KEY, list);
+    }
+  };
+
+  function probeWisp(entry, timeoutMs) {
+    return new Promise(resolve => {
+      let ws;
+      try {
+        ws = new WebSocket(toWss(entry));
+      } catch (e) {
+        resolve(null);
+        return;
+      }
+      ws.binaryType = "arraybuffer";
+      let connected = false;
+      let sentAt = 0;
+      const streamId = Math.floor(Math.random() * 0xFFFFFFFE) + 1 >>> 0;
+      const finish = ping => {
+        clearTimeout(timer);
+        ws.onmessage = ws.onerror = ws.onclose = null;
+        try {
+          ws.close();
+        } catch (e) {}
+        resolve(ping);
+      };
+      const timer = setTimeout(() => finish(null), timeoutMs || 3000);
+      ws.onmessage = event => {
+        if (!(event.data instanceof ArrayBuffer) || event.data.byteLength < 5) return;
+        const view = new DataView(event.data);
+        const type = view.getUint8(0);
+        const stream = view.getUint32(1, true);
+        if (!connected) {
+          if (type === 5 && stream === 0) {
+            ws.send(new Uint8Array([5, 0, 0, 0, 0, 2, 1]));
+          } else if (type === 3 && stream === 0) {
+            connected = true;
+            const host = new TextEncoder().encode("127.0.0.1");
+            const buf = new ArrayBuffer(8 + host.length);
+            const dv = new DataView(buf);
+            dv.setUint8(0, 1);
+            dv.setUint32(1, streamId, true);
+            dv.setUint8(5, 1);
+            dv.setUint16(6, 69, true);
+            new Uint8Array(buf).set(host, 8);
+            sentAt = performance.now();
+            ws.send(buf);
+          }
+          return;
+        }
+        if (stream === streamId) finish(Math.round(performance.now() - sentAt));
+      };
+      ws.onerror = ws.onclose = () => finish(null);
+    });
+  }
+
+  async function firstAlive(entries, waveSize) {
+    const size = waveSize || 6;
+    for (let i = 0; i < entries.length; i += size) {
+      const wave = entries.slice(i, i + size);
+      const pings = await Promise.all(wave.map(entry => probeWisp(entry, 3000)));
+      const alive = wave.map((entry, j) => ({ entry, ping: pings[j] })).filter(x => x.ping !== null).sort((a, b) => a.ping - b.ping);
+      if (alive.length) return alive[0];
+    }
+    return null;
+  }
+
+  async function fetchText(url, ms) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ms);
+    try {
+      const response = await fetch(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now(), { cache: "no-store", signal: controller.signal });
+      if (!response.ok) throw new Error("HTTP " + response.status);
+      return await response.json();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  function parseWispList(json) {
+    const encoded = Array.isArray(json) ? json.find(v => typeof v === "string" && v.trim()) : json;
+    if (typeof encoded !== "string") return [];
+    let data;
+    try {
+      data = JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(encoded.trim()), c => c.charCodeAt(0))));
+    } catch (e) {
+      return [];
+    }
+    const out = [];
+    (function walk(value) {
+      if (typeof value === "string" && /^wss:\/\//i.test(value.trim())) out.push(value.trim());
+      else if (Array.isArray(value)) value.forEach(walk);
+      else if (value && typeof value === "object") Object.values(value).forEach(walk);
+    })(data);
+    return [...new Set(out)];
+  }
+
+  async function fetchWispList() {
+    try {
+      return parseWispList(await Promise.any(LIST_MIRRORS.map(base => fetchText(base + LIST_PATH, 5000))));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function shuffle(list) {
+    for (let i = list.length - 1; i > 0; i--) {
+      const j = Math.random() * (i + 1) | 0;
+      [list[i], list[j]] = [list[j], list[i]];
+    }
+    return list;
+  }
+
+  function parentWindow() {
+    try {
+      return window.parent && window.parent !== window ? window.parent : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function readGlobal(target, key) {
+    try {
+      return target ? target[key] : undefined;
+    } catch (e) {
+      return undefined;
+    }
+  }
+
+  async function parentReady() {
+    const promise = readGlobal(parentWindow(), "kWispP");
+    if (promise && typeof promise.then === "function") {
+      await Promise.race([promise.catch(() => {}), delay(6000)]);
+    }
+  }
+
+  function localCandidates() {
+    const out = [];
+    const add = entry => {
+      const text = typeof entry === "string" ? entry.trim() : "";
+      if (text && !out.includes(text)) out.push(text);
+    };
+    const parent = parentWindow();
+    add(readGlobal(parent, "wlspServer"));
+    add(readGlobal(window, "wlspServer"));
+    [parent, window].forEach(target => {
+      const list = readGlobal(target, "serverList");
+      if (Array.isArray(list)) list.forEach(add);
+    });
+    BUILTIN.forEach(add);
+    return out;
+  }
+
+  function provisionalWisp(network) {
+    const last = store.get(LAST_KEY);
+    const url = toWss(last && last.entry && !badList.has(last.entry) ? last.entry : FALLBACK);
+    network.set_websocket(url);
+    return url;
+  }
+
+  async function pickWisp(network, exclude) {
+    const skip = new Set((exclude || []).map(toWss));
+    const allowed = entry => !skip.has(toWss(entry));
+    const prefer = list => {
+      const ok = list.filter(allowed);
+      return [...ok.filter(e => !badList.has(e)), ...ok.filter(e => badList.has(e))];
+    };
+    let settled = false;
+    const apply = entry => {
+      const url = toWss(entry);
+      network.set_websocket(url);
+      try {
+        network.set_wisp_pool([url]);
+      } catch (e) {}
+      store.set(LAST_KEY, { entry, ts: Date.now() });
+      return url;
+    };
+    const search = async () => {
+      await parentReady();
+      const last = store.get(LAST_KEY);
+      if (last && last.entry && allowed(last.entry) && !badList.has(last.entry) && Date.now() - last.ts < 600000 && (await probeWisp(last.entry, 3000)) !== null) {
+        return settled ? null : apply(last.entry);
+      }
+      const local = prefer(localCandidates());
+      let hit = await firstAlive(local);
+      if (hit) return settled ? null : apply(hit.entry);
+      const remote = await fetchWispList();
+      const extra = prefer([FALLBACK, ...shuffle(remote.filter(u => !local.includes(u))).slice(0, 16)]);
+      hit = await firstAlive(extra);
+      if (hit) return settled ? null : apply(hit.entry);
+      return null;
+    };
+    const timeout = new Promise(resolve => setTimeout(() => resolve(null), 20000));
+    let url = null;
+    try {
+      url = await Promise.race([search(), timeout]);
+    } catch (e) {
+      url = null;
+    }
+    settled = true;
+    if (url) return url;
+    return apply([FALLBACK, ...BUILTIN].find(allowed) || FALLBACK);
+  }
+
   async function loadSandstone() {
     for (const base of SANDSTONE_BASES) {
       try {
@@ -148,68 +416,13 @@
     return import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
   }
 
-  function wispUrl(entry) {
-    const url = entry.includes("://") ? entry : "wss://" + entry + "/";
-    return url.endsWith("/") ? url : url + "/";
-  }
-
-  function wispCandidates() {
-    const out = [];
-    const add = entry => {
-      if (typeof entry === "string" && entry && !out.includes(entry)) out.push(entry);
-    };
-    let parent = null;
-    try {
-      parent = window.parent && window.parent !== window ? window.parent : null;
-    } catch (e) {}
-    add(store.get(WISP_KEY));
-    if (parent) {
-      try {
-        add(parent.wlspServer);
-      } catch (e) {}
-    }
-    add(window.wlspServer);
-    const lists = [window.serverList];
-    if (parent) {
-      try {
-        lists.push(parent.serverList);
-      } catch (e) {}
-    }
-    lists.forEach(list => Array.isArray(list) && list.forEach(add));
-    return out;
-  }
-
-  async function pickWisp() {
-    const entries = wispCandidates();
-    const budget = new Promise(resolve => setTimeout(() => resolve(null), 15000));
-    const search = (async () => {
-      for (let i = 0; i < entries.length; i += 6) {
-        const wave = entries.slice(i, i + 6);
-        const pings = await Promise.all(wave.map(entry => _wvTest(entry, 3000)));
-        const alive = wave.map((entry, j) => ({ entry, ping: pings[j] })).filter(x => x.ping !== null).sort((a, b) => a.ping - b.ping);
-        if (alive.length) return alive[0].entry;
-      }
-      return null;
-    })();
-    const hit = await Promise.race([search, budget]);
-    const chosen = hit || entries[0];
-    if (!chosen) throw new Error("no wisp server available");
-    store.set(WISP_KEY, chosen);
-    return wispUrl(chosen);
-  }
-
-  async function createProxy() {
+  async function createProxy(exclude) {
     const sandstone = await loadSandstone();
-    const entries = wispCandidates();
-    if (entries.length) sandstone.network.set_websocket(wispUrl(entries[0]));
-    for (let i = 0; i < 300 && !sandstone.libcurl.ready; i++) await new Promise(r => setTimeout(r, 100));
+    provisionalWisp(sandstone.network);
+    for (let i = 0; i < 300 && !sandstone.libcurl.ready; i++) await delay(100);
     if (!sandstone.libcurl.ready) throw new Error("libcurl did not load");
-    const url = await pickWisp();
-    sandstone.network.set_websocket(url);
-    try {
-      sandstone.network.set_wisp_pool([url]);
-    } catch (e) {}
-    return { fetch: (target, init) => sandstone.libcurl.fetch(target, init), wisp: url };
+    const wisp = await pickWisp(sandstone.network, exclude);
+    return { fetch: (target, init) => sandstone.libcurl.fetch(target, init), wisp };
   }
 
   function createClient(send) {
@@ -340,62 +553,132 @@
     };
   }
 
-  const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "" };
+  const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [] };
+
+  function say(text) {
+    if (typeof _setAIStatus === "function") _setAIStatus(text || "");
+  }
 
   function owns(id) {
     return typeof id === "string" && id.indexOf(PREFIX) === 0;
   }
 
-  function label(id) {
-    const model = state.models.find(m => PREFIX + m.id === id);
-    return model ? model.label : id.replace(PREFIX, "");
+  function entryFor(id) {
+    return state.models.find(m => PREFIX + m.id === id) || null;
   }
 
-  function mergeGroups(grouped) {
-    if (!state.models.length) return grouped;
-    return Object.assign({}, grouped, { deepai: state.models.map(m => PREFIX + m.id) });
+  function label(id) {
+    const model = entryFor(id);
+    return model ? model.label : String(id).replace(PREFIX, "");
+  }
+
+  function catalog() {
+    return state.models.map(m => ({ value: PREFIX + m.id, label: m.label, locked: m.locked }));
+  }
+
+  function defaultModel() {
+    const list = catalog();
+    if (!list.length) return null;
+    const saved = store.get(MODEL_KEY);
+    if (saved && list.some(m => m.value === saved)) return saved;
+    const open = list.find(m => !m.locked || state.user);
+    return (open || list[0]).value;
+  }
+
+  function rememberModel(value) {
+    if (owns(value)) store.set(MODEL_KEY, value);
   }
 
   function syncUi() {
-    const sel = document.getElementById("aiModelSelect");
     const account = document.getElementById("aiDeepAIAccount");
     const input = document.getElementById("aiImageInput");
-    const active = sel && owns(sel.value);
     if (account) {
-      account.style.display = active ? "inline-flex" : "none";
+      account.style.display = "inline-flex";
       account.textContent = state.user ? (state.user.email || state.user.username || "Account") : "Sign in";
       account.title = state.user ? "Sign out of DeepAI" : "Sign in to DeepAI";
     }
-    if (input) {
-      if (active) input.removeAttribute("accept");
-      else input.setAttribute("accept", "image/png,image/jpeg,image/webp,image/gif");
-    }
+    if (input) input.removeAttribute("accept");
   }
 
   function rerender() {
-    if (typeof _renderModelSelect === "function" && document.getElementById("aiModelSelect")) {
-      _renderModelSelect(_aiModelsGrouped);
+    if (typeof _renderModelSelect === "function") _renderModelSelect();
+    syncUi();
+  }
+
+  async function refreshModels() {
+    if (!state.client) return;
+    try {
+      state.models = await withTimeout(state.client.listModels(), 20000, "model list timed out");
+    } catch (e) {}
+    rerender();
+  }
+
+  function dropConnection() {
+    if (state.wisp) {
+      badList.add(state.wisp);
+      state.skip.push(state.wisp);
     }
+    state.booting = null;
+    state.client = null;
+  }
+
+  async function attemptBoot() {
+    say("Connecting to DeepAI…");
+    const proxy = await createProxy(state.skip);
+    state.wisp = proxy.wisp;
+    const client = createClient(proxy.fetch);
+    let models = null;
+    let failure = null;
+    try {
+      models = await withTimeout(client.listModels(), 25000, "DeepAI did not respond");
+    } catch (error) {
+      failure = error;
+    }
+    if (!models) {
+      badList.add(proxy.wisp);
+      state.skip.push(proxy.wisp);
+      throw failure || new Error("no models");
+    }
+    let user = null;
+    try {
+      user = await withTimeout(client.me(), 15000, "DeepAI did not respond");
+    } catch (e) {}
+    state.client = client;
+    state.models = models;
+    state.user = user;
+    say("");
+    rerender();
   }
 
   function boot() {
     if (state.booting) return state.booting;
-    state.booting = (async () => {
-      const proxy = await createProxy();
-      state.wisp = proxy.wisp;
-      state.client = createClient(proxy.fetch);
-      const results = await Promise.allSettled([state.client.listModels(), state.client.me()]);
-      if (results[0].status === "fulfilled") state.models = results[0].value;
-      if (results[1].status === "fulfilled") state.user = results[1].value;
-      if (!state.models.length) throw results[0].reason || new Error("no models");
-      rerender();
-      syncUi();
-    })().catch(error => {
+    state.booting = attemptBoot().catch(error => {
       state.booting = null;
       console.warn("[deepai] boot failed", error);
       throw error;
     });
     return state.booting;
+  }
+
+  async function ready() {
+    try {
+      await boot();
+    } catch (error) {
+      throw new Error("Could not reach DeepAI through the proxy. Try again in a moment.");
+    }
+  }
+
+  async function connect(attempt) {
+    try {
+      await boot();
+    } catch (error) {
+      if (attempt >= 4) {
+        say("DeepAI unavailable. Send a message to retry.");
+        return;
+      }
+      say("DeepAI proxy failed, trying another server…");
+      setTimeout(() => connect(attempt + 1), 1500 * (attempt + 1));
+    }
   }
 
   function ensureChat() {
@@ -407,8 +690,8 @@
     return chat;
   }
 
-  function describe(error) {
-    const code = error.code || "";
+  function explain(error) {
+    const code = error && error.code || "";
     if (code === "anonymous try it exceeded") {
       openLogin();
       return "DeepAI free limit reached. Sign in to keep going.";
@@ -416,35 +699,73 @@
     if (code === "pro user out of credits" || code === "chat allowance unavailable") {
       return error.body && error.body.message ? error.body.message : "DeepAI allowance used up.";
     }
-    return error.message || "DeepAI request failed";
+    return error && error.message || "DeepAI request failed";
   }
 
-  async function followTask(taskId, signal) {
+  async function followTask(taskId, signal, handlers) {
     let seenThinking = 0;
     let seenAnswer = 0;
     for (let i = 0; i < 400; i++) {
-      if (signal.aborted) throw new DOMException("aborted", "AbortError");
+      if (signal && signal.aborted) throw new DOMException("aborted", "AbortError");
       const data = await state.client.taskStatus(taskId);
       const thinking = data.thinking_text || "";
       const answer = data.answer_text || "";
       if (thinking.length > seenThinking) {
-        _onStreamThinking(thinking.slice(seenThinking));
+        handlers.thinking(thinking.slice(seenThinking));
         seenThinking = thinking.length;
       }
       if (answer.length > seenAnswer) {
-        _onStreamContent(answer.slice(seenAnswer));
+        handlers.content(answer.slice(seenAnswer));
         seenAnswer = answer.length;
       }
       const status = String(data.status || "");
       if (status === "COMPLETED") return;
       if (/fail|error|cancel/i.test(status)) throw new DeepAIError(status, { body: data });
-      await new Promise(r => setTimeout(r, 1500));
+      await delay(1500);
     }
     throw new DeepAIError("DeepAI took too long to answer");
   }
 
+  async function stream(options, handlers) {
+    await ready();
+    const value = String(options.model);
+    const modelValue = owns(value) ? value : PREFIX + value;
+    const found = entryFor(modelValue);
+    if (found && found.locked && !state.user) {
+      openLogin();
+      throw new DeepAIError("Sign in to use " + found.label, { code: "locked" });
+    }
+    try {
+      for await (const part of state.client.chat({
+        model: modelValue.slice(PREFIX.length),
+        messages: options.messages,
+        attachments: options.attachments || [],
+        sessionUuid: options.sessionUuid,
+        webAccess: options.webAccess,
+        signal: options.signal
+      })) {
+        if (part.type === "text") {
+          handlers.content(part.value);
+        } else if (part.value && part.value.task_id) {
+          await followTask(part.value.task_id, options.signal, handlers);
+        } else {
+          const body = part.value || {};
+          handlers.content(typeof body === "string" ? body : body.answer_text || body.output || JSON.stringify(body));
+        }
+      }
+    } catch (error) {
+      if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
+      throw error;
+    }
+  }
+
+  async function upload(file) {
+    await ready();
+    return state.client.upload(file);
+  }
+
   async function run(attachments) {
-    await boot();
+    await ready();
     const chat = ensureChat();
     const pending = _pendingUserMsg;
     const title = chat.title || (pending && pending.content ? pending.content.slice(0, 40) : "DeepAI chat");
@@ -462,46 +783,33 @@
     }));
     state.abort = new AbortController();
     try {
-      for await (const part of state.client.chat({
-        model: (owns(chat.model) ? chat.model : _aiSelectedModel).slice(PREFIX.length),
+      await stream({
+        model: owns(chat.model) ? chat.model : _aiSelectedModel,
         messages: history,
         attachments: files,
         sessionUuid: chat.sessionUuid,
         webAccess: _aiWebSearchEnabled,
         signal: state.abort.signal
-      })) {
-        if (part.type === "text") {
-          _onStreamContent(part.value);
-        } else if (part.value && part.value.task_id) {
-          await followTask(part.value.task_id, state.abort.signal);
-        } else {
-          const body = part.value || {};
-          const text = typeof body === "string" ? body : body.answer_text || body.output || JSON.stringify(body);
-          _onStreamContent(text);
-        }
-      }
+      }, { thinking: _onStreamThinking, content: _onStreamContent });
       _onStreamDone();
     } catch (error) {
-      if (error && error.name === "AbortError") {
-        _onStreamDone();
-      } else {
-        _onStreamError(describe(error));
-      }
+      if (error && error.name === "AbortError") _onStreamDone();
+      else _onStreamError(explain(error));
     } finally {
       state.abort = null;
     }
   }
 
   async function send(text, file) {
-    await boot();
+    await ready();
     const attachments = [];
     if (file) {
-      _setAIStatus("Uploading " + file.name + "…");
+      say("Uploading " + file.name + "…");
       try {
         const uploaded = await state.client.upload(file);
         attachments.push({ uuid: uploaded.uuid, name: file.name });
       } finally {
-        _setAIStatus("");
+        say("");
       }
     }
     await run(attachments);
@@ -522,12 +830,10 @@
   }
 
   function bindUi() {
-    const sel = document.getElementById("aiModelSelect");
     const account = document.getElementById("aiDeepAIAccount");
     const dialog = document.getElementById("aiDeepAIDialog");
     const form = document.getElementById("aiDeepAIForm");
     const cancel = document.getElementById("aiDeepAICancel");
-    if (sel) sel.addEventListener("change", syncUi);
     if (account) {
       account.addEventListener("click", async () => {
         try {
@@ -537,9 +843,11 @@
           return;
         }
         if (state.user) {
-          await state.client.logout();
+          try {
+            await state.client.logout();
+          } catch (e) {}
           state.user = null;
-          syncUi();
+          await refreshModels();
           _toast("Signed out of DeepAI");
         } else {
           openLogin();
@@ -558,11 +866,11 @@
         submit.disabled = true;
         submit.textContent = "Signing in…";
         try {
-          await boot();
+          await ready();
           state.user = await state.client.login(email.value.trim(), password.value);
           password.value = "";
           dialog.close();
-          syncUi();
+          await refreshModels();
           _toast("Signed in to DeepAI");
         } catch (error) {
           if (err) err.textContent = error.message || "Sign in failed";
@@ -575,11 +883,29 @@
     syncUi();
   }
 
-  window.DeepAI = { owns, label, mergeGroups, syncUi, run, send, stop, boot, openLogin, fileIcon: FILE_ICON };
+  window.DeepAI = {
+    owns,
+    label,
+    catalog,
+    defaultModel,
+    rememberModel,
+    signedIn: () => !!state.user,
+    syncUi,
+    run,
+    send,
+    stream,
+    upload,
+    newSession: uuid,
+    explain,
+    stop,
+    boot,
+    openLogin,
+    fileIcon: FILE_ICON
+  };
 
   function start() {
     bindUi();
-    setTimeout(() => boot().catch(() => {}), 1200);
+    setTimeout(() => connect(0), 200);
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);

@@ -1,234 +1,5 @@
 const _aiDevHosts = ["localhost", "127.0.0.1", "eerf-korgn".split("").reverse().join("")];
 window.devMode = _aiDevHosts.includes(location.hostname) || _aiDevHosts.includes(location.hostname.split(".").at(-2) || location.hostname);
-window.serverList = ["cdn.northstreetumc.org", "cdn.vipersfutbol.com", "cdn.pcesc.org", "cdn.kcchallengevbc.com", "cdn.slcbmooc.org", "cdn.topstargym.net", "cdn.goaplytexas.org", "wss://athollcottage.com/connection/", "wss://api.personalloanonline.net/ws/", "wss://kristenblackburnvolleyballcamps.com/socket/", "wss://southpadreislandkiteboarding.com/socket/"];
-
-const AI_CONNECT_TIMEOUT = 5000;
-const AI_CONNECT_STAGGER = 1200;
-const AI_STALL_MS = 90000;
-const AI_LAST_GOOD_KEY = "AIWS";
-const _aiParent = (() => {
-  try {
-    return window.parent && window.parent !== window ? window.parent : null;
-  } catch (e) {
-    return null;
-  }
-})();
-
-console.log("[ai] ai-app loaded, wisp-validate build 3, parent:", !!_aiParent);
-
-async function _aiSyncParentWisp() {
-  if (!_aiParent) {
-    return;
-  }
-  try {
-    if (_aiParent.kWispP) {
-      await Promise.race([_aiParent.kWispP, new Promise(r => setTimeout(r, 6000))]);
-    }
-    if (Array.isArray(_aiParent.serverList) && _aiParent.serverList.length) {
-      window.serverList = _aiParent.serverList.slice();
-    }
-    if (_aiParent.wlspServer) {
-      window.wlspServer = _aiParent.wlspServer;
-    }
-  } catch (e) {}
-}
-
-const AI_VALID_KEY = "AIWID";
-const AI_VALIDATE_TIMEOUT = 3000;
-let _aiValidated = [];
-
-function _wvUrl(entry) {
-  return entry.includes("://") ? entry : `wss://${entry}/`;
-}
-function _wvTest(entry, timeoutMs) {
-  return new Promise(resolve => {
-    let ws;
-    try {
-      ws = new WebSocket(_wvUrl(entry));
-    } catch (e) {
-      resolve(null);
-      return;
-    }
-    ws.binaryType = "arraybuffer";
-    let sent = false;
-    let t = 0;
-    let timer = 0;
-    const id = Math.floor(Math.random() * 0xFFFFFFFE) + 1 >>> 0;
-    const finish = ping => {
-      clearTimeout(timer);
-      ws.onmessage = ws.onerror = ws.onclose = null;
-      try {
-        ws.close();
-      } catch (e) {}
-      resolve(ping);
-    };
-    timer = setTimeout(() => finish(null), timeoutMs);
-    ws.onmessage = e => {
-      if (!(e.data instanceof ArrayBuffer) || e.data.byteLength < 5) {
-        return;
-      }
-      const v = new DataView(e.data);
-      const type = v.getUint8(0);
-      const stream = v.getUint32(1, true);
-      if (!sent) {
-        if (type === 5 && stream === 0) {
-          ws.send(new Uint8Array([5, 0, 0, 0, 0, 2, 1]));
-        } else if (type === 3 && stream === 0) {
-          sent = true;
-          const host = new TextEncoder().encode("127.0.0.1");
-          const buf = new ArrayBuffer(8 + host.length);
-          const dv = new DataView(buf);
-          dv.setUint8(0, 1);
-          dv.setUint32(1, id, true);
-          dv.setUint8(5, 1);
-          dv.setUint16(6, 1, true);
-          new Uint8Array(buf).set(host, 8);
-          t = performance.now();
-          ws.send(buf);
-        }
-        return;
-      }
-      if (stream !== id) {
-        return;
-      }
-      finish(Math.round(performance.now() - t));
-    };
-    ws.onerror = ws.onclose = () => finish(null);
-  });
-}
-function _wvPick(entries, storageKey, opts) {
-  opts = opts || {};
-  const timeoutMs = opts.timeout || 3000;
-  const concurrency = opts.concurrency || 6;
-  const list = [...new Set((entries || []).filter(e => typeof e === "string" && e.trim()).map(e => e.trim()))];
-  const pings = new Map();
-  let stored = null;
-  try {
-    stored = localStorage.getItem(storageKey);
-  } catch (e) {}
-  const queue = stored && list.includes(stored) ? [stored, ...list.filter(e => e !== stored)] : list.slice();
-  const order = () => {
-    const ok = list.filter(e => typeof pings.get(e) === "number").sort((a, b) => pings.get(a) - pings.get(b));
-    const untested = list.filter(e => !pings.has(e));
-    const failed = list.filter(e => pings.has(e) && pings.get(e) === null);
-    return [...ok, ...untested, ...failed];
-  };
-  return new Promise(resolve => {
-    let next = 0;
-    let finished = 0;
-    let settled = false;
-    const settle = () => {
-      if (settled) {
-        return;
-      }
-      settled = true;
-      const urls = order();
-      const best = urls.find(u => typeof pings.get(u) === "number") || null;
-      resolve({
-        "urls": best ? urls : list.slice(),
-        "best": best,
-        "validated": !!best
-      });
-    };
-    const launch = () => {
-      if (next >= queue.length) {
-        return;
-      }
-      const entry = queue[next++];
-      _wvTest(entry, timeoutMs).then(ping => {
-        pings.set(entry, ping);
-        if (ping !== null) {
-          if (!settled) {
-            try {
-              localStorage.setItem(storageKey, entry);
-            } catch (e) {}
-          }
-          settle();
-        }
-        finished++;
-        if (finished === queue.length) {
-          const wasSettled = settled;
-          settle();
-          const bestNow = order()[0];
-          if (typeof pings.get(bestNow) === "number") {
-            try {
-              localStorage.setItem(storageKey, bestNow);
-            } catch (e) {}
-          }
-          if (wasSettled && opts.onUpdate) {
-            opts.onUpdate(order());
-          }
-        } else {
-          launch();
-        }
-      });
-    };
-    if (!queue.length) {
-      settle();
-      return;
-    }
-    for (let i = 0; i < Math.min(concurrency, queue.length); i++) {
-      launch();
-    }
-  });
-}
-
-const AI_WS_PATH = "ia/".split("").reverse().join("");
-
-function _aiWsUrlFor(entry) {
-  if (typeof entry !== "string" || !entry) {
-    return null;
-  }
-  try {
-    const u = new URL(entry.includes("://") ? entry : `https://${entry}`);
-    u.protocol = u.protocol === "http:" || u.protocol === "ws:" ? "ws:" : "wss:";
-    u.pathname = AI_WS_PATH;
-    u.search = '';
-    u.hash = '';
-    return u.toString();
-  } catch (e) {
-    return null;
-  }
-}
-
-function _aiCandidateUrls() {
-  const urls = [];
-  const add = entry => {
-    const u = _aiWsUrlFor(entry);
-    if (u && !urls.includes(u)) {
-      urls.push(u);
-    }
-  };
-  const list = Array.isArray(window.serverList) ? window.serverList : [];
-  _aiValidated.forEach(add);
-  try {
-    add(localStorage.getItem(AI_LAST_GOOD_KEY));
-  } catch (e) {}
-  try {
-    const i = +localStorage.WID;
-    if (localStorage.WID !== undefined && localStorage.WID !== "" && Number.isInteger(i) && list[i] && !list[i].includes("://")) {
-      add(list[i]);
-    }
-  } catch (e) {}
-  add(window.wlspServer);
-  list.forEach(add);
-  return urls;
-}
-
-function getBase() {
-  const first = _aiCandidateUrls()[0];
-  if (!first) {
-    return "https://cdn.vipersfutbol.com";
-  }
-  try {
-    const u = new URL(first);
-    u.protocol = "https:";
-    return u.origin;
-  } catch (e) {
-    return "https://cdn.vipersfutbol.com";
-  }
-}
-window.getBase = getBase;
 
 let _dbPromise = null;
 function _oDB() {
@@ -247,15 +18,6 @@ function _oDB() {
   return _dbPromise;
 }
 
-let _aiWs = null;
-let _aiWsReady = false;
-let _aiConnecting = false;
-let _aiReconnectTimer = null;
-let _aiReconnectDelay = 1000;
-let _aiLastProgressAt = 0;
-let _aiWatchdog = null;
-let _aiEverOpened = false;
-let _aiModelsGrouped = {};
 let _aiSelectedModel = null;
 let _aiWebSearchEnabled = false;
 let _aiChats = [];
@@ -275,8 +37,6 @@ let _streamAsstId = null;
 let _pendingUserMsg = null;
 let _aiAttachedFile = null;
 let _aiAttachedPreviewUrl = null;
-let _pendingMediaResolve = null;
-let _pendingDeleteChatId = null;
 let _screenshareStream = null;
 let _screenshareVideo = null;
 let _screenshareChatId = null;
@@ -287,7 +47,7 @@ let _screenshareReasoning = '';
 let _screenshareAsstId = null;
 let _screenshareUi = null;
 let _pendingScreenshareUserMsg = null;
-let _pendingScreenshareMediaResolve = null;
+let _screenshareAbort = null;
 const AI_IMAGE_MIME_RE = new RegExp("^image\\/(png|jpeg|jpg|webp|gif)$", "");
 let _idCounter = 0;
 function _newId() {
@@ -346,8 +106,6 @@ function openAI() {
   if (_0xb2a32f) {
     _0xb2a32f.classList.add("open");
   }
-  _aiEverOpened = true;
-  _ensureAIWs();
   _ensureAIChatsLoaded();
   setTimeout(() => _initAIInputHandlers(), 50);
 }
@@ -355,337 +113,6 @@ function closeAI() {
   const _0x281de = document.getElementById("neercSia".split("").reverse().join(""));
   if (_0x281de) {
     _0x281de.classList.remove("open");
-  }
-}
-function _aiSocketOpen() {
-  return !!(_aiWsReady && _aiWs && _aiWs.readyState === WebSocket.OPEN);
-}
-function _aiSend(obj) {
-  if (!_aiSocketOpen()) {
-    return false;
-  }
-  try {
-    _aiWs.send(JSON.stringify(obj));
-    _aiLastProgressAt = Date.now();
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-function _ensureAIWs() {
-  if (_aiConnecting) {
-    return;
-  }
-  if (_aiWs && (_aiWs.readyState === WebSocket.CONNECTING || _aiWs.readyState === WebSocket.OPEN)) {
-    return;
-  }
-  _connectAI();
-}
-function _dropAISocket() {
-  const ws = _aiWs;
-  _aiWs = null;
-  _aiWsReady = false;
-  if (ws) {
-    ws.onopen = ws.onmessage = ws.onerror = ws.onclose = null;
-    try {
-      ws.close();
-    } catch (e) {}
-  }
-}
-function _scheduleAIReconnect() {
-  clearTimeout(_aiReconnectTimer);
-  _aiReconnectTimer = setTimeout(_ensureAIWs, _aiReconnectDelay);
-  _aiReconnectDelay = Math.min(_aiReconnectDelay * 2, 15000);
-}
-function _aiOpenFirst(urls) {
-  return new Promise((resolve, reject) => {
-    if (!urls.length) {
-      reject(new Error("no servers"));
-      return;
-    }
-    const attempts = [];
-    let done = false;
-    let next = 0;
-    let alive = 0;
-    let staggerTimer = 0;
-    const cleanup = keep => {
-      clearTimeout(staggerTimer);
-      attempts.forEach(a => {
-        clearTimeout(a.timeout);
-        if (a.ws && a.ws !== keep && !a.dead) {
-          a.dead = true;
-          a.ws.onmessage = a.ws.onerror = a.ws.onclose = null;
-          try {
-            a.ws.close();
-          } catch (e) {}
-        }
-      });
-    };
-    const launch = () => {
-      if (done || next >= urls.length) {
-        return;
-      }
-      const url = urls[next++];
-      const a = {
-        "ws": null,
-        "timeout": 0,
-        "dead": false
-      };
-      attempts.push(a);
-      alive++;
-      const kill = ev => {
-        if (a.dead) {
-          return;
-        }
-        console.warn("[ai] socket failed:", url, ev && ev.type ? ev.type : "timeout", ev && ev.code !== undefined ? ev.code : "");
-        a.dead = true;
-        clearTimeout(a.timeout);
-        if (a.ws) {
-          a.ws.onmessage = a.ws.onerror = a.ws.onclose = null;
-          try {
-            a.ws.close();
-          } catch (e) {}
-        }
-        alive--;
-        if (done) {
-          return;
-        }
-        if (next < urls.length) {
-          launch();
-        } else if (alive === 0) {
-          done = true;
-          cleanup(null);
-          reject(new Error("no ai server reachable"));
-        }
-      };
-      try {
-        a.ws = new WebSocket(url);
-      } catch (e) {
-        console.warn("[ai] socket threw:", url, e && e.message);
-        kill({ "type": "throw" });
-        return;
-      }
-      a.timeout = setTimeout(() => kill(null), AI_CONNECT_TIMEOUT);
-      a.ws.onmessage = ev => {
-        if (done) {
-          return;
-        }
-        done = true;
-        const ws = a.ws;
-        ws.onerror = ws.onclose = null;
-        cleanup(ws);
-        console.log("[ai] connected:", url);
-        resolve({
-          "ws": ws,
-          "url": url,
-          "first": ev.data
-        });
-      };
-      a.ws.onerror = a.ws.onclose = kill;
-    };
-    const tick = () => {
-      if (done || next >= urls.length) {
-        return;
-      }
-      launch();
-      staggerTimer = setTimeout(tick, AI_CONNECT_STAGGER);
-    };
-    tick();
-  });
-}
-async function _connectAI() {
-  if (_aiConnecting) {
-    return;
-  }
-  _aiConnecting = true;
-  clearTimeout(_aiReconnectTimer);
-  _aiReconnectTimer = null;
-  _dropAISocket();
-  _setAIStatus("connecting…");
-  await _aiSyncParentWisp();
-  try {
-    const entries = Array.isArray(window.serverList) ? window.serverList.slice() : [];
-    if (window.wlspServer && !entries.includes(window.wlspServer)) {
-      entries.unshift(window.wlspServer);
-    }
-    const picked = await _wvPick(entries, AI_VALID_KEY, {
-      "timeout": AI_VALIDATE_TIMEOUT,
-      "concurrency": 6,
-      "onUpdate": ordered => {
-        _aiValidated = ordered;
-      }
-    });
-    _aiValidated = picked.urls;
-    console.log("[ai] wisp validation:", picked.validated ? "ok" : "none passed (using full list)", "best:", picked.best, "parent wlspServer:", window.wlspServer);
-  } catch (e) {
-    _aiValidated = [];
-  }
-  let found;
-  try {
-    const candidates = _aiCandidateUrls();
-    console.log("[ai] trying", candidates.length, "candidates:", candidates);
-    found = await _aiOpenFirst(candidates);
-  } catch (e) {
-    _aiValidated = [];
-    try {
-      localStorage.removeItem(AI_VALID_KEY);
-    } catch (err) {}
-    _aiConnecting = false;
-    _setAIStatus("server unreachable - retrying…");
-    _scheduleAIReconnect();
-    return;
-  }
-  _aiConnecting = false;
-  const ws = found.ws;
-  _aiWs = ws;
-  _aiWsReady = true;
-  _aiReconnectDelay = 1000;
-  try {
-    localStorage.setItem(AI_LAST_GOOD_KEY, found.url);
-  } catch (e) {}
-  ws.onmessage = ev => {
-    if (_aiWs === ws) {
-      _handleAIMessage(ev.data);
-    }
-  };
-  ws.onclose = () => {
-    if (_aiWs === ws) {
-      _onAIClosed("connection lost");
-    }
-  };
-  ws.onerror = () => {
-    if (_aiWs === ws) {
-      _setAIStatus("connection error");
-    }
-  };
-  _startAIWatchdog();
-  _setAIStatus('');
-  _aiLastProgressAt = Date.now();
-  _handleAIMessage(found.first);
-}
-function _onAIClosed(reason) {
-  _dropAISocket();
-  _pendingDeleteChatId = null;
-  _setAIStatus("disconnected - reconnecting…");
-  if (_aiStreaming) {
-    _onStreamError(reason);
-  }
-  if (_screenshareStreaming) {
-    _screenshareOnError(reason);
-  }
-  _scheduleAIReconnect();
-}
-function _startAIWatchdog() {
-  if (_aiWatchdog) {
-    return;
-  }
-  _aiWatchdog = setInterval(() => {
-    if (!_aiWs || !(_aiStreaming || _screenshareStreaming)) {
-      return;
-    }
-    if (Date.now() - _aiLastProgressAt > AI_STALL_MS) {
-      _onAIClosed("no response from server, reconnecting");
-    }
-  }, 5000);
-}
-window.addEventListener("online", () => {
-  if (_aiEverOpened) {
-    _aiReconnectDelay = 1000;
-    _ensureAIWs();
-  }
-});
-document.addEventListener("visibilitychange", () => {
-  if (!document.hidden && _aiEverOpened) {
-    _ensureAIWs();
-  }
-});
-function _handleAIMessage(raw, m) {
-  try {
-    m = JSON.parse(raw);
-  } catch (e) {
-    return;
-  }
-  if (!m || typeof m !== "object") {
-    return;
-  }
-  if (m.type !== "gnip".split("").reverse().join("")) {
-    _aiLastProgressAt = Date.now();
-  }
-  if (_screenshareStreaming && (!_screenshareChatId || m.conversationId === _screenshareChatId) && ["message", "gnikniht".split("").reverse().join(""), "content", "processing", "egasu".split("").reverse().join(""), "image", "video", "done", "rorre".split("").reverse().join("")].includes(m.type)) {
-    _handleScreenshareMessage(m);
-    return;
-  }
-  switch (m.type) {
-    case "tsaot".split("").reverse().join(""):
-      _toast(m.text || "detcennoc".split("").reverse().join(""));
-      break;
-    case "models":
-      _aiModelsGrouped = m.models || {};
-      _renderModelSelect(_aiModelsGrouped);
-      break;
-    case "tahCwen".split("").reverse().join(""):
-      _aiCurrentChatId = m.conversationId;
-      _clearAIMessages();
-      _showAIWelcome(true);
-      break;
-    case "egassem".split("").reverse().join(""):
-      _onStreamStart(m);
-      break;
-    case "gnikniht".split("").reverse().join(""):
-      _onStreamThinking(m.delta);
-      break;
-    case "content":
-      _onStreamContent(m.delta);
-      break;
-    case "gnissecorp".split("").reverse().join(""):
-      _onStreamProcessing(m.text || '');
-      break;
-    case "status":
-      _setAIStatus(m.text || '');
-      break;
-    case "egasu".split("").reverse().join(""):
-      _streamUsage = m;
-      break;
-    case "image":
-      _onStreamMedia("egami".split("").reverse().join(""), m.url);
-      break;
-    case "video":
-      _onStreamMedia("video", m.url);
-      break;
-    case "dIaideMtseuqer".split("").reverse().join(""):
-      if (_pendingScreenshareMediaResolve) {
-        _pendingScreenshareMediaResolve(m.mediaId);
-        _pendingScreenshareMediaResolve = null;
-      } else if (_pendingMediaResolve) {
-        _pendingMediaResolve(m.mediaId);
-        _pendingMediaResolve = null;
-      }
-      break;
-    case "enod".split("").reverse().join(""):
-      _onStreamDone();
-      break;
-    case "deleted":
-      _onConversationDeleted(m.conversationId);
-      break;
-    case "error":
-      if (_pendingMediaResolve) {
-        _pendingMediaResolve = null;
-      }
-      if (m.code === "not_found" && _pendingDeleteChatId) {
-        const _0xg1b1f = _pendingDeleteChatId;
-        _pendingDeleteChatId = null;
-        _onConversationDeleted(_0xg1b1f);
-        break;
-      }
-      _onStreamError(m.text || "error");
-      break;
-    case "gnip".split("").reverse().join(""):
-      if (_aiWs && _aiWs.readyState === 1) {
-        _aiWs.send(JSON.stringify({
-          "type": "pong"
-        }));
-      }
-      break;
   }
 }
 function _setAIStatus(text) {
@@ -717,55 +144,41 @@ function _clearAIMessages() {
     c.innerHTML = '';
   }
 }
-function _renderModelSelect(grouped) {
-  const _0xe7f = document.getElementById("aiModelSelect");
-  if (!_0xe7f) {
+function _renderModelSelect() {
+  const sel = document.getElementById("aiModelSelect");
+  if (!sel) {
     return;
   }
-  _0xe7f.innerHTML = '';
-  if (window.DeepAI) {
-    grouped = window.DeepAI.mergeGroups(grouped);
-  }
-  const _0x21_0xfea = ["tpg".split("").reverse().join(""), "gemma", "llama", "grok", "keespeed".split("").reverse().join(""), "newq".split("").reverse().join(""), "imik".split("").reverse().join(""), "egami".split("").reverse().join(""), "oediv".split("").reverse().join("")];
-  const _0xb8e70f = k => {
-    const i = _0x21_0xfea.indexOf(k);
-    return i === -1 ? 99 : i;
-  };
-  const _0x863gab = Object.keys(grouped).sort((a, b) => _0xb8e70f(a) - _0xb8e70f(b));
-  let _0xad_0xb81 = null;
-  _0x863gab.forEach(key => {
-    const _0x52a8fd = document.createElement("puorgtpo".split("").reverse().join(""));
-    _0x52a8fd.label = key.toUpperCase();
-    grouped[key].forEach(id => {
-      const _0xcfea = document.createElement("option");
-      _0xcfea.value = id;
-      _0xcfea.textContent = window.DeepAI && window.DeepAI.owns(id) ? window.DeepAI.label(id) : id;
-      _0x52a8fd.appendChild(_0xcfea);
-      if (!_0xad_0xb81 && key !== "image" && key !== "video") {
-        _0xad_0xb81 = id;
-      }
-    });
-    _0xe7f.appendChild(_0x52a8fd);
+  const deep = window.DeepAI;
+  const models = deep ? deep.catalog() : [];
+  sel.innerHTML = '';
+  models.forEach(model => {
+    const option = document.createElement("option");
+    option.value = model.value;
+    option.textContent = model.label + (model.locked && !deep.signedIn() ? " 🔒" : '');
+    sel.appendChild(option);
   });
-  const _0x8e752b = _aiCurrentChatId ? _aiChats.find(c => c.id === _aiCurrentChatId) : null;
-  if (_0x8e752b && _0x8e752b.model) {
-    _aiSelectedModel = _0x8e752b.model;
+  const current = _aiCurrentChatId ? _aiChats.find(c => c.id === _aiCurrentChatId) : null;
+  if (current && deep && deep.owns(current.model) && models.some(m => m.value === current.model)) {
+    _aiSelectedModel = current.model;
+  } else if (!_aiSelectedModel || !models.some(m => m.value === _aiSelectedModel)) {
+    _aiSelectedModel = deep ? deep.defaultModel() : null;
   }
-  if (!_aiSelectedModel) {
-    _aiSelectedModel = _0xad_0xb81;
-  }
-  _0xe7f.value = _aiSelectedModel || '';
-  _0xe7f.onchange = () => {
-    _aiSelectedModel = _0xe7f.value || null;
+  sel.value = _aiSelectedModel || '';
+  sel.onchange = () => {
+    _aiSelectedModel = sel.value || null;
+    if (deep) {
+      deep.rememberModel(_aiSelectedModel);
+    }
     if (_aiCurrentChatId) {
-      const _0xab9ea = _getChat(_aiCurrentChatId);
-      _0xab9ea.model = _aiSelectedModel;
-      _persistChat(_0xab9ea);
+      const chat = _getChat(_aiCurrentChatId);
+      chat.model = _aiSelectedModel;
+      _persistChat(chat);
     }
   };
   _aiBuildModelDropdown();
-  if (window.DeepAI) {
-    window.DeepAI.syncUi();
+  if (deep) {
+    deep.syncUi();
   }
 }
 let _aiDropdownDocBound = false;
@@ -787,7 +200,7 @@ function _aiBuildModelDropdown() {
   trig.tabIndex = 0;
   const label = document.createElement("span");
   const current = sel.options[sel.selectedIndex];
-  label.textContent = current ? current.text : "Loading models...";
+  label.textContent = current ? current.text : "Connecting to DeepAI…";
   trig.appendChild(label);
   trig.insertAdjacentHTML("beforeend", '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>');
   const opts = document.createElement("div");
@@ -959,33 +372,29 @@ function _setAttachedFile(file) {
     _aiAttachedPreviewUrl = null;
   }
   _aiAttachedFile = null;
-  const _0x25d2 = document.getElementById("aiAttachPreview");
-  const _0xc8c12f = document.getElementById("aiAttachThumb");
-  const _0x4b451f = document.getElementById("aiAttachName");
+  const preview = document.getElementById("aiAttachPreview");
+  const thumb = document.getElementById("aiAttachThumb");
+  const name = document.getElementById("aiAttachName");
   if (!file) {
-    if (_0x25d2) {
-      _0x25d2.classList.remove("show");
+    if (preview) {
+      preview.classList.remove("show");
     }
     return;
   }
-  if (!AI_IMAGE_MIME_RE.test(file.type) && !(window.DeepAI && window.DeepAI.owns(_aiSelectedModel))) {
-    _toast("epyt egami detroppusnu".split("").reverse().join(""));
-    return;
-  }
   if (file.size > 11534336) {
-    _toast("image too large (max 11MB)");
+    _toast("file too large (max 11MB)");
     return;
   }
   _aiAttachedFile = file;
   _aiAttachedPreviewUrl = URL.createObjectURL(file);
-  if (_0xc8c12f) {
-    _0xc8c12f.src = AI_IMAGE_MIME_RE.test(file.type) || !window.DeepAI ? _aiAttachedPreviewUrl : window.DeepAI.fileIcon;
+  if (thumb) {
+    thumb.src = AI_IMAGE_MIME_RE.test(file.type) || !window.DeepAI ? _aiAttachedPreviewUrl : window.DeepAI.fileIcon;
   }
-  if (_0x4b451f) {
-    _0x4b451f.textContent = file.name;
+  if (name) {
+    name.textContent = file.name;
   }
-  if (_0x25d2) {
-    _0x25d2.classList.add("show");
+  if (preview) {
+    preview.classList.add("show");
   }
 }
 function _newChat() {
@@ -995,146 +404,63 @@ function _newChat() {
   _aiCurrentChatId = null;
   _clearAIMessages();
   _showAIWelcome(true);
-  const _0xce_0xb4b = document.getElementById("aiInput");
-  if (_0xce_0xb4b) {
-    _0xce_0xb4b.value = '';
-    _0xce_0xb4b.style.height = "otua".split("").reverse().join("");
+  const input = document.getElementById("aiInput");
+  if (input) {
+    input.value = '';
+    input.style.height = "auto";
   }
-  const _0x6905d = document.getElementById("aiSendBtn");
-  if (_0x6905d) {
-    _0x6905d.style.display = "none";
+  const sendBtn = document.getElementById("aiSendBtn");
+  if (sendBtn) {
+    sendBtn.style.display = "none";
   }
-  _aiSend({
-    "type": 'newChat'
-  });
+  _renderRecents();
 }
 function _sendMessage() {
-  const _0x3c5ae = document.getElementById("tupnIia".split("").reverse().join(""));
-  const _0xccc3gf = (_0x3c5ae.value || '').trim();
-  const _0xa469e = _aiAttachedFile;
-  if (!_0xccc3gf && !_0xa469e || _aiStreaming || _screenshareStreaming) {
+  const input = document.getElementById("aiInput");
+  const text = (input.value || '').trim();
+  const file = _aiAttachedFile;
+  if (!text && !file || _aiStreaming || _screenshareStreaming) {
     return;
   }
-  const _aiDeep = !!(window.DeepAI && window.DeepAI.owns(_aiSelectedModel));
-  if (_aiCurrentChatId && _aiChatIsDeepAI(_aiCurrentChatId) !== _aiDeep) {
-    _aiCurrentChatId = null;
-    _clearAIMessages();
-  }
-  if (!_aiDeep && !_aiSocketOpen()) {
-    _setAIStatus("detcennoc ton".split("").reverse().join(""));
-    _ensureAIWs();
-    return;
-  }
-  if (!_aiSelectedModel) {
-    _toast("models are still loading…");
+  if (!window.DeepAI || !_aiSelectedModel) {
+    _toast("connecting to DeepAI…");
+    if (window.DeepAI) {
+      window.DeepAI.boot()["catch"](() => {});
+    }
     return;
   }
   _showAIWelcome(false);
-  const _0x88eb9f = "m" + ++_idCounter + "_" + Math.random().toString(36).slice(2, 10);
-  const _0xa5f = _0xa469e && AI_IMAGE_MIME_RE.test(_0xa469e.type) ? _aiAttachedPreviewUrl : null;
-  const _aiShown = _0xa469e && !_0xa5f ? (_0xccc3gf ? _0xccc3gf + "\n\n" : '') + "📎 " + _0xa469e.name : _0xccc3gf;
+  const id = _newId();
+  const previewUrl = file && AI_IMAGE_MIME_RE.test(file.type) ? _aiAttachedPreviewUrl : null;
+  const shown = file && !previewUrl ? (text ? text + "\n\n" : '') + "📎 " + file.name : text;
   _pendingUserMsg = {
-    "id": _0x88eb9f,
-    "content": _aiShown,
-    "media": _0xa469e && _0xa5f ? {
-      "url": _0xa5f,
-      "blob": _0xa469e
+    "id": id,
+    "content": shown,
+    "media": file && previewUrl ? {
+      "url": previewUrl,
+      "blob": file
     } : undefined
   };
-  _renderUserMessage(_0x88eb9f, _aiShown, _0xa5f);
+  _renderUserMessage(id, shown, previewUrl);
   _streamPlaceholder = _showThinkingIndicator();
-  _0x3c5ae.value = '';
-  _0x3c5ae.style.height = "otua".split("").reverse().join("");
-  const _0x565e8a = document.getElementById("ntBdneSia".split("").reverse().join(""));
-  if (_0x565e8a) {
-    _0x565e8a.style.display = "enon".split("").reverse().join("");
-    _0x565e8a.disabled = true;
+  input.value = '';
+  input.style.height = "auto";
+  const sendBtn = document.getElementById("aiSendBtn");
+  if (sendBtn) {
+    sendBtn.style.display = "none";
+    sendBtn.disabled = true;
   }
   _aiStreaming = true;
   _streamMedia = null;
-  _aiLastProgressAt = Date.now();
-  if (_aiDeep) {
-    if (_0xa469e) {
-      _aiAttachedFile = null;
-      _aiAttachedPreviewUrl = null;
-      const _aiPrev = document.getElementById("weiverPhcattAia".split("").reverse().join(""));
-      if (_aiPrev) {
-        _aiPrev.classList.remove("wohs".split("").reverse().join(""));
-      }
-    }
-    window.DeepAI.send(_0xccc3gf, _0xa469e)["catch"](err => _onStreamError(err.message || "request failed"));
-    return;
-  }
-  if (_0xa469e) {
+  if (file) {
     _aiAttachedFile = null;
     _aiAttachedPreviewUrl = null;
-    const _0x2141ce = document.getElementById("weiverPhcattAia".split("").reverse().join(""));
-    if (_0x2141ce) {
-      _0x2141ce.classList.remove("wohs".split("").reverse().join(""));
-    }
-    _sendMediaMessage(_0xa469e, _0xccc3gf)["catch"](err => _onStreamError(err.message || "upload failed"));
-  } else {
-    const sent = _aiSend({
-      "type": 'sendMessage',
-      "conversationId": _aiCurrentChatId,
-      "content": _0xccc3gf,
-      "model": _aiSelectedModel,
-      "webSearch": _aiWebSearchEnabled
-    });
-    if (!sent) {
-      _onStreamError("not connected");
-      _ensureAIWs();
+    const preview = document.getElementById("aiAttachPreview");
+    if (preview) {
+      preview.classList.remove("show");
     }
   }
-}
-function _fileToBase64(file) {
-  return new Promise((resolve, reject) => {
-    const _0xe5eb = new FileReader();
-    _0xe5eb.onload = () => resolve(String(_0xe5eb.result).split(",")[1] || '');
-    _0xe5eb.onerror = () => reject(new Error("could not read file"));
-    _0xe5eb.readAsDataURL(file);
-  });
-}
-async function _sendMediaMessage(file, prompt) {
-  const _0x83c = await _fileToBase64(file);
-  const _0xa22d = await new Promise((resolve, reject) => {
-    _pendingMediaResolve = resolve;
-    const sent = _aiSend({
-      "type": 'mediaStart',
-      "model": _aiSelectedModel,
-      "mime": file.type,
-      "conversationId": _aiCurrentChatId || undefined
-    });
-    if (!sent) {
-      _pendingMediaResolve = null;
-      reject(new Error("not connected"));
-      return;
-    }
-    setTimeout(() => {
-      if (_pendingMediaResolve === resolve) {
-        _pendingMediaResolve = null;
-        reject(new Error("upload timed out"));
-      }
-    }, 15000);
-  });
-  for (let i = 0; i < _0x83c.length; i += 800000) {
-    const sent = _aiSend({
-      "type": "mediaChunk",
-      "mediaId": _0xa22d,
-      "chunk": _0x83c.slice(i, i + 800000)
-    });
-    if (!sent) {
-      throw new Error("connection lost");
-    }
-  }
-  if (!_aiSend({
-    "type": 'mediaDone',
-    "mediaId": _0xa22d,
-    "prompt": prompt,
-    "webSearch": _aiWebSearchEnabled
-  })) {
-    throw new Error("connection lost");
-  }
+  window.DeepAI.send(text, file)["catch"](err => _onStreamError(err.message || "request failed"));
 }
 function _onStreamStart(m) {
   _aiCurrentChatId = m.conversationId;
@@ -1294,18 +620,17 @@ function _onStreamError(text) {
     _streamShell = null;
   }
   if (_pendingUserMsg) {
-    const _0x3fb = document.querySelector(`[data-msg-id="${_pendingUserMsg.id}"]`);
-    if (_0x3fb) {
-      _0x3fb.remove();
+    const el = document.querySelector(`[data-msg-id="${_pendingUserMsg.id}"]`);
+    if (el) {
+      el.remove();
     }
     _pendingUserMsg = null;
   }
-  _pendingMediaResolve = null;
   _showError(text);
   _aiStreaming = false;
-  const _0xd0g5f = document.getElementById("ntBdneSia".split("").reverse().join(""));
-  if (_0xd0g5f) {
-    _0xd0g5f.disabled = false;
+  const sendBtn = document.getElementById("aiSendBtn");
+  if (sendBtn) {
+    sendBtn.disabled = false;
   }
 }
 function _escapeHtml(str) {
@@ -1641,25 +966,17 @@ function _formatStats({
   return _0x561ec.join(" · ");
 }
 function _retryMessage(asstId) {
-  if (_aiStreaming) {
+  if (_aiStreaming || !asstId || !_aiCurrentChatId || !window.DeepAI) {
     return;
   }
-  if (!_aiSocketOpen() && !_aiChatIsDeepAI(_aiCurrentChatId)) {
-    _setAIStatus("not connected");
-    _ensureAIWs();
-    return;
-  }
-  if (!asstId || !_aiCurrentChatId) {
-    return;
-  }
-  const _0xggcba = _getChat(_aiCurrentChatId);
-  const _0xec454d = _0xggcba.messages.findIndex(x => x.id === asstId);
-  if (_0xec454d !== -1) {
-    _0xggcba.messages = _0xggcba.messages.slice(0, _0xec454d);
-    _persistChat(_0xggcba);
+  const chat = _getChat(_aiCurrentChatId);
+  const idx = chat.messages.findIndex(x => x.id === asstId);
+  if (idx !== -1) {
+    chat.messages = chat.messages.slice(0, idx);
+    _persistChat(chat);
   }
   _clearAIMessages();
-  _0xggcba.messages.forEach(msg => {
+  chat.messages.forEach(msg => {
     if (msg.role === "user") {
       _renderUserMessage(msg.id, msg.content, msg.media ? msg.media.url : null);
     } else {
@@ -1670,20 +987,7 @@ function _retryMessage(asstId) {
   _streamMedia = null;
   _streamAsstId = asstId;
   _streamPlaceholder = _showThinkingIndicator();
-  if (_aiChatIsDeepAI(_aiCurrentChatId)) {
-    window.DeepAI.run()["catch"](err => _onStreamError(err.message || "request failed"));
-    return;
-  }
-  const sent = _aiSend({
-    "type": 'retry',
-    "conversationId": _aiCurrentChatId,
-    "model": _aiSelectedModel,
-    "webSearch": _aiWebSearchEnabled
-  });
-  if (!sent) {
-    _onStreamError("not connected");
-    _ensureAIWs();
-  }
+  window.DeepAI.run()["catch"](err => _onStreamError(err.message || "request failed"));
 }
 function _editMessage(messageDiv, originalContent) {
   if (_aiStreaming) {
@@ -1733,26 +1037,18 @@ function _editMessage(messageDiv, originalContent) {
   _0x6d576c.focus();
 }
 function _editAndResend(userMsgId, newContent) {
-  if (_aiStreaming) {
+  if (_aiStreaming || !_aiCurrentChatId || !window.DeepAI) {
     return;
   }
-  if (!_aiSocketOpen() && !_aiChatIsDeepAI(_aiCurrentChatId)) {
-    _setAIStatus("not connected");
-    _ensureAIWs();
-    return;
+  const chat = _getChat(_aiCurrentChatId);
+  const idx = chat.messages.findIndex(x => x.id === userMsgId);
+  const media = idx !== -1 ? chat.messages[idx].media : null;
+  if (idx !== -1) {
+    chat.messages = chat.messages.slice(0, idx);
   }
-  if (!_aiCurrentChatId) {
-    return;
-  }
-  const _0x5de77a = _getChat(_aiCurrentChatId);
-  const _0xf47d4b = _0x5de77a.messages.findIndex(x => x.id === userMsgId);
-  const _0xe98e1d = _0xf47d4b !== -1 ? _0x5de77a.messages[_0xf47d4b].media : null;
-  if (_0xf47d4b !== -1) {
-    _0x5de77a.messages = _0x5de77a.messages.slice(0, _0xf47d4b);
-  }
-  _persistChat(_0x5de77a);
+  _persistChat(chat);
   _clearAIMessages();
-  _0x5de77a.messages.forEach(msg => {
+  chat.messages.forEach(msg => {
     if (msg.role === "user") {
       _renderUserMessage(msg.id, msg.content, msg.media ? msg.media.url : null);
     } else {
@@ -1760,36 +1056,16 @@ function _editAndResend(userMsgId, newContent) {
     }
   });
   _showAIWelcome(false);
-  _renderUserMessage(userMsgId, newContent, _0xe98e1d ? _0xe98e1d.url : null);
+  _renderUserMessage(userMsgId, newContent, media ? media.url : null);
   _streamPlaceholder = _showThinkingIndicator();
   _aiStreaming = true;
   _streamMedia = null;
   _pendingUserMsg = {
     "id": userMsgId,
     "content": newContent,
-    "media": _0xe98e1d
+    "media": media
   };
-  if (_aiChatIsDeepAI(_aiCurrentChatId)) {
-    window.DeepAI.run()["catch"](err => _onStreamError(err.message || "request failed"));
-    return;
-  }
-  const sent = _aiSend({
-    "type": "edit",
-    "conversationId": _aiCurrentChatId,
-    "messageId": userMsgId,
-    "userMessageId": userMsgId,
-    "content": newContent,
-    "model": _aiSelectedModel,
-    "webSearch": _aiWebSearchEnabled
-  });
-  if (!sent) {
-    _onStreamError("not connected");
-    _ensureAIWs();
-  }
-}
-function _aiChatIsDeepAI(id) {
-  const chat = id ? _aiChats.find(c => c.id === id) : null;
-  return !!(chat && chat.provider === "deepai");
+  window.DeepAI.run()["catch"](err => _onStreamError(err.message || "request failed"));
 }
 function _getChat(id) {
   let _0x24614e = _aiChats.find(c => c.id === id);
@@ -1850,27 +1126,11 @@ function _deleteChat(chatId) {
   if (!chatId) {
     return;
   }
-  if (_aiChatIsDeepAI(chatId)) {
-    _onConversationDeleted(chatId);
-    return;
-  }
-  if (!_aiSocketOpen()) {
-    _setAIStatus("not connected");
-    _ensureAIWs();
-    return;
-  }
-  _pendingDeleteChatId = chatId;
-  _aiSend({
-    "type": 'deleteConversation',
-    "conversationId": chatId
-  });
+  _onConversationDeleted(chatId);
 }
 function _onConversationDeleted(conversationId) {
   if (!conversationId) {
     return;
-  }
-  if (_pendingDeleteChatId === conversationId) {
-    _pendingDeleteChatId = null;
   }
   _aiChats = _aiChats.filter(c => c.id !== conversationId);
   _deleteChatRecord(conversationId);
@@ -1885,28 +1145,28 @@ function _loadChat(chatId) {
   if (_aiStreaming) {
     return;
   }
-  const _0xe356bg = _aiChats.find(c => c.id === chatId);
-  if (!_0xe356bg) {
+  const chat = _aiChats.find(c => c.id === chatId);
+  if (!chat) {
     return;
   }
   _aiCurrentChatId = chatId;
   _showAIWelcome(false);
-  const _0xfg_0xe5f = document.getElementById("aiMessages");
-  if (_0xfg_0xe5f) {
-    _0xfg_0xe5f.innerHTML = '';
+  const list = document.getElementById("aiMessages");
+  if (list) {
+    list.innerHTML = '';
   }
-  _0xe356bg.messages.forEach(msg => {
+  chat.messages.forEach(msg => {
     if (msg.role === "user") {
       _renderUserMessage(msg.id, msg.content, msg.media ? msg.media.url : null);
     } else {
       _renderAssistantMessage(msg);
     }
   });
-  if (_0xe356bg.model) {
-    _aiSelectedModel = _0xe356bg.model;
-    const _0x24_0x323 = document.getElementById("aiModelSelect");
-    if (_0x24_0x323 && [..._0x24_0x323.options].some(o => o.value === _0xe356bg.model)) {
-      _0x24_0x323.value = _0xe356bg.model;
+  if (chat.model && window.DeepAI && window.DeepAI.owns(chat.model)) {
+    const sel = document.getElementById("aiModelSelect");
+    if (sel && [...sel.options].some(o => o.value === chat.model)) {
+      _aiSelectedModel = chat.model;
+      sel.value = chat.model;
       _aiBuildModelDropdown();
     }
   }
@@ -1969,7 +1229,12 @@ function _stopScreenshare() {
   _screenshareContent = '';
   _screenshareReasoning = '';
   _pendingScreenshareUserMsg = null;
-  _pendingScreenshareMediaResolve = null;
+  if (_screenshareAbort) {
+    try {
+      _screenshareAbort.abort();
+    } catch (e) {}
+    _screenshareAbort = null;
+  }
 }
 function _captureScreenshot() {
   return new Promise((resolve, reject) => {
@@ -2153,11 +1418,8 @@ function _screenshareUpdateResponse() {
   _renderMarkdown(_screenshareUi.currentAssistantEl, _screenshareContent || '');
   _screenshareUi.messages.scrollTop = _screenshareUi.messages.scrollHeight;
 }
-async function _sendScreenshareMessage(promptText, _0x7f2gcd) {
-  if (_screenshareStreaming) {
-    return;
-  }
-  if (!promptText) {
+async function _sendScreenshareMessage(promptText, shot) {
+  if (_screenshareStreaming || !promptText) {
     return;
   }
   if (_aiStreaming) {
@@ -2168,9 +1430,11 @@ async function _sendScreenshareMessage(promptText, _0x7f2gcd) {
     _screenshareSetStatus("no tab is being shared");
     return;
   }
-  if (!_aiSocketOpen()) {
-    _ensureAIWs();
-    _screenshareSetStatus("not connected");
+  if (!window.DeepAI || !_aiSelectedModel) {
+    _screenshareSetStatus("connecting to DeepAI…");
+    if (window.DeepAI) {
+      window.DeepAI.boot()["catch"](() => {});
+    }
     return;
   }
   if (_screenshareUi) {
@@ -2183,144 +1447,109 @@ async function _sendScreenshareMessage(promptText, _0x7f2gcd) {
   }
   _screenshareSetStatus("capturing screenshot…");
   try {
-    _0x7f2gcd = await _captureScreenshot();
+    shot = await _captureScreenshot();
   } catch (e) {
     _screenshareOnError("screenshot failed");
     return;
   }
-  const _0x214ac = new File([_0x7f2gcd], "screenshot.png", {
+  const file = new File([shot], "screenshot.png", {
     "type": 'image/png'
   });
-  const _0xd5_0xd46 = URL.createObjectURL(_0x7f2gcd);
+  const shotUrl = URL.createObjectURL(shot);
   _screenshareRenderUser(promptText);
   _screenshareShowThinking();
   _screenshareStreaming = true;
-  _aiLastProgressAt = Date.now();
   _screenshareContent = '';
   _screenshareReasoning = '';
-  _screenshareAsstId = "m" + ++_idCounter + "_" + Math.random().toString(36).slice(2, 10);
+  _screenshareAsstId = _newId();
   _pendingScreenshareUserMsg = {
-    "id": "m" + ++_idCounter + "_" + Math.random().toString(36).slice(2, 10),
+    "id": _newId(),
     "content": promptText,
     "media": {
-      "url": _0xd5_0xd46,
-      "blob": _0x214ac
+      "url": shotUrl,
+      "blob": file
     }
   };
+  _screenshareAbort = new AbortController();
+  const signal = _screenshareAbort.signal;
   _screenshareSetStatus("uploading screenshot…");
   try {
-    const _0x9a248a = await _fileToBase64(_0x214ac);
-    const _0xcd4be = await new Promise((resolve, reject) => {
-      _pendingScreenshareMediaResolve = resolve;
-      const sent = _aiSend({
-        "type": 'mediaStart',
-        "model": _aiSelectedModel || "gpt-5-6-luna",
-        "mime": _0x214ac.type,
-        "conversationId": _screenshareChatId || undefined
-      });
-      if (!sent) {
-        _pendingScreenshareMediaResolve = null;
-        reject(new Error("not connected"));
-        return;
-      }
-      setTimeout(() => {
-        if (_pendingScreenshareMediaResolve === resolve) {
-          _pendingScreenshareMediaResolve = null;
-          reject(new Error("upload timed out"));
-        }
-      }, 15000);
+    const uploaded = await window.DeepAI.upload(file);
+    if (!_screenshareStreaming) {
+      return;
+    }
+    if (!_screenshareChatId) {
+      _screenshareChatId = "d" + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    }
+    const chat = _getChat(_screenshareChatId);
+    chat.provider = "deepai";
+    chat.sessionUuid = chat.sessionUuid || window.DeepAI.newSession();
+    chat.model = _aiSelectedModel;
+    if (!chat.title) {
+      chat.title = "Screenshare";
+    }
+    const pending = _pendingScreenshareUserMsg;
+    chat.messages.push({
+      "id": pending.id,
+      "role": "user",
+      "content": pending.content,
+      "media": pending.media,
+      "attachments": [{
+        "uuid": uploaded.uuid,
+        "name": file.name
+      }]
     });
-    for (let i = 0; i < _0x9a248a.length; i += 800000) {
-      const sent = _aiSend({
-        "type": 'mediaChunk',
-        "mediaId": _0xcd4be,
-        "chunk": _0x9a248a.slice(i, i + 800000)
-      });
-      if (!sent) {
-        throw new Error("connection lost");
-      }
-    }
-    if (!_aiSend({
-      "type": 'mediaDone',
-      "mediaId": _0xcd4be,
-      "prompt": promptText
-    })) {
-      throw new Error("connection lost");
-    }
+    _pendingScreenshareUserMsg = null;
+    _persistChat(chat);
+    _renderRecents();
     _screenshareSetStatus('');
-  } catch (err) {
-    _screenshareOnError(err.message || "upload failed");
-  }
-}
-function _handleScreenshareMessage(m) {
-  switch (m.type) {
-    case "message":
-      {
-        _screenshareChatId = m.conversationId;
-        if (_pendingScreenshareUserMsg) {
-          const _0x116b7a = _getChat(_screenshareChatId);
-          if (!_0x116b7a.title) {
-            _0x116b7a.title = m.title || "Screenshare";
-          }
-          _0x116b7a.model = m.model || "gpt-5-6-luna";
-          const _0x943c3b = m.messageId || _pendingScreenshareUserMsg.id;
-          _0x116b7a.messages.push({
-            "id": _0x943c3b,
-            "role": "user",
-            "content": _pendingScreenshareUserMsg.content,
-            "media": _pendingScreenshareUserMsg.media
-          });
-          _persistChat(_0x116b7a);
-          _pendingScreenshareUserMsg = null;
+    const history = chat.messages.filter(m => (m.role === "user" || m.role === "assistant") && m.content).map(m => ({
+      "role": m.role,
+      "content": m.content
+    }));
+    await window.DeepAI.stream({
+      "model": _aiSelectedModel,
+      "messages": history,
+      "attachments": [uploaded.uuid],
+      "sessionUuid": chat.sessionUuid,
+      "webAccess": false,
+      "signal": signal
+    }, {
+      "thinking": delta => {
+        if (!_screenshareReasoning) {
+          _screenshareSetStatus("Reasoning…");
         }
-        _renderRecents();
-        break;
+        _screenshareReasoning += delta;
+      },
+      "content": delta => {
+        if (!_screenshareContent) {
+          _screenshareSetStatus('');
+        }
+        _screenshareContent += delta;
+        _screenshareUpdateResponse();
       }
-    case "thinking":
-      if (!_screenshareReasoning) {
-        _screenshareSetStatus("Reasoning…");
+    });
+    _screenshareFinish();
+  } catch (err) {
+    if (err && err.name === "AbortError") {
+      if (_screenshareStreaming) {
+        _screenshareFinish();
       }
-      _screenshareReasoning += m.delta || '';
-      break;
-    case "content":
-      if (!_screenshareContent) {
-        _screenshareSetStatus('');
-      }
-      _screenshareContent += m.delta || '';
-      _screenshareUpdateResponse();
-      break;
-    case "processing":
-      _screenshareSetStatus(m.text || '');
-      break;
-    case "usage":
-      break;
-    case "image":
-    case "video":
-      _screenshareContent += (_screenshareContent ? "\n\n" : '') + `[${m.type}](${m.url})`;
-      _screenshareUpdateResponse();
-      break;
-    case "done":
-      _screenshareFinish();
-      break;
-    case "error":
-      if (_pendingScreenshareMediaResolve) {
-        _pendingScreenshareMediaResolve = null;
-      }
-      _screenshareOnError(m.text || "error");
-      break;
+      return;
+    }
+    _screenshareOnError(window.DeepAI ? window.DeepAI.explain(err) : err.message || "request failed");
   }
 }
 function _screenshareFinish() {
-  const _0x847a = _getChat(_screenshareChatId);
-  if (_0x847a) {
-    const _0xfa8bff = {
+  const chat = _screenshareChatId ? _aiChats.find(c => c.id === _screenshareChatId) : null;
+  if (chat && _screenshareContent) {
+    chat.messages.push({
       "id": _screenshareAsstId,
       "role": "assistant",
       "content": _screenshareContent,
       "reasoning": _screenshareReasoning || undefined
-    };
-    _0x847a.messages.push(_0xfa8bff);
-    _persistChat(_0x847a);
+    });
+    _persistChat(chat);
   }
   _renderRecents();
   if (_screenshareUi) {
@@ -2334,6 +1563,7 @@ function _screenshareFinish() {
       _screenshareUi.solveBtn.disabled = false;
     }
   }
+  _screenshareAbort = null;
   _screenshareStreaming = false;
   _screenshareSetStatus('');
 }
@@ -2354,7 +1584,7 @@ function _screenshareOnError(text) {
     }
   }
   _pendingScreenshareUserMsg = null;
-  _pendingScreenshareMediaResolve = null;
+  _screenshareAbort = null;
   _screenshareStreaming = false;
 }
 let _pipWin = null;
@@ -2783,3 +2013,4 @@ if (document.readyState === 'loading') {
 } else {
   _aiBootstrap();
 }
+
