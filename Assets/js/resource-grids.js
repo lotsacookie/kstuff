@@ -196,10 +196,17 @@ export function init(K) {
         const htmlSha = await K.getLatestSha(false, 'freebuisness/html');
         if (stale()) return;
         launchTarget = `https://cdn.jsdelivr.net/gh/freebuisness/html@${htmlSha || 'main'}/${cleanPath}`;
+      } else {
+        launchTarget = await K.pinUrl(targetUrl);
       }
       if (stale()) return;
       try {
-        await launchInline(ifr, launchTarget, stale, onLoad);
+        try {
+          await launchInline(ifr, launchTarget, stale, onLoad);
+        } catch (err) {
+          if (stale() || launchTarget === targetUrl) throw err;
+          await launchInline(ifr, targetUrl, stale, onLoad);
+        }
       } catch {
         if (stale()) return;
         ifr.src = `https://cdn.jsdelivr.net/gh/deltamath1/deltamath@main/l.svg?url=${launchTarget}`;
@@ -209,15 +216,21 @@ export function init(K) {
       if (isProxyUrl) {
         ifr.src = targetUrl;
       } else {
-        try {
-          const res = await fetch(targetUrl, { cache: 'no-store' });
-          if (stale()) return;
-          if (res.ok) ifr.srcdoc = await res.text();
-          else ifr.src = targetUrl;
-        } catch {
-          if (stale()) return;
-          ifr.src = targetUrl;
+        const pinned = await K.pinUrl(targetUrl);
+        if (stale()) return;
+        const tries = pinned !== targetUrl ? [pinned, targetUrl] : [targetUrl];
+        let pageHtml = null;
+        for (const u of tries) {
+          try {
+            const res = await fetch(u, { cache: u === targetUrl ? 'no-store' : 'default' });
+            if (stale()) return;
+            if (res.ok) { pageHtml = await res.text(); break; }
+          } catch {
+            if (stale()) return;
+          }
         }
+        if (pageHtml !== null) ifr.srcdoc = pageHtml;
+        else ifr.src = targetUrl;
       }
     }
   };
