@@ -983,12 +983,13 @@
     let sendIds = attachments.slice();
     let emitted = false;
     let reply = "";
-    let resaved = false;
+    let freshened = false;
+    let sessionUuid = options.sessionUuid;
     const persist = async extra => {
       const saved = extra ? (options.messages || []).concat([{ role: "assistant", content: extra }]) : (options.messages || []);
       for (let i = 0; i < 2; i++) {
         try {
-          await state.client.saveSession({ uuid: options.sessionUuid, model: modelValue.slice(PREFIX.length), messages: saved });
+          await state.client.saveSession({ uuid: sessionUuid, model: modelValue.slice(PREFIX.length), messages: saved });
           return true;
         } catch (e) {
           console.warn("[deepai] save session failed", i, e && e.status, e && e.message);
@@ -1012,12 +1013,12 @@
     };
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        await persist();
+        if (attachments.length) await persist();
         for await (const part of state.client.chat({
           model: modelValue.slice(PREFIX.length),
           messages: withContext(options.messages, games),
           attachments: sendIds,
-          sessionUuid: options.sessionUuid,
+          sessionUuid,
           webAccess: options.webAccess,
           signal: options.signal
         })) {
@@ -1034,9 +1035,10 @@
         return;
       } catch (error) {
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
-        if (!emitted && error && error.status === 404 && !resaved) {
-          resaved = true;
-          await persist();
+        if (!emitted && error && error.status === 404 && !freshened) {
+          freshened = true;
+          sessionUuid = uuid();
+          if (options.onSession) options.onSession(sessionUuid);
           continue;
         }
         if (!emitted && error && error.status === 404 && sendIds.length && newest.length && sendIds.length !== newest.length) {
@@ -1090,6 +1092,9 @@
         messages: built.history,
         attachments: built.files,
         sessionUuid: chat.sessionUuid,
+        onSession: id => {
+          chat.sessionUuid = id;
+        },
         webAccess: _aiWebSearchEnabled,
         signal: state.abort.signal
       }, { thinking: _onStreamThinking, content: _onStreamContent });
