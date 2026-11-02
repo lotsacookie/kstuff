@@ -440,22 +440,49 @@
       if (cookie) out.Cookie = cookie;
       return out;
     };
+    const describeBody = b => {
+      if (b == null) return "none";
+      if (typeof b === "string") return "string(" + b.length + ")";
+      if (typeof FormData !== "undefined" && b instanceof FormData) {
+        return "FormData{" + [...b.entries()].map(([k, v]) => k + "=" + (typeof v === "string" ? (v.length > 120 ? v.slice(0, 120) + "..." : v) : "File(" + (v.name || "") + "," + (v.type || "") + "," + (v.size || 0) + "b)")).join(", ") + "}";
+      }
+      return (b.constructor && b.constructor.name || "body") + "(" + (b.byteLength || b.size || b.length || "?") + ")";
+    };
     async function raw(path, init) {
       init = init || {};
       const url = path.startsWith("http") ? path : API + path;
-      const response = await send(url, Object.assign({ redirect: "follow" }, init, { headers: headers(init.headers) }));
+      const sent = headers(init.headers);
+      const started = Date.now();
+      console.log("[deepai] ->", init.method || "GET", url, "headers:", Object.keys(sent).filter(k => k !== "Cookie").join(","), "cookies:", sent.Cookie ? sent.Cookie.split(";").map(c => c.split("=")[0].trim()).join(",") : "none", "body:", describeBody(init.body));
+      let response;
+      try {
+        response = await send(url, Object.assign({ redirect: "follow" }, init, { headers: sent }));
+      } catch (e) {
+        console.error("[deepai] <- network error", init.method || "GET", url, e);
+        throw e;
+      }
       jar.absorb(response.headers);
+      console.log("[deepai] <-", response.status, init.method || "GET", url, (response.headers.get("content-type") || ""), (Date.now() - started) + "ms");
       return response;
+    }
+    async function readBody(response) {
+      let text = "";
+      try {
+        text = await response.text();
+      } catch (e) {}
+      let body = null;
+      try {
+        body = JSON.parse(text);
+      } catch (e) {}
+      if (!response.ok) console.error("[deepai] error body", response.status, response.url || "", text.slice(0, 2000));
+      return { body, text };
     }
     async function json(path, init) {
       const response = await raw(path, init);
-      let body = null;
-      try {
-        body = await response.json();
-      } catch (e) {}
+      const { body, text } = await readBody(response);
       if (!response.ok) {
         const code = body && (body.status || body.error || body.detail) || "";
-        throw new DeepAIError(String(code || "HTTP " + response.status), { status: response.status, code: String(code), body });
+        throw new DeepAIError(String(code || "HTTP " + response.status + (text ? ": " + text.replace(/\s+/g, " ").slice(0, 200) : "")), { status: response.status, code: String(code), body });
       }
       return body;
     }
@@ -535,9 +562,11 @@
         ];
         let last = null;
         const notes = [];
+        console.log("[deepai] upload", name, file.type || "", file.size || 0, "bytes");
         for (const attempt of attempts) {
           try {
             const body = await attempt();
+            console.log("[deepai] upload response", JSON.stringify(body));
             if (body && body.success && body.attachment) return body.attachment;
             last = new DeepAIError(body && body.error || "Upload failed", { body });
           } catch (e) {
@@ -567,6 +596,7 @@
         if (options.webAccess !== undefined) fields.web_access_enabled = options.webAccess ? "true" : "false";
         if (options.attachments && options.attachments.length) fields.attachment_uuids = JSON.stringify(options.attachments);
         const packed = await multipart(fields);
+        console.log("[deepai] chat fields", Object.assign({}, fields, { chatHistory: "(" + fields.chatHistory.length + " chars, " + options.messages.length + " messages)" }));
         const response = await raw("/hacking_is_a_serious_crime", {
           method: "POST",
           body: packed.body,
@@ -574,12 +604,9 @@
           headers: { "Content-Type": packed.type, "api-key": apiKey() }
         });
         if (!response.ok) {
-          let body = null;
-          try {
-            body = await response.json();
-          } catch (e) {}
+          const { body, text } = await readBody(response);
           const code = body && body.status || "";
-          throw new DeepAIError(String(code || "HTTP " + response.status), { status: response.status, code: String(code), body });
+          throw new DeepAIError(String(code || "HTTP " + response.status + (text ? ": " + text.replace(/\s+/g, " ").slice(0, 200) : "")), { status: response.status, code: String(code), body });
         }
         if ((response.headers.get("content-type") || "").includes("application/json")) {
           yield { type: "json", value: await response.json() };
@@ -948,7 +975,14 @@
       (m.attachments || []).forEach(addAttachment);
     });
     (options.attachments || []).forEach(addAttachment);
+    const newest = [];
+    (options.attachments || []).forEach(v => {
+      const id = typeof v === "string" ? v : v && v.uuid;
+      if (id && !newest.includes(id)) newest.push(id);
+    });
+    let sendIds = attachments.slice();
     let emitted = false;
+    console.log("[deepai] stream", { model: value, session: options.sessionUuid, messages: (options.messages || []).length, all: attachments, newest });
     await autoSignIn();
     const games = wantsGames(options.messages) ? await loadGames() : "";
     const wrapped = {
@@ -961,7 +995,7 @@
         handlers.content(delta);
       }
     };
-    for (let attempt = 0; attempt < 2; attempt++) {
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
         if (attachments.length) {
           try {
@@ -971,7 +1005,7 @@
         for await (const part of state.client.chat({
           model: modelValue.slice(PREFIX.length),
           messages: withContext(options.messages, games),
-          attachments,
+          attachments: sendIds,
           sessionUuid: options.sessionUuid,
           webAccess: options.webAccess,
           signal: options.signal
@@ -987,6 +1021,12 @@
         }
         return;
       } catch (error) {
+        console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
+        if (!emitted && error && error.status === 404 && sendIds.length && newest.length && sendIds.length !== newest.length) {
+          console.warn("[deepai] 404 with", sendIds.length, "attachment ids, retrying with only the newest", newest);
+          sendIds = newest.slice();
+          continue;
+        }
         if (attempt === 0 && !emitted && error && error.code === "anonymous try it exceeded" && await signIn()) continue;
         if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
         throw error;
