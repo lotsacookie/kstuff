@@ -36,6 +36,21 @@ let _streamMedia = null;
 let _streamAsstId = null;
 let _pendingUserMsg = null;
 let _aiAttachedFile = null;
+let _aiAttachedUpload = null;
+function _attachBusy() {
+  return !!(_aiAttachedFile && _aiAttachedUpload && _aiAttachedUpload.status === "uploading");
+}
+function _refreshSendState() {
+  const sendBtn = document.getElementById("aiSendBtn");
+  const input = document.getElementById("aiInput");
+  if (!sendBtn) {
+    return;
+  }
+  const hasText = !!(input && input.value.trim().length > 0);
+  sendBtn.style.display = hasText || _aiAttachedFile ? "flex" : "none";
+  sendBtn.disabled = _attachBusy() || _aiStreaming;
+  sendBtn.style.opacity = _attachBusy() ? "0.5" : "";
+}
 let _aiAttachedPreviewUrl = null;
 let _screenshareStream = null;
 let _screenshareVideo = null;
@@ -372,13 +387,16 @@ function _setAttachedFile(file) {
     _aiAttachedPreviewUrl = null;
   }
   _aiAttachedFile = null;
+  _aiAttachedUpload = null;
   const preview = document.getElementById("aiAttachPreview");
   const thumb = document.getElementById("aiAttachThumb");
   const name = document.getElementById("aiAttachName");
   if (!file) {
     if (preview) {
       preview.classList.remove("show");
+      preview.classList.remove("uploading");
     }
+    _refreshSendState();
     return;
   }
   if (file.size > 11534336) {
@@ -396,6 +414,50 @@ function _setAttachedFile(file) {
   if (preview) {
     preview.classList.add("show");
   }
+  _startAttachUpload(file, name, preview);
+}
+function _startAttachUpload(file, nameEl, preview) {
+  if (!window.DeepAI) {
+    _toast("connecting to DeepAI…");
+    _setAttachedFile(null);
+    return;
+  }
+  const job = {
+    file,
+    status: "uploading",
+    attachment: null
+  };
+  _aiAttachedUpload = job;
+  if (nameEl) {
+    nameEl.textContent = file.name + " – uploading…";
+  }
+  if (preview) {
+    preview.classList.add("uploading");
+  }
+  _refreshSendState();
+  console.log("[ai] attachment upload started", file.name, file.type, file.size);
+  window.DeepAI.upload(file).then(attachment => {
+    if (_aiAttachedUpload !== job) {
+      return;
+    }
+    job.status = "done";
+    job.attachment = attachment;
+    console.log("[ai] attachment uploaded", attachment && attachment.uuid);
+    if (nameEl) {
+      nameEl.textContent = file.name;
+    }
+    if (preview) {
+      preview.classList.remove("uploading");
+    }
+    _refreshSendState();
+  })["catch"](err => {
+    console.error("[ai] attachment upload failed", err && err.message);
+    if (_aiAttachedUpload !== job) {
+      return;
+    }
+    _toast("upload failed: " + (err && err.message || "error"));
+    _setAttachedFile(null);
+  });
 }
 function _newChat() {
   if (_aiStreaming) {
@@ -420,6 +482,15 @@ function _sendMessage() {
   const text = (input.value || '').trim();
   const file = _aiAttachedFile;
   if (!text && !file || _aiStreaming || _screenshareStreaming) {
+    return;
+  }
+  if (_attachBusy()) {
+    _toast("wait for the upload to finish");
+    return;
+  }
+  const uploaded = file && _aiAttachedUpload && _aiAttachedUpload.status === "done" ? _aiAttachedUpload.attachment : null;
+  if (file && !uploaded) {
+    _toast("attachment isn't ready, try attaching it again");
     return;
   }
   if (!window.DeepAI || !_aiSelectedModel) {
@@ -454,13 +525,15 @@ function _sendMessage() {
   _streamMedia = null;
   if (file) {
     _aiAttachedFile = null;
+    _aiAttachedUpload = null;
     _aiAttachedPreviewUrl = null;
     const preview = document.getElementById("aiAttachPreview");
     if (preview) {
       preview.classList.remove("show");
+      preview.classList.remove("uploading");
     }
   }
-  window.DeepAI.send(text, file)["catch"](err => _onStreamError(err.message || "request failed"));
+  window.DeepAI.send(text, file, uploaded)["catch"](err => _onStreamError(err.message || "request failed"));
 }
 function _onStreamStart(m) {
   console.log("[ai] stream start", m);

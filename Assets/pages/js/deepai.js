@@ -1231,19 +1231,22 @@
     }
   }
 
-  async function send(text, file) {
+  async function send(text, file, uploaded) {
     await ready();
     console.log("[deepai] send", { chars: (text || "").length, file: file ? file.name + " " + (file.type || "") + " " + file.size + "b" : null });
     const attachments = [];
     if (file) {
-      say("Uploading " + file.name + "…");
-      try {
-        const uploaded = await uploadFile(file);
-        console.log("[deepai] uploaded", uploaded && uploaded.uuid);
-        attachments.push({ uuid: uploaded.uuid, name: file.name });
-      } finally {
-        say("");
+      let ready = uploaded;
+      if (!ready) {
+        say("Uploading " + file.name + "…");
+        try {
+          ready = await uploadFile(file);
+        } finally {
+          say("");
+        }
       }
+      console.log("[deepai] attachment", ready && ready.uuid);
+      attachments.push({ uuid: ready.uuid, name: file.name });
     }
     await run(attachments);
   }
