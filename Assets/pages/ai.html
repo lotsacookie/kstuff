@@ -25,8 +25,22 @@
   };
   var send = function (level, text) {
     var msg = { sgConsole: true, level: level, src: "ai", text: String(text).slice(0, 20000) };
-    try { if (window.parent && window.parent !== window) window.parent.postMessage(msg, "*"); } catch (e) {}
-    try { if (window.top && window.top !== window && window.top !== window.parent) window.top.postMessage(msg, "*"); } catch (e) {}
+    var w = window;
+    for (var i = 0; i < 8; i++) {
+      var up = null;
+      try { up = w.parent; } catch (e) { up = null; }
+      if (!up || up === w) break;
+      var pushed = false;
+      try {
+        if (typeof up.__sgLogPush === "function") {
+          up.__sgLogPush(level, "ai", msg.text);
+          pushed = true;
+        }
+      } catch (e) {}
+      if (pushed) return;
+      try { up.postMessage(msg, "*"); } catch (e) {}
+      w = up;
+    }
   };
   window.__sgFwdSend = send;
   ["log", "info", "warn", "error", "debug"].forEach(function (m) {
