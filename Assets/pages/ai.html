@@ -8,6 +8,74 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
 
+<script>
+(function () {
+  if (window.__sgFwd) return;
+  window.__sgFwd = 1;
+  var fmt = function (a) {
+    try {
+      if (typeof a === "string") return a;
+      if (a instanceof Error) return a.stack || a.message;
+      if (typeof a === "function") return String(a);
+      if (a && typeof a === "object") {
+        try { return JSON.stringify(a, function (k, v) { return typeof v === "bigint" ? String(v) : v; }, 2); } catch (e) { return Object.prototype.toString.call(a); }
+      }
+      return String(a);
+    } catch (e) { return "[unprintable]"; }
+  };
+  var send = function (level, text) {
+    var msg = { sgConsole: true, level: level, src: "ai", text: String(text).slice(0, 20000) };
+    try { if (window.parent && window.parent !== window) window.parent.postMessage(msg, "*"); } catch (e) {}
+    try { if (window.top && window.top !== window && window.top !== window.parent) window.top.postMessage(msg, "*"); } catch (e) {}
+  };
+  window.__sgFwdSend = send;
+  ["log", "info", "warn", "error", "debug"].forEach(function (m) {
+    var orig = console[m];
+    console[m] = function () {
+      try { send(m, [].map.call(arguments, fmt).join(" ")); } catch (e) {}
+      return orig.apply(this, arguments);
+    };
+  });
+  addEventListener("error", function (e) {
+    try {
+      if (e.target && e.target !== window) {
+        var u = e.target.src || e.target.href;
+        if (u) send("error", "Failed to load " + u);
+        return;
+      }
+      send("error", (e.message || "Error") + (e.filename ? " (" + e.filename + ":" + e.lineno + ":" + e.colno + ")" : ""));
+    } catch (_) {}
+  }, true);
+  addEventListener("unhandledrejection", function (e) {
+    try { send("error", "Unhandled rejection: " + fmt(e.reason)); } catch (_) {}
+  });
+  if (window.fetch) {
+    var of = window.fetch;
+    window.fetch = function (input, init) {
+      var url = typeof input === "string" ? input : input && input.url;
+      var method = (init && init.method) || (input && input.method) || "GET";
+      var t = Date.now();
+      send("log", "fetch -> " + method + " " + url);
+      return of.apply(this, arguments).then(function (r) {
+        send(r.ok ? "log" : "warn", "fetch <- " + r.status + " " + method + " " + url + " " + (Date.now() - t) + "ms");
+        return r;
+      }, function (err) {
+        send("error", "fetch failed " + method + " " + url + " " + fmt(err));
+        throw err;
+      });
+    };
+  }
+  if (window.XMLHttpRequest) {
+    var oo = XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open = function (method, url) {
+      var x = this;
+      x.addEventListener("loadend", function () { send(x.status >= 400 || !x.status ? "warn" : "log", "xhr " + x.status + " " + method + " " + url); });
+      return oo.apply(this, arguments);
+    };
+  }
+  send("info", "AI page console forwarding on");
+})();
+</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.1.5/purify.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">

@@ -463,6 +463,7 @@ function _sendMessage() {
   window.DeepAI.send(text, file)["catch"](err => _onStreamError(err.message || "request failed"));
 }
 function _onStreamStart(m) {
+  console.log("[ai] stream start", m);
   _aiCurrentChatId = m.conversationId;
   _streamContent = '';
   _streamReasoning = '';
@@ -569,6 +570,7 @@ function _onStreamMedia(kind, url) {
   _scrollChatToBottom();
 }
 function _onStreamDone() {
+  console.log("[ai] stream done", { chat: _aiCurrentChatId, chars: _streamContent.length });
   const _0x5f93d = _streamShell;
   const _0xa25b5b = _streamContent;
   const _0xa33d = _streamReasoning;
@@ -611,6 +613,7 @@ function _onStreamDone() {
   }
 }
 function _onStreamError(text) {
+  console.error("[ai] stream error shown to user:", text);
   if (_streamPlaceholder) {
     _streamPlaceholder.remove();
     _streamPlaceholder = null;

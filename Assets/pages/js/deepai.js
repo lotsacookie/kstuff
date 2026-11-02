@@ -751,9 +751,12 @@
 
   async function signIn() {
     if (!state.client) return false;
+    console.log("[deepai] sign in start");
     try {
       state.user = await ensureAccount(state.client);
+      console.log("[deepai] sign in ok", state.user && (state.user.username || state.user.email || "user"));
     } catch (e) {
+      console.error("[deepai] sign in failed", e && e.status, e && e.message);
       state.user = null;
     }
     return !!state.user;
@@ -954,9 +957,12 @@
   async function followTask(taskId, signal, handlers) {
     let seenThinking = 0;
     let seenAnswer = 0;
+    let lastStatus = "";
     for (let i = 0; i < 400; i++) {
       if (signal && signal.aborted) throw new DOMException("aborted", "AbortError");
       const data = await state.client.taskStatus(taskId);
+      if (i === 0 || String(data.status || "") !== lastStatus) console.log("[deepai] task", taskId, "status", data.status);
+      lastStatus = String(data.status || "");
       const thinking = data.thinking_text || "";
       const answer = data.answer_text || "";
       if (thinking.length > seenThinking) {
@@ -1004,7 +1010,9 @@
       const saved = extra ? (options.messages || []).concat([{ role: "assistant", content: extra }]) : (options.messages || []);
       for (let i = 0; i < 2; i++) {
         try {
-          await state.client.saveSession({ uuid: sessionUuid, model: modelValue.slice(PREFIX.length), messages: saved });
+          console.log("[deepai] save session", sessionUuid, saved.length, "messages");
+          const result = await state.client.saveSession({ uuid: sessionUuid, model: modelValue.slice(PREFIX.length), messages: saved });
+          console.log("[deepai] save session ok", JSON.stringify(result));
           return true;
         } catch (e) {
           console.warn("[deepai] save session failed", i, e && e.status, e && e.message);
@@ -1046,6 +1054,7 @@
             wrapped.content(typeof body === "string" ? body : body.answer_text || body.output || JSON.stringify(body));
           }
         }
+        console.log("[deepai] stream finished", reply.length, "chars");
         if (reply) await persist(reply);
         return;
       } catch (error) {
@@ -1053,6 +1062,7 @@
         if (!emitted && error && error.status === 404) {
           if (level === 0) {
             level = 1;
+            console.warn("[deepai] 404 ladder level 1: fresh session");
             sessionUuid = uuid();
             if (options.onSession) options.onSession(sessionUuid);
             continue;
@@ -1060,12 +1070,14 @@
           if (level === 1) {
             level = 2;
             if (sendIds.length && newest.length && sendIds.length !== newest.length) {
+              console.warn("[deepai] 404 ladder level 2: only newest attachments", newest);
               sendIds = newest.filter(id => !badAttachments.has(id));
               continue;
             }
           }
           if (level === 2 && sendIds.length) {
             level = 3;
+            console.warn("[deepai] 404 ladder level 3: dropping attachments", attachments);
             attachments.forEach(id => badAttachments.add(id));
             sendIds = [];
             handlers.content("(DeepAI rejected the attachment, so this reply can't see it.)\n\n");
@@ -1105,6 +1117,7 @@
   async function run(attachments) {
     await ready();
     const chat = ensureChat();
+    console.log("[deepai] run", { chat: chat.id, session: chat.sessionUuid, model: chat.model, messages: chat.messages.length, attachments: (attachments || []).length });
     const pending = _pendingUserMsg;
     const title = chat.title || (pending && pending.content ? pending.content.slice(0, 40) : "DeepAI chat");
     _onStreamStart({ conversationId: chat.id, title, model: chat.model });
@@ -1128,6 +1141,7 @@
       }, { thinking: _onStreamThinking, content: _onStreamContent });
       _onStreamDone();
     } catch (error) {
+      console.error("[deepai] run failed", error && error.name, error && error.status, error && error.path, error && error.message);
       if (error && error.name === "AbortError") _onStreamDone();
       else _onStreamError(explain(error));
     } finally {
@@ -1137,11 +1151,13 @@
 
   async function send(text, file) {
     await ready();
+    console.log("[deepai] send", { chars: (text || "").length, file: file ? file.name + " " + (file.type || "") + " " + file.size + "b" : null });
     const attachments = [];
     if (file) {
       say("Uploading " + file.name + "…");
       try {
         const uploaded = await uploadFile(file);
+        console.log("[deepai] uploaded", uploaded && uploaded.uuid);
         attachments.push({ uuid: uploaded.uuid, name: file.name });
       } finally {
         say("");
