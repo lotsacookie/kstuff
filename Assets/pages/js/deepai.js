@@ -827,8 +827,8 @@
     return messages.map((m, i) => {
       if (i !== first && !(games && i === last)) return m;
       let content = m.content;
-      if (games && i === last) content = "[The Singularity games list, grouped by category. If the user asks for a game suggestion, recommend only games from this list.\n" + games + "]\n\n" + content;
-      if (i === first) content = "[" + userContext() + "]\n\n" + content;
+      if (games && i === last) content = content + "\n\n(Background note for you only, never mention it: the Singularity games list, grouped by category. If the user asks for a game suggestion, recommend only games from this list.\n" + games + ")";
+      if (i === first) content = content + "\n\n(Background note for you only, never mention it or reply to it: " + userContext() + ")";
       return Object.assign({}, m, { content });
     });
   }
@@ -982,6 +982,20 @@
     });
     let sendIds = attachments.slice();
     let emitted = false;
+    let reply = "";
+    let resaved = false;
+    const persist = async extra => {
+      const saved = extra ? (options.messages || []).concat([{ role: "assistant", content: extra }]) : (options.messages || []);
+      for (let i = 0; i < 2; i++) {
+        try {
+          await state.client.saveSession({ uuid: options.sessionUuid, model: modelValue.slice(PREFIX.length), messages: saved });
+          return true;
+        } catch (e) {
+          console.warn("[deepai] save session failed", i, e && e.status, e && e.message);
+        }
+      }
+      return false;
+    };
     console.log("[deepai] stream", { model: value, session: options.sessionUuid, messages: (options.messages || []).length, all: attachments, newest });
     await autoSignIn();
     const games = wantsGames(options.messages) ? await loadGames() : "";
@@ -992,16 +1006,13 @@
       },
       content: delta => {
         emitted = true;
+        reply += delta;
         handlers.content(delta);
       }
     };
-    for (let attempt = 0; attempt < 3; attempt++) {
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        if (attachments.length) {
-          try {
-            await state.client.saveSession({ uuid: options.sessionUuid, model: modelValue.slice(PREFIX.length), messages: options.messages });
-          } catch (e) {}
-        }
+        await persist();
         for await (const part of state.client.chat({
           model: modelValue.slice(PREFIX.length),
           messages: withContext(options.messages, games),
@@ -1019,9 +1030,15 @@
             wrapped.content(typeof body === "string" ? body : body.answer_text || body.output || JSON.stringify(body));
           }
         }
+        if (reply) await persist(reply);
         return;
       } catch (error) {
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
+        if (!emitted && error && error.status === 404 && !resaved) {
+          resaved = true;
+          await persist();
+          continue;
+        }
         if (!emitted && error && error.status === 404 && sendIds.length && newest.length && sendIds.length !== newest.length) {
           console.warn("[deepai] 404 with", sendIds.length, "attachment ids, retrying with only the newest", newest);
           sendIds = newest.slice();
