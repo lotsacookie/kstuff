@@ -937,7 +937,17 @@
     await ready();
     const value = String(options.model);
     const modelValue = owns(value) ? value : PREFIX + value;
-    const attachments = options.attachments || [];
+    // Like the site, send every attachment uuid of the conversation, not only the new ones.
+    const attachments = [];
+    const addAttachment = v => {
+      const id = typeof v === "string" ? v : v && v.uuid;
+      if (id && !attachments.includes(id)) attachments.push(id);
+    };
+    (options.messages || []).forEach(m => {
+      (m.attachment_uuids || []).forEach(addAttachment);
+      (m.attachments || []).forEach(addAttachment);
+    });
+    (options.attachments || []).forEach(addAttachment);
     let emitted = false;
     await autoSignIn();
     const games = wantsGames(options.messages) ? await loadGames() : "";
