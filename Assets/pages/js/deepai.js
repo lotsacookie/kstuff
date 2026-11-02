@@ -522,6 +522,15 @@
         }
         return this.me();
       },
+      async registerSessions(known) {
+        return post("/get_my_chat_sessions_and_convert_anonymous_sessions", { my_known_uuids: JSON.stringify(known) });
+      },
+      async deleteSession(sessionUuid) {
+        return post("/delete_chat_session", { uuid: sessionUuid });
+      },
+      async renameSession(sessionUuid, title) {
+        return post("/rename_chat_session", { uuid: sessionUuid, title });
+      },
       async saveSession(session) {
         return post("/save_chat_session", { uuid: session.uuid, title: "", chat_style: "chat", chat_model: session.model, messages: JSON.stringify(session.messages) });
       },
@@ -624,6 +633,70 @@
         if (tail) yield { type: "text", value: tail };
       }
     };
+  }
+
+  const SESS_KEY = "DAIS";
+  const readSessions = () => {
+    try {
+      const list = JSON.parse(localStorage.getItem(SESS_KEY) || "[]");
+      return Array.isArray(list) ? list : [];
+    } catch (e) {
+      return [];
+    }
+  };
+  const writeSessions = list => {
+    try {
+      localStorage.setItem(SESS_KEY, JSON.stringify(list));
+    } catch (e) {}
+  };
+  const rememberSession = id => {
+    const list = readSessions();
+    if (id && !list.includes(id)) {
+      list.push(id);
+      writeSessions(list);
+    }
+  };
+  const forgetSession = id => writeSessions(readSessions().filter(v => v !== id));
+  let saveQueue = Promise.resolve();
+  let syncing = null;
+  async function syncSessions() {
+    if (!state.client) return null;
+    if (syncing) return syncing;
+    syncing = (async () => {
+      try {
+        const data = await state.client.registerSessions(readSessions());
+        const drop = data && Array.isArray(data.session_uuids_to_forget) ? data.session_uuids_to_forget : [];
+        if (drop.length) writeSessions(readSessions().filter(v => !drop.includes(v)));
+        console.log("[deepai] sessions synced", { known: readSessions().length, forgotten: drop.length, onServer: data && Array.isArray(data.sessions) ? data.sessions.length : null });
+        return data;
+      } catch (e) {
+        console.warn("[deepai] session sync failed", e && e.status, e && e.message);
+        return null;
+      } finally {
+        syncing = null;
+      }
+    })();
+    return syncing;
+  }
+  async function removeSession(id) {
+    if (!id) return;
+    forgetSession(id);
+    if (!state.client) return;
+    try {
+      const data = await state.client.deleteSession(id);
+      console.log("[deepai] session deleted", id, JSON.stringify(data));
+    } catch (e) {
+      console.warn("[deepai] session delete failed", id, e && e.status, e && e.message);
+    }
+  }
+  async function renameSession(id, title) {
+    if (!id || !state.client) return;
+    try {
+      const data = await state.client.renameSession(id, title);
+      console.log("[deepai] session renamed", id, JSON.stringify(data));
+    } catch (e) {
+      console.warn("[deepai] session rename failed", id, e && e.status, e && e.message);
+    }
   }
 
   const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [], games: "", lastSign: 0 };
@@ -755,6 +828,7 @@
     try {
       state.user = await ensureAccount(state.client);
       console.log("[deepai] sign in ok", state.user && (state.user.username || state.user.email || "user"));
+      if (state.user) syncSessions();
     } catch (e) {
       console.error("[deepai] sign in failed", e && e.status, e && e.message);
       state.user = null;
@@ -1006,19 +1080,26 @@
     let emitted = false;
     let reply = "";
     let sessionUuid = options.sessionUuid;
-    const persist = async extra => {
-      const saved = extra ? (options.messages || []).concat([{ role: "assistant", content: extra }]) : (options.messages || []);
-      for (let i = 0; i < 2; i++) {
-        try {
-          console.log("[deepai] save session", sessionUuid, saved.length, "messages");
-          const result = await state.client.saveSession({ uuid: sessionUuid, model: modelValue.slice(PREFIX.length), messages: saved });
-          console.log("[deepai] save session ok", JSON.stringify(result));
-          return true;
-        } catch (e) {
-          console.warn("[deepai] save session failed", i, e && e.status, e && e.message);
+    const persist = extra => {
+      const saved = extra ? cleanMessages(options.messages).concat([{ role: "assistant", content: extra }]) : cleanMessages(options.messages);
+      const id = sessionUuid;
+      const task = saveQueue.catch(() => {}).then(async () => {
+        for (let i = 0; i < 2; i++) {
+          try {
+            console.log("[deepai] save session", id, saved.length, "messages");
+            const result = await state.client.saveSession({ uuid: id, model: modelValue.slice(PREFIX.length), messages: saved });
+            console.log("[deepai] save session ok", JSON.stringify(result));
+            rememberSession(id);
+            syncSessions();
+            return true;
+          } catch (e) {
+            console.warn("[deepai] save session failed", i, e && e.status, e && e.message, JSON.stringify(e && e.body));
+          }
         }
-      }
-      return false;
+        return false;
+      });
+      saveQueue = task;
+      return task;
     };
     console.log("[deepai] stream", { model: value, session: options.sessionUuid, messages: (options.messages || []).length, all: attachments, newest });
     await autoSignIn();
@@ -1058,6 +1139,7 @@
         if (reply) await persist(reply);
         return;
       } catch (error) {
+        if (error && error.name === "AbortError" && reply) await persist(reply);
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
         if (!emitted && error && error.status === 404) {
           if (level === 0) {
@@ -1183,6 +1265,9 @@
     stream,
     upload,
     newSession: uuid,
+    removeSession,
+    renameSession,
+    syncSessions,
     explain,
     stop,
     boot,

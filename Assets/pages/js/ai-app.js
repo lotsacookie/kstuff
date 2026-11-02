@@ -1135,6 +1135,10 @@ function _onConversationDeleted(conversationId) {
   if (!conversationId) {
     return;
   }
+  const _removed = _aiChats.find(c => c.id === conversationId);
+  if (_removed && _removed.sessionUuid && window.DeepAI && window.DeepAI.removeSession) {
+    window.DeepAI.removeSession(_removed.sessionUuid);
+  }
   _aiChats = _aiChats.filter(c => c.id !== conversationId);
   _deleteChatRecord(conversationId);
   if (_aiCurrentChatId === conversationId) {
