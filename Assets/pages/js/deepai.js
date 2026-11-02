@@ -78,6 +78,7 @@
       this.status = info.status || 0;
       this.code = info.code || "";
       this.body = info.body || null;
+      this.path = info.path || "";
     }
   }
 
@@ -482,7 +483,7 @@
       const { body, text } = await readBody(response);
       if (!response.ok) {
         const code = body && (body.status || body.error || body.detail) || "";
-        throw new DeepAIError(String(code || "HTTP " + response.status + (text ? ": " + text.replace(/\s+/g, " ").slice(0, 200) : "")), { status: response.status, code: String(code), body });
+        throw new DeepAIError(String(code || "HTTP " + response.status + (text ? ": " + text.replace(/\s+/g, " ").slice(0, 200) : "")), { status: response.status, code: String(code), body, path: String(path).split("?")[0] });
       }
       return body;
     }
@@ -606,7 +607,7 @@
         if (!response.ok) {
           const { body, text } = await readBody(response);
           const code = body && body.status || "";
-          throw new DeepAIError(String(code || "HTTP " + response.status + (text ? ": " + text.replace(/\s+/g, " ").slice(0, 200) : "")), { status: response.status, code: String(code), body });
+          throw new DeepAIError(String(code || "HTTP " + response.status + (text ? ": " + text.replace(/\s+/g, " ").slice(0, 200) : "")), { status: response.status, code: String(code), body, path: "/hacking_is_a_serious_crime" });
         }
         if ((response.headers.get("content-type") || "").includes("application/json")) {
           yield { type: "json", value: await response.json() };
@@ -933,7 +934,21 @@
     if (code === "pro user out of credits" || code === "chat allowance unavailable") {
       return error.body && error.body.message ? error.body.message : "Allowance used up.";
     }
-    return error && error.message || "Request failed";
+    const where = error && error.path ? " (" + error.path + ")" : "";
+    return (error && error.message || "Request failed") + where;
+  }
+
+  const badAttachments = new Set();
+
+  function cleanMessages(messages) {
+    return (messages || []).map(m => {
+      if (!m.attachment_uuids || !m.attachment_uuids.length) return m;
+      const kept = m.attachment_uuids.filter(id => !badAttachments.has(id));
+      const copy = Object.assign({}, m);
+      if (kept.length) copy.attachment_uuids = kept;
+      else delete copy.attachment_uuids;
+      return copy;
+    });
   }
 
   async function followTask(taskId, signal, handlers) {
@@ -980,10 +995,10 @@
       const id = typeof v === "string" ? v : v && v.uuid;
       if (id && !newest.includes(id)) newest.push(id);
     });
-    let sendIds = attachments.slice();
+    let sendIds = attachments.filter(id => !badAttachments.has(id));
+    let level = 0;
     let emitted = false;
     let reply = "";
-    let freshened = false;
     let sessionUuid = options.sessionUuid;
     const persist = async extra => {
       const saved = extra ? (options.messages || []).concat([{ role: "assistant", content: extra }]) : (options.messages || []);
@@ -1011,12 +1026,12 @@
         handlers.content(delta);
       }
     };
-    for (let attempt = 0; attempt < 4; attempt++) {
+    for (let attempt = 0; attempt < 5; attempt++) {
       try {
         if (attachments.length) await persist();
         for await (const part of state.client.chat({
           model: modelValue.slice(PREFIX.length),
-          messages: withContext(options.messages, games),
+          messages: withContext(cleanMessages(options.messages), games),
           attachments: sendIds,
           sessionUuid,
           webAccess: options.webAccess,
@@ -1035,16 +1050,29 @@
         return;
       } catch (error) {
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
-        if (!emitted && error && error.status === 404 && !freshened) {
-          freshened = true;
-          sessionUuid = uuid();
-          if (options.onSession) options.onSession(sessionUuid);
-          continue;
-        }
-        if (!emitted && error && error.status === 404 && sendIds.length && newest.length && sendIds.length !== newest.length) {
-          console.warn("[deepai] 404 with", sendIds.length, "attachment ids, retrying with only the newest", newest);
-          sendIds = newest.slice();
-          continue;
+        if (!emitted && error && error.status === 404) {
+          if (level === 0) {
+            level = 1;
+            sessionUuid = uuid();
+            if (options.onSession) options.onSession(sessionUuid);
+            continue;
+          }
+          if (level === 1) {
+            level = 2;
+            if (sendIds.length && newest.length && sendIds.length !== newest.length) {
+              sendIds = newest.filter(id => !badAttachments.has(id));
+              continue;
+            }
+          }
+          if (level === 2 && sendIds.length) {
+            level = 3;
+            attachments.forEach(id => badAttachments.add(id));
+            sendIds = [];
+            handlers.content("(DeepAI rejected the attachment, so this reply can't see it.)\n\n");
+            sessionUuid = uuid();
+            if (options.onSession) options.onSession(sessionUuid);
+            continue;
+          }
         }
         if (attempt === 0 && !emitted && error && error.code === "anonymous try it exceeded" && await signIn()) continue;
         if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
