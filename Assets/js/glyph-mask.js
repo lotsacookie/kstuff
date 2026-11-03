@@ -5,9 +5,35 @@ export function maskDocument(win, live, light) {
   var SKIP = { SCRIPT: 1, STYLE: 1, NOSCRIPT: 1, TEXTAREA: 1, OPTION: 1, SELECT: 1, OPTGROUP: 1, TITLE: 1, CODE: 1, PRE: 1, INPUT: 1, IFRAME: 1, CANVAS: 1, HEAD: 1, TEMPLATE: 1, SVG: 1, MATH: 1 };
   var LIGHT = { H1: 1, H2: 1, H3: 1, H4: 1, H5: 1, H6: 1, P: 1, LABEL: 1, LEGEND: 1, SMALL: 1, TH: 1, FIGCAPTION: 1, SUMMARY: 1 };
   var TOFU = '�';
-  var style = doc.createElement('style');
-  style.textContent = '.k-gm::before{content:attr(data-g)}.k-gx{display:none!important}';
-  (doc.head || doc.documentElement).appendChild(style);
+  var MAX_IDS = 6000;
+  var texts = [];
+  var ids = new Map();
+
+  var base = doc.createElement('style');
+  base.textContent = '.k-gx{display:none!important}';
+  (doc.head || doc.documentElement).appendChild(base);
+  var rules = doc.createElement('style');
+  (doc.head || doc.documentElement).appendChild(rules);
+  var sheet = rules.sheet;
+
+  function esc(v) {
+    return v.replace(/[\\"]/g, '\\$&').replace(/\r/g, '').replace(/\n/g, '\\a ');
+  }
+
+  function idFor(v) {
+    var id = ids.get(v);
+    if (id !== undefined) return id;
+    if (texts.length >= MAX_IDS || !sheet) return -1;
+    id = texts.length;
+    try {
+      sheet.insertRule('.k-gm[data-i="' + id + '"]::before{content:"' + esc(v) + '"}', sheet.cssRules.length);
+    } catch (e) {
+      return -1;
+    }
+    texts.push(v);
+    ids.set(v, id);
+    return id;
+  }
 
   function blocked(el) {
     for (var e = el; e && e.nodeType === 1; e = e.parentElement) {
@@ -25,10 +51,12 @@ export function maskDocument(win, live, light) {
     if (!p || p.nodeType !== 1) return;
     if (light && !LIGHT[p.tagName]) return;
     if (blocked(p)) return;
+    var id = idFor(v);
+    if (id < 0) return;
     var s = doc.createElement('span');
     var x = doc.createElement('span');
     s.className = 'k-gm';
-    s.setAttribute('data-g', v);
+    s.setAttribute('data-i', id);
     x.className = 'k-gx';
     x.textContent = new Array(Math.min(v.length, 32) + 1).join(TOFU);
     s.appendChild(x);
@@ -52,12 +80,16 @@ export function maskDocument(win, live, light) {
   }
 
   var real = Object.getOwnPropertyDescriptor(win.Node.prototype, 'textContent');
+  function lookup(el) {
+    var t = texts[+el.getAttribute('data-i')];
+    return t === undefined ? '' : t;
+  }
   function read(node) {
     var out = '';
     var c = node.firstChild;
     while (c) {
       if (c.nodeType === 3) out += c.nodeValue;
-      else if (c.nodeType === 1) out += c.classList.contains('k-gm') ? c.getAttribute('data-g') : read(c);
+      else if (c.nodeType === 1) out += c.classList.contains('k-gm') ? lookup(c) : read(c);
       c = c.nextSibling;
     }
     return out;
@@ -69,7 +101,7 @@ export function maskDocument(win, live, light) {
     get: function () {
       var t = this;
       if (t.nodeType !== 1 && t.nodeType !== 11) return real.get.call(t);
-      if (t.nodeType === 1 && t.classList.contains('k-gm')) return t.getAttribute('data-g');
+      if (t.nodeType === 1 && t.classList.contains('k-gm')) return lookup(t);
       if (!t.querySelector('.k-gm')) return real.get.call(t);
       return read(t);
     }
