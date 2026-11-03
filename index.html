@@ -18,7 +18,7 @@
     <script src="https://unpkg.com/@phosphor-icons/web" defer></script>
     <script>window.addEventListener("beforeunload",e=>{if(window.__sgReloading)return;e.preventDefault();e.returnValue=""});</script>
     <script>(()=>{if(window.__sgLog)return;const L=window.__sgLog=[];const subs=window.__sgLogSubs=new Set();const fmt=a=>{try{if(typeof a==='string')return a;if(a instanceof Error)return a.stack||a.message;if(typeof a==='function')return String(a);if(a&&typeof a==='object'){try{return JSON.stringify(a,(k,v)=>typeof v==='bigint'?String(v):v,2)}catch(e){return Object.prototype.toString.call(a)}}return String(a)}catch(e){return '[unprintable]'}};window.__sgLogFmt=fmt;const LV=['log','info','warn','error','debug'];const push=(level,src,text)=>{const e={t:Date.now(),level:LV.includes(level)?level:'log',src:String(src||'page').slice(0,40),text:String(text).slice(0,20000)};L.push(e);if(L.length>2000)L.splice(0,L.length-2000);subs.forEach(f=>{try{f(e)}catch(_){}})};window.__sgLogPush=push;const NC={};const hook=m=>{const o=NC[m]||(NC[m]=console[m]);if(typeof o!=='function')return;const w=function(...a){try{push(m,'kstuff',a.map(fmt).join(' '))}catch(e){}return o.apply(this,a)};w.__sg=1;try{Object.defineProperty(console,m,{configurable:true,enumerable:true,get:()=>w,set:()=>{}})}catch(e){try{console[m]=w}catch(_){}}};const ensure=()=>{try{LV.forEach(m=>{if(!console[m]||!console[m].__sg)hook(m)})}catch(e){}};ensure();setInterval(ensure,1000);addEventListener('error',e=>{try{if(e.target&&e.target!==window){const u=e.target.src||e.target.href;if(u)push('error','kstuff','Failed to load '+u);return}push('error','kstuff',(e.message||'Error')+(e.filename?' ('+e.filename+':'+e.lineno+':'+e.colno+')':''))}catch(_){}},true);addEventListener('unhandledrejection',e=>{try{push('error','kstuff','Unhandled rejection: '+fmt(e.reason))}catch(_){}});addEventListener('message',e=>{const d=e.data;if(d&&d.sgConsole===true&&typeof d.text==='string')push(d.level,d.src,d.text)})})();</script>
-    <script>window.kProgress=(()=>{const s={done:0,total:10,base:2,peak:0,label:'Loading'};s.render=()=>{const t=document.getElementById('ld-status'),b=document.getElementById('ld-fill');if(!b)return;s.peak=Math.max(s.peak,s.total?Math.min(s.done,s.total)/s.total:0);b.style.transform='scaleX('+s.peak+')';if(t)t.textContent=s.peak>=1?'Ready':s.label};s.tick=()=>{s.done++;s.render()};s.setTotal=t=>{s.total=t;s.render()};s.say=t=>{s.label=t;s.render()};document.addEventListener('DOMContentLoaded',s.render);return s})();window.kReady=new Promise(r=>{window.kReadyResolve=r});window.kAssetsP=new Promise(r=>{window.kAssetsPR=r});</script>
+    <script>window.kProgress=(()=>{const s={done:0,total:10,base:2,peak:0,extra:0,label:'Loading'};s.render=()=>{const t=document.getElementById('ld-status'),b=document.getElementById('ld-fill');if(!b)return;s.peak=Math.max(s.peak,s.total?Math.min(s.done+s.extra,s.total)/s.total:0);b.style.transform='scaleX('+s.peak+')';if(t)t.textContent=s.peak>=1?'Ready':s.label};s.tick=()=>{s.done++;s.render()};s.setTotal=t=>{s.total=t;s.render()};s.say=t=>{s.label=t;s.render()};s.dl=(n,tot)=>{const f=tot?Math.min(n/tot,1):0,kb=x=>Math.round(x/1024)+' KB';s.extra=f*3;s.label='Downloading '+Math.round(f*100)+'%'+(tot?' ('+kb(n)+' / '+kb(tot)+')':'');s.render()};document.addEventListener('DOMContentLoaded',s.render);return s})();window.kReady=new Promise(r=>{window.kReadyResolve=r});window.kAssetsP=new Promise(r=>{window.kAssetsPR=r});</script>
     <script>
 (()=>{
 const R='lotsacookie/kstuff',BUN='Assets/singularity.js',MAN='Assets/singularity.json';
@@ -38,12 +38,13 @@ const manifest=async()=>{
   try{return await get(cdn[1]+MAN+t,5000,'json')}catch{}
   return Promise.any([cdn[0],cdn[2]].map(b=>get(b+MAN+t,5000,'json')));
 };
-async function bundle(want){
+const dl=async(u,ms,on)=>{const c=new AbortController(),k=setTimeout(()=>c.abort(),ms);try{const r=await fetch(u,{cache:'no-store',signal:c.signal});if(!r.ok)throw 0;if(!r.body||!on)return await r.text();const rd=r.body.getReader(),dec=new TextDecoder();let out='',n=0;for(;;){const{done,value}=await rd.read();if(done)break;n+=value.length;out+=dec.decode(value,{stream:true});on(n)}return out+dec.decode()}finally{clearTimeout(k)}};
+async function bundle(want,total){
   const p=await pinned(),t='&t='+Date.now();
-  for(const b of [p,cdn[1],cdn[0],cdn[2],''].filter(b=>b!==null)){try{const c=await get(b+BUN+'?h='+(want||'')+t,30000,'text');const h=hashOf(c);if(h&&(!want||h===want))return c}catch{}}
+  for(const b of [p,cdn[1],cdn[0],cdn[2],''].filter(b=>b!==null)){try{const c=await dl(b+BUN+'?h='+(want||'')+t,30000,total?n=>P.dl(n,total):null);const h=hashOf(c);if(h&&(!want||h===want))return c}catch{}}
   return null;
 }
-const fetchBundle=async want=>{for(let i=0;i<3;i++){const c=await bundle(want);if(c)return c;await new Promise(r=>setTimeout(r,800*(i+1)))}return null};
+const fetchBundle=async(want,total)=>{for(let i=0;i<3;i++){const c=await bundle(want,total);if(c)return c;await new Promise(r=>setTimeout(r,800*(i+1)))}return null};
 async function legacy(){
   P.say('Loading');
   const p=await pinned(),bases=[p,...cdn].filter(b=>b!==null);
@@ -58,7 +59,7 @@ async function legacy(){
   let m=have?await Promise.race([mp,new Promise(r=>setTimeout(()=>r(null),6000))]):await mp;
   if(m&&m.hash&&(!have||m.hash!==have.hash)){
     P.say('Downloading latest...');
-    const code=await fetchBundle(m.hash);
+    const code=await fetchBundle(m.hash,m.bytes);
     if(code&&run(code)){await dbSet({hash:hashOf(code),code});window.singularity.start();return}
   }
   if(have&&run(have.code)){
@@ -69,7 +70,7 @@ async function legacy(){
   }
   P.say('Downloading...');
   if(!m)m=await mp;
-  const code=await fetchBundle(m&&m.hash);
+  const code=await fetchBundle(m&&m.hash,m&&m.bytes);
   if(code&&run(code)){dbSet({hash:hashOf(code),code});window.singularity.start()}else legacy();
 })();
 })();
