@@ -2862,3 +2862,21 @@ body.floating-on .learning-footer .footer-item {
         white-space: pre;
     }
 }
+
+/* ---- main app fix: derive border/tint vars where --text-color actually exists (the themed body), and restore grid background ---- */
+body {
+    --line: color-mix(in srgb, var(--text-color) 14%, transparent);
+    --line-strong: color-mix(in srgb, var(--text-color) 45%, transparent);
+    --glow: color-mix(in srgb, var(--text-color) 30%, transparent);
+    --hairline: var(--line);
+    --ring: color-mix(in srgb, var(--text-color) 28%, transparent);
+    --tint: color-mix(in srgb, var(--text-color) 9%, transparent);
+    --tint-strong: color-mix(in srgb, var(--text-color) 16%, transparent);
+    background-color: var(--bg-color);
+    background-image:
+        radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text-color) 7%, transparent), transparent 70%),
+        linear-gradient(to right, color-mix(in srgb, var(--text-color) 13%, transparent) 1px, transparent 1px),
+        linear-gradient(to bottom, color-mix(in srgb, var(--text-color) 13%, transparent) 1px, transparent 1px);
+    background-size: 100% 100%, 44px 44px, 44px 44px;
+    background-position: 0 0;
+}
