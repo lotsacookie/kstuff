@@ -262,6 +262,8 @@ export function init(K) {
   };
   K.loadContent = loadContent;
 
+  const navLabels = new WeakMap();
+
   K.navBtns.forEach(btn => {
     const labelDivs = btn.querySelectorAll('.label-data div');
 
@@ -272,8 +274,11 @@ export function init(K) {
           .join('')
       : (btn.title || btn.dataset.target);
 
-    btn.dataset.label = label;
-    btn.appendChild(K.el('span', { className: 'nav-label', textContent: label }));
+    navLabels.set(btn, label);
+    const labelEl = K.el('span', { className: 'nav-label' });
+    labelEl.setAttribute('data-nomask', '');
+    Array.from(label).reverse().forEach(ch => labelEl.appendChild(K.el('div', { textContent: ch })));
+    btn.appendChild(labelEl);
 
     btn.addEventListener('click', event => {
       event.preventDefault();
@@ -396,7 +401,7 @@ export function init(K) {
       lastExpanded = on;
       K.navBtns.forEach(b => {
         if (on) b.removeAttribute('data-tooltip');
-        else if (b.dataset.label) b.dataset.tooltip = b.dataset.label;
+        else if (navLabels.get(b)) b.dataset.tooltip = navLabels.get(b);
       });
       tooltipEl.style.display = 'none';
       lastTarget = null;

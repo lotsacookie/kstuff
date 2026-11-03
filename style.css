@@ -2845,3 +2845,20 @@ body.floating-on .learning-footer .footer-item {
         transition: background-color 0.25s var(--ease), border-color 0.25s var(--ease), transform 0.2s var(--ease), opacity 0.2s var(--ease);
     }
 }
+
+.nav-btn .nav-label div {
+    display: block;
+    flex: 0 0 auto;
+    white-space: pre;
+    letter-spacing: normal;
+}
+
+@media (min-width: 769px) {
+    body.expand-on .nav-btn .nav-label {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+        overflow: hidden;
+        white-space: pre;
+    }
+}
