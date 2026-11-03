@@ -165,9 +165,11 @@ export function init(K) {
       const w = homeWin();
       if (!w) return;
       const items = api.list().map(e => ({ page: e.p, title: e.t, image: e.i || '', category: e.c || '' }));
-      try { w.postMessage({ type: 'kstuff-favorites', items }, '*'); } catch {}
+      const hidden = !!(K.navExpanded && K.navExpanded());
+      try { w.postMessage({ type: 'kstuff-favorites', items, hidden }, '*'); } catch {}
     });
   }
+  api.refreshHome = pushHome;
 
   window.addEventListener('message', e => {
     const d = e.data;

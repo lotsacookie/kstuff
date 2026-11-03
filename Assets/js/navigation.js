@@ -104,7 +104,7 @@ export function init(K) {
     const isVert = K.body.className.includes('nav-left') || K.body.className.includes('nav-right');
     const nR = K.navBar.getBoundingClientRect(), bR = btn.getBoundingClientRect();
     indicator.style.cssText = `transition:transform .22s ease,width .22s ease,height .22s ease;` +
-      (isVert ? `width:3px;height:${bR.height}px;transform:translateY(${bR.top - nR.top}px);` : `width:${bR.width}px;height:3px;transform:translateX(${bR.left - nR.left}px);`);
+      (isVert ? `width:3px;height:${bR.height}px;transform:translateY(${bR.top - nR.top + K.navBar.scrollTop}px);` : `width:${bR.width}px;height:3px;transform:translateX(${bR.left - nR.left + K.navBar.scrollLeft}px);`);
   };
   K.updateIndicator = updateIndicator;
 
@@ -230,10 +230,7 @@ export function init(K) {
       }
 
       Object.keys(K.grids).forEach(k => {
-        if (k !== tId) {
-          if (K.grids[k].gridEl) K.clearGridPool(k);
-          if (K.resourceOpenFor[k]) K.resetResourceView(k);
-        }
+        if (k !== tId && K.resourceOpenFor[k]) K.resetResourceView(k);
       });
 
       targetPage.style.display = 'block';
@@ -268,12 +265,15 @@ export function init(K) {
   K.navBtns.forEach(btn => {
     const labelDivs = btn.querySelectorAll('.label-data div');
 
-    btn.dataset.tooltip = labelDivs.length
+    const label = labelDivs.length
       ? Array.from(labelDivs)
           .map(item => item.textContent)
           .reverse()
           .join('')
       : (btn.title || btn.dataset.target);
+
+    btn.dataset.label = label;
+    btn.appendChild(K.el('span', { className: 'nav-label', textContent: label }));
 
     btn.addEventListener('click', event => {
       event.preventDefault();
@@ -331,6 +331,86 @@ export function init(K) {
       });
     });
   });
+
+  const wideMq = window.matchMedia ? window.matchMedia('(min-width: 769px)') : null;
+  const isExpanded = () => K.body.classList.contains('expand-on') && (!wideMq || wideMq.matches);
+  K.navExpanded = isExpanded;
+
+  const NAV_FAV_MAX = 6;
+  const favBox = K.el('div', { className: 'nav-favs', hidden: true });
+  const favList = K.el('div', { className: 'nav-favs-list' });
+  favBox.append(
+    K.el('div', { className: 'nav-favs-head', textContent: 'Bookmarks' }),
+    favList,
+    K.el('p', { className: 'nav-favs-empty', textContent: 'Star a game or app to pin it here.' })
+  );
+  const navCard = K.$('nav-card');
+  if (K.navBar) K.navBar.insertBefore(favBox, navCard && navCard.parentNode === K.navBar ? navCard : null);
+
+  const favTile = e => {
+    const b = K.el('button', { type: 'button', className: 'nav-fav' });
+    b.dataset.page = e.p;
+    b.dataset.title = e.t;
+    b.setAttribute('aria-label', e.t);
+    const art = K.el('span', { className: 'nav-fav-art' });
+    const letter = (e.t.match(/[\p{L}\p{N}]/u) || ['?'])[0].toUpperCase();
+    if (e.i) {
+      const img = K.el('img', { alt: '', decoding: 'async', loading: 'lazy' });
+      img.onerror = () => { img.remove(); art.textContent = letter; };
+      img.src = e.i;
+      art.appendChild(img);
+    } else {
+      art.textContent = letter;
+    }
+    b.append(art, K.el('span', { className: 'nav-fav-name', textContent: e.t }));
+    return b;
+  };
+
+  let favKey = null;
+  const renderNavFavs = () => {
+    const on = isExpanded();
+    favBox.hidden = !on;
+    const list = on && K.favorites ? K.favorites.list().slice(0, NAV_FAV_MAX) : [];
+    const key = list.map(e => e.p + '\u0000' + e.t + '\u0000' + (e.i || '')).join('\n');
+    if (key === favKey) return;
+    favKey = key;
+    favList.textContent = '';
+    const frag = document.createDocumentFragment();
+    list.forEach(e => frag.appendChild(favTile(e)));
+    favList.appendChild(frag);
+  };
+
+  favList.addEventListener('click', event => {
+    const b = event.target.closest('.nav-fav');
+    if (!b) return;
+    tooltipEl.style.display = 'none';
+    const page = b.dataset.page;
+    if (!K.grids?.[page]) return;
+    K.loadBrowserUrl?.(K.pageAddress(page) + '/' + K.slugifyTitle(b.dataset.title));
+  });
+
+  let lastExpanded = null;
+  const applyExpand = () => {
+    const on = isExpanded();
+    if (on !== lastExpanded) {
+      lastExpanded = on;
+      K.navBtns.forEach(b => {
+        if (on) b.removeAttribute('data-tooltip');
+        else if (b.dataset.label) b.dataset.tooltip = b.dataset.label;
+      });
+      tooltipEl.style.display = 'none';
+      lastTarget = null;
+      lastTipEl = null;
+      lastTipText = null;
+      K.favorites?.refreshHome?.();
+    }
+    renderNavFavs();
+    scheduleIndicator();
+  };
+  new MutationObserver(applyExpand).observe(K.body, { attributes: true, attributeFilter: ['class'] });
+  wideMq?.addEventListener?.('change', applyExpand);
+  K.favorites?.onChange(renderNavFavs);
+  applyExpand();
 
   window.addEventListener('message', event => {
     if (K.isActiveSource && !K.isActiveSource(event.source)) return;

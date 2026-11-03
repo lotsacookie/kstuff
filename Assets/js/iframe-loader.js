@@ -7,7 +7,7 @@ export function init(K) {
 
   const buildErrorHtml = id => `<html style="background:#1b1b1f;margin:0;"><body style="margin:0;color:#f5f5f5;background:#1b1b1f;font-family:sans-serif;display:flex;flex-direction:column;gap:14px;justify-content:center;align-items:center;height:100vh;"><h2 style="margin:0;">Failed to load.</h2><button id="js-iframe-retry" style="padding:8px 18px;border:none;border-radius:6px;background:#4a7dff;color:#fff;cursor:pointer;font-size:0.9rem;">Retry</button><script>document.getElementById('js-iframe-retry').onclick=()=>window.parent.postMessage({type:'retry-iframe',id:'${id}'},'*');<\/script></body></html>`;
 
-  const KEEP_ALIVE_IFRAMES = new Set([K.MUSIC_IFRAME_ID]);
+  const KEEP_ALIVE_IFRAMES = new Set([K.MUSIC_IFRAME_ID, 'mathworksheets-iframe', 'lessonplanner-iframe']);
   K.KEEP_ALIVE_IFRAMES = KEEP_ALIVE_IFRAMES;
 
   const IFRAME_ALLOW = 'cross-origin-isolated; fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; accelerometer; gyroscope; magnetometer; encrypted-media; screen-wake-lock; web-share';
@@ -40,7 +40,7 @@ export function init(K) {
   K.iframeInFlight = {};
 
   const isKeepAliveLoaded = id =>
-    KEEP_ALIVE_IFRAMES.has(id) && !!K.$(id)?.srcdoc && !K.iframeLoadFailed[id] && !K.iframeInFlight[id];
+    KEEP_ALIVE_IFRAMES.has(id) && !!K.$(id)?.srcdoc && !K.$(id).__proxied && !K.iframeLoadFailed[id] && !K.iframeInFlight[id];
   K.isKeepAliveLoaded = isKeepAliveLoaded;
 
   const pageIsHidden = f => { const pg = f.closest('.page'); return !!pg && !pg.classList.contains('active'); };
@@ -108,6 +108,7 @@ export function init(K) {
         f.__kLoadHandler = onLoad;
         f.addEventListener('load', onLoad);
         f.__kShowTimer = setTimeout(finish, K.IFRAME_SHOW_TIMEOUT);
+        f.__proxied = false;
         f.removeAttribute('srcdoc');
         f.srcdoc = html;
       };

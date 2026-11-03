@@ -426,18 +426,22 @@ export function init(K) {
       }
     }
 
-    if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
-      const shown = [];
-      for (let i = 0; i < pool.length; i++) {
-        const el = pool[i].el;
-        if (el.style.display === 'none') continue;
-        el.style.setProperty('--i', Math.min(i, 24));
-        el.classList.remove('card-in');
-        shown.push(el);
-      }
-      if (shown.length) {
-        void shown[0].offsetWidth;
-        for (let i = 0; i < shown.length; i++) shown[i].classList.add('card-in');
+    const animKey = `${grid.page}|${grid.category}|${grid.search}|${grid.sig}|${paginated.length}|${paginated[0]?.title || ''}|${paginated[paginated.length - 1]?.title || ''}`;
+    if (grid.animKey !== animKey) {
+      grid.animKey = animKey;
+      if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        const shown = [];
+        for (let i = 0; i < pool.length; i++) {
+          const el = pool[i].el;
+          if (el.style.display === 'none') continue;
+          el.style.setProperty('--i', Math.min(i, 24));
+          el.classList.remove('card-in');
+          shown.push(el);
+        }
+        if (shown.length) {
+          void shown[0].offsetWidth;
+          for (let i = 0; i < shown.length; i++) shown[i].classList.add('card-in');
+        }
       }
     }
 

@@ -63,12 +63,14 @@ export function init(K) {
     ['layout-nav-select', 'kstuff_nav_pos', 'nav', v => { if (v) K.body.classList.add(v); }],
     ['layout-floating-select', 'kstuff_floating_ui', 'floating', v => { if (v) K.body.classList.add(v); }],
     ['layout-size-select', 'kstuff_nav_size', 'size', v => { if (v) K.body.classList.add(v); }],
+    ['layout-expand-select', 'kstuff_nav_expand', 'expand', v => { if (v) K.body.classList.add(v); }],
     ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) K.body.classList.toggle('text-hide', v === 'text-hide'); }],
     ['layout-font-select', 'kstuff_font', '', v => { if (v) { document.documentElement.style.setProperty('--font', v); ensureParentFontLoaded(v); } }],
     ['search-engine-select', 'kstuff_search_engine', '', v => { K.updateSearchEngineExample(v); }]
   ].forEach(([id, key, prefix, fn]) => {
     const select = K.$(id); if (!select) return;
     const val = K.getStorage(key) || select.value; select.value = val; fn(val);
+    if (id !== 'layout-theme-select') K.applyCustomDropdown(select);
     select.addEventListener('change', e => {
       if (prefix) K.body.className = K.body.className.replace(new RegExp(`\\b${prefix}-\\S+`, 'g'), '').trim();
       fn(e.target.value); K.setStorage(key, e.target.value);
@@ -88,6 +90,7 @@ export function init(K) {
       { i: 'layout-nav-select', k: 'kstuff_nav_pos', v: s.navPos },
       { i: 'layout-floating-select', k: 'kstuff_floating_ui', v: s.floatingUi },
       { i: 'layout-size-select', k: 'kstuff_nav_size', v: s.navSize },
+      { i: 'layout-expand-select', k: 'kstuff_nav_expand', v: s.navExpand },
       { i: 'layout-text-select', k: 'kstuff_text_vis', v: s.textVis },
       { i: 'layout-font-select', k: 'kstuff_font', v: s.font },
       { i: 'search-engine-select', k: 'kstuff_search_engine', v: s.searchEngine }
@@ -104,7 +107,7 @@ export function init(K) {
     });
   };
 
-  K.userSettings = u => u?.settings || { theme: u?.theme, navPos: u?.navPos, floatingUi: u?.floatingUi, navSize: u?.navSize, textVis: u?.textVis, font: u?.font, searchEngine: u?.searchEngine };
+  K.userSettings = u => u?.settings || { theme: u?.theme, navPos: u?.navPos, floatingUi: u?.floatingUi, navSize: u?.navSize, navExpand: u?.navExpand, textVis: u?.textVis, font: u?.font, searchEngine: u?.searchEngine };
 
   K.saveSettings = () => {
     const p = {
@@ -112,6 +115,7 @@ export function init(K) {
       navPos: K.$('layout-nav-select')?.value,
       floatingUi: K.$('layout-floating-select')?.value,
       navSize: K.$('layout-size-select')?.value,
+      navExpand: K.$('layout-expand-select')?.value,
       textVis: K.$('layout-text-select')?.value,
       font: K.$('layout-font-select')?.value,
       searchEngine: K.$('search-engine-select')?.value,

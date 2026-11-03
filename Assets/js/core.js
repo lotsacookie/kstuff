@@ -207,6 +207,7 @@ export function init(K) {
       ifr.addEventListener('load', onLoad);
       ifr.removeAttribute('src');
       ifr.style.display = 'block';
+      ifr.__proxied = true;
       ifr.srcdoc = html;
     } catch (err) {
       console.error('Scram embed failed for', rawUrl, err);
@@ -424,6 +425,8 @@ export function init(K) {
     K.holdForProxy();
   };
 
+  const LOADER_DELAY = 140;
+  let loaderShown = false, loaderTimer = 0;
   K.toggleLoader = (show, mode = 'loading') => {
     if (!K.loader) return;
     if (!show && K.proxyHold) {
@@ -431,10 +434,23 @@ export function init(K) {
       K.proxyHold = false;
       clearTimeout(K.proxyTimer);
     }
-    if (!show) setTimeout(() => { if (K.loader.classList.contains('hidden')) resetLoaderProgress(); }, 600);
-    if (show && loaderTextEl) loaderTextEl.textContent = mode === 'updating' ? 'Updating' : 'Loading';
-    K.loader.style.opacity = show ? '1' : '0';
-    K.loader.classList.toggle('hidden', !show);
+    if (show) {
+      if (loaderTextEl) loaderTextEl.textContent = mode === 'updating' ? 'Updating' : 'Loading';
+      if (loaderShown || loaderTimer) return;
+      loaderTimer = setTimeout(() => {
+        loaderTimer = 0;
+        loaderShown = true;
+        K.loader.style.opacity = '1';
+        K.loader.classList.remove('hidden');
+      }, LOADER_DELAY);
+      return;
+    }
+    clearTimeout(loaderTimer);
+    loaderTimer = 0;
+    loaderShown = false;
+    setTimeout(() => { if (K.loader.classList.contains('hidden')) resetLoaderProgress(); }, 600);
+    K.loader.style.opacity = '0';
+    K.loader.classList.add('hidden');
   };
   K.toggleLoader(true);
 

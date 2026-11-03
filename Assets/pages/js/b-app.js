@@ -254,22 +254,25 @@
         return b;
     }
 
+    var navHidden = false;
+
     function render(items) {
+        section.hidden = navHidden;
         var key = JSON.stringify(items);
         if (key === lastKey) return;
         lastKey = key;
         row.textContent = '';
-        if (!items.length) { section.hidden = false; return; }
+        if (!items.length) return;
         var frag = document.createDocumentFragment();
         items.forEach(function (it, i) { frag.appendChild(tile(it, i)); });
         row.appendChild(frag);
-        section.hidden = false;
     }
 
     window.addEventListener('message', function (e) {
         if (e.source !== window.parent) return;
         var d = e.data;
         if (!d || d.type !== 'kstuff-favorites' || !Array.isArray(d.items)) return;
+        navHidden = !!d.hidden;
         render(d.items.filter(function (it) { return it && typeof it.title === 'string' && typeof it.page === 'string'; }));
     });
 
