@@ -1,5 +1,19 @@
 export function init(K) {
   const byId = id => document.getElementById(id);
+
+  // Only one modal at a time: when one opens, the others fade out via their normal close transition.
+  new MutationObserver(muts => {
+    for (const m of muts) {
+      const el = m.target;
+      if (!el.classList || !el.classList.contains('modal-overlay') || !el.classList.contains('active')) continue;
+      if ((m.oldValue || '').split(/\s+/).includes('active')) continue;
+      document.querySelectorAll('.modal-overlay.active').forEach(o => {
+        if (o === el) return;
+        if (o.id === 'homeworkhelper-modal') { try { K.saveSettings && K.saveSettings(); } catch {} }
+        o.classList.remove('active');
+      });
+    }
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
   const clockEl = byId('clock-text');
   const pingEl = byId('ping-text');
   const weatherText = byId('weather-text');
