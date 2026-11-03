@@ -35,14 +35,7 @@
 
 body {
     font-family: 'Segoe UI', system-ui, sans-serif;
-    /* grid pattern. The body never scrolls (height 100vh, overflow hidden), so the old
-       "background-attachment: fixed" was not needed and made every repaint more expensive. */
-    background-image:
-        radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text-color) 7%, transparent), transparent 70%),
-        linear-gradient(to right, color-mix(in srgb, var(--text-color) 13%, transparent) 1px, transparent 1px),
-        linear-gradient(to bottom, color-mix(in srgb, var(--text-color) 13%, transparent) 1px, transparent 1px);
-    background-size: 100% 100%, 44px 44px, 44px 44px;
-    background-position: 0 0;
+    background-color: var(--bg-color);
     color: var(--text-color);
     height: 100vh;
     overflow: hidden;
@@ -1614,7 +1607,7 @@ textarea.modal-input {
 
 .settings-panel.active {
     display: block;
-    animation: k-page 0.16s ease-out;
+    animation: k-page 0.4s var(--ease) both;
 }
 
 .settings-panel.settings-grid.active {
@@ -2495,7 +2488,7 @@ body.floating-on .learning-footer .footer-item {
     inset: 0;
     z-index: 1;
     pointer-events: none;
-    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.12));
+    background: transparent;
 }
 
 .round-btn.img-failed::before {
@@ -2503,7 +2496,7 @@ body.floating-on .learning-footer .footer-item {
     position: absolute;
     inset: 0;
     z-index: 1;
-    background: color-mix(in srgb, var(--card-bg) 88%, #fff);
+    background: var(--card-bg);
 }
 
 .round-btn > img {
@@ -2515,28 +2508,18 @@ body.floating-on .learning-footer .footer-item {
     opacity: 1;
 }
 
-.round-btn:hover::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 3;
-    pointer-events: none;
-    background: linear-gradient(115deg, transparent 35%, rgba(255,255,255,0.2) 50%, transparent 65%);
-    animation: k-sheen 0.55s var(--ease) both;
-}
-
 .round-btn.card-in {
     animation: k-card-in 0.24s var(--ease) backwards;
     animation-delay: calc(min(var(--i, 0), 10) * 10ms);
 }
 
 .page.active {
-    animation: k-page 0.16s ease-out;
+    animation: k-page 0.4s var(--ease) both;
 }
 
 @keyframes k-page {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    0% { opacity: 0; }
+    100% { opacity: 1; }
 }
 
 .page-btn,
@@ -2580,7 +2563,6 @@ body.floating-on .learning-footer .footer-item {
 @media (prefers-reduced-motion: reduce) {
     .round-btn.card-in, .page.active, .modal-overlay.active > * { animation: none; }
     .round-btn > img { transition: none; }
-    .round-btn:hover::after { animation: none; }
 }
 
 /* ===== Favorites ===== */
@@ -2665,7 +2647,7 @@ body.floating-on .learning-footer .footer-item {
 #teachertouchbar,
 .filter-bar,
 .sg-tabbar {
-    background-color: color-mix(in srgb, var(--nav-bg) 92%, #fff);
+    background-color: var(--nav-bg);
 }
 
 #teachertouchbar,
@@ -2688,7 +2670,7 @@ body.floating-on .learning-footer .footer-item {
 }
 
 .modern-select-wrapper {
-    background: color-mix(in srgb, var(--card-bg) 92%, #fff);
+    background: var(--card-bg);
     border-color: var(--line);
 }
 
@@ -2742,7 +2724,7 @@ body.floating-on .learning-footer .footer-item {
     pointer-events: none;
     overflow: hidden;
     background:
-        radial-gradient(circle at 28% 22%, rgba(255,255,255,0.26), transparent 55%),
+        radial-gradient(circle at 28% 22%, rgba(255,255,255,0.06), transparent 55%),
         radial-gradient(circle at 85% 90%, rgba(0,0,0,0.32), transparent 60%),
         linear-gradient(135deg, hsl(var(--ph-h, 220) 58% 42%), hsl(calc(var(--ph-h, 220) + 50) 62% 22%));
 }
@@ -2756,14 +2738,14 @@ body.floating-on .learning-footer .footer-item {
     left: -25%;
     top: -38%;
     border-radius: 50%;
-    background: repeating-radial-gradient(circle, transparent 0 22px, rgba(255,255,255,0.06) 22px 24px);
+    background: none;
 }
 
 .round-btn .ph-art::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(160deg, rgba(255,255,255,0.14) 0%, transparent 38%, rgba(0,0,0,0.22) 100%);
+    background: linear-gradient(160deg, transparent 0%, rgba(0,0,0,0.22) 100%);
 }
 
 .round-btn .ph-art span {
@@ -2795,4 +2777,28 @@ body.floating-on .learning-footer .footer-item {
 
 @media (prefers-reduced-motion: reduce) {
     .round-btn.img-failed .ph-art, .round-btn.img-none .ph-art { animation: none; }
+}
+
+@media (min-width: 769px) {
+    body.expand-on .nav-btn {
+        background: var(--card-bg);
+        border: 1px solid var(--hairline);
+        border-radius: 14px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.28);
+        transition: background-color 0.3s var(--ease), border-color 0.3s var(--ease), box-shadow 0.35s var(--ease), transform 0.2s var(--ease), opacity 0.2s var(--ease);
+    }
+
+    body.expand-on .nav-btn:hover {
+        background: color-mix(in srgb, var(--card-bg) 90%, var(--text-color));
+        border-color: var(--ring);
+    }
+
+    body.expand-on .nav-btn.active {
+        background: color-mix(in srgb, var(--card-bg) 82%, var(--text-color));
+        border-color: color-mix(in srgb, var(--text-color) 70%, transparent);
+        box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--text-color) 30%, transparent),
+            0 0 18px color-mix(in srgb, var(--text-color) 38%, transparent),
+            inset 0 0 14px color-mix(in srgb, var(--text-color) 14%, transparent);
+    }
 }
