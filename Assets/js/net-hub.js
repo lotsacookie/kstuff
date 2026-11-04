@@ -1,6 +1,3 @@
-// net-hub: the main app loads sandstone (libcurl) + a wisp connection exactly ONCE.
-// Pages (Music, AI, TV...) never load their own transport; they send
-// `kstuff-net:*` messages and get status/headers/body (ArrayBuffer, transferred) back.
 export function init(K) {
   const BASES = [
     'https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/',
@@ -8,6 +5,14 @@ export function init(K) {
   ];
   const DIST = 'dist/sandstone.mjs';
   const FALLBACK = 'wss://api.personalloanonline.net/ws/';
+  const LAST_KEY = 'WLAST';
+  const BAD_KEY = 'WBAD';
+  const LAST_TTL = 21600000;
+  const BAD_TTL = 21600000;
+  const SOFT_TTL = 600000;
+  const OK_WINDOW = 15000;
+  const WATCH_MS = 30000;
+  const WATCH_FAILS = 3;
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
     const t = String(entry || '').trim();
@@ -17,8 +22,46 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let bootP = null, sandstone = null, current = null, rotating = null, watching = false;
-  const cooldown = new Map();
+  let bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0;
+
+  const readJson = key => {
+    try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
+  };
+  const writeJson = (key, value) => {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  };
+
+  const liveBad = () => {
+    const raw = readJson(BAD_KEY);
+    const out = {};
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+    const now = Date.now();
+    for (const [key, until] of Object.entries(raw)) if (typeof until === 'number' && until > now) out[key] = until;
+    return out;
+  };
+  const isBad = url => Object.prototype.hasOwnProperty.call(liveBad(), url);
+  const markBad = (url, ttl) => {
+    if (!url) return;
+    const bad = liveBad();
+    bad[url] = Math.max(bad[url] || 0, Date.now() + (ttl || SOFT_TTL));
+    writeJson(BAD_KEY, bad);
+  };
+  const clearBad = url => {
+    const bad = liveBad();
+    if (!(url in bad)) return;
+    delete bad[url];
+    writeJson(BAD_KEY, bad);
+  };
+
+  const readGood = () => {
+    const v = readJson(LAST_KEY);
+    return v && typeof v.url === 'string' && typeof v.ts === 'number' ? v : null;
+  };
+  const writeGood = url => writeJson(LAST_KEY, { url, ts: Date.now() });
+  const freshGood = () => {
+    const good = readGood();
+    return good && Date.now() - good.ts < LAST_TTL && !isBad(good.url) ? good.url : null;
+  };
 
   function probe(url, ms) {
     return new Promise(resolve => {
@@ -71,68 +114,87 @@ export function init(K) {
       ]);
       ok = !!res;
     } catch {}
+    if (ok) {
+      okUrl = url;
+      okAt = Date.now();
+      clearBad(url);
+    }
     console.log('[net-hub] verify', url, ok);
     return ok;
   }
 
-  const readGood = () => {
-    try { return JSON.parse(localStorage.getItem('KNV')); } catch { return null; }
-  };
-  const writeGood = url => {
-    try { localStorage.setItem('KNV', JSON.stringify({ url, ts: Date.now() })); } catch {}
+  const tiers = () => {
+    const servers = Array.isArray(K.WISP_SERVERS) && K.WISP_SERVERS.length ? K.WISP_SERVERS : (Array.isArray(window.serverList) ? window.serverList : []);
+    const primary = [];
+    const backup = [];
+    const put = (list, entry) => {
+      const u = toWss(entry);
+      if (u && !primary.includes(u) && !backup.includes(u)) list.push(u);
+    };
+    servers.forEach(entry => { if (typeof entry === 'string' && !entry.includes('://')) put(primary, entry); });
+    servers.forEach(entry => { if (typeof entry === 'string' && entry.includes('://')) put(backup, entry); });
+    put(backup, K.WISP_FALLBACK);
+    put(backup, FALLBACK);
+    (Array.isArray(K.wispUrls) ? K.wispUrls : []).forEach(entry => put(backup, entry));
+    const hint = toWss(window.wlspServer);
+    [primary, backup].forEach(tier => {
+      const i = tier.indexOf(hint);
+      if (i > 0) tier.unshift(tier.splice(i, 1)[0]);
+    });
+    return [primary, backup];
   };
 
-  async function choose(list, exclude) {
-    const now = Date.now();
-    const pool = list.filter(u => !exclude.includes(u));
+  async function choose(exclude) {
+    const skip = new Set(exclude);
     const good = readGood();
-    if (good && pool.includes(good.url) && now - good.ts < 600000 && !(cooldown.get(good.url) > now) && (await probe(good.url, 3000)) !== null) return good.url;
-    const ordered = [...pool.filter(u => !(cooldown.get(u) > now)), ...pool.filter(u => cooldown.get(u) > now)];
-    const alive = [];
-    for (let i = 0; i < ordered.length && alive.length < 4; i += 6) {
-      const wave = ordered.slice(i, i + 6);
-      const pings = await Promise.all(wave.map(u => probe(u, 3000)));
-      wave.forEach((u, j) => {
-        if (pings[j] === null) cooldown.set(u, Date.now() + 300000);
-        else alive.push({ u, ping: pings[j] });
-      });
+    if (good && !skip.has(good.url) && Date.now() - good.ts < LAST_TTL && !isBad(good.url)) {
+      if ((await probe(good.url, 3000)) !== null) return good.url;
+      markBad(good.url, SOFT_TTL);
     }
-    alive.sort((x, y) => x.ping - y.ping);
-    for (const row of alive.slice(0, 2)) {
-      if (await verify(row.u)) {
-        writeGood(row.u);
-        return row.u;
+    for (const tier of tiers()) {
+      const pool = tier.filter(u => !skip.has(u));
+      const ordered = [...pool.filter(u => !isBad(u)), ...pool.filter(u => isBad(u))];
+      for (let i = 0; i < ordered.length; i += 6) {
+        const wave = ordered.slice(i, i + 6);
+        const pings = await Promise.all(wave.map(u => probe(u, 3000)));
+        const alive = [];
+        wave.forEach((u, j) => {
+          if (pings[j] === null) markBad(u, SOFT_TTL);
+          else alive.push({ u, ping: pings[j] });
+        });
+        alive.sort((x, y) => x.ping - y.ping);
+        for (const row of alive.slice(0, 2)) {
+          if (await verify(row.u)) {
+            writeGood(row.u);
+            return row.u;
+          }
+          markBad(row.u, BAD_TTL);
+        }
       }
-      cooldown.set(row.u, Date.now() + 600000);
     }
-    return alive.length ? alive[0].u : null;
+    return null;
   }
 
   async function recover() {
     if (!current) return;
     if (rotating) return rotating;
-    const ping = await probe(current, 3000);
-    if (ping === null || !(await verify(current))) return rotate(current);
+    return rotate(current, true);
   }
 
-  let fails = 0, slow = 0;
+  let fails = 0;
   async function watch() {
     if (!current || document.hidden || rotating || live.size) return;
     const ping = await probe(current, 4000);
-    fails = ping === null ? fails + 1 : 0;
-    slow = ping !== null && ping > 1500 ? slow + 1 : 0;
-    if (ping !== null && ping <= 1500) writeGood(current);
-    if (fails >= 2 || slow >= 3) {
+    if (ping === null) fails++;
+    else {
       fails = 0;
-      slow = 0;
-      rotate(current);
+      writeGood(current);
+    }
+    if (fails >= WATCH_FAILS) {
+      fails = 0;
+      rotate(current, true);
     }
   }
-
-  const candidates = () => {
-    const raw = [window.wlspServer, ...(K.wispUrls || []), ...(Array.isArray(window.serverList) ? window.serverList : []), K.WISP_FALLBACK, FALLBACK];
-    return [...new Set(raw.map(toWss).filter(Boolean))];
-  };
 
   async function loadSandstone() {
     for (const b of BASES) { try { return await import(b + DIST); } catch {} }
@@ -152,39 +214,53 @@ export function init(K) {
     bootP = (async () => {
       const sg = await loadSandstone();
       sandstone = sg;
-      const good = readGood();
-      const fresh = good && good.url && Date.now() - good.ts < 3600000 && !(cooldown.get(good.url) > Date.now());
-      if (!fresh && window.kWispP && window.kWispP.then) await Promise.race([window.kWispP.catch(() => {}), delay(6000)]);
-      applyWisp(fresh ? good.url : candidates()[0] || FALLBACK);
+      let url = freshGood();
+      if (!url && window.kWispP && window.kWispP.then) await Promise.race([window.kWispP.catch(() => {}), delay(6000)]);
+      url = url || freshGood() || toWss(window.wlspServer) || tiers().flat()[0] || FALLBACK;
+      applyWisp(url);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready) throw new Error('libcurl did not load');
-      setTimeout(() => { verify(current).then(ok => { if (ok) writeGood(current); else rotate(current); }).catch(() => {}); }, 1500);
+      setTimeout(() => {
+        (async () => {
+          if (await verify(current)) { writeGood(current); return; }
+          await delay(800);
+          if (await verify(current)) { writeGood(current); return; }
+          rotate(current);
+        })().catch(() => {});
+      }, 1500);
       console.log('[net-hub] ready via', current);
-      if (!watching) { watching = true; setInterval(watch, 20000); }
+      if (!watching) { watching = true; setInterval(watch, WATCH_MS); }
       return sg;
     })().catch(e => { bootP = null; sandstone = null; throw e; });
     return bootP;
   }
   K.netHubBoot = boot;
 
-  // Switch the ONE shared connection to the next wisp; everyone benefits.
-  async function rotate(bad) {
+  async function rotate(bad, auto) {
     if (rotating) return rotating;
     rotating = (async () => {
       await boot();
-      const list = candidates();
+      if (auto && current) {
+        if (bad && bad !== current) return current;
+        if (okUrl === current && Date.now() - okAt < OK_WINDOW) return current;
+        if (await verify(current)) { writeGood(current); return current; }
+        await delay(800);
+        if (await verify(current)) { writeGood(current); return current; }
+      }
       const from = bad || current;
-      if (from) cooldown.set(from, Date.now() + 300000);
-      const hit = await choose(list, from ? [from] : []);
-      const next = hit || list.find(u => u !== from && u !== current) || list.find(u => u !== from) || list[0];
+      if (from) markBad(from, auto ? BAD_TTL : SOFT_TTL);
+      const hit = await choose(from ? [from] : []);
+      const flat = tiers().flat();
+      const next = hit || flat.find(u => u !== from && !isBad(u)) || flat.find(u => u !== from) || flat[0] || FALLBACK;
       if (next && next !== current) applyWisp(next);
+      if (current) writeGood(current);
       console.log('[net-hub] rotated to', current);
       return current;
     })().finally(() => { rotating = null; });
     return rotating;
   }
 
-  const live = new Map(); // key -> AbortController
+  const live = new Map();
 
   async function core(url, init) {
     const sg = await boot();

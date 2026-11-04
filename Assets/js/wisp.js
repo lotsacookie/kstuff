@@ -64,8 +64,13 @@ export function init(K) {
   const SPEED_CANDIDATES = 4;
   const EXTRA_LIMIT = 16;
   const BACKUP_KEY = 'WBK';
-  const BACKUP_TTL = 600000;
+  const BACKUP_TTL = 21600000;
   const HISTORY_KEY = 'WBH';
+  const LAST_KEY = 'WLAST';
+  const BAD_KEY = 'WBAD';
+  const PRIMARY_KEY = 'WIDE';
+  const LAST_TTL = 21600000;
+  const BAD_SOFT = 600000;
 
   K.WISP_SERVERS = [
     'cdn.northstreetumc.org',
@@ -84,7 +89,7 @@ export function init(K) {
     'wss://southpadreislandkiteboarding.com/socket/'
   ];
   K.WISP_FALLBACK = 'wss://api.personalloanonline.net/ws/';
-  K.WISP_VERSION = 8;
+  K.WISP_VERSION = 9;
   K.WISP_BASE = K.WISP_SERVERS.slice();
   console.log('[wisp] module loaded, build', K.WISP_VERSION);
   K.wispUrls = [];
@@ -154,6 +159,42 @@ export function init(K) {
   const readJson = key => {
     try { return JSON.parse(readStore(key)) || null; } catch { return null; }
   };
+
+  const normKey = entry => {
+    const t = String(entry || '').trim();
+    if (!t) return '';
+    const u = t.includes('://') ? t : `wss://${t}/`;
+    return u.endsWith('/') ? u : u + '/';
+  };
+
+  const liveBad = () => {
+    const raw = readJson(BAD_KEY);
+    const out = {};
+    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
+    const now = Date.now();
+    for (const [key, until] of Object.entries(raw)) if (typeof until === 'number' && until > now) out[key] = until;
+    return out;
+  };
+
+  const isBad = entry => Object.prototype.hasOwnProperty.call(liveBad(), normKey(entry));
+
+  const markBad = (entry, ttl) => {
+    const key = normKey(entry);
+    if (!key) return;
+    const bad = liveBad();
+    bad[key] = Math.max(bad[key] || 0, Date.now() + (ttl || BAD_SOFT));
+    writeStore(BAD_KEY, JSON.stringify(bad));
+  };
+
+  const clearBad = entry => {
+    const key = normKey(entry);
+    const bad = liveBad();
+    if (!(key in bad)) return;
+    delete bad[key];
+    writeStore(BAD_KEY, JSON.stringify(bad));
+  };
+
+  const writeLast = entry => writeStore(LAST_KEY, JSON.stringify({ url: normKey(entry), ts: Date.now() }));
 
   const recordOutcome = (entry, ok) => {
     const history = readJson(HISTORY_KEY) || {};
@@ -323,24 +364,30 @@ export function init(K) {
     window.WlspIsBackup = true;
     window.WlspSpeed = bps;
     writeStore(BACKUP_KEY, JSON.stringify({ entry, ts: Date.now(), bps: bps || 0 }));
+    clearBad(entry);
+    writeLast(entry);
     return wlspUrl(entry);
   }
 
   async function pickBackup(candidates) {
     const unique = [...new Set(candidates)];
+    const ordered = [...unique.filter(entry => !isBad(entry)), ...unique.filter(entry => isBad(entry))];
     const stored = readJson(BACKUP_KEY);
-    if (stored && stored.entry && unique.includes(stored.entry) && Date.now() - stored.ts < BACKUP_TTL) {
+    if (stored && stored.entry && Date.now() - stored.ts < BACKUP_TTL && !isBad(stored.entry)) {
       const ping = await testWlspDomain(stored.entry);
       if (ping !== null) return acceptBackup(stored.entry, ping, stored.bps);
       recordOutcome(stored.entry, false);
+      markBad(stored.entry);
     }
     const alive = [];
-    for (let i = 0; i < unique.length && alive.length < SPEED_CANDIDATES; i += PROBE_WAVE) {
-      const wave = unique.slice(i, i + PROBE_WAVE);
+    for (let i = 0; i < ordered.length && alive.length < SPEED_CANDIDATES; i += PROBE_WAVE) {
+      const wave = ordered.slice(i, i + PROBE_WAVE);
       const pings = await Promise.all(wave.map(entry => testWlspDomain(entry)));
       wave.forEach((entry, j) => {
-        if (pings[j] === null) recordOutcome(entry, false);
-        else alive.push({ entry, ping: pings[j] });
+        if (pings[j] === null) {
+          recordOutcome(entry, false);
+          markBad(entry);
+        } else alive.push({ entry, ping: pings[j] });
       });
     }
     alive.sort((a, b) => a.ping - b.ping);
@@ -357,12 +404,25 @@ export function init(K) {
     return acceptBackup(alive[0].entry, alive[0].ping, 0);
   }
 
-  function accept(index, ping) {
-    const entry = K.WISP_SERVERS[index];
-    if (!isBackupServer(entry)) writeStore('WID', index);
+  function acceptPrimary(entry, ping) {
+    writeStore(PRIMARY_KEY, entry);
+    clearBad(entry);
+    writeLast(entry);
     window.WlspPing = ping;
     window.WlspIsBackup = isBackupServer(entry);
     return wlspUrl(entry);
+  }
+
+  function acceptLast(url, ping) {
+    const key = normKey(url);
+    const primary = K.WISP_SERVERS.some(entry => !isBackupServer(entry) && normKey(entry) === key);
+    const stored = readJson(BACKUP_KEY);
+    window.WlspPing = ping;
+    window.WlspIsBackup = !primary;
+    if (!primary && stored && normKey(stored.entry) === key) window.WlspSpeed = stored.bps;
+    clearBad(url);
+    writeLast(url);
+    return url;
   }
 
 
@@ -411,16 +471,20 @@ export function init(K) {
   async function getWlsp() {
     try { await Promise.race([K.syncWispServers(), new Promise(r => setTimeout(r, 1500))]); } catch {}
     const list = K.WISP_SERVERS;
-    const stored = readStore('WID');
-    const index = Number(stored);
-    if (stored !== null && stored !== '' && Number.isInteger(index) && index >= 0 && index < list.length && !isBackupServer(list[index])) {
-      const ping = await testWlspDomain(list[index]);
-      if (ping !== null) return accept(index, ping);
+    const last = readJson(LAST_KEY);
+    if (last && typeof last.url === 'string' && Date.now() - (last.ts || 0) < LAST_TTL && !isBad(last.url)) {
+      const ping = await testWlspDomain(last.url);
+      if (ping !== null) return acceptLast(last.url, ping);
+      markBad(last.url);
     }
-    for (let i = 0; i < list.length; i++) {
-      if (isBackupServer(list[i])) continue;
-      const ping = await testWlspDomain(list[i]);
-      if (ping !== null) return accept(i, ping);
+    const primaries = list.filter(entry => !isBackupServer(entry));
+    const storedPrimary = readStore(PRIMARY_KEY);
+    const ordered = [...primaries.filter(entry => !isBad(entry)), ...primaries.filter(entry => isBad(entry))];
+    if (storedPrimary && primaries.includes(storedPrimary) && !isBad(storedPrimary)) ordered.unshift(storedPrimary);
+    for (const entry of new Set(ordered)) {
+      const ping = await testWlspDomain(entry);
+      if (ping !== null) return acceptPrimary(entry, ping);
+      markBad(entry);
     }
     let extra = [];
     try { extra = (await K.fetchWisps()) || []; } catch {}
@@ -533,7 +597,9 @@ export function init(K) {
     speed: speedTestWisp,
     get: getWlsp,
     url: wlspUrl,
-    isBackup: isBackupServer
+    isBackup: isBackupServer,
+    isBad,
+    markBad
   };
 
   K.resolveWlsp();
