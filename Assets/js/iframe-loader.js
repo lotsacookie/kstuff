@@ -18,12 +18,25 @@ export function init(K) {
 
   K.fetchPageHtml = async path => {
     if (/^https?:\/\//i.test(path)) {
-      // Absolute URL (e.g. the Cloud tab): load the page the same way g.json games load, pinned to the latest commit when possible.
-      const pinned = await K.pinUrl(path);
+      // Absolute URL (e.g. the Cloud tab): ask the GitHub API for the latest commit on every load, then fetch that exact commit.
+      // Order: the commit via jsDelivr (immutable, fast) -> the commit via raw.githubusercontent -> the branch via raw -> the URL as given.
+      // If the API is rate limited or down, the branch comes first so a stale remembered commit never beats the live branch.
+      const gh = /^https:\/\/(?:(?:cdn|fastly|gcore)\.jsdelivr\.net\/gh\/([^/@]+\/[^/@]+)(?:@([^/]+))?|raw\.githubusercontent\.com\/([^/]+\/[^/]+)\/([^/]+))\/(.*)$/i.exec(path);
+      const repo = gh && (gh[1] || gh[3]), ref = gh ? (gh[2] || gh[4] || 'HEAD') : '', rest = gh ? gh[5] : '';
+      const urls = [];
+      if (repo && !/^[0-9a-f]{40}$/i.test(ref)) {
+        const sha = await K.getRefSha(repo, ref, true);
+        const st = K.shaStates[repo + '@' + ref];
+        const fresh = !!sha && !!st && Date.now() - st.at < 60000;
+        const pinned = sha ? [`https://cdn.jsdelivr.net/gh/${repo}@${sha}/${rest}`, `https://raw.githubusercontent.com/${repo}/${sha}/${rest}`] : [];
+        const branch = `https://raw.githubusercontent.com/${repo}/${ref}/${rest}`;
+        urls.push(...(fresh ? [...pinned, branch] : [branch, ...pinned]));
+      }
+      urls.push(path);
       let err;
-      for (const u of (pinned !== path ? [pinned, path] : [path])) {
+      for (const u of [...new Set(urls)]) {
         try {
-          const res = await fetch(u, { cache: u === path ? 'no-store' : 'default' });
+          const res = await fetch(u, { cache: u === path || /\/(main|master|HEAD)\//.test(u) ? 'no-store' : 'default' });
           if (res.ok) return await res.text();
           err = new Error(res.status + ' ' + u);
         } catch (e) { err = e; }
