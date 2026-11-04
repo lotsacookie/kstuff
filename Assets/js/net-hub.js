@@ -13,6 +13,8 @@ export function init(K) {
   const OK_WINDOW = 15000;
   const WATCH_MS = 30000;
   const WATCH_FAILS = 3;
+  const CHOOSE_BUDGET = 20000;
+  const ROTATE_WAIT = 8000;
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
     const t = String(entry || '').trim();
@@ -22,7 +24,7 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0;
+  let bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0, inflight = 0;
 
   const readJson = key => {
     try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
@@ -123,6 +125,19 @@ export function init(K) {
     return ok;
   }
 
+  function resetConnection(url) {
+    try {
+      const connections = (sandstone.libcurl.wisp && sandstone.libcurl.wisp.wisp_connections) || {};
+      const connection = connections[url];
+      if (!connection) return false;
+      if (Object.keys(connection.active_streams || {}).length) return false;
+      try { connection.close && connection.close(); } catch {}
+      delete connections[url];
+      console.log('[net-hub] reset stalled connection', url);
+      return true;
+    } catch { return false; }
+  }
+
   const tiers = () => {
     const servers = Array.isArray(K.WISP_SERVERS) && K.WISP_SERVERS.length ? K.WISP_SERVERS : (Array.isArray(window.serverList) ? window.serverList : []);
     const primary = [];
@@ -146,6 +161,7 @@ export function init(K) {
 
   async function choose(exclude) {
     const skip = new Set(exclude);
+    const deadline = Date.now() + CHOOSE_BUDGET;
     const good = readGood();
     if (good && !skip.has(good.url) && Date.now() - good.ts < LAST_TTL && !isBad(good.url)) {
       if ((await probe(good.url, 3000)) !== null) return good.url;
@@ -155,6 +171,7 @@ export function init(K) {
       const pool = tier.filter(u => !skip.has(u));
       const ordered = [...pool.filter(u => !isBad(u)), ...pool.filter(u => isBad(u))];
       for (let i = 0; i < ordered.length; i += 6) {
+        if (Date.now() > deadline) return null;
         const wave = ordered.slice(i, i + 6);
         const pings = await Promise.all(wave.map(u => probe(u, 3000)));
         const alive = [];
@@ -183,7 +200,7 @@ export function init(K) {
 
   let fails = 0;
   async function watch() {
-    if (!current || document.hidden || rotating || live.size) return;
+    if (!current || document.hidden || rotating || live.size || inflight) return;
     const ping = await probe(current, 4000);
     if (ping === null) fails++;
     else {
@@ -225,6 +242,10 @@ export function init(K) {
           if (await verify(current)) { writeGood(current); return; }
           await delay(800);
           if (await verify(current)) { writeGood(current); return; }
+          if (resetConnection(current)) {
+            await delay(400);
+            if (await verify(current)) { writeGood(current); return; }
+          }
           rotate(current);
         })().catch(() => {});
       }, 1500);
@@ -246,6 +267,10 @@ export function init(K) {
         if (await verify(current)) { writeGood(current); return current; }
         await delay(800);
         if (await verify(current)) { writeGood(current); return current; }
+        if (resetConnection(current)) {
+          await delay(400);
+          if (await verify(current)) { writeGood(current); return current; }
+        }
       }
       const from = bad || current;
       if (from) markBad(from, auto ? BAD_TTL : SOFT_TTL);
@@ -264,8 +289,11 @@ export function init(K) {
 
   async function core(url, init) {
     const sg = await boot();
-    if (rotating) await rotating.catch(() => {});
-    const run = () => sg.libcurl.fetch(url, init);
+    if (rotating) await Promise.race([rotating.catch(() => {}), delay(ROTATE_WAIT)]);
+    const run = async () => {
+      inflight++;
+      try { return await sg.libcurl.fetch(url, init); } finally { inflight--; }
+    };
     try {
       return await run();
     } catch (err) {
@@ -287,7 +315,7 @@ export function init(K) {
   window.kNetDirect = {
     fetch: (url, init) => core(String(url), Object.assign({ redirect: 'follow' }, init || {})),
     ready: () => boot().then(() => current),
-    rotate: bad => rotate(bad ? toWss(bad) : null)
+    rotate: (bad, soft) => rotate(bad ? toWss(bad) : null, !!soft)
   };
 
   async function handleFetch(d, reply) {
@@ -321,7 +349,7 @@ export function init(K) {
     const reply = (m, t) => { try { src.postMessage(m, '*', t || []); } catch {} };
     if (d.type === 'kstuff-net:hello') { reply({ type: 'kstuff-net:hello-ack', wisp: current }); boot().catch(() => {}); return; }
     if (d.type === 'kstuff-net:ready') { boot().then(() => reply({ type: 'kstuff-net:ready-ack', id: d.id, wisp: current }), er => reply({ type: 'kstuff-net:ready-ack', id: d.id, error: String(er && er.message || er) })); return; }
-    if (d.type === 'kstuff-net:rotate') { rotate(d.bad ? toWss(d.bad) : null).then(w => reply({ type: 'kstuff-net:rotate-ack', id: d.id, wisp: w }), () => reply({ type: 'kstuff-net:rotate-ack', id: d.id })); return; }
+    if (d.type === 'kstuff-net:rotate') { rotate(d.bad ? toWss(d.bad) : null, !!d.soft).then(w => reply({ type: 'kstuff-net:rotate-ack', id: d.id, wisp: w }), () => reply({ type: 'kstuff-net:rotate-ack', id: d.id })); return; }
     if (d.type === 'kstuff-net:abort') { const c = live.get(d.id); if (c) c.abort(); return; }
     if (d.type === 'kstuff-net:fetch' && typeof d.url === 'string' && /^https?:\/\//i.test(d.url)) {
       d.key = d.id;

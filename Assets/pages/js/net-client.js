@@ -91,7 +91,7 @@
   window.kNet = {
     available: direct ? function () { return Promise.resolve(true); } : available,
     fetch: direct ? function (url, init) { return direct.fetch(url, init); } : fetchViaHub,
-    rotate: direct ? function (bad) { return Promise.resolve(direct.rotate(bad)).catch(function () {}); } : function (bad) { return call({ type: 'kstuff-net:rotate', bad: bad }, null, 20000).catch(function () {}); },
+    rotate: direct ? function (bad, soft) { return Promise.resolve(direct.rotate(bad, soft)).catch(function () {}); } : function (bad, soft) { return call({ type: 'kstuff-net:rotate', bad: bad, soft: !!soft }, null, 20000).catch(function () {}); },
     ready: direct ? function () { return direct.ready().then(function (w) { return { wisp: w }; }); } : function () { return call({ type: 'kstuff-net:ready' }, null, 40000); }
   };
 })();

@@ -426,7 +426,7 @@
 
   async function createProxy(exclude) {
     if (window.kNet && await window.kNet.available()) {
-      if (exclude && exclude.length) await window.kNet.rotate();
+      if (exclude && exclude.length) await window.kNet.rotate(undefined, true);
       await window.kNet.ready();
       return { fetch: (target, init) => window.kNet.fetch(target, init), wisp: "hub" };
     }
