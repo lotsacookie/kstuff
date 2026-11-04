@@ -17,7 +17,84 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let bootP = null, sandstone = null, current = null, rotating = null;
+  let bootP = null, sandstone = null, current = null, rotating = null, watching = false;
+  const cooldown = new Map();
+
+  function probe(url, ms) {
+    return new Promise(resolve => {
+      let ws;
+      try { ws = new WebSocket(url); } catch { resolve(null); return; }
+      ws.binaryType = 'arraybuffer';
+      let connected = false, sentAt = 0;
+      const streamId = Math.floor(Math.random() * 0xFFFFFFFE) + 1 >>> 0;
+      const finish = ping => {
+        clearTimeout(timer);
+        ws.onmessage = ws.onerror = ws.onclose = null;
+        try { ws.close(); } catch {}
+        resolve(ping);
+      };
+      const timer = setTimeout(() => finish(null), ms || 3000);
+      ws.onmessage = ev => {
+        if (!(ev.data instanceof ArrayBuffer) || ev.data.byteLength < 5) return;
+        const v = new DataView(ev.data);
+        const type = v.getUint8(0), stream = v.getUint32(1, true);
+        if (!connected) {
+          if (type === 5 && stream === 0) ws.send(new Uint8Array([5, 0, 0, 0, 0, 2, 1]));
+          else if (type === 3 && stream === 0) {
+            connected = true;
+            const host = new TextEncoder().encode('127.0.0.1');
+            const buf = new ArrayBuffer(8 + host.length);
+            const dv = new DataView(buf);
+            dv.setUint8(0, 1);
+            dv.setUint32(1, streamId, true);
+            dv.setUint8(5, 1);
+            dv.setUint16(6, 69, true);
+            new Uint8Array(buf).set(host, 8);
+            sentAt = performance.now();
+            ws.send(buf);
+          }
+          return;
+        }
+        if (stream === streamId) finish(Math.round(performance.now() - sentAt));
+      };
+      ws.onerror = ws.onclose = () => finish(null);
+    });
+  }
+
+  async function bestAlive(list, exclude) {
+    const now = Date.now();
+    const pool = list.filter(u => !exclude.includes(u));
+    const fresh = pool.filter(u => !(cooldown.get(u) > now));
+    for (const group of [fresh, pool]) {
+      for (let i = 0; i < group.length; i += 5) {
+        const wave = group.slice(i, i + 5);
+        const pings = await Promise.all(wave.map(u => probe(u, 3000)));
+        const alive = wave.map((u, j) => ({ u, ping: pings[j] })).filter(x => x.ping !== null).sort((a, b) => a.ping - b.ping);
+        if (alive.length) return alive[0];
+      }
+      if (group === pool) break;
+    }
+    return null;
+  }
+
+  async function recover() {
+    if (!current || rotating) return rotating;
+    const ping = await probe(current, 3000);
+    if (ping === null) return rotate(current);
+  }
+
+  let fails = 0, slow = 0;
+  async function watch() {
+    if (!current || document.hidden || rotating || live.size) return;
+    const ping = await probe(current, 4000);
+    fails = ping === null ? fails + 1 : 0;
+    slow = ping !== null && ping > 1500 ? slow + 1 : 0;
+    if (fails >= 2 || slow >= 3) {
+      fails = 0;
+      slow = 0;
+      rotate(current);
+    }
+  }
 
   const candidates = () => {
     const raw = [window.wlspServer, ...(K.wispUrls || []), ...(Array.isArray(window.serverList) ? window.serverList : []), K.WISP_FALLBACK, FALLBACK];
@@ -47,6 +124,7 @@ export function init(K) {
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready) throw new Error('libcurl did not load');
       console.log('[net-hub] ready via', current);
+      if (!watching) { watching = true; setInterval(watch, 20000); }
       return sg;
     })().catch(e => { bootP = null; sandstone = null; throw e; });
     return bootP;
@@ -60,7 +138,9 @@ export function init(K) {
       await boot();
       const list = candidates();
       const from = bad || current;
-      const next = list.find(u => u !== from && u !== current) || list.find(u => u !== from) || list[0];
+      if (from) cooldown.set(from, Date.now() + 300000);
+      const hit = await bestAlive(list, from ? [from] : []);
+      const next = hit ? hit.u : (list.find(u => u !== from && u !== current) || list.find(u => u !== from) || list[0]);
       if (next && next !== current) applyWisp(next);
       return current;
     })().finally(() => { rotating = null; });
@@ -78,9 +158,10 @@ export function init(K) {
     try {
       try { return await run(); }
       catch (err) {
+        if (ctl.signal.aborted) throw err;
         const m = (init.method || 'GET').toUpperCase();
-        if (ctl.signal.aborted || (m !== 'GET' && m !== 'HEAD')) throw err;
-        await rotate(current);
+        await recover();
+        if (m !== 'GET' && m !== 'HEAD') throw err;
         return await run();
       }
     } finally { /* controller removed after body is read */ }

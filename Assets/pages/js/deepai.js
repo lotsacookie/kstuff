@@ -12,6 +12,7 @@
   const GAMES_PATH = "Assets/json/g.json";
   const LAST_KEY = "DA_LAST";
   const BAD_KEY = "DA_BAD";
+  const MODELS_KEY = "DA_MODELS";
   const BAD_TTL_MS = 6 * 3600000;
   const KSTUFF = "lotsacookie/kstuff";
   const LIST_PATH = "Assets/json/wss.json";
@@ -705,6 +706,8 @@
   }
 
   const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [], games: "", lastSign: 0 };
+  const cachedModels = store.get(MODELS_KEY);
+  if (Array.isArray(cachedModels) && cachedModels.length) state.models = cachedModels;
 
   function say(text) {
     if (typeof _setAIStatus === "function") _setAIStatus(text || "");
@@ -925,6 +928,7 @@
     if (!state.client) return;
     try {
       state.models = await withTimeout(state.client.listModels(), 20000, "model list timed out");
+      store.set(MODELS_KEY, state.models);
     } catch (e) {}
     rerender();
   }
@@ -939,14 +943,14 @@
   }
 
   async function attemptBoot() {
-    say("Connecting…");
+    if (!state.models.length) say("Connecting…");
     const proxy = await createProxy(state.skip);
     state.wisp = proxy.wisp;
     const client = createClient(proxy.fetch);
     let models = null;
     let failure = null;
     try {
-      models = await withTimeout(client.listModels(), 25000, "DeepAI did not respond");
+      models = await withTimeout(client.listModels(), 12000, "DeepAI did not respond");
     } catch (error) {
       failure = error;
     }
@@ -964,6 +968,8 @@
     state.client = client;
     state.models = models;
     state.user = user;
+    state.skip = [];
+    store.set(MODELS_KEY, models);
     say("");
     rerender();
   }
@@ -979,11 +985,19 @@
   }
 
   async function ready() {
-    try {
-      await boot();
-    } catch (error) {
-      throw new Error("Could not reach DeepAI through the proxy. Try again in a moment.");
+    if (state.client) return;
+    say("Connecting…");
+    for (let i = 0; i < 3; i++) {
+      try {
+        await boot();
+        say("");
+        return;
+      } catch (error) {
+        await delay(500 * (i + 1));
+      }
     }
+    say("");
+    throw new Error("Could not reach DeepAI through the proxy. Try again in a moment.");
   }
 
   async function connect(attempt) {
@@ -994,7 +1008,7 @@
         say("DeepAI unavailable. Send a message to retry.");
         return;
       }
-      say("DeepAI proxy failed, trying another server…");
+      if (!state.models.length) say("DeepAI proxy failed, trying another server…");
       setTimeout(() => connect(attempt + 1), 1500 * (attempt + 1));
     }
   }
@@ -1055,7 +1069,7 @@
       const status = String(data.status || "");
       if (status === "COMPLETED") return;
       if (/fail|error|cancel/i.test(status)) throw new DeepAIError(status, { body: data });
-      await delay(1500);
+      await delay(1000);
     }
     throw new DeepAIError("DeepAI took too long to answer");
   }
@@ -1141,10 +1155,10 @@
           }
         }
         console.log("[deepai] stream finished", reply.length, "chars");
-        if (reply) await persist(reply);
+        if (reply) persist(reply);
         return;
       } catch (error) {
-        if (error && error.name === "AbortError" && reply) await persist(reply);
+        if (error && error.name === "AbortError" && reply) persist(reply);
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
         if (!emitted && error && error.status === 404) {
           if (level === 0) {
@@ -1301,6 +1315,10 @@
     }
     fixConnectingLabel();
     syncUi();
+    if (state.models.length) {
+      rerender();
+      setTimeout(rerender, 400);
+    }
     setTimeout(() => connect(0), 200);
   }
 
