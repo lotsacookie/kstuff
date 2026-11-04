@@ -98,13 +98,13 @@ export function init(K) {
   let ui = null, busy = false, token = 0, sess = null, live = false, snd = true, toolsTimer;
   const LOGO = '<svg class="ld-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><g id="vm-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10"><path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/><path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/></g></defs><g class="ld-arms" stroke="currentColor"><use href="#vm-arm"/><use href="#vm-arm" transform="rotate(120 50 50)"/><use href="#vm-arm" transform="rotate(240 50 50)"/></g><g class="ld-core" fill="currentColor"><path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/></g></svg>';
   const CSS = `
-#vm-loading{position:fixed;inset:0;width:100vw;height:100vh;background:var(--bg-color,#000);color:var(--text-color,#fff);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.1rem;z-index:999998;transition:opacity .5s ease,visibility .5s ease}
+#vm-loading{position:absolute;inset:0;width:100%;height:100%;background:var(--bg-color,#000);color:var(--text-color,#fff);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.1rem;z-index:60;transition:opacity .5s ease,visibility .5s ease}
 #vm-loading.hidden{opacity:0;visibility:hidden;pointer-events:none}
 #vm-loading .ld-status{text-align:center;max-width:80vw;padding:0 12px}
 #vm-loading.failed .ld-status{color:#ff6b6b;opacity:1}
 #vm-loading .vm-ld-btns{display:flex;gap:10px;min-height:2.6rem;align-items:center}
 #vm-loading .page-btn{padding:8px 20px}
-#vm-session{position:fixed;inset:0;z-index:999990;background:#000;display:none}
+#vm-session{position:absolute;inset:0;z-index:50;background:#000;display:none}
 #vm-session.on{display:block}
 #vm-screen{position:absolute;inset:0;overflow:hidden}
 #vm-tools{position:absolute;top:10px;left:50%;transform:translate(-50%,-160%);display:flex;gap:8px;align-items:center;padding:.5rem .7rem;background:var(--nav-bg);color:var(--text-color);border:1px solid var(--line,var(--hairline));border-radius:24px;box-shadow:0 8px 24px rgba(0,0,0,.28);transition:transform .25s var(--ease);z-index:3;max-width:96vw}
@@ -115,7 +115,8 @@ export function init(K) {
 #vm-handle{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:4;background:var(--nav-bg);color:var(--text-color);border:1px solid var(--line,var(--hairline));border-top:none;border-radius:0 0 14px 14px;padding:2px 16px;cursor:pointer;opacity:.7}
 #vm-handle:hover{opacity:1}
 #vm-toast{position:absolute;left:50%;bottom:24px;transform:translateX(-50%);background:var(--nav-bg);color:var(--text-color);border:1px solid var(--line,var(--hairline));border-radius:12px;padding:8px 14px;font-size:.8rem;opacity:0;pointer-events:none;transition:opacity .25s;z-index:5}
-#vm-toast.show{opacity:1}`;
+#vm-toast.show{opacity:1}
+#vms.vm-running>.filter-bar,#vms.vm-running>.item-grid,#vms.vm-running>.pagination-bar{display:none!important}`;
 
   function ensureUi() {
     if (ui) return ui;
@@ -132,7 +133,13 @@ export function init(K) {
 <button class="page-btn" id="vm-full" type="button" title="Fullscreen"><i class="ph ph-corners-out"></i></button>
 <button class="page-btn stop" id="vm-stop" type="button" title="Stop"><i class="ph ph-stop-circle"></i></button></div>
 <div id="vm-toast" role="status"></div>`;
-    document.body.append(ses, load);
+    const host = $('vms') || document.body;
+    host.append(ses, load);
+    // The session lives inside this page: pause keyboard capture while another tab is showing, refit when we return.
+    new MutationObserver(() => {
+      const on = host.classList.contains('active') && host.style.display !== 'none';
+      sess?.focus(on); if (on && live) setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
+    }).observe(host, { attributes: true, attributeFilter: ['class', 'style'] });
     ui = { load, ses, fill: $('vm-ld-fill'), status: $('vm-ld-status'), screen: $('vm-screen'), tools: $('vm-tools'), toast: $('vm-toast'), snd: $('vm-snd'), full: $('vm-full'), cancel: $('vm-ld-cancel'), back: $('vm-ld-back') };
     ui.cancel.onclick = ui.back.onclick = () => end();
     $('vm-stop').onclick = () => end();
@@ -165,6 +172,7 @@ export function init(K) {
     if (sess) { try { sess.stop(); } catch {} sess = null; }
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     if (!ui) return;
+    $('vms')?.classList.remove('vm-running');
     ui.screen.textContent = ''; ui.ses.classList.remove('on'); ui.tools.classList.remove('open');
     ui.load.classList.add('hidden'); ui.load.classList.remove('failed'); ui.back.hidden = true; ui.cancel.hidden = false;
   }
@@ -172,7 +180,7 @@ export function init(K) {
   async function start(item) {
     if (busy || sess) return;
     busy = true; live = false; snd = true;
-    const my = ++token; ensureUi();
+    const my = ++token; ensureUi(); $('vms').classList.add('vm-running');
     ui.snd.innerHTML = '<i class="ph ph-speaker-high"></i>';
     $('vm-title').textContent = item.title;
     ui.load.classList.remove('hidden', 'failed'); ui.cancel.hidden = false; ui.back.hidden = true;
