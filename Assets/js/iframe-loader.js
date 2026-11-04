@@ -17,6 +17,19 @@ export function init(K) {
   const LOCAL_SCRIPT = /<script\b([^>]*?)\bsrc=(["'])(?!https?:|\/\/|data:|blob:)([^"']+)\2([^>]*)>\s*<\/script>/gi;
 
   K.fetchPageHtml = async path => {
+    if (/^https?:\/\//i.test(path)) {
+      // Absolute URL (e.g. the Cloud tab): load the page the same way g.json games load, pinned to the latest commit when possible.
+      const pinned = await K.pinUrl(path);
+      let err;
+      for (const u of (pinned !== path ? [pinned, path] : [path])) {
+        try {
+          const res = await fetch(u, { cache: u === path ? 'no-store' : 'default' });
+          if (res.ok) return await res.text();
+          err = new Error(res.status + ' ' + u);
+        } catch (e) { err = e; }
+      }
+      throw err || new Error('Failed to load ' + path);
+    }
     const html = await K.fetchWithProxy(path, true);
     const dir = path.replace(/[^/]*$/, '');
     const wanted = new Set();
