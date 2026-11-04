@@ -63,19 +63,16 @@ export function init(K) {
 
   async function verify(url) {
     if (url !== current) applyWisp(url);
-    const run = async target => {
-      const ctl = new AbortController();
-      const timer = setTimeout(() => ctl.abort(), 5000);
-      try {
-        const res = await Promise.race([sandstone.libcurl.fetch(target, { method: 'HEAD', signal: ctl.signal }), delay(5500).then(() => { throw new Error('timeout'); })]);
-        try { if (res.body && res.body.cancel) res.body.cancel(); } catch {}
-        return true;
-      } catch { return false; }
-      finally { clearTimeout(timer); }
-    };
-    const results = await Promise.all([run('https://api.deepai.org/'), run('https://www.gstatic.com/generate_204')]);
-    console.log('[net-hub] verify', url, results);
-    return results.every(Boolean);
+    let ok = false;
+    try {
+      const res = await Promise.race([
+        sandstone.libcurl.fetch('https://www.gstatic.com/generate_204', { method: 'GET' }).then(async r => { await r.arrayBuffer(); return r; }),
+        delay(6000).then(() => { throw new Error('timeout'); })
+      ]);
+      ok = !!res;
+    } catch {}
+    console.log('[net-hub] verify', url, ok);
+    return ok;
   }
 
   const readGood = () => {
@@ -198,6 +195,7 @@ export function init(K) {
       catch (err) {
         if (ctl.signal.aborted) throw err;
         const m = (init.method || 'GET').toUpperCase();
+        if (/http\/2|framing|stream error/i.test(String((err && err.message) || err))) return await run();
         await recover();
         if (m !== 'GET' && m !== 'HEAD') throw err;
         return await run();
