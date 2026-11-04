@@ -182,6 +182,7 @@ async function legacy(){
             <button class="nav-btn" data-target="gradebook"><i class="ph ph-music-notes"></i><span class="label-data"><div>c</div><div>i</div><div>s</div><div>u</div><div>M</div></span></button>
             <button class="nav-btn" data-target="civics"><i class="ph ph-monitor-play"></i><span class="label-data"><div>V</div><div>T</div></span></button>
             <button class="nav-btn" data-target="lessonplanner"><i class="ph ph-robot"></i><span class="label-data"><div>I</div><div>A</div></span></button>
+            <button class="nav-btn" data-href="cloud.html" title="Cloud" aria-label="Cloud"><i class="ph ph-cloud"></i><span class="label-data"><div>d</div><div>u</div><div>o</div><div>l</div><div>C</div></span></button>
             <button class="nav-btn" data-target="vms"><i class="ph ph-desktop"></i><span class="label-data"><div>s</div><div>M</div><div>V</div></span></button>
             <button class="nav-btn" data-target="studyhall"><i class="ph ph-chats"></i><span class="label-data"><div>t</div><div>a</div><div>h</div><div>C</div></span></button>
             <div class="nav-card" id="nav-card">
@@ -404,5 +405,6 @@ document.addEventListener('webkitfullscreenchange',sync);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fsEl()&&root.classList.contains('sg-fit'))setFit(false)});
 })();
     </script>
+<script>document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('.nav-btn[data-href]');if(b){e.preventDefault();e.stopImmediatePropagation();location.href=b.dataset.href}},true);</script>
 </body>
 </html>
