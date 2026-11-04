@@ -219,9 +219,9 @@
             back.classList.add('vc-back');
             menu.appendChild(back);
             if (menuPage === 'quality') {
-                menu.appendChild(menuItem('Auto', '', function () { h.currentLevel = -1; closeMenu(); }, h && h.autoLevelEnabled));
+                menu.appendChild(menuItem('Auto', '', function () { h.currentLevel = -1; TV.store.set('tvQuality', 'auto'); closeMenu(); }, h && h.autoLevelEnabled));
                 levels().forEach(function (l) {
-                    menu.appendChild(menuItem(l.height + 'p', '', function () { h.currentLevel = l.index; closeMenu(); }, h && !h.autoLevelEnabled && h.currentLevel === l.index));
+                    menu.appendChild(menuItem(l.height + 'p', '', function () { h.currentLevel = l.index; TV.store.set('tvQuality', String(l.height)); closeMenu(); }, h && !h.autoLevelEnabled && h.currentLevel === l.index));
                 });
             } else if (menuPage === 'speed') {
                 [0.5, 0.75, 1, 1.25, 1.5, 2].forEach(function (s) {

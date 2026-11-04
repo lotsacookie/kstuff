@@ -417,6 +417,32 @@
         return hlsPromise;
     }
 
+    var RESUME_KEY = 'tvResume';
+    function resumeKey(ctx) {
+        var e = ctx[0];
+        return e.type + ':' + e.tid + (e.type === 'tv' ? ':' + ctx[1] + ':' + ctx[2] : '');
+    }
+    function loadResume(ctx) {
+        var map = TV.store.json(RESUME_KEY) || {};
+        var r = map[resumeKey(ctx)];
+        return r && r.t > 5 ? r.t : 0;
+    }
+    function saveResume(p) {
+        if (!p || !p.ctx || !p.watch) return;
+        var v = p.video, t = v.currentTime, d = v.duration;
+        if (!isFinite(t) || !isFinite(d) || d <= 0 || t < 5) return;
+        var map = TV.store.json(RESUME_KEY) || {};
+        var key = resumeKey(p.ctx);
+        if (d - t < 60 || t / d > 0.95) delete map[key];
+        else map[key] = { t: Math.floor(t), d: Math.floor(d), ts: Date.now() };
+        var keys = Object.keys(map);
+        if (keys.length > 200) {
+            keys.sort(function (a, b) { return map[a].ts - map[b].ts; });
+            keys.slice(0, keys.length - 200).forEach(function (k) { delete map[k]; });
+        }
+        TV.store.set(RESUME_KEY, JSON.stringify(map));
+    }
+
     function buildPlayer() {
         playerEl.textContent = '';
         var video = document.createElement('video');
@@ -458,13 +484,22 @@
         var lastGood = 0;
         var stalls = 0;
         function clearStall() { clearTimeout(stallTimer); stallTimer = 0; }
-        video.addEventListener('playing', function () { setStatus(''); clearStall(); });
-        video.addEventListener('pause', clearStall);
+        var lastSave = 0;
+        video.addEventListener('playing', function () { player.buffering = false; setStatus(''); clearStall(); });
+        video.addEventListener('pause', function () {
+            clearStall();
+            if (player && player.buffering) { player.buffering = false; setStatus(''); }
+            saveResume(player);
+        });
+        video.addEventListener('ended', function () { saveResume(player); });
+        window.addEventListener('pagehide', function () { if (player && player.video === video) saveResume(player); });
         video.addEventListener('timeupdate', function () {
             if (Math.abs(video.currentTime - lastGood) > 8) { lastGood = video.currentTime; stalls = 0; }
+            if (!video.paused && Date.now() - lastSave > 5000) { lastSave = Date.now(); saveResume(player); }
         });
         video.addEventListener('waiting', function () {
             if (video.paused) return;
+            player.buffering = true;
             setStatus('Buffering...', true);
             clearStall();
             stallTimer = setTimeout(function () {
@@ -536,6 +571,7 @@
     }
 
     function closePlayer() {
+        saveResume(player);
         playGen++;
         clearTimeout(idleTimer);
         teardownMedia();
@@ -706,10 +742,12 @@
                         h.on(Hls.Events.MANIFEST_PARSED, function () {
                             parsed = true;
                             clearTimeout(timer);
-                            var idx = pickStartLevel(h, 1080);
+                            var savedQ = parseInt(TV.store.get('tvQuality'), 10);
+                            var idx = pickStartLevel(h, savedQ > 0 ? savedQ : 1080);
                             if (idx === -1) { reject(new Error('no video track in playlist')); return; }
                             h.startLevel = idx;
                             h.startLoad(at > 1 ? at : -1);
+                            if (savedQ > 0) h.currentLevel = idx;
                             resolve();
                         });
                         h.on(Hls.Events.LEVEL_SWITCHED, function (ev, data) {
@@ -769,7 +807,7 @@
                 if (list.length) {
                     player.streams = list;
                     player.next.hidden = list.length < 2;
-                    tryStream(0, gen, [], 0);
+                    tryStream(0, gen, [], loadResume(player.ctx));
                     return;
                 }
                 setStatus('No sources have this one yet. Still looking...', true);
