@@ -5,6 +5,7 @@
     var secs = el('mvSecs');
     var feat = el('mvFeat');
     var home = el('mvHome');
+    var contBox = el('mvCont');
     var results = el('mvResults');
     var grid = el('mvGrid');
     var resTitle = el('mvResTitle');
@@ -427,20 +428,120 @@
         var r = map[resumeKey(ctx)];
         return r && r.t > 5 ? r.t : 0;
     }
+    function slim(e) {
+        return { id: e.id, type: e.type, tid: e.tid, title: e.title, poster: e.poster || '', backdrop: e.backdrop || '', year: e.year || '', rating: e.rating || 0, overview: String(e.overview || '').slice(0, 300) };
+    }
     function saveResume(p) {
         if (!p || !p.ctx || !p.watch) return;
         var v = p.video, t = v.currentTime, d = v.duration;
         if (!isFinite(t) || !isFinite(d) || d <= 0 || t < 5) return;
         var map = TV.store.json(RESUME_KEY) || {};
         var key = resumeKey(p.ctx);
+        // Finished (nearly at the end): it leaves Continue Watching.
         if (d - t < 60 || t / d > 0.95) delete map[key];
-        else map[key] = { t: Math.floor(t), d: Math.floor(d), ts: Date.now() };
+        else map[key] = { t: Math.floor(t), d: Math.floor(d), ts: Date.now(), e: slim(p.ctx[0]), s: p.ctx[1], n: p.ctx[2], nm: p.ctx[3] || '' };
         var keys = Object.keys(map);
         if (keys.length > 200) {
             keys.sort(function (a, b) { return map[a].ts - map[b].ts; });
             keys.slice(0, keys.length - 200).forEach(function (k) { delete map[k]; });
         }
         TV.store.set(RESUME_KEY, JSON.stringify(map));
+    }
+
+    // ---- Continue Watching: everything started and not finished, newest first, one card per title
+    var backfilled = {};
+    function inProgress(r) {
+        return r && r.t > 5 && r.d > 0 && r.d - r.t >= 60 && r.t / r.d <= 0.95;
+    }
+    function continueList() {
+        var map = TV.store.json(RESUME_KEY) || {};
+        var best = {};
+        Object.keys(map).forEach(function (key) {
+            var r = map[key];
+            if (!inProgress(r)) return;
+            var parts = key.split(':');
+            var show = parts[0] + ':' + parts[1];
+            if (!best[show] || r.ts > best[show].r.ts) best[show] = { key: key, r: r, parts: parts };
+        });
+        return Object.keys(best).map(function (k) { return best[k]; }).sort(function (a, b) { return b.r.ts - a.r.ts; }).slice(0, 24);
+    }
+    function dropContinue(parts) {
+        var map = TV.store.json(RESUME_KEY) || {};
+        var show = parts[0] + ':' + parts[1];
+        Object.keys(map).forEach(function (k) { if (k === show || k.indexOf(show + ':') === 0) delete map[k]; });
+        TV.store.set(RESUME_KEY, JSON.stringify(map));
+        renderContinue();
+    }
+    // Progress saved before titles were stored has no poster/title: fetch them once so those cards can show too.
+    function backfill(key, parts) {
+        if (backfilled[key]) return;
+        backfilled[key] = true;
+        TV.api('/' + parts[0] + '/' + parts[1]).then(function (d) {
+            var entry = norm(d, parts[0]);
+            if (!entry) return;
+            var map = TV.store.json(RESUME_KEY) || {};
+            if (!map[key]) return;
+            map[key].e = slim(entry);
+            if (parts.length > 3) { map[key].s = Number(parts[2]); map[key].n = Number(parts[3]); }
+            TV.store.set(RESUME_KEY, JSON.stringify(map));
+            renderContinue();
+        }).catch(function () {});
+    }
+    function leftText(r) {
+        var min = Math.round((r.d - r.t) / 60);
+        return (min >= 1 ? TV.runtime(min) : '1m') + ' left';
+    }
+    function continueCard(item) {
+        var r = item.r, entry = r.e;
+        var wrap = make('div', 'cwrap');
+        var card = make('button', 'card');
+        card.type = 'button';
+        card.title = 'Resume ' + entry.title;
+        var poster = make('div', 'poster');
+        if (!entry.poster) poster.textContent = entry.title.slice(0, 2).toUpperCase();
+        else loadImg(poster, entry.poster, 'w342');
+        var bar = make('div', 'bar-prog');
+        var fill = document.createElement('i');
+        fill.style.width = Math.max(2, Math.min(100, r.t / r.d * 100)) + '%';
+        bar.appendChild(fill);
+        poster.appendChild(bar);
+        card.appendChild(poster);
+        card.appendChild(make('div', 'card-t', entry.title));
+        var s = r.s != null ? r.s : Number(item.parts[2]) || 1;
+        var n = r.n != null ? r.n : Number(item.parts[3]) || 1;
+        var sub = entry.type === 'tv' ? 'S' + s + ' E' + n + ' · ' + leftText(r) : leftText(r);
+        card.appendChild(make('div', 'card-s', sub));
+        card.addEventListener('click', function () {
+            if (entry.type === 'tv') startPlay(entry, s, n, r.nm || '');
+            else startPlay(entry, 1, 1, '');
+        });
+        var x = make('button', 'cx', '✕');
+        x.type = 'button';
+        x.title = 'Remove from Continue Watching';
+        x.setAttribute('aria-label', 'Remove ' + entry.title + ' from Continue Watching');
+        x.addEventListener('click', function (e) { e.stopPropagation(); dropContinue(item.parts); });
+        wrap.appendChild(card);
+        wrap.appendChild(x);
+        return wrap;
+    }
+    function renderContinue() {
+        var list = continueList();
+        var shown = 0;
+        var rowEl = make('div', 'row');
+        list.forEach(function (item) {
+            if (!item.r.e || !item.r.e.title) { backfill(item.key, item.parts); return; }
+            rowEl.appendChild(continueCard(item));
+            shown++;
+        });
+        contBox.textContent = '';
+        if (!shown) { contBox.hidden = true; return; }
+        var sec = make('div', 'sec');
+        var head = make('div', 'sec-head');
+        head.appendChild(make('h2', 'sec-title', 'Continue Watching'));
+        sec.appendChild(head);
+        sec.appendChild(rowEl);
+        contBox.appendChild(sec);
+        contBox.hidden = false;
     }
 
     function buildPlayer() {
@@ -579,6 +680,7 @@
         playerEl.textContent = '';
         player = null;
         document.removeEventListener('keydown', onPlayerKey, true);
+        renderContinue();
     }
 
     function onPlayerKey(e) {
@@ -822,6 +924,7 @@
 
     TV.register('movies', {
         show: function () {
+            renderContinue();
             if (!homeLoaded && !query) loadHome();
         },
         hide: function () {

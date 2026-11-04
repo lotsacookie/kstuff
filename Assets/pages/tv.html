@@ -239,6 +239,15 @@ svg { display: block; flex-shrink: 0; }
     color: var(--text);
     text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
 }
+.cwrap { position: relative; flex: none; width: 150px; scroll-snap-align: start; min-width: 0; }
+.cwrap > .card { width: 100%; }
+.cwrap .cx {
+    position: absolute; top: 6px; right: 6px; z-index: 2; width: 26px; height: 26px; padding: 0;
+    border: 1px solid var(--border); border-radius: 50%; background: rgba(0, 0, 0, 0.65); color: var(--text);
+    font-size: 0.8rem; line-height: 1; cursor: pointer; opacity: 0; transition: opacity 0.15s;
+}
+.cwrap:hover .cx, .cwrap .cx:focus-visible { opacity: 1; }
+@media (hover: none) { .cwrap .cx { opacity: 1; } }
 .bar-prog { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: rgba(0, 0, 0, 0.5); }
 .bar-prog i { display: block; height: 100%; background: var(--text); }
 .skel .poster { animation: pulse 1.4s ease-in-out infinite; }
@@ -416,7 +425,7 @@ svg { display: block; flex-shrink: 0; }
     .feat { min-height: 260px; }
     .feat-title { font-size: 1.4rem; }
     .feat-in { padding: 18px; }
-    .row > .card { width: 120px; }
+    .row > .card, .cwrap { width: 120px; }
     .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
     .chgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .hero-p { width: 80px; }
@@ -448,6 +457,7 @@ svg { display: block; flex-shrink: 0; }
     </div>
     <div id="mvHome">
         <div class="feat" id="mvFeat" hidden></div>
+        <div id="mvCont" hidden></div>
         <div id="mvSecs"></div>
     </div>
 </section>
