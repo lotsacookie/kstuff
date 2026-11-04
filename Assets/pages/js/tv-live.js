@@ -41,10 +41,21 @@
 
     TV.attachControls(video.parentNode, video, { live: true, getHls: function () { return hls; } });
 
+
+    function tvFetch(url, init) {
+        return fetch(url, init).catch(function (err) {
+            if (!window.kNet || (init.signal && init.signal.aborted)) throw err;
+            return window.kNet.available().then(function (ok) {
+                if (!ok) throw err;
+                return window.kNet.fetch(url, init);
+            });
+        });
+    }
+
     function fetchJSON(url) {
         var controller = new AbortController();
         var timer = setTimeout(function () { controller.abort(); }, 30000);
-        return fetch(url, { signal: controller.signal }).then(function (res) {
+        return tvFetch(url, { signal: controller.signal }).then(function (res) {
             if (!res.ok) throw new Error('HTTP ' + res.status);
             return res.json();
         }).then(function (data) {

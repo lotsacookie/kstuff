@@ -87,10 +87,21 @@
         });
     }
 
+
+    function tvFetch(url, init) {
+        return fetch(url, init).catch(function (err) {
+            if (!window.kNet || (init.signal && init.signal.aborted)) throw err;
+            return window.kNet.available().then(function (ok) {
+                if (!ok) throw err;
+                return window.kNet.fetch(url, init);
+            });
+        });
+    }
+
     function timedFetch(url, ms) {
         var controller = new AbortController();
         var timer = setTimeout(function () { controller.abort(); }, ms);
-        return fetch(url, { signal: controller.signal }).then(function (res) {
+        return tvFetch(url, { signal: controller.signal }).then(function (res) {
             clearTimeout(timer);
             return res;
         }, function (err) {

@@ -424,6 +424,11 @@
   }
 
   async function createProxy(exclude) {
+    if (window.kNet && await window.kNet.available()) {
+      if (exclude && exclude.length) await window.kNet.rotate();
+      await window.kNet.ready();
+      return { fetch: (target, init) => window.kNet.fetch(target, init), wisp: "hub" };
+    }
     const sandstone = await loadSandstone();
     provisionalWisp(sandstone.network);
     for (let i = 0; i < 300 && !sandstone.libcurl.ready; i++) await delay(100);

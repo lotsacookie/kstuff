@@ -530,7 +530,28 @@ async function readWispBody(response, idleMs = 20000) {
     });
 }
 
+async function hubFetch(url, timeoutMs) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), timeoutMs);
+    try { return await window.kNet.fetch(url, { signal: ctl.signal }); }
+    catch (err) { if (ctl.signal.aborted) throw new Error("Wisp fetch timed out"); throw err; }
+    finally { clearTimeout(timer); }
+}
+
 async function wispFetch(url, timeoutMs = 15000, critical = true) {
+    if (window.kNet && await window.kNet.available()) {
+        try {
+            let res = await hubFetch(url, timeoutMs);
+            if (critical && BLOCKED_STATUSES.has(res.status)) {
+                await window.kNet.rotate();
+                res = await hubFetch(url, timeoutMs);
+            }
+            return res;
+        } catch (hubErr) {
+            if (!critical) throw hubErr;
+            console.warn("Shared net hub failed, using local wisp:", hubErr && hubErr.message ? hubErr.message : hubErr);
+        }
+    }
     let lastErr = null;
     const serverCount = Math.max(WISP_URLS.length, 1);
     const perAttemptCap = timeoutMs > 30000 ? 3 : 6;
@@ -573,7 +594,8 @@ async function wispFetch(url, timeoutMs = 15000, critical = true) {
 }
 
 const wispUrlsReady = loadWispUrlsFromRemote();
-wispUrlsReady.then(() => {
+wispUrlsReady.then(async () => {
+    if (window.kNet && await window.kNet.available()) return;
     getEpoxyClient().catch(() => {});
 });
 
