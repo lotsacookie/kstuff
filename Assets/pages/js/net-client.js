@@ -5,6 +5,8 @@
   var parent = null;
   try { parent = window.parent && window.parent !== window ? window.parent : null; } catch (e) {}
   var seq = 0, pending = {}, availP = null;
+  var direct = null;
+  try { direct = parent && parent.kNetDirect && typeof parent.kNetDirect.fetch === 'function' ? parent.kNetDirect : null; } catch (e) {}
   var NOBODY = { 101: 1, 204: 1, 205: 1, 304: 1 };
 
   window.addEventListener('message', function (e) {
@@ -87,9 +89,9 @@
   }
 
   window.kNet = {
-    available: available,
-    fetch: fetchViaHub,
-    rotate: function (bad) { return call({ type: 'kstuff-net:rotate', bad: bad }, null, 20000).catch(function () {}); },
-    ready: function () { return call({ type: 'kstuff-net:ready' }, null, 40000); }
+    available: direct ? function () { return Promise.resolve(true); } : available,
+    fetch: direct ? function (url, init) { return direct.fetch(url, init); } : fetchViaHub,
+    rotate: direct ? function (bad) { return Promise.resolve(direct.rotate(bad)).catch(function () {}); } : function (bad) { return call({ type: 'kstuff-net:rotate', bad: bad }, null, 20000).catch(function () {}); },
+    ready: direct ? function () { return direct.ready().then(function (w) { return { wisp: w }; }); } : function () { return call({ type: 'kstuff-net:ready' }, null, 40000); }
   };
 })();

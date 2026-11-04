@@ -121,6 +121,7 @@ export function init(K) {
     const ping = await probe(current, 4000);
     fails = ping === null ? fails + 1 : 0;
     slow = ping !== null && ping > 1500 ? slow + 1 : 0;
+    if (ping !== null && ping <= 1500) writeGood(current);
     if (fails >= 2 || slow >= 3) {
       fails = 0;
       slow = 0;
@@ -151,11 +152,13 @@ export function init(K) {
     bootP = (async () => {
       const sg = await loadSandstone();
       sandstone = sg;
-      if (window.kWispP && window.kWispP.then) await Promise.race([window.kWispP.catch(() => {}), delay(6000)]);
-      applyWisp(candidates()[0] || FALLBACK);
+      const good = readGood();
+      const fresh = good && good.url && Date.now() - good.ts < 3600000 && !(cooldown.get(good.url) > Date.now());
+      if (!fresh && window.kWispP && window.kWispP.then) await Promise.race([window.kWispP.catch(() => {}), delay(6000)]);
+      applyWisp(fresh ? good.url : candidates()[0] || FALLBACK);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready) throw new Error('libcurl did not load');
-      setTimeout(() => { verify(current).then(ok => { if (!ok) rotate(current); }).catch(() => {}); }, 1500);
+      setTimeout(() => { verify(current).then(ok => { if (ok) writeGood(current); else rotate(current); }).catch(() => {}); }, 1500);
       console.log('[net-hub] ready via', current);
       if (!watching) { watching = true; setInterval(watch, 20000); }
       return sg;
@@ -183,25 +186,33 @@ export function init(K) {
 
   const live = new Map(); // key -> AbortController
 
-  async function doFetch(d) {
+  async function core(url, init) {
     const sg = await boot();
     if (rotating) await rotating.catch(() => {});
+    const run = () => sg.libcurl.fetch(url, init);
+    try {
+      return await run();
+    } catch (err) {
+      if (init.signal && init.signal.aborted) throw err;
+      const m = String(init.method || 'GET').toUpperCase();
+      if (/http\/2|framing|stream error/i.test(String((err && err.message) || err))) return await run();
+      await recover();
+      if (m !== 'GET' && m !== 'HEAD') throw err;
+      return await run();
+    }
+  }
+
+  async function doFetch(d) {
     const ctl = new AbortController();
     live.set(d.key, ctl);
-    const init = Object.assign({ redirect: 'follow' }, d.init || {}, { signal: ctl.signal });
-    const run = () => sg.libcurl.fetch(d.url, init);
-    try {
-      try { return await run(); }
-      catch (err) {
-        if (ctl.signal.aborted) throw err;
-        const m = (init.method || 'GET').toUpperCase();
-        if (/http\/2|framing|stream error/i.test(String((err && err.message) || err))) return await run();
-        await recover();
-        if (m !== 'GET' && m !== 'HEAD') throw err;
-        return await run();
-      }
-    } finally { /* controller removed after body is read */ }
+    return core(d.url, Object.assign({ redirect: 'follow' }, d.init || {}, { signal: ctl.signal }));
   }
+
+  window.kNetDirect = {
+    fetch: (url, init) => core(String(url), Object.assign({ redirect: 'follow' }, init || {})),
+    ready: () => boot().then(() => current),
+    rotate: bad => rotate(bad ? toWss(bad) : null)
+  };
 
   async function handleFetch(d, reply) {
     try {
@@ -223,6 +234,8 @@ export function init(K) {
     try { return [...document.querySelectorAll('iframe')].some(f => f.contentWindow === src && f.hasAttribute('srcdoc') && !f.__proxied); }
     catch { return false; }
   };
+
+  setTimeout(() => { boot().catch(() => {}); }, 1500);
 
   window.addEventListener('message', e => {
     const d = e.data;
