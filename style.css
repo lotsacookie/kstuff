@@ -2931,3 +2931,89 @@ body {
     box-shadow: none;
     outline: none;
 }
+
+/* ---- header bar: stays on the bar at any width (see Assets/js/header-overflow.js) ---- */
+.learning-header .hdr-more { order: 100; }
+.learning-header .textbook-bar-container { min-width: 120px; }
+
+.learning-header.hdr-slim .mini-player-text { display: none; }
+
+.learning-header.hdr-tight {
+    gap: 6px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.learning-header.hdr-tight .study-nav-btn {
+    width: 30px;
+    height: 30px;
+    padding: 6px;
+}
+
+.learning-header.hdr-tight .textbook-bar-container {
+    min-width: 80px;
+    padding-left: 12px;
+}
+
+.hdr-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 210px;
+    max-width: calc(100vw - 2 * var(--fg));
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px;
+    box-sizing: border-box;
+    background: var(--nav-bg);
+    border: 1px solid var(--line, var(--hairline));
+    border-radius: 14px;
+    box-shadow: var(--lift);
+    z-index: 30;
+}
+
+.hdr-menu[hidden] { display: none; }
+
+.hdr-menu > .study-nav-btn {
+    width: 100%;
+    height: auto;
+    min-height: 36px;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 8px 12px;
+    background: transparent;
+    border-color: transparent;
+    border-radius: 10px;
+    opacity: 1;
+}
+
+.hdr-menu > .study-nav-btn::after {
+    content: attr(data-label);
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.hdr-menu > .study-nav-btn:hover:not(:disabled) {
+    background: var(--tint-strong);
+    border-color: transparent;
+    transform: none;
+    box-shadow: none;
+}
+
+.hdr-menu > .study-nav-btn.is-on,
+.hdr-menu > .study-nav-btn[aria-pressed="true"] {
+    background: var(--tint);
+}
+
+.hdr-menu > .mini-player {
+    max-width: none;
+    margin: 0;
+    padding: 6px 8px;
+}
+
+.hdr-menu > .mini-player .mini-player-text {
+    display: flex;
+    max-width: 150px;
+}

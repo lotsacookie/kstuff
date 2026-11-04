@@ -93,6 +93,9 @@ function initApp() {
       loadModule('console-panel')
         .then(mod => mod.init(K))
         .catch(err => console.warn('console panel unavailable', err));
+      loadModule('header-overflow')
+        .then(mod => mod.init(K))
+        .catch(err => console.warn('header overflow unavailable', err));
       loadModule('cookie-viewer')
         .then(mod => mod.init(K))
         .catch(err => console.warn('cookie viewer unavailable', err));
