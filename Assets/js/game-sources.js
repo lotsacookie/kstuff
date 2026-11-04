@@ -197,22 +197,28 @@ export function init(K) {
 
   // ---- Deep link: switch to the Cloud tab, then ask SingularityCloud (postMessage) to start that game.
   // The request is repeated until the app acknowledges it, so it works whether the tab was already running or still loading.
-  let pendingCloud = null, cloudRetry = null;
+  let pendingCloud = null, cloudRetry = null, lastCloud = null;
+  const RELAUNCH_MS = 15000; // a Cloud tab reload this soon after a launch was accepted wiped that game, so start it again
   const cloudWin = () => K.$('cloud-iframe')?.contentWindow || null;
   const sendCloudLaunch = () => {
     const w = cloudWin();
     if (w && pendingCloud) { try { w.postMessage({ type: 'singularity:launch', gameId: pendingCloud.id, name: pendingCloud.name }, '*'); } catch {} }
   };
   const clickNav = target => document.querySelector(`.nav-btn[data-target="${target}"]`)?.click();
+  const stopCloudRetry = () => { clearInterval(cloudRetry); cloudRetry = null; };
+  const startCloudRetry = () => {
+    stopCloudRetry();
+    cloudRetry = setInterval(() => {
+      if (!pendingCloud || Date.now() - pendingCloud.at > 45000) { stopCloudRetry(); pendingCloud = null; return; }
+      sendCloudLaunch();
+    }, 600);
+  };
 
   K.openCloudGame = item => {
     if (!item || !CLOUD_ID_OK.test(String(item.cloudId || ''))) return;
-    pendingCloud = { id: item.cloudId, name: item.cloudName || item.title, at: Date.now() };
-    clearInterval(cloudRetry);
-    cloudRetry = setInterval(() => {
-      if (!pendingCloud || Date.now() - pendingCloud.at > 45000) { clearInterval(cloudRetry); pendingCloud = null; return; }
-      sendCloudLaunch();
-    }, 600);
+    pendingCloud = lastCloud = { id: item.cloudId, name: item.cloudName || item.title, at: Date.now() };
+    startCloudRetry();
+    // Switching tabs (re)loads the Cloud page, which shows its own loading screen; the launch is repeated until the app acknowledges it.
     if (document.querySelector('.page.active')?.id !== 'cloud') clickNav('cloud');
     sendCloudLaunch();
   };
@@ -222,10 +228,14 @@ export function init(K) {
     if (!d || typeof d !== 'object' || typeof d.type !== 'string' || !d.type.startsWith('singularity:')) return;
     const w = cloudWin();
     if (!w || e.source !== w) return;
-    if (d.type === 'singularity:ready') sendCloudLaunch();
-    else if (d.type === 'singularity:launching') {
-      if (pendingCloud && pendingCloud.id === d.gameId) { pendingCloud = null; clearInterval(cloudRetry); }
+    if (d.type === 'singularity:ready') {
+      // A fresh "ready" after we already got an acknowledgement means the Cloud page reloaded under the game: launch it again.
+      if (!pendingCloud && lastCloud && Date.now() - lastCloud.at < RELAUNCH_MS) { pendingCloud = { ...lastCloud, at: Date.now() }; startCloudRetry(); }
+      sendCloudLaunch();
+    } else if (d.type === 'singularity:launching') {
+      if (pendingCloud && pendingCloud.id === d.gameId) { pendingCloud = null; stopCloudRetry(); }
     } else if (d.type === 'singularity:closed') {
+      lastCloud = null;
       // Left the game (or it ended): go back to the games grid. Errors stay put so the message in the Cloud tab is seen.
       if (d.reason !== 'error' && document.querySelector('.page.active')?.id === 'cloud') clickNav('readingcorner');
     } else if (d.type === 'singularity:catalog') K.cacheCloudCatalog(d.games);
