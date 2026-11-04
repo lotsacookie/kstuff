@@ -3,77 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>SingularityCloud</title>
+<title>Cloud</title>
 <style>
-  html,body{margin:0;height:100%;background:#000;color:#fff;font-family:Comfortaa,system-ui,sans-serif}
-  #boot{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;opacity:.85}
-  #boot button{background:none;border:1px solid #fff5;color:#fff;border-radius:8px;padding:8px 16px;cursor:pointer}
+  html,body{margin:0;height:100%;overflow:hidden;background:transparent}
+  iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent}
 </style>
 </head>
 <body>
-<div id="boot"><div id="boot-msg">Checking for updates</div><button id="boot-retry" hidden type="button">Try again</button></div>
-<script>
-// Thin shell: always runs the latest SingularityCloud index.html.
-// 1) GitHub API -> newest commit SHA   2) jsDelivr (pinned to that SHA) -> index.html   3) cache the newest copy, fall back to it offline.
-(() => {
-  const REPO = "rtischeduler/SingularityCloud", BRANCH = "main";
-  const PAGES = "https://rtischeduler.github.io/SingularityCloud/";
-  const SHA_KEY = "sc_cloud_sha", HTML_KEY = "sc_cloud_index", SHA_TTL = 60000;
-  const msg = document.getElementById("boot-msg"), retry = document.getElementById("boot-retry");
-  const read = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
-  const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
-  const isSha = (s) => typeof s === "string" && /^[0-9a-f]{40}$/i.test(s);
-
-  async function get(url, ms, type, cache) {
-    const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), ms);
-    try {
-      const r = await fetch(url, { cache, signal: ctrl.signal });
-      if (!r.ok) throw new Error(r.status + " " + url);
-      return await r[type]();
-    } finally { clearTimeout(t); }
-  }
-
-  async function latestSha() {
-    const c = read(SHA_KEY);
-    if (c && isSha(c.sha) && Date.now() - c.t < SHA_TTL) return c.sha;
-    try {
-      const d = await get(`https://api.github.com/repos/${REPO}/commits/${BRANCH}`, 3500, "json", "no-store");
-      if (d && isSha(d.sha)) { write(SHA_KEY, { sha: d.sha, t: Date.now() }); return d.sha; }
-    } catch (e) { console.warn("[cloud] GitHub API unavailable:", e && e.message); }
-    return c && isSha(c.sha) ? c.sha : "";
-  }
-
-  async function latestHtml(sha) {
-    const cached = read(HTML_KEY);
-    if (cached && sha && cached.sha === sha && cached.html) return cached.html;
-    const sources = [
-      ...(sha ? [[`https://cdn.jsdelivr.net/gh/${REPO}@${sha}/index.html`, "default"], [`https://raw.githubusercontent.com/${REPO}/${sha}/index.html`, "default"]] : []),
-      [`https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/index.html`, "no-store"],
-      [`https://raw.githubusercontent.com/${REPO}/${BRANCH}/index.html`, "no-store"],
-      [PAGES + "index.html", "no-store"],
-    ];
-    for (const [url, cache] of sources) {
-      try {
-        const html = await get(url, 15000, "text", cache);
-        if (!/<html|<body/i.test(html)) throw new Error("not html: " + url);
-        write(HTML_KEY, { sha: sha || "", html, t: Date.now() });
-        return html;
-      } catch (e) { console.warn("[cloud] source failed:", e && e.message); }
-    }
-    return cached && cached.html ? cached.html : "";
-  }
-
-  async function run() {
-    retry.hidden = true; msg.textContent = "Checking for updates";
-    const sha = await latestSha();
-    msg.textContent = "Loading latest build";
-    const html = await latestHtml(sha);
-    if (!html) { msg.textContent = "Couldn't load SingularityCloud. Check your connection."; retry.hidden = false; return; }
-    document.open(); document.write(html); document.close();
-  }
-  retry.addEventListener("click", run);
-  run();
-})();
-</script>
+<!-- SingularityCloud runs in its own frame, so it keeps its own storage and its own loader
+     (GitHub API + jsDelivr + cache) and can't be affected by this page. It always loads the latest build. -->
+<iframe id="sc" title="SingularityCloud"
+  src="https://rtischeduler.github.io/SingularityCloud/"
+  allow="autoplay; fullscreen; clipboard-read; clipboard-write; gamepad; microphone; camera; pointer-lock; keyboard-map"
+  allowfullscreen></iframe>
 </body>
 </html>
