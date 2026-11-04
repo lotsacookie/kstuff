@@ -2,18 +2,16 @@
 // over a Wisp relay. Used only when the backend can't be reached directly from this origin.
 // libcurl.fetch / libcurl.WebSocket add no Origin header and no spoofed headers; they're plain clients.
 import { pickWisp, provisionalWisp } from "./wisps.mjs";
+import { jsdBases } from "../pin.mjs";
 
 const DIST = "dist/sandstone.mjs";
-const BASES = [
-  "https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/",
-  "https://fastly.jsdelivr.net/gh/lotsacookie/Singuloxy@main/",
-];
+const SINGULOXY = "lotsacookie/Singuloxy";
 
 async function loadSandstone(log) {
-  for (const base of BASES) {
+  for (const base of await jsdBases(SINGULOXY)) {
     try { return await import(base + DIST); } catch { log("[proxy] sandstone import failed", base); }
   }
-  const code = await (await fetch("https://raw.githubusercontent.com/lotsacookie/Singuloxy/main/" + DIST)).text();
+  const code = await (await fetch("https://raw.githubusercontent.com/" + SINGULOXY + "/main/" + DIST)).text();
   return import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
 }
 

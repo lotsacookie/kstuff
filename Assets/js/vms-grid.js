@@ -6,6 +6,16 @@ export function init(K) {
   const gridEl = $('vms-grid');
   if (!gridEl) return;
   const VMS = new URL('Assets/vms/', document.baseURI).href;
+  const REPO = K.MAIN_REPO || 'lotsacookie/kstuff';
+  const hosts = ['cdn', 'fastly', 'gcore'];
+  async function bases(force) {
+    let sha = '';
+    try { sha = await (K.getRefSha ? K.getRefSha(REPO, 'main', force) : ''); } catch {}
+    const out = [];
+    if (sha) for (const h of hosts) out.push(`https://${h}.jsdelivr.net/gh/${REPO}@${sha}/`);
+    for (const h of hosts) out.push(`https://${h}.jsdelivr.net/gh/${REPO}@main/`);
+    return out;
+  }
   const st = { data: [], category: 'All', search: '', page: 1 };
   let shown = [], catsDone = false;
 
@@ -17,7 +27,8 @@ export function init(K) {
 
   async function load() {
     let d = null;
-    for (const u of [VMS + 'vms-catalog.json', `https://cdn.jsdelivr.net/gh/${K.MAIN_REPO || 'lotsacookie/kstuff'}@main/Assets/vms/vms-catalog.json`]) {
+    const list = (await bases()).map(b => b + 'Assets/vms/vms-catalog.json'); list.push(VMS + 'vms-catalog.json');
+    for (const u of list) {
       try { const r = await fetch(u, { cache: 'no-cache' }); if (r.ok) { d = await r.json(); break; } } catch {}
     }
     st.data = (d?.items || []).filter(i => i.os).map(i => ({
@@ -178,6 +189,16 @@ export function init(K) {
     ui.load.classList.add('hidden'); ui.load.classList.remove('failed'); ui.back.hidden = true; ui.cancel.hidden = false;
   }
 
+  async function loadVm() {
+    let err;
+    for (const force of [false, true]) {
+      for (const b of await bases(force)) {
+        try { return await import(b + 'Assets/vms/vm/vm.mjs'); } catch (e) { err = e; }
+      }
+    }
+    try { return await import(VMS + 'vm/vm.mjs'); } catch (e) { throw err || e; }
+  }
+
   async function start(item) {
     if (busy || sess) return;
     busy = true; live = false; snd = true;
@@ -189,7 +210,7 @@ export function init(K) {
     ui.ses.classList.add('on'); // sized under the loading screen so the remote gets the right resolution
     const fail = m => { if (my !== token) return; busy = false; ui.load.classList.add('failed'); setStatus(m); ui.cancel.hidden = true; ui.back.hidden = false; };
     try {
-      const { launch } = await import(VMS + 'vm/vm.mjs');
+      const { launch } = await loadVm();
       const s = await launch(item.os, {
         el: ui.screen, say: setStatus, progress: setProg, cancelled: () => my !== token,
         onState: (code) => {

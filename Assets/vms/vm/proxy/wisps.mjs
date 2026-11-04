@@ -1,6 +1,7 @@
 // Wisp discovery + validation, ported from lotsacookie/kstuff (Assets/js/wisp.js).
 // Sources: TongSherbet/storage loader.js (primary list), kstuff Assets/json/wss.json (backups), built-ins.
 import { createBadList } from "./health.mjs";
+import { jsdBases } from "../pin.mjs";
 
 const KSTUFF = "lotsacookie/kstuff";
 const STORAGE = "TongSherbet/storage";
@@ -132,7 +133,8 @@ export function parseWispList(json) {
   })(data);
   return [...new Set(out)];
 }
-export async function fetchWispList(mirrors = KSTUFF_MIRRORS) {
+export async function fetchWispList(mirrors) {
+  if (!mirrors) mirrors = [...(await jsdBases(KSTUFF)), ...KSTUFF_MIRRORS.filter((m) => !/jsdelivr/.test(m))];
   try { return parseWispList(await Promise.any(mirrors.map((m) => fetchWith(m + LIST_PATH, "json", 5000)))); }
   catch { return []; }
 }
