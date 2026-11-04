@@ -150,10 +150,92 @@ export function init(K) {
     return dt + doc.documentElement.outerHTML;
   };
 
+
+  // ---- Cloud games: SingularityCloud's library (FreezeNova + Astra). Clicking a card deep-links into that game inside the Cloud tab.
+  const CLOUD_REPO = 'rtischeduler/SingularityCloud';
+  const CLOUD_CACHE = 'kstuff_cloud_catalog';
+  const CLOUD_ID_OK = /^[\w.-]{1,80}$/;
+
+  const readCloudCache = () => {
+    try {
+      const c = JSON.parse(localStorage.getItem(CLOUD_CACHE) || 'null');
+      return c && Array.isArray(c.games) ? c.games : [];
+    } catch { return []; }
+  };
+  // The Cloud tab reports its own library when it loads (see the message handler below), so the list also works before catalog.json exists.
+  K.cacheCloudCatalog = games => {
+    const clean = (Array.isArray(games) ? games : [])
+      .filter(g => g && CLOUD_ID_OK.test(String(g.id || '')) && g.name)
+      .map(g => ({ id: String(g.id), name: String(g.name).slice(0, 120), icon: typeof g.icon === 'string' && g.icon.startsWith('/cg/') ? g.icon : null }));
+    if (!clean.length) return;
+    try { localStorage.setItem(CLOUD_CACHE, JSON.stringify({ t: Date.now(), games: clean })); } catch {}
+  };
+
+  async function fetchCloud() {
+    let listed = [];
+    try {
+      const data = await K.fetchRepoFile(CLOUD_REPO, 'catalog.json', false, 12000);
+      if (Array.isArray(data?.games)) listed = data.games;
+    } catch (e) { console.warn('cloud catalog.json unavailable', e); }
+    const sha = (await K.getLatestSha(false, CLOUD_REPO).catch(() => '')) || 'main';
+    const art = icon => `https://cdn.jsdelivr.net/gh/${CLOUD_REPO}@${sha}/ref${icon}`;
+    const out = [], seen = new Set();
+    const add = (id, name, icon) => {
+      id = String(id || '');
+      if (!CLOUD_ID_OK.test(id) || !name || seen.has(id)) return;
+      seen.add(id);
+      const cover = [];
+      if (typeof icon === 'string' && icon.startsWith('/cg/')) cover.push(art(icon));
+      cover.push(K.gameFallbackIcon(name));
+      out.push({ source: 'cloud', cloudId: id, name: String(name), cover });
+    };
+    add('freezenova', 'Roblox (FreezeNova)', '/cg/tg-roblox-launch.jpg');
+    listed.forEach(g => g && add(g.id, g.name, g.icon));
+    readCloudCache().forEach(g => add(g.id, g.name, g.icon));
+    return out;
+  }
+
+  // ---- Deep link: switch to the Cloud tab, then ask SingularityCloud (postMessage) to start that game.
+  // The request is repeated until the app acknowledges it, so it works whether the tab was already running or still loading.
+  let pendingCloud = null, cloudRetry = null;
+  const cloudWin = () => K.$('cloud-iframe')?.contentWindow || null;
+  const sendCloudLaunch = () => {
+    const w = cloudWin();
+    if (w && pendingCloud) { try { w.postMessage({ type: 'singularity:launch', gameId: pendingCloud.id, name: pendingCloud.name }, '*'); } catch {} }
+  };
+  const clickNav = target => document.querySelector(`.nav-btn[data-target="${target}"]`)?.click();
+
+  K.openCloudGame = item => {
+    if (!item || !CLOUD_ID_OK.test(String(item.cloudId || ''))) return;
+    pendingCloud = { id: item.cloudId, name: item.cloudName || item.title, at: Date.now() };
+    clearInterval(cloudRetry);
+    cloudRetry = setInterval(() => {
+      if (!pendingCloud || Date.now() - pendingCloud.at > 45000) { clearInterval(cloudRetry); pendingCloud = null; return; }
+      sendCloudLaunch();
+    }, 600);
+    if (document.querySelector('.page.active')?.id !== 'cloud') clickNav('cloud');
+    sendCloudLaunch();
+  };
+
+  window.addEventListener('message', e => {
+    const d = e.data;
+    if (!d || typeof d !== 'object' || typeof d.type !== 'string' || !d.type.startsWith('singularity:')) return;
+    const w = cloudWin();
+    if (!w || e.source !== w) return;
+    if (d.type === 'singularity:ready') sendCloudLaunch();
+    else if (d.type === 'singularity:launching') {
+      if (pendingCloud && pendingCloud.id === d.gameId) { pendingCloud = null; clearInterval(cloudRetry); }
+    } else if (d.type === 'singularity:closed') {
+      // Left the game (or it ended): go back to the games grid. Errors stay put so the message in the Cloud tab is seen.
+      if (d.reason !== 'error' && document.querySelector('.page.active')?.id === 'cloud') clickNav('readingcorner');
+    } else if (d.type === 'singularity:catalog') K.cacheCloudCatalog(d.games);
+  });
+
   K.fetchExtraGames = async () => {
     const lists = await Promise.all([
       source('seraph', fetchSeraph),
-      source('storage', fetchStorageGames)
+      source('storage', fetchStorageGames),
+      source('cloud', fetchCloud)
     ]);
     return lists.flat();
   };

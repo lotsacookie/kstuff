@@ -124,6 +124,7 @@ export function init(K) {
 
   const openResource = async (item, opts = {}) => {
     if (!item) return;
+    if (item.cloudId) return K.openCloudGame?.(item); // Cloud games open inside SingularityCloud, not in this grid's frame
     const pageId = opts.pageId || document.querySelector('.page.active')?.id;
     if (!pageId || !grids[pageId]) return;
     const ifr = resourceIframeFor(pageId, true);
@@ -672,6 +673,13 @@ export function init(K) {
           used.add(key);
         }
         if (baseName.includes('[!]')) return;
+        if (item.source === 'cloud') {
+          const art = Array.isArray(item.cover) ? item.cover : [item.cover];
+          const cloudRow = { title: `${baseName} (Cloud)`, image: art[0] || '', url: '', category: 'Cloud', description: '', cloudId: item.cloudId, cloudName: baseName };
+          if (art.length > 1) cloudRow.imageAlts = art.slice(1);
+          mappedData.push(cloudRow);
+          return;
+        }
         const covers = Array.isArray(finalCover) ? finalCover : [finalCover];
         const row = {
           title: item.suffix ? `${baseName} (${item.suffix})` : baseName,
