@@ -454,8 +454,24 @@
             }
         });
         playerEl.focus();
-        video.addEventListener('playing', function () { setStatus(''); });
-        video.addEventListener('waiting', function () { if (!video.paused) setStatus('Buffering...', true); });
+        var stallTimer = 0;
+        var lastGood = 0;
+        var stalls = 0;
+        function clearStall() { clearTimeout(stallTimer); stallTimer = 0; }
+        video.addEventListener('playing', function () { setStatus(''); clearStall(); });
+        video.addEventListener('pause', clearStall);
+        video.addEventListener('timeupdate', function () {
+            if (Math.abs(video.currentTime - lastGood) > 8) { lastGood = video.currentTime; stalls = 0; }
+        });
+        video.addEventListener('waiting', function () {
+            if (video.paused) return;
+            setStatus('Buffering...', true);
+            clearStall();
+            stallTimer = setTimeout(function () {
+                if (!player || player.video !== video || video.paused || !player.watch) return;
+                if (stalls++ < 2) player.watch.again(); else { stalls = 0; player.watch.next('stalled'); }
+            }, 20000);
+        });
     }
 
     function streamLabel(stream, index) {
@@ -513,6 +529,7 @@
             try { player.hls.destroy(); } catch (e) {}
             player.hls = null;
         }
+        player.video.onerror = null;
         try { player.video.pause(); } catch (e) {}
         player.video.removeAttribute('src');
         try { player.video.load(); } catch (e) {}
@@ -573,54 +590,102 @@
         return lv && (lv.height > 0 || (lv.videoCodec && lv.videoCodec.length > 0));
     }
 
-    async function tryStream(index, gen, reasons) {
+    function sortStreams(data) {
+        var q = function (x) { return parseInt(String(x.quality || '0'), 10) || 0; };
+        var hlsFirst = function (x) { return x.type === 'hls' ? 0 : 1; };
+        var streams = ((data && data.streams) || []).filter(function (x) { return x && x.url && x.type !== 'dash'; });
+        var within = streams.filter(function (x) { return !q(x) || q(x) <= 1080; });
+        var above = streams.filter(function (x) { return q(x) > 1080; });
+        within.sort(function (a, b) { return hlsFirst(a) - hlsFirst(b) || q(b) - q(a); });
+        return within.concat(above);
+    }
+
+    async function fetchSources(entry, s, e) {
+        var path = entry.type === 'tv' ? '/stream/tv/' + entry.tid + '/' + s + '/' + e : '/stream/movie/' + entry.tid;
+        return sortStreams(await TV.api(path, 25000));
+    }
+
+    async function recover(gen, resume) {
+        var p = player;
+        if (!p || gen !== playGen) return;
+        p.round = (p.round || 0) + 1;
+        setStatus('Having trouble with this one. Still trying...', true);
+        await TV.sleep(Math.min(8000, 1500 * p.round));
+        if (gen !== playGen || player !== p) return;
+        try {
+            var fresh = await fetchSources(p.ctx[0], p.ctx[1], p.ctx[2]);
+            if (gen !== playGen || player !== p) return;
+            if (fresh.length) {
+                p.streams = fresh;
+                p.next.hidden = fresh.length < 2;
+            }
+        } catch (err) {}
+        if (gen !== playGen || player !== p) return;
+        tryStream(0, gen, [], resume);
+    }
+
+    async function tryStream(index, gen, reasons, resume) {
         if (gen !== playGen || !player) return;
         var p = player;
         reasons = reasons || [];
-        if (index >= p.streams.length) {
+        var at = resume > 1 ? resume : (p.video.currentTime > 1 ? p.video.currentTime : 0);
+        if (!p.streams.length || index >= p.streams.length) {
             teardownMedia();
-            console.warn('[tv] every source failed', reasons);
-            var last = reasons.length ? ' Last problem: ' + reasons[reasons.length - 1] + '.' : '';
-            setStatus('None of the sources would play this.' + last, false, true);
+            console.warn('[tv] every source failed, retrying', reasons);
+            recover(gen, at);
             return;
         }
         p.index = index;
         p.netRetry = 0;
         p.mediaRetry = 0;
+        p.fileRetry = 0;
         var stream = p.streams[index];
         var label = streamLabel(stream, index);
         setStatus((index ? 'Trying ' : 'Loading ') + label + '...', true);
         teardownMedia();
         var url = TV.proxyUrl(stream.url);
+        var started = false;
+        var cur = function () { return p.video.currentTime > 1 ? p.video.currentTime : at; };
         var moveOn = function (why) {
-            if (gen !== playGen) return;
+            if (gen !== playGen || player !== p) return;
+            var where = cur();
             console.warn('[tv] ' + label + ' failed: ' + why);
-            tryStream(index + 1, gen, reasons.concat([label + ': ' + why]));
+            tryStream(index + 1, gen, reasons.concat([label + ': ' + why]), where);
+        };
+        var sameAgain = function () {
+            if (gen !== playGen || player !== p) return;
+            var where = cur();
+            teardownMedia();
+            tryStream(index, gen, reasons, where);
         };
         try {
             p.video.preload = 'auto';
             if (stream.type === 'file' || /\.(mp4|m4v|webm)(\?|$)/i.test(stream.url)) {
                 p.video.src = url;
                 await waitMedia(p.video, 25000);
+                if (gen !== playGen) return;
+                if (at > 1) p.video.currentTime = at;
             } else {
                 var Hls = await loadHls();
                 if (gen !== playGen) return;
                 if (Hls && Hls.isSupported()) {
                     var h = new Hls({
                         autoStartLoad: false,
+                        startPosition: at > 1 ? at : -1,
                         capLevelToPlayerSize: true,
                         capLevelOnFPSDrop: true,
                         maxBufferLength: 30,
                         maxMaxBufferLength: 40,
                         backBufferLength: 30,
                         manifestLoadPolicy: retryPolicy(Infinity, 20000, 2),
-                        playlistLoadPolicy: retryPolicy(10000, 20000, 2),
-                        fragLoadPolicy: retryPolicy(10000, 120000, 3)
+                        playlistLoadPolicy: retryPolicy(10000, 20000, 3),
+                        fragLoadPolicy: retryPolicy(10000, 120000, 4)
                     });
                     p.hls = h;
                     await new Promise(function (resolve, reject) {
                         var parsed = false;
                         var timer = setTimeout(function () { reject(new Error('manifest timeout')); }, 20000);
+                        h.on(Hls.Events.FRAG_BUFFERED, function () { p.netRetry = 0; p.mediaRetry = 0; });
                         h.on(Hls.Events.ERROR, function (ev, data) {
                             if (!data || !data.fatal) return;
                             if (!parsed) {
@@ -629,9 +694,10 @@
                                 return;
                             }
                             if (gen !== playGen || h !== p.hls) return;
-                            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && p.netRetry++ < 2) {
-                                setTimeout(function () { if (gen === playGen && h === p.hls) h.startLoad(); }, 1000);
-                            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && p.mediaRetry++ < 2) {
+                            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && p.netRetry++ < 4) {
+                                setStatus('Reconnecting...', true);
+                                setTimeout(function () { if (gen === playGen && h === p.hls) h.startLoad(p.video.currentTime || -1); }, 1000 * p.netRetry);
+                            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && p.mediaRetry++ < 3) {
                                 h.recoverMediaError();
                             } else {
                                 moveOn(data.details || 'stream stopped');
@@ -643,7 +709,7 @@
                             var idx = pickStartLevel(h, 1080);
                             if (idx === -1) { reject(new Error('no video track in playlist')); return; }
                             h.startLevel = idx;
-                            h.startLoad(-1);
+                            h.startLoad(at > 1 ? at : -1);
                             resolve();
                         });
                         h.on(Hls.Events.LEVEL_SWITCHED, function (ev, data) {
@@ -657,6 +723,8 @@
                 } else if (p.video.canPlayType('application/vnd.apple.mpegurl')) {
                     p.video.src = url;
                     await waitMedia(p.video, 25000);
+                    if (gen !== playGen) return;
+                    if (at > 1) p.video.currentTime = at;
                 } else {
                     throw new Error('this browser cannot play HLS');
                 }
@@ -668,6 +736,13 @@
             var picture = await hasPicture(p.video, 25000);
             if (gen !== playGen) return;
             if (!picture) throw new Error(p.video.readyState >= 2 ? 'audio only, the video track did not load or decode' : 'no data received');
+            started = true;
+            p.round = 0;
+            p.watch = { index: index, again: sameAgain, next: moveOn };
+            p.video.onerror = function () {
+                if (!started || gen !== playGen || player !== p) return;
+                if (p.fileRetry++ < 2) sameAgain(); else moveOn('playback error');
+            };
         } catch (e) {
             moveOn(e && e.message ? e.message : 'failed');
         }
@@ -686,27 +761,24 @@
         player.t1.textContent = entry.title;
         player.t2.textContent = entry.type === 'tv' ? 'S' + s + ' E' + e + (name ? ' · ' + name : '') : entry.year;
         setStatus('Finding sources...', true);
-        try {
-            var path = entry.type === 'tv' ? '/stream/tv/' + entry.tid + '/' + s + '/' + e : '/stream/movie/' + entry.tid;
-            var data = await TV.api(path, 25000);
-            if (gen !== playGen || !player) return;
-            var q = function (x) { return parseInt(String(x.quality || '0'), 10) || 0; };
-            var streams = (data.streams || []).filter(function (x) { return x && x.url && x.type !== 'dash'; });
-            var hlsFirst = function (x) { return x.type === 'hls' ? 0 : 1; };
-            var within = streams.filter(function (x) { return !q(x) || q(x) <= 1080; });
-            var above = streams.filter(function (x) { return q(x) > 1080; });
-            within.sort(function (a, b) { return hlsFirst(a) - hlsFirst(b) || q(b) - q(a); });
-            streams = within.concat(above);
-            if (!streams.length) {
-                setStatus('No sources have this one right now. Try another title, or check back later.', false, true);
-                return;
+        var round = 0;
+        while (gen === playGen && player) {
+            try {
+                var list = await fetchSources(entry, s, e);
+                if (gen !== playGen || !player) return;
+                if (list.length) {
+                    player.streams = list;
+                    player.next.hidden = list.length < 2;
+                    tryStream(0, gen, [], 0);
+                    return;
+                }
+                setStatus('No sources have this one yet. Still looking...', true);
+            } catch (err) {
+                if (gen !== playGen || !player) return;
+                setStatus('Still trying to reach the movie server...', true);
             }
-            player.streams = streams;
-            player.next.hidden = streams.length < 2;
-            tryStream(0, gen);
-        } catch (err) {
-            if (gen !== playGen || !player) return;
-            setStatus(TV.errText(err), false, true);
+            round++;
+            await TV.sleep(Math.min(8000, 2000 * round));
         }
     }
 
