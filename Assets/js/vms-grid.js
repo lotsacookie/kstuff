@@ -48,8 +48,12 @@ export function init(K) {
     const img = el.querySelector('img');
     if (item.image) {
       img.referrerPolicy = 'no-referrer'; img.decoding = 'async'; img.loading = idx < 24 ? 'eager' : 'lazy';
-      img.onload = () => { img.style.display = 'block'; el.classList.remove('img-loading'); };
-      img.onerror = () => { img.style.display = 'none'; el.classList.remove('img-loading'); el.classList.add('img-failed'); };
+      const fail = () => { img.onload = img.onerror = null; img.style.display = 'none'; el.classList.remove('img-loading'); el.classList.add('img-failed'); };
+      img.onload = () => {
+        if (img.naturalWidth < 8 || img.naturalHeight < 8) return fail();
+        img.onload = img.onerror = null; img.style.display = 'block'; img.classList.add('loaded'); el.classList.remove('img-loading');
+      };
+      img.onerror = fail;
       img.src = item.image;
     } else { el.classList.remove('img-loading'); el.classList.add('img-none'); }
     if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) el.classList.add('card-in');
@@ -193,5 +197,8 @@ export function init(K) {
     }
   }
 
+  // navigation.js calls this when the tab is opened (it has nothing else to wait for on this page)
+  K.vmsShow = () => { if (!st.data.length) return load(); render(); };
+  K.vmsRefresh = load;
   load();
 }

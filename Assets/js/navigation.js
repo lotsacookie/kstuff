@@ -244,6 +244,8 @@ export function init(K) {
         K.buildPool(tId);
         await K.renderGrid(tId, false);
         K.refreshGridSource(tId);
+      } else if (tId === 'vms') {
+        try { await K.vmsShow?.(); } finally { K.toggleLoader(false); }
       } else if (K.iframePages[tId]) {
         const iframeData = K.iframePages[tId];
         const iframeEl = K.ensureFrame(iframeData.id);
@@ -522,6 +524,8 @@ export function init(K) {
         await K.hardRefreshGrid(tId);
         return;
       }
+
+      if (tId === 'vms') { await K.vmsRefresh?.(); return; }
 
       // Home tab showing an external site through the proxy
       const addr = (K.tbInput?.value || '').trim();
