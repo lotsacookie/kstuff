@@ -855,6 +855,7 @@ body.show-logo.nav-right #teachertouchbar {
 #lessonplanner.page.active,
 #studyhall.page.active,
 #vms.page.active,
+#cloud.page.active,
 #civics.page.active {
     display: flex;
     flex-direction: column;
