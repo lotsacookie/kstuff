@@ -424,8 +424,8 @@
     return import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
   }
 
-  async function createProxy(exclude) {
-    if (window.kNet && await window.kNet.available()) {
+  async function createProxy(exclude, useHub) {
+    if (useHub && window.kNet && await window.kNet.available()) {
       if (exclude && exclude.length) await window.kNet.rotate(undefined, true);
       await window.kNet.ready();
       return { fetch: (target, init) => window.kNet.fetch(target, init), wisp: "hub" };
@@ -944,21 +944,31 @@
 
   async function attemptBoot() {
     if (!state.models.length) say("Connecting…");
-    const proxy = await createProxy(state.skip);
-    state.wisp = proxy.wisp;
-    const client = createClient(proxy.fetch);
+    const hubOk = !!(window.kNet && await window.kNet.available());
+    const order = hubOk ? (state.hub ? [true, false] : [false, true]) : [false];
+    let client = null;
     let models = null;
     let failure = null;
-    try {
-      models = await withTimeout(client.listModels(), 12000, "DeepAI did not respond");
-    } catch (error) {
-      failure = error;
+    for (const useHub of order) {
+      const proxy = await createProxy(state.skip, useHub);
+      state.wisp = proxy.wisp;
+      client = createClient(proxy.fetch);
+      try {
+        models = await withTimeout(client.listModels(), 12000, "DeepAI did not respond");
+      } catch (error) {
+        failure = error;
+        models = null;
+      }
+      if (models) {
+        state.hub = useHub;
+        break;
+      }
+      if (!useHub) {
+        badList.add(proxy.wisp);
+        state.skip.push(proxy.wisp);
+      }
     }
-    if (!models) {
-      badList.add(proxy.wisp);
-      state.skip.push(proxy.wisp);
-      throw failure || new Error("no models");
-    }
+    if (!models) throw failure || new Error("no models");
     let user = null;
     try {
       user = await withTimeout(ensureAccount(client), 45000, "account setup timed out");
