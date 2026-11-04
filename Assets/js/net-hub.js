@@ -62,12 +62,12 @@ export function init(K) {
   }
 
   async function verify(url) {
-    applyWisp(url);
+    if (url !== current) applyWisp(url);
     const run = async target => {
       const ctl = new AbortController();
       const timer = setTimeout(() => ctl.abort(), 6000);
       try {
-        const res = await sandstone.libcurl.fetch(target, { method: 'HEAD', redirect: 'manual', signal: ctl.signal });
+        const res = await Promise.race([sandstone.libcurl.fetch(target, { method: 'HEAD', redirect: 'manual', signal: ctl.signal }), delay(6500).then(() => { throw new Error('timeout'); })]);
         try { if (res.body && res.body.cancel) res.body.cancel(); } catch {}
         return true;
       } catch { return false; }
@@ -157,7 +157,7 @@ export function init(K) {
       applyWisp(candidates()[0] || FALLBACK);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready) throw new Error('libcurl did not load');
-      try { const best = await choose(candidates(), []); if (best) applyWisp(best); } catch {}
+      setTimeout(() => { verify(current).then(ok => { if (!ok) rotate(current); }).catch(() => {}); }, 1500);
       console.log('[net-hub] ready via', current);
       if (!watching) { watching = true; setInterval(watch, 20000); }
       return sg;
