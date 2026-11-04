@@ -2881,3 +2881,6 @@ body {
     background-size: 100% 100%, 44px 44px, 44px 44px;
     background-position: 0 0;
 }
+
+/* Cloud has no navbar entry: it is only opened from a Cloud game on the Games page */
+.nav-btn.nav-btn-cloud { display: none !important; }

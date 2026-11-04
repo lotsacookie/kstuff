@@ -219,7 +219,10 @@ export function init(K) {
     pendingCloud = lastCloud = { id: item.cloudId, name: item.cloudName || item.title, at: Date.now() };
     startCloudRetry();
     // Switching tabs (re)loads the Cloud page, which shows its own loading screen; the launch is repeated until the app acknowledges it.
-    if (document.querySelector('.page.active')?.id !== 'cloud') clickNav('cloud');
+    if (document.querySelector('.page.active')?.id !== 'cloud') {
+      K.cloudNavAllowed = true;
+      try { clickNav('cloud'); } finally { K.cloudNavAllowed = false; }
+    }
     sendCloudLaunch();
   };
 

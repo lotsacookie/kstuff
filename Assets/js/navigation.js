@@ -100,6 +100,7 @@ export function init(K) {
 
   let indicator = K.navBar?.querySelector('.nav-indicator') || (K.navBar && (K.navBar.prepend(K.el('div', { className: 'nav-indicator' })), K.navBar.querySelector('.nav-indicator')));
   const updateIndicator = btn => {
+    if (btn && btn.dataset.target === 'cloud') btn = K.findNavBtn('readingcorner') || btn;
     if (!btn || !indicator || !K.navBar) return;
     const isVert = K.body.className.includes('nav-left') || K.body.className.includes('nav-right');
     const nR = K.navBar.getBoundingClientRect(), bR = btn.getBoundingClientRect();
@@ -286,6 +287,9 @@ export function init(K) {
       tooltipEl.style.display = 'none';
 
       const targetId = btn.dataset.target;
+
+      // Cloud is reachable only through K.openCloudGame (a Cloud game on the Games page); the address bar, "nav:" messages and restored tabs can't open it.
+      if (targetId === 'cloud' && !K.cloudNavAllowed) return;
 
       if (targetId === 'profile') {
         if (!K.currentUser) {
