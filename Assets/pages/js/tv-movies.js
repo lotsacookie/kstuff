@@ -550,67 +550,126 @@
         });
     }
 
-    async function tryStream(index, gen) {
+    function retryPolicy(ttfb, load, tries) {
+        return {
+            default: {
+                maxTimeToFirstByteMs: ttfb,
+                maxLoadTimeMs: load,
+                timeoutRetry: { maxNumRetry: 1, retryDelayMs: 0, maxRetryDelayMs: 0 },
+                errorRetry: {
+                    maxNumRetry: tries,
+                    retryDelayMs: 1000,
+                    maxRetryDelayMs: 1000,
+                    backoff: 'linear',
+                    shouldRetry: function (cfg, count, timeout, response) {
+                        return count < cfg.maxNumRetry && (timeout || !response || [0, 408, 425, 429, 500, 503, 504].indexOf(response.code) > -1);
+                    }
+                }
+            }
+        };
+    }
+
+    function isVideoLevel(lv) {
+        return lv && (lv.height > 0 || (lv.videoCodec && lv.videoCodec.length > 0));
+    }
+
+    async function tryStream(index, gen, reasons) {
         if (gen !== playGen || !player) return;
         var p = player;
+        reasons = reasons || [];
         if (index >= p.streams.length) {
             teardownMedia();
-            setStatus('None of the sources would play this. Try again in a moment.', false, true);
+            console.warn('[tv] every source failed', reasons);
+            var last = reasons.length ? ' Last problem: ' + reasons[reasons.length - 1] + '.' : '';
+            setStatus('None of the sources would play this.' + last, false, true);
             return;
         }
         p.index = index;
+        p.netRetry = 0;
+        p.mediaRetry = 0;
         var stream = p.streams[index];
-        var label = stream.providerName || stream.name || stream.provider || ('source ' + (index + 1));
+        var label = streamLabel(stream, index);
         setStatus((index ? 'Trying ' : 'Loading ') + label + '...', true);
         teardownMedia();
         var url = TV.proxyUrl(stream.url);
+        var moveOn = function (why) {
+            if (gen !== playGen) return;
+            console.warn('[tv] ' + label + ' failed: ' + why);
+            tryStream(index + 1, gen, reasons.concat([label + ': ' + why]));
+        };
         try {
+            p.video.preload = 'auto';
             if (stream.type === 'file' || /\.(mp4|m4v|webm)(\?|$)/i.test(stream.url)) {
                 p.video.src = url;
-                await waitMedia(p.video, 20000);
+                await waitMedia(p.video, 25000);
             } else {
                 var Hls = await loadHls();
                 if (gen !== playGen) return;
                 if (Hls && Hls.isSupported()) {
+                    var h = new Hls({
+                        autoStartLoad: false,
+                        capLevelToPlayerSize: true,
+                        capLevelOnFPSDrop: true,
+                        maxBufferLength: 30,
+                        maxMaxBufferLength: 40,
+                        backBufferLength: 30,
+                        manifestLoadPolicy: retryPolicy(Infinity, 20000, 2),
+                        playlistLoadPolicy: retryPolicy(10000, 20000, 2),
+                        fragLoadPolicy: retryPolicy(10000, 120000, 3)
+                    });
+                    p.hls = h;
                     await new Promise(function (resolve, reject) {
-                        var h = new Hls({ enableWorker: true, manifestLoadingMaxRetry: 1, levelLoadingMaxRetry: 1, fragLoadingMaxRetry: 2 });
-                        p.hls = h;
-                        var timer = setTimeout(function () { reject(new Error('timeout')); }, 20000);
+                        var parsed = false;
+                        var timer = setTimeout(function () { reject(new Error('manifest timeout')); }, 20000);
+                        h.on(Hls.Events.ERROR, function (ev, data) {
+                            if (!data || !data.fatal) return;
+                            if (!parsed) {
+                                clearTimeout(timer);
+                                reject(new Error(data.details || 'fatal error'));
+                                return;
+                            }
+                            if (gen !== playGen || h !== p.hls) return;
+                            if (data.type === Hls.ErrorTypes.NETWORK_ERROR && p.netRetry++ < 2) {
+                                setTimeout(function () { if (gen === playGen && h === p.hls) h.startLoad(); }, 1000);
+                            } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR && p.mediaRetry++ < 2) {
+                                h.recoverMediaError();
+                            } else {
+                                moveOn(data.details || 'stream stopped');
+                            }
+                        });
                         h.on(Hls.Events.MANIFEST_PARSED, function () {
+                            parsed = true;
                             clearTimeout(timer);
                             var idx = pickStartLevel(h, 1080);
-                            if (idx === -1) { reject(new Error('no video track')); return; }
+                            if (idx === -1) { reject(new Error('no video track in playlist')); return; }
                             h.startLevel = idx;
+                            h.startLoad(-1);
                             resolve();
                         });
-                        h.on(Hls.Events.ERROR, function (ev, data) {
-                            if (data && data.fatal) { clearTimeout(timer); reject(new Error('hls error')); }
+                        h.on(Hls.Events.LEVEL_SWITCHED, function (ev, data) {
+                            if (isVideoLevel(h.levels[data.level])) return;
+                            var fix = pickStartLevel(h, 1080);
+                            if (fix !== -1 && fix !== data.level) h.currentLevel = fix;
                         });
                         h.loadSource(url);
                         h.attachMedia(p.video);
                     });
-                    if (p.hls) {
-                        p.hls.on(Hls.Events.ERROR, function (ev, data) {
-                            if (gen === playGen && data && data.fatal) tryStream(p.index + 1, gen);
-                        });
-                    }
                 } else if (p.video.canPlayType('application/vnd.apple.mpegurl')) {
                     p.video.src = url;
-                    await waitMedia(p.video, 20000);
+                    await waitMedia(p.video, 25000);
                 } else {
-                    throw new Error('no hls support');
+                    throw new Error('this browser cannot play HLS');
                 }
             }
             if (gen !== playGen) return;
             if (p.vc) p.vc.reset();
             var pr = p.video.play();
             if (pr && pr.catch) pr.catch(function () { setStatus(''); });
-            var picture = await hasPicture(p.video, 10000);
+            var picture = await hasPicture(p.video, 25000);
             if (gen !== playGen) return;
-            if (!picture) throw new Error('audio only');
+            if (!picture) throw new Error(p.video.readyState >= 2 ? 'audio only, the video track did not load or decode' : 'no data received');
         } catch (e) {
-            if (gen !== playGen) return;
-            tryStream(index + 1, gen);
+            moveOn(e && e.message ? e.message : 'failed');
         }
     }
 
@@ -633,9 +692,10 @@
             if (gen !== playGen || !player) return;
             var q = function (x) { return parseInt(String(x.quality || '0'), 10) || 0; };
             var streams = (data.streams || []).filter(function (x) { return x && x.url && x.type !== 'dash'; });
+            var hlsFirst = function (x) { return x.type === 'hls' ? 0 : 1; };
             var within = streams.filter(function (x) { return !q(x) || q(x) <= 1080; });
             var above = streams.filter(function (x) { return q(x) > 1080; });
-            within.sort(function (a, b) { return q(b) - q(a); });
+            within.sort(function (a, b) { return hlsFirst(a) - hlsFirst(b) || q(b) - q(a); });
             streams = within.concat(above);
             if (!streams.length) {
                 setStatus('No sources have this one right now. Try another title, or check back later.', false, true);
