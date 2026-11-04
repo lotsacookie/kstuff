@@ -16,7 +16,7 @@ export function init(K) {
     { sel: nav('readingcorner'), title: 'Games', text: 'Browse and search the games library, then click a card to play.' },
     { sel: nav('sciencequiz'), title: 'Apps', text: 'Web apps and tools, laid out the same way as Games.' },
     { sel: nav('gradebook'), title: 'Music', text: 'Search for songs and build playlists.' },
-    { sel: nav('civics'), title: 'TV', text: 'Search channels and watch.' },
+    { sel: nav('civics'), title: 'TV', text: 'Browse movies and shows, search, or watch live TV.' },
     { sel: nav('lessonplanner'), title: 'AI', text: 'Chat with an AI assistant.' },
     { sel: nav('vms'), title: 'VMs', text: 'Virtual machines, right in your browser.' },
     { sel: nav('studyhall'), title: 'Chat', text: 'Message other people and make group chats. You need an account for this one.' },

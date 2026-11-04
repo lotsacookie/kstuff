@@ -10,10 +10,6 @@ const SYNC_MAX = 32;
 const HOST_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 const WSS_RE = /^wss:\/\/[a-z0-9.-]+(:\d{1,5})?(\/[\w\-./]*)?$/i;
 
-// Reads the serverList array out of TongSherbet/storage's loader.js without eval.
-// Handles \uXXXX escapes and the "ten.xxx".split("").reverse().join("") trick.
-// loader.js is obfuscated: it passes its real code to eval() via globalThis. We run only the
-// decoder arithmetic against a capturing stub (eval never executes) and read the host array.
 function decodeLoaderList(src, depth = 0) {
   if (depth > 3 || typeof src !== 'string') return [];
   let code = null;
@@ -80,13 +76,15 @@ export function init(K) {
     'cdn.topstargym.net',
     'cdn.goaplytexas.org',
     'cdn.clearfieldswimming.com',
+    'cdn.richardacademy.cfd',
     'wss://athollcottage.com/connection/',
+    'wss://kidsprepnest.org/vi/',
     'wss://api.personalloanonline.net/ws/',
     'wss://kristenblackburnvolleyballcamps.com/socket/',
     'wss://southpadreislandkiteboarding.com/socket/'
   ];
   K.WISP_FALLBACK = 'wss://api.personalloanonline.net/ws/';
-  K.WISP_VERSION = 7;
+  K.WISP_VERSION = 8;
   K.WISP_BASE = K.WISP_SERVERS.slice();
   console.log('[wisp] module loaded, build', K.WISP_VERSION);
   K.wispUrls = [];
@@ -382,7 +380,6 @@ export function init(K) {
 
   let syncPromise = null;
 
-  // Keeps our server list in step with TongSherbet/storage (the origin of the wisp setup).
   K.syncWispServers = () => {
     if (syncPromise) return syncPromise;
     syncPromise = (async () => {
@@ -457,6 +454,32 @@ export function init(K) {
     syncPromise = null;
     return K.resolveWlsp();
   };
+
+  const originOf = entry => {
+    try {
+      return `https://${new URL(wlspUrl(entry)).host}`;
+    } catch {
+      return null;
+    }
+  };
+
+  K.movieHosts = async () => {
+    try { await Promise.race([K.syncWispServers(), new Promise(r => setTimeout(r, 2000))]); } catch {}
+    if (window.kWispP) {
+      try { await Promise.race([window.kWispP.catch(() => {}), new Promise(r => setTimeout(r, 4000))]); } catch {}
+    }
+    const out = [];
+    const add = entry => {
+      if (!entry || typeof entry !== 'string') return;
+      const origin = originOf(entry);
+      if (origin && !out.includes(origin)) out.push(origin);
+    };
+    add(window.wlspServer);
+    K.WISP_SERVERS.filter(entry => !isBackupServer(entry)).forEach(add);
+    K.WISP_SERVERS.filter(isBackupServer).forEach(add);
+    return out;
+  };
+  window.movieHosts = K.movieHosts;
 
   const base64ToText = b64 => new TextDecoder('utf-8').decode(Uint8Array.from(atob(b64.trim()), c => c.charCodeAt(0)));
 
