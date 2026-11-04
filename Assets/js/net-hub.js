@@ -61,26 +61,60 @@ export function init(K) {
     });
   }
 
-  async function bestAlive(list, exclude) {
+  async function verify(url) {
+    applyWisp(url);
+    const run = async target => {
+      const ctl = new AbortController();
+      const timer = setTimeout(() => ctl.abort(), 6000);
+      try {
+        const res = await sandstone.libcurl.fetch(target, { method: 'HEAD', redirect: 'manual', signal: ctl.signal });
+        try { if (res.body && res.body.cancel) res.body.cancel(); } catch {}
+        return true;
+      } catch { return false; }
+      finally { clearTimeout(timer); }
+    };
+    const results = await Promise.all([run('https://api.deepai.org/'), run('https://www.gstatic.com/generate_204')]);
+    return results.every(Boolean);
+  }
+
+  const readGood = () => {
+    try { return JSON.parse(localStorage.getItem('KNV')); } catch { return null; }
+  };
+  const writeGood = url => {
+    try { localStorage.setItem('KNV', JSON.stringify({ url, ts: Date.now() })); } catch {}
+  };
+
+  async function choose(list, exclude) {
     const now = Date.now();
     const pool = list.filter(u => !exclude.includes(u));
-    const fresh = pool.filter(u => !(cooldown.get(u) > now));
-    for (const group of [fresh, pool]) {
-      for (let i = 0; i < group.length; i += 5) {
-        const wave = group.slice(i, i + 5);
-        const pings = await Promise.all(wave.map(u => probe(u, 3000)));
-        const alive = wave.map((u, j) => ({ u, ping: pings[j] })).filter(x => x.ping !== null).sort((a, b) => a.ping - b.ping);
-        if (alive.length) return alive[0];
-      }
-      if (group === pool) break;
+    const good = readGood();
+    if (good && pool.includes(good.url) && now - good.ts < 600000 && !(cooldown.get(good.url) > now) && (await probe(good.url, 3000)) !== null) return good.url;
+    const ordered = [...pool.filter(u => !(cooldown.get(u) > now)), ...pool.filter(u => cooldown.get(u) > now)];
+    const alive = [];
+    for (let i = 0; i < ordered.length && alive.length < 4; i += 6) {
+      const wave = ordered.slice(i, i + 6);
+      const pings = await Promise.all(wave.map(u => probe(u, 3000)));
+      wave.forEach((u, j) => {
+        if (pings[j] === null) cooldown.set(u, Date.now() + 300000);
+        else alive.push({ u, ping: pings[j] });
+      });
     }
-    return null;
+    alive.sort((x, y) => x.ping - y.ping);
+    for (const row of alive.slice(0, 4)) {
+      if (await verify(row.u)) {
+        writeGood(row.u);
+        return row.u;
+      }
+      cooldown.set(row.u, Date.now() + 600000);
+    }
+    return alive.length ? alive[0].u : null;
   }
 
   async function recover() {
-    if (!current || rotating) return rotating;
+    if (!current) return;
+    if (rotating) return rotating;
     const ping = await probe(current, 3000);
-    if (ping === null) return rotate(current);
+    if (ping === null || !(await verify(current))) return rotate(current);
   }
 
   let fails = 0, slow = 0;
@@ -123,6 +157,7 @@ export function init(K) {
       applyWisp(candidates()[0] || FALLBACK);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready) throw new Error('libcurl did not load');
+      try { const best = await choose(candidates(), []); if (best) applyWisp(best); } catch {}
       console.log('[net-hub] ready via', current);
       if (!watching) { watching = true; setInterval(watch, 20000); }
       return sg;
@@ -139,8 +174,8 @@ export function init(K) {
       const list = candidates();
       const from = bad || current;
       if (from) cooldown.set(from, Date.now() + 300000);
-      const hit = await bestAlive(list, from ? [from] : []);
-      const next = hit ? hit.u : (list.find(u => u !== from && u !== current) || list.find(u => u !== from) || list[0]);
+      const hit = await choose(list, from ? [from] : []);
+      const next = hit || list.find(u => u !== from && u !== current) || list.find(u => u !== from) || list[0];
       if (next && next !== current) applyWisp(next);
       return current;
     })().finally(() => { rotating = null; });
