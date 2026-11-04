@@ -867,7 +867,8 @@ body.show-logo.nav-right #teachertouchbar {
 }
 
 #readingcorner.page,
-#sciencequiz.page {
+#sciencequiz.page,
+#vms.page {
     padding: 0;
     height: 100%;
     overflow: hidden;

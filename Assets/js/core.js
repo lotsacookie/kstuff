@@ -33,7 +33,6 @@ export function init(K) {
     civics: { id: 'civics-iframe', path: 'Assets/pages/tv.html' },
     lessonplanner: { id: 'lessonplanner-iframe', path: 'Assets/pages/ai.html' },
     studyhall: { id: 'studyhall-iframe', path: 'Assets/pages/chat.html' },
-    vms: { id: 'vms-iframe', path: 'Assets/pages/vms.html' },
     cloud: { id: 'cloud-iframe', path: 'https://cdn.jsdelivr.net/gh/rtischeduler/SingularityCloud@main/index.html' }
   };
 

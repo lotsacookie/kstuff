@@ -269,7 +269,22 @@ async function legacy(){
             <section id="gradebook" class="page"></section>
             <section id="civics" class="page"></section>
             <section id="lessonplanner" class="page"></section>
-            <section id="vms" class="page"></section>
+            <section id="vms" class="page" style="position: relative;">
+    <div class="filter-bar" style="display:flex; gap:10px;">
+        <button id="vms-refresh-btn" class="refresh-btn"><i class="ph ph-arrows-clockwise"></i></button>
+        <div class="modern-select-wrapper search-wrapper">
+            <i class="ph ph-magnifying-glass"></i>
+            <input type="text" id="vms-search" class="modern-input" placeholder="Search...">
+            <i class="ph ph-x clear-search" id="vms-search-clear"></i>
+        </div>
+        <div class="modern-select-wrapper">
+            <i class="ph ph-funnel"></i>
+            <select id="vms-category-select" class="modern-select"><option value="All">Loading Categories...</option></select>
+        </div>
+    </div>
+    <div class="item-grid" id="vms-grid"></div>
+    <div class="pagination-bar" id="vms-pagination" style="display: flex; align-items: center; justify-content: center; gap: 15px;"></div>
+</section>
             <section id="cloud" class="page"></section>
             <section id="studyhall" class="page"></section>
 
