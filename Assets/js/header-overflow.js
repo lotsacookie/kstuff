@@ -76,7 +76,6 @@ export function init(K, opts = {}) {
       el.removeAttribute('data-label');
     }
     more.hidden = true;
-    closeMenu();
   }
 
   function sortMenu() {
@@ -87,9 +86,13 @@ export function init(K, opts = {}) {
     Array.from(menu.children).sort((a, b) => rank(a) - rank(b)).forEach(el => menu.appendChild(el));
   }
 
+  const observers = [];
+  const dropOwnMutations = () => observers.forEach(o => o.takeRecords());
+
   function relayout() {
     if (busy) return;
     busy = true;
+    const wasOpen = !menu.hidden;
     try {
       restoreAll();
       hdr.classList.remove('hdr-slim', 'hdr-tight');
@@ -102,7 +105,11 @@ export function init(K, opts = {}) {
         park(el);
       }
       sortMenu();
+      // Our own moves are not changes to react to (that would re-run this forever and keep closing the menu).
+      if (!parked.length) closeMenu();
+      else if (wasOpen) { menu.hidden = false; more.setAttribute('aria-expanded', 'true'); }
     } finally {
+      dropOwnMutations();
       busy = false;
     }
   }
@@ -136,9 +143,15 @@ export function init(K, opts = {}) {
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
   // The mini player is added to the header by another module and shown/hidden later on.
   if (typeof MutationObserver !== 'undefined') {
-    new MutationObserver(() => { if (!busy) schedule(); }).observe(hdr, { childList: true });
+    const headMo = new MutationObserver(() => { if (!busy) schedule(); });
+    headMo.observe(hdr, { childList: true });
+    observers.push(headMo);
     const mini = hdr.querySelector('.mini-player');
-    if (mini) new MutationObserver(() => { if (!busy) schedule(); }).observe(mini, { attributes: true, attributeFilter: ['hidden', 'style'] });
+    if (mini) {
+      const miniMo = new MutationObserver(() => { if (!busy) schedule(); });
+      miniMo.observe(mini, { attributes: true, attributeFilter: ['hidden', 'style'] });
+      observers.push(miniMo);
+    }
   }
 
   relayout();

@@ -3017,3 +3017,6 @@ body {
     display: flex;
     max-width: 150px;
 }
+
+/* .study-nav-btn sets display:flex, which would otherwise win over the hidden attribute */
+.study-nav-btn[hidden] { display: none; }
