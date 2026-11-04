@@ -1872,7 +1872,10 @@ textarea.modal-input {
 }
 
 body.floating-on {
-    --footer-space: 0px;
+    /* Weather / ping / clock live in their own strip under the page frame (not on top of it).
+       The strip ends where the navbar ends (fg from the bottom), the frame stops fg above it. */
+    --footer-height: 32px;
+    --footer-space: var(--footer-height);
 }
 
 body.floating-on .learning-header {
@@ -1888,8 +1891,9 @@ body.floating-on #teachertouchbar {
     box-shadow: var(--lift);
 }
 body.floating-on .learning-footer {
-    bottom: calc(2 * var(--fg));
-    padding: 0 10px;
+    bottom: var(--fg);
+    padding: 0;
+    align-items: stretch;
     background: transparent;
     border: none;
     border-radius: 0;
@@ -1900,7 +1904,14 @@ body.floating-on .learning-footer {
     z-index: 12;
 }
 
+body.floating-on .learning-footer .footer-left,
+body.floating-on .learning-footer .footer-right {
+    align-items: stretch;
+}
+
 body.floating-on .learning-footer .footer-item {
+    box-sizing: border-box;
+    height: 100%;
     pointer-events: auto;
     background: color-mix(in srgb, var(--nav-bg) 40%, transparent);
     backdrop-filter: blur(8px);
@@ -1927,10 +1938,14 @@ body.floating-on.nav-left #teachertouchbar {
 }
 
 body.floating-on.nav-left .learning-header,
-body.floating-on.nav-left .sg-tabbar,
-body.floating-on.nav-left .learning-footer {
+body.floating-on.nav-left .sg-tabbar {
     left: calc(var(--nav-width) + 2 * var(--fg));
     width: calc(100% - var(--nav-width) - 4 * var(--fg));
+}
+
+body.floating-on.nav-left .learning-footer {
+    left: calc(var(--nav-width) + 2 * var(--fg));
+    width: calc(100vw - var(--nav-width) - 3 * var(--fg));
 }
 
 body.floating-on.nav-left #classroom-portal-container {
@@ -1947,10 +1962,14 @@ body.floating-on.nav-right #teachertouchbar {
 }
 
 body.floating-on.nav-right .learning-header,
-body.floating-on.nav-right .sg-tabbar,
-body.floating-on.nav-right .learning-footer {
+body.floating-on.nav-right .sg-tabbar {
     left: calc(2 * var(--fg));
     width: calc(100% - var(--nav-width) - 4 * var(--fg));
+}
+
+body.floating-on.nav-right .learning-footer {
+    left: var(--fg);
+    width: calc(100vw - var(--nav-width) - 3 * var(--fg));
 }
 
 body.floating-on.nav-right #classroom-portal-container {
