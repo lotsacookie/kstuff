@@ -360,6 +360,53 @@ svg { display: block; flex-shrink: 0; }
 .ch-name { font-size: 0.95rem; font-weight: 700; }
 .ch-meta { margin-top: -6px; font-size: 0.78rem; color: var(--muted); }
 .sentinel { height: 1px; }
+
+.has-vc { outline: none; user-select: none; -webkit-user-select: none; }
+.has-vc.idle { cursor: none; }
+.has-vc.idle .vc, .has-vc.idle .p-top { opacity: 0; pointer-events: none; }
+.has-vc:fullscreen { background: #000; max-height: none; border-radius: 0; }
+.has-vc:fullscreen video { height: 100%; }
+.vc {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 3;
+    padding: 28px 14px 10px;
+    background: linear-gradient(to top, rgba(0, 0, 0, 0.85), transparent);
+    color: #fff;
+    transition: opacity 0.3s;
+}
+.vc-seek { position: relative; height: 18px; margin-bottom: 4px; cursor: pointer; touch-action: none; }
+.vc-seek::before { content: ''; position: absolute; left: 0; right: 0; top: 7px; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.25); transition: height 0.15s, top 0.15s; }
+.vc-seek:hover::before { top: 6px; height: 6px; }
+.vc-buf, .vc-fill { position: absolute; left: 0; top: 7px; height: 4px; border-radius: 4px; width: 0; pointer-events: none; transition: height 0.15s, top 0.15s; }
+.vc-seek:hover .vc-buf, .vc-seek:hover .vc-fill { top: 6px; height: 6px; }
+.vc-buf { background: rgba(255, 255, 255, 0.35); }
+.vc-fill { background: var(--text); }
+.vc-thumb { position: absolute; top: 9px; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; background: var(--text); transform: scale(0); transition: transform 0.15s; pointer-events: none; }
+.vc-seek:hover .vc-thumb { transform: scale(1); }
+.vc-tip { position: absolute; bottom: 20px; transform: translateX(-50%); padding: 3px 8px; border-radius: 6px; background: rgba(0, 0, 0, 0.85); font-size: 0.75rem; opacity: 0; pointer-events: none; white-space: nowrap; }
+.vc-seek:hover .vc-tip { opacity: 1; }
+.vc-row { display: flex; align-items: center; gap: 4px; }
+.vc-btn { width: 40px; height: 40px; flex: none; border: 0; border-radius: 50%; background: transparent; color: #fff; display: grid; place-items: center; cursor: pointer; transition: background 0.15s; }
+.vc-btn:hover, .vc-btn:focus-visible { background: rgba(255, 255, 255, 0.2); outline: none; }
+.vc-vol { width: 70px; margin: 0 6px; accent-color: var(--text); cursor: pointer; }
+.vc-time { font-size: 0.85rem; font-variant-numeric: tabular-nums; margin-left: 6px; white-space: nowrap; }
+.vc-spacer { flex: 1; }
+.vc-menu { position: absolute; right: 14px; bottom: 76px; z-index: 4; min-width: 200px; max-height: 60%; overflow-y: auto; padding: 6px; border-radius: 12px; background: rgba(16, 10, 13, 0.96); border: 1px solid var(--border); color: #fff; }
+.vc-item { width: 100%; display: flex; justify-content: space-between; gap: 18px; padding: 10px 12px; border: 0; border-radius: 8px; background: transparent; color: #fff; cursor: pointer; text-align: left; font-size: 0.9rem; }
+.vc-item:hover { background: rgba(255, 255, 255, 0.14); }
+.vc-item.on { color: var(--text); font-weight: 700; }
+.vc-item.on::after { content: '✓'; }
+.vc-back { opacity: 0.7; }
+.vc-val { opacity: 0.7; }
+.vc-empty { padding: 10px 12px; font-size: 0.85rem; opacity: 0.7; }
+.player video, .screen video { object-fit: contain; }
+@media (max-width: 700px) {
+    .vc-vol { display: none; }
+    .vc-btn { width: 36px; height: 36px; }
+}
 .cskel { aspect-ratio: 1; border-radius: 10px; background: var(--card); animation: pulse 1.4s ease-in-out infinite; }
 
 @media (max-width: 700px) {
@@ -409,7 +456,7 @@ svg { display: block; flex-shrink: 0; }
     <div class="live">
         <div class="stage">
             <div class="screen">
-                <video id="video" controls playsinline autoplay></video>
+                <video id="video" playsinline autoplay></video>
                 <div class="overlay" id="overlay">
                     <div>Pick a channel to start watching.</div>
                 </div>
@@ -439,6 +486,7 @@ svg { display: block; flex-shrink: 0; }
 <div class="player" id="mvPlayer"></div>
 
 <script src="js/tv-core.js"></script>
+<script src="js/tv-player.js"></script>
 <script src="js/tv-live.js"></script>
 <script src="js/tv-movies.js"></script>
 </body>

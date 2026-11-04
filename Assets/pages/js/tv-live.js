@@ -39,6 +39,8 @@
     var liveReady = false;
     var query = '';
 
+    TV.attachControls(video.parentNode, video, { live: true, getHls: function () { return hls; } });
+
     function fetchJSON(url) {
         var controller = new AbortController();
         var timer = setTimeout(function () { controller.abort(); }, 30000);

@@ -441,18 +441,55 @@
         playerEl.appendChild(video);
         playerEl.appendChild(top);
         playerEl.appendChild(stat);
-        player = { video: video, t1: t1, t2: t2, stat: stat, next: next, hls: null, streams: [], index: 0, ctx: null };
+        player = { video: video, t1: t1, t2: t2, stat: stat, next: next, hls: null, streams: [], index: 0, ctx: null, vc: null };
         next.addEventListener('click', function () { tryStream(player.index + 1, playGen); });
-        function wake() {
-            playerEl.classList.remove('idle');
-            clearTimeout(idleTimer);
-            idleTimer = setTimeout(function () { if (!video.paused) playerEl.classList.add('idle'); }, 3000);
+        player.vc = TV.attachControls(playerEl, video, {
+            getHls: function () { return player && player.hls; },
+            sources: function () {
+                return {
+                    list: player.streams.map(streamLabel),
+                    index: player.index,
+                    pick: function (i) { tryStream(i, playGen); }
+                };
+            }
+        });
+        playerEl.focus();
+        video.addEventListener('playing', function () { setStatus(''); });
+        video.addEventListener('waiting', function () { if (!video.paused) setStatus('Buffering...', true); });
+    }
+
+    function streamLabel(stream, index) {
+        var name = stream.providerName || stream.name || stream.provider || 'Source ' + (index + 1);
+        var q = parseInt(String(stream.quality || ''), 10);
+        return q ? name + ' · ' + q + 'p' : name;
+    }
+
+    function pickStartLevel(h, cap) {
+        var best = -1;
+        var bestHeight = 0;
+        h.levels.forEach(function (lv, i) {
+            var hasVideo = lv.height > 0 || (lv.videoCodec && lv.videoCodec.length);
+            if (!hasVideo) return;
+            var height = lv.height || 0;
+            if (height <= cap && height >= bestHeight) { best = i; bestHeight = height; }
+        });
+        if (best === -1) {
+            h.levels.forEach(function (lv, i) {
+                if ((lv.height > 0 || (lv.videoCodec && lv.videoCodec.length)) && best === -1) best = i;
+            });
         }
-        playerEl.addEventListener('mousemove', wake);
-        playerEl.addEventListener('touchstart', wake, { passive: true });
-        video.addEventListener('playing', function () { setStatus(''); wake(); });
-        video.addEventListener('waiting', function () { setStatus('Buffering...', true); });
-        video.addEventListener('pause', function () { playerEl.classList.remove('idle'); });
+        return best;
+    }
+
+    function hasPicture(video, ms) {
+        return new Promise(function (resolve) {
+            var start = performance.now();
+            (function check() {
+                if (video.videoWidth > 0 && video.readyState >= 2) return resolve(true);
+                if (performance.now() - start > ms) return resolve(false);
+                setTimeout(check, 250);
+            })();
+        });
     }
 
     function setStatus(text, spin, retry) {
@@ -539,7 +576,13 @@
                         var h = new Hls({ enableWorker: true, manifestLoadingMaxRetry: 1, levelLoadingMaxRetry: 1, fragLoadingMaxRetry: 2 });
                         p.hls = h;
                         var timer = setTimeout(function () { reject(new Error('timeout')); }, 20000);
-                        h.on(Hls.Events.MANIFEST_PARSED, function () { clearTimeout(timer); resolve(); });
+                        h.on(Hls.Events.MANIFEST_PARSED, function () {
+                            clearTimeout(timer);
+                            var idx = pickStartLevel(h, 1080);
+                            if (idx === -1) { reject(new Error('no video track')); return; }
+                            h.startLevel = idx;
+                            resolve();
+                        });
                         h.on(Hls.Events.ERROR, function (ev, data) {
                             if (data && data.fatal) { clearTimeout(timer); reject(new Error('hls error')); }
                         });
@@ -559,8 +602,12 @@
                 }
             }
             if (gen !== playGen) return;
+            if (p.vc) p.vc.reset();
             var pr = p.video.play();
             if (pr && pr.catch) pr.catch(function () { setStatus(''); });
+            var picture = await hasPicture(p.video, 10000);
+            if (gen !== playGen) return;
+            if (!picture) throw new Error('audio only');
         } catch (e) {
             if (gen !== playGen) return;
             tryStream(index + 1, gen);
@@ -584,7 +631,12 @@
             var path = entry.type === 'tv' ? '/stream/tv/' + entry.tid + '/' + s + '/' + e : '/stream/movie/' + entry.tid;
             var data = await TV.api(path, 25000);
             if (gen !== playGen || !player) return;
-            var streams = (data.streams || []).filter(function (x) { return x && x.url; });
+            var q = function (x) { return parseInt(String(x.quality || '0'), 10) || 0; };
+            var streams = (data.streams || []).filter(function (x) { return x && x.url && x.type !== 'dash'; });
+            var within = streams.filter(function (x) { return !q(x) || q(x) <= 1080; });
+            var above = streams.filter(function (x) { return q(x) > 1080; });
+            within.sort(function (a, b) { return q(b) - q(a); });
+            streams = within.concat(above);
             if (!streams.length) {
                 setStatus('No sources have this one right now. Try another title, or check back later.', false, true);
                 return;
