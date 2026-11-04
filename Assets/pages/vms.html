@@ -1,67 +1,219 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #1a1216;
-            --text: #ffb8d9;
-            --card: rgba(255, 255, 255, 0.06);
-            --nav: rgba(26, 18, 22, 0.85);
-        }
-        * {
-            font-family: "Comfortaa", sans-serif !important;
-            color: var(--text);
-        }
-        .coming-soon-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: none;            
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;           
-            color: var(--text);
-        }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>SingularityVMs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: var(--text, #fff);
+    --surface: color-mix(in srgb, var(--ink) 7%, transparent);
+    --line: color-mix(in srgb, var(--ink) 16%, transparent);
+    --line-hi: color-mix(in srgb, var(--ink) 34%, transparent);
+    --dim: color-mix(in srgb, var(--ink) 62%, transparent);
+    --faint: color-mix(in srgb, var(--ink) 40%, transparent);
+    --danger: #ff6b6b;
+  }
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; background: transparent; }
+  body { font-family: var(--font, "Comfortaa", sans-serif); font-weight: 600; color: var(--ink); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
+  * { font-family: inherit; }
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+  .screen { display: none; min-height: 100dvh; position: relative; }
+  .screen.active { display: flex; }
+  body.loading .screen:not(#loading-screen) { visibility: hidden; }
 
-        .coming-soon-content {
-            text-align: center;
-            animation: pulseFade 2.5s infinite ease-in-out;
-        }
+  /* Singularity loading screen (same as SingularityCloud) */
+  #loading-screen { position: fixed; inset: 0; z-index: 60; flex-direction: column; align-items: center; justify-content: center; gap: 18px; background: var(--bg, transparent); transition: opacity .5s, visibility .5s; }
+  #loading-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  .ld-logo { width: 5.5rem; height: 5.5rem; overflow: visible; color: var(--ink); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--ink) 50%, transparent)); }
+  .ld-logo.sm { width: 1.7rem; height: 1.7rem; filter: none; }
+  .ld-arms { opacity: .8; transform-origin: 50px 50px; stroke-dasharray: 1; animation: ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both, ld-spin 14s linear 1.2s infinite; }
+  .ld-core { transform-origin: 50px 50px; animation: ld-pulse 2.8s ease-in-out infinite; }
+  .ld-word { font-size: 1.15rem; font-weight: 900; letter-spacing: .06em; }
+  .ld-word span { font-weight: 400; opacity: .6; }
+  @keyframes ld-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+  @keyframes ld-spin { to { transform: rotate(360deg); } }
+  @keyframes ld-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
+  .ld-bar { width: min(200px, 60vw); height: 3px; border-radius: 3px; overflow: hidden; background: color-mix(in srgb, var(--ink) 14%, transparent); }
+  .ld-fill { width: 100%; height: 100%; transform: scaleX(0); transform-origin: left; background: var(--ink); transition: transform .5s cubic-bezier(.22,1,.36,1); }
+  .ld-status { font-size: .8rem; opacity: .6; min-height: 1.2em; text-align: center; max-width: 80vw; }
+  .ld-count { font-size: .72rem; opacity: .45; min-height: 1em; letter-spacing: .08em; text-align: center; }
+  #loading-screen.failed .ld-status { color: var(--danger); opacity: 1; }
+  .ld-retry { margin-top: .4rem; background: none; border: 1px solid var(--line-hi); border-radius: 10px; padding: 9px 20px; cursor: pointer; font-size: .85rem; }
+  .ld-retry:hover { background: var(--surface); }
+  @media (prefers-reduced-motion: reduce) { .ld-logo, .ld-arms, .ld-core { animation: none; } .ld-arms { stroke-dashoffset: 0; } }
 
-        .coming-soon-content h1 {
-            font-size: 2.5rem;
-            margin: 0 0 10px 0;
-            letter-spacing: 2px;
-            font-weight: 600;
-            color: var(--text);
-        }
+  /* VM grid extras (grid/card base styles come from Assets/vms/app/style.css) */
+  .vm-tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 18px; }
+  .vm-search { flex: 1 1 200px; min-width: 0; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 10px 14px; outline: none; }
+  .vm-search:focus { border-color: var(--line-hi); }
+  .vm-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .vm-chip { background: var(--surface); border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px; font-size: .78rem; cursor: pointer; }
+  .vm-chip:hover { border-color: var(--line-hi); }
+  .vm-chip.on { background: var(--ink); color: var(--bg, #000); border-color: var(--ink); }
+  .vm-art { aspect-ratio: 16 / 10; display: flex; align-items: center; justify-content: center; background: var(--surface); }
+  .vm-art img { width: 64px; height: 64px; object-fit: contain; border-radius: 12px; }
+  .vm-empty { display: none; color: var(--dim); padding: 40px 0; text-align: center; }
 
-        .coming-soon-content p {
-            font-size: 1.1rem;
-            margin: 0;
-            color: var(--text);
-        }
-
-
-    </style>
+  /* running session */
+  #screen-vm { position: fixed; inset: 0; z-index: 40; flex-direction: column; background: #000; min-height: 0; }
+  #vm-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; background: color-mix(in srgb, #000 82%, var(--ink)); border-bottom: 1px solid var(--line); color: #fff; font-size: .8rem; }
+  #vm-bar b { margin-right: auto; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #vm-bar button { background: none; border: 1px solid var(--line-hi); border-radius: 9px; padding: 6px 11px; cursor: pointer; color: #fff; font-size: .75rem; }
+  #vm-bar button:hover { background: var(--surface); }
+  #vm-bar button.stop { border-color: var(--danger); color: var(--danger); }
+  #vm-screen { position: relative; flex: 1; overflow: hidden; background: #000; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 70; background: #171a22; color: #fff; border: 1px solid var(--line-hi); border-radius: 12px; padding: 10px 16px; font-size: .8rem; transition: .25s; max-width: 90vw; }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
 </head>
-<body>
+<body class="loading">
 
-    <div class="coming-soon-overlay">
-        <div class="coming-soon-content">
-            <h1>COMING SOON</h1>
-            <p>You've come across an unfinished page; this will arrive along with much more content!</p>
-        </div>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <g id="ld-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
+      <path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/>
+      <path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/>
+    </g>
+    <symbol id="sc-logo" viewBox="0 0 100 100">
+      <g class="ld-arms" stroke="currentColor">
+        <use href="#ld-arm"/>
+        <use href="#ld-arm" transform="rotate(120 50 50)"/>
+        <use href="#ld-arm" transform="rotate(240 50 50)"/>
+      </g>
+      <g class="ld-core" fill="currentColor">
+        <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/>
+      </g>
+    </symbol>
+  </defs>
+</svg>
+
+<div id="loading-screen" class="screen active">
+  <svg class="ld-logo" aria-hidden="true"><use href="#sc-logo"/></svg>
+  <div class="ld-word">Singularity<span>VMs</span></div>
+  <div class="ld-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ld-fill" id="ld-fill"></div></div>
+  <div class="ld-status" id="ld-status" aria-live="polite">Loading</div>
+  <div class="ld-count" id="ld-count" aria-hidden="true"></div>
+  <button class="ld-retry" id="ld-cancel" type="button" hidden>Cancel</button>
+  <button class="ld-retry" id="ld-back" type="button" hidden>Back</button>
+</div>
+
+<div id="screen-select" class="screen">
+  <header class="top-bar">
+    <div class="brand">
+      <svg class="ld-logo sm" aria-hidden="true"><use href="#sc-logo"/></svg>
+      <span class="ld-word">Singularity<span>VMs</span></span>
     </div>
+  </header>
+  <main class="select-main">
+    <div class="section-header"><h2>Virtual machines</h2><div class="slot-badge"><span id="vm-count">-</span></div></div>
+    <div class="vm-tools"><input id="vm-q" class="vm-search" type="search" placeholder="Search VMs" autocomplete="off"></div>
+    <div id="vm-chips" class="vm-chips"></div>
+    <div id="vm-grid" class="game-grid"></div>
+    <p id="vm-empty" class="vm-empty">No VMs match your search.</p>
+  </main>
+</div>
 
+<div id="screen-vm" class="screen">
+  <div id="vm-bar">
+    <b id="vm-title"></b><span id="vm-state"></span>
+    <button id="vm-snd" type="button">Sound: on</button>
+    <button id="vm-cad" type="button">Ctrl+Alt+Del</button>
+    <button id="vm-paste" type="button">Paste</button>
+    <button id="vm-full" type="button">Fullscreen</button>
+    <button id="vm-stop" class="stop" type="button">Stop</button>
+  </div>
+  <div id="vm-screen"></div>
+</div>
+<div id="toast" class="toast" role="status"></div>
+
+<script type="module">
+  // Everything lives in Assets/vms/ (SingularityCloud copy + the VM launcher in Assets/vms/vm/).
+  const ROOT = document.baseURI.replace(/Assets\/pages\/.*$/, "").replace(/[#?].*$/, "").replace(/[^/]*$/, (m) => (m.includes(".") ? "" : m));
+  const VMS = ROOT + "Assets/vms/";
+  const $ = (id) => document.getElementById(id);
+  const boot = $("loading-screen"), fill = $("ld-fill"), statusEl = $("ld-status"), countEl = $("ld-count"), bar = boot.querySelector(".ld-bar");
+  const say = (t) => { statusEl.textContent = t || ""; };
+  const progress = (p) => { fill.style.transform = `scaleX(${Math.min(Math.max(p, 0), 1)})`; bar.setAttribute("aria-valuenow", Math.round(p * 100)); };
+  const toast = (t) => { const e = $("toast"); e.textContent = t; e.classList.add("show"); clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("show"), 2600); };
+  const showBoot = () => { boot.classList.remove("hidden", "failed"); boot.classList.add("active"); document.body.classList.add("loading"); };
+  const hideBoot = () => { boot.classList.add("hidden"); document.body.classList.remove("loading"); setTimeout(() => { if (boot.classList.contains("hidden")) boot.classList.remove("active"); }, 600); };
+
+  progress(0.1); say("Loading");
+  await new Promise((ok) => { const l = document.createElement("link"); l.rel = "stylesheet"; l.href = VMS + "app/style.css"; l.onload = l.onerror = ok; document.head.append(l); });
+  progress(0.4); say("Loading library");
+  let items = [];
+  try {
+    const r = await fetch(VMS + "vms-catalog.json", { cache: "no-cache" });
+    items = (await r.json()).items.filter((i) => i.os);
+  } catch (e) { say("Couldn't load the VM list."); boot.classList.add("failed"); }
+  progress(1);
+
+  let kind = "All", sess = null, token = 0, snd = true;
+  const label = (k) => k.replace(/^OS:\s*/, "");
+  const kinds = ["All", ...new Set(items.map((i) => i.kind))];
+  $("vm-chips").innerHTML = kinds.map((k) => `<button class="vm-chip${k === kind ? " on" : ""}" type="button" data-k="${k}">${k === "All" ? "All" : label(k)}</button>`).join("");
+  $("vm-chips").onclick = (e) => { const k = e.target.dataset && e.target.dataset.k; if (!k) return; kind = k; [...$("vm-chips").children].forEach((c) => c.classList.toggle("on", c.dataset.k === k)); render(); };
+  $("vm-q").oninput = render;
+
+  function render() {
+    const q = $("vm-q").value.trim().toLowerCase();
+    const list = items.filter((i) => (kind === "All" || i.kind === kind) && (!q || (i.name + " " + i.kind).toLowerCase().includes(q)));
+    $("vm-count").textContent = list.length + " of " + items.length;
+    $("vm-empty").style.display = list.length ? "none" : "block";
+    const grid = $("vm-grid"); grid.textContent = "";
+    for (const it of list) {
+      const b = document.createElement("button"); b.className = "game-card has-art"; b.type = "button";
+      const art = document.createElement("div"); art.className = "vm-art";
+      if (it.icon) { const im = document.createElement("img"); im.alt = ""; im.loading = "lazy"; im.referrerPolicy = "no-referrer"; im.src = it.icon; im.onerror = () => { im.remove(); art.textContent = it.name[0]; }; art.append(im); } else art.textContent = it.name[0];
+      const h = document.createElement("h3"); h.textContent = it.name;
+      const k = document.createElement("div"); k.className = "pkg-name"; k.textContent = label(it.kind);
+      const t = document.createElement("div"); t.className = "play-tag"; t.textContent = "Launch";
+      b.append(art, h, k, t); b.onclick = () => start(it); grid.append(b);
+    }
+  }
+
+  function toGrid() {
+    $("screen-vm").classList.remove("active"); $("screen-select").classList.add("active");
+    hideBoot();
+  }
+  async function start(it) {
+    if (sess || starting) return; starting = true; const my = ++token;
+    $("screen-select").classList.remove("active");
+    showBoot(); progress(0.02); say("Starting"); countEl.textContent = it.name;
+    $("ld-cancel").hidden = false; $("ld-back").hidden = true;
+    let shown = false;
+    const fail = (m) => { starting = false; boot.classList.add("failed"); say(m); $("ld-cancel").hidden = true; $("ld-back").hidden = false; };
+    try {
+      const { launch } = await import(VMS + "vm/vm.mjs");
+      const s = await launch(it.os, {
+        el: $("vm-screen"), say, progress,
+        cancelled: () => my !== token,
+        onState: (st, name) => {
+          $("vm-state").textContent = name;
+          if (st === 3 && !shown && my === token) { shown = true; progress(1); $("vm-title").textContent = it.name; $("screen-vm").classList.add("active"); hideBoot(); }
+          if (st === 5 && my === token) { if (!shown) fail("The session closed before it could start."); else toast("Session ended"); }
+        },
+      });
+      if (my !== token) { s.stop(); return; }
+      sess = s; starting = false; snd = true; $("vm-snd").textContent = "Sound: on";
+    } catch (e) { if (my === token) fail(e && e.message === "Cancelled" ? "Cancelled" : "Couldn’t start this VM: " + (e && e.message || e)); }
+  }
+  let starting = false;
+  function stop() { token++; starting = false; if (sess) { try { sess.stop(); } catch {} sess = null; } $("vm-screen").textContent = ""; $("vm-state").textContent = ""; $("ld-cancel").hidden = true; $("ld-back").hidden = true; toGrid(); }
+  $("ld-cancel").onclick = stop; $("ld-back").onclick = stop; $("vm-stop").onclick = stop;
+  $("vm-cad").onclick = () => sess && sess.ctrlAltDel();
+  $("vm-snd").onclick = () => { snd = !snd; sess && sess.sound(snd); $("vm-snd").textContent = "Sound: " + (snd ? "on" : "off"); };
+  $("vm-paste").onclick = async () => { try { const t = await navigator.clipboard.readText(); if (sess && t) sess.paste(t); } catch { toast("Clipboard permission was blocked"); } };
+  if (document.fullscreenEnabled) $("vm-full").onclick = () => (document.fullscreenElement ? document.exitFullscreen() : $("screen-vm").requestFullscreen()); else $("vm-full").hidden = true;
+
+  render(); $("screen-select").classList.add("active");
+  setTimeout(hideBoot, 250);
+</script>
 </body>
 </html>

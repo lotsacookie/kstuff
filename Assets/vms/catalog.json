@@ -1,0 +1,1465 @@
+{
+ "updated": "2026-11-04T04:59:56.069Z",
+ "games": [
+  {
+   "id": "dg0021",
+   "name": "A Way Out",
+   "icon": "/cg/sg-dg0021-launch.jpg"
+  },
+  {
+   "id": "jy0109",
+   "name": "Ace Combat 7: Skies Unknown",
+   "icon": "/cg/sg-jy0109-grid.webp"
+  },
+  {
+   "id": "68485f1a32113a6f258389e4",
+   "name": "Achilles: Survivor",
+   "icon": "/cg/achilles-survivor-launch.jpg"
+  },
+  {
+   "id": "bs0018",
+   "name": "AI LIMIT",
+   "icon": "/cg/sg-bs0018-launch.webp"
+  },
+  {
+   "id": "kj0357",
+   "name": "Alan Wake 2",
+   "icon": "/cg/sg-kj0357-grid.jpg"
+  },
+  {
+   "id": "jy0362",
+   "name": "Alba: A Wildlife Adventure",
+   "icon": "/cg/sg-jy0362-launch.webp"
+  },
+  {
+   "id": "5cd14cfbdda24018b4bb3d10",
+   "name": "Alien rage",
+   "icon": "/cg/alien-rage-launch.jpg"
+  },
+  {
+   "id": "kj0177",
+   "name": "Amanda the Adventurer",
+   "icon": "/cg/sg-kj0177-launch.webp"
+  },
+  {
+   "id": "jy0012",
+   "name": "American Fugitive",
+   "icon": "/cg/sg-jy0012-grid.jpg"
+  },
+  {
+   "id": "ng_among_us",
+   "name": "Among Us",
+   "icon": "/cg/ng-among-us-launch.jpg"
+  },
+  {
+   "id": "ng_android",
+   "name": "Android",
+   "icon": "/cg/ng-android-launch.webp"
+  },
+  {
+   "id": "60461dd4dda2400c8a96b5e3",
+   "name": "AO Tennis 2",
+   "icon": "/cg/ao-tennis-2-launch.jpg"
+  },
+  {
+   "id": "ng_aptoide",
+   "name": "Aptoide",
+   "icon": "/cg/ng-aptoide-launch.jpg"
+  },
+  {
+   "id": "6136196edda24015e18b298b",
+   "name": "Arboria",
+   "icon": "/cg/arboria-launch.jpg"
+  },
+  {
+   "id": "62bc15bddda2403982133368",
+   "name": "Arise: A Simple Story",
+   "icon": "/cg/arise-a-simple-story-launch.jpg"
+  },
+  {
+   "id": "kp0015",
+   "name": "ARK: Survival Ascended",
+   "icon": "/cg/sg-kp0015-launch.jpg"
+  },
+  {
+   "id": "dg0109",
+   "name": "ARK: Survival Evolved",
+   "icon": "/cg/sg-dg0109-grid.webp"
+  },
+  {
+   "id": "dg0054",
+   "name": "Arma 3",
+   "icon": "/cg/sg-dg0054-launch.webp"
+  },
+  {
+   "id": "wl-armour-x",
+   "name": "Armour X",
+   "icon": null
+  },
+  {
+   "id": "jy0238",
+   "name": "Assassin's Creed Odyssey: The Fate of Atlantis",
+   "icon": "/cg/sg-jy0238-grid.jpg"
+  },
+  {
+   "id": "dg0064",
+   "name": "Assassin's Creed: Black Flag",
+   "icon": "/cg/sg-dg0064-launch.jpg"
+  },
+  {
+   "id": "dg0062",
+   "name": "Assassin's Creed: Brotherhood",
+   "icon": "/cg/sg-dg0062-launch.jpg"
+  },
+  {
+   "id": "jy0046",
+   "name": "Assassin's Creed: Odyssey",
+   "icon": "/cg/sg-jy0046-grid.jpg"
+  },
+  {
+   "id": "dg0063",
+   "name": "Assassin's Creed: Revelations",
+   "icon": "/cg/sg-dg0063-launch.webp"
+  },
+  {
+   "id": "dg0065",
+   "name": "Assassin's Creed: Syndicate",
+   "icon": "/cg/sg-dg0065-launch.jpg"
+  },
+  {
+   "id": "jy0208",
+   "name": "Attack On Titan2",
+   "icon": "/cg/sg-jy0208-launch.jpg"
+  },
+  {
+   "id": "607e858cdda2405d3b364da2",
+   "name": "AVICII Invector",
+   "icon": "/cg/avicii-invector-launch.jpg"
+  },
+  {
+   "id": "697b10f9269e0890276e94fe",
+   "name": "AWAKEN - Astral Blade",
+   "icon": "/cg/awaken-astral-blade-launch.jpg"
+  },
+  {
+   "id": "kj0283",
+   "name": "Baldur's Gate 3",
+   "icon": "/cg/sg-kj0283-grid.jpg"
+  },
+  {
+   "id": "jy0272",
+   "name": "Batman: Arkham Knight",
+   "icon": "/cg/sg-jy0272-grid.jpg"
+  },
+  {
+   "id": "jy0273",
+   "name": "Batman: Arkham Origins",
+   "icon": "/cg/sg-jy0273-grid.jpg"
+  },
+  {
+   "id": "bs0093",
+   "name": "Battlefield 6",
+   "icon": "/cg/sg-bs0093-launch.webp"
+  },
+  {
+   "id": "60be2ce8dda2401bab0e40fb",
+   "name": "Beholder 2",
+   "icon": "/cg/beholder-2-launch.jpg"
+  },
+  {
+   "id": "5fc75ac4dda24018fc6c0c04",
+   "name": "Biped",
+   "icon": "/cg/biped-launch.jpg"
+  },
+  {
+   "id": "6722426b743573242fe0b67d",
+   "name": "BlazBlue Entropy Effect",
+   "icon": "/cg/blazblue-entropy-effect-launch.jpg"
+  },
+  {
+   "id": "67f91366ec46cafe7b990928",
+   "name": "Bloodshore",
+   "icon": "/cg/bloodshore-launch.jpg"
+  },
+  {
+   "id": "jy0080",
+   "name": "Bloodstained: Ritual of the Night",
+   "icon": "/cg/sg-jy0080-grid.webp"
+  },
+  {
+   "id": "bs0021",
+   "name": "Blue Prince",
+   "icon": "/cg/sg-bs0021-launch.webp"
+  },
+  {
+   "id": "jy0244",
+   "name": "Boomerang Fu",
+   "icon": "/cg/sg-jy0244-grid.webp"
+  },
+  {
+   "id": "dg0380",
+   "name": "Brotato",
+   "icon": "/cg/sg-dg0380-launch.webp"
+  },
+  {
+   "id": "kj0426",
+   "name": "Buckshot Roulette",
+   "icon": "/cg/sg-kj0426-grid.jpg"
+  },
+  {
+   "id": "kj0135",
+   "name": "Builder Simulator",
+   "icon": "/cg/sg-kj0135-grid.jpg"
+  },
+  {
+   "id": "ng_call_of_duty",
+   "name": "Call of Duty Mobile",
+   "icon": "/cg/ng-cod-launch.jpg"
+  },
+  {
+   "id": "jy0361",
+   "name": "Call of Duty: WWII",
+   "icon": "/cg/sg-jy0361-grid.webp"
+  },
+  {
+   "id": "697c70e9269e087440d107ad",
+   "name": "Cats on Duty",
+   "icon": "/cg/cats-on-duty-launch.jpg"
+  },
+  {
+   "id": "dg0278",
+   "name": "Choo-Choo Charles",
+   "icon": "/cg/sg-dg0278-launch.jpg"
+  },
+  {
+   "id": "kj0185",
+   "name": "Cities: Skylines",
+   "icon": "/cg/sg-kj0185-grid.webp"
+  },
+  {
+   "id": "dg0364",
+   "name": "Cities: Skylines 2",
+   "icon": "/cg/sg-dg0364-launch.webp"
+  },
+  {
+   "id": "bs0034",
+   "name": "Clair Obscur: Expedition 33",
+   "icon": "/cg/sg-bs0034-launch.jpg"
+  },
+  {
+   "id": "clash_royale",
+   "name": "Clash Royale",
+   "icon": "/cg/tg-clash-royale-launch.jpg"
+  },
+  {
+   "id": "md0176",
+   "name": "COD6 Modern Warfare",
+   "icon": "/cg/sg-md0176-grid.webp"
+  },
+  {
+   "id": "jy0417",
+   "name": "Control",
+   "icon": "/cg/sg-jy0417-launch.webp"
+  },
+  {
+   "id": "dg0145",
+   "name": "Cooking Simulator",
+   "icon": "/cg/sg-dg0145-launch.webp"
+  },
+  {
+   "id": "wl-cs2",
+   "name": "Counter-Strike 2",
+   "icon": null
+  },
+  {
+   "id": "bs0040",
+   "name": "Counter-Strike 2 (Steam)",
+   "icon": "/cg/sg-bs0040-launch.jpg"
+  },
+  {
+   "id": "bs0020",
+   "name": "Crashlands 2",
+   "icon": "/cg/sg-bs0020-launch.jpg"
+  },
+  {
+   "id": "bs0047",
+   "name": "Cricket 26",
+   "icon": "/cg/sg-bs0047-grid.jpg"
+  },
+  {
+   "id": "jy0146",
+   "name": "Cuphead",
+   "icon": "/cg/sg-jy0146-launch.webp"
+  },
+  {
+   "id": "jy0219",
+   "name": "Curse of the Dead Gods",
+   "icon": "/cg/sg-jy0219-grid.webp"
+  },
+  {
+   "id": "jy0354",
+   "name": "Cyberpunk 2077",
+   "icon": "/cg/sg-jy0354-launch.jpg"
+  },
+  {
+   "id": "jy0487",
+   "name": "Days Gone",
+   "icon": "/cg/sg-jy0487-launch.webp"
+  },
+  {
+   "id": "jy0013",
+   "name": "Dead Cells",
+   "icon": "/cg/sg-jy0013-grid.jpg"
+  },
+  {
+   "id": "kj0614",
+   "name": "Dead Space 2",
+   "icon": "/cg/sg-kj0614-launch.jpg"
+  },
+  {
+   "id": "kj0615",
+   "name": "Dead Space™ 3",
+   "icon": "/cg/sg-kj0615-launch.jpg"
+  },
+  {
+   "id": "69e0d20ab945d60b62f12442",
+   "name": "Deadlink",
+   "icon": "/cg/deadlink-launch.jpg"
+  },
+  {
+   "id": "kj0035",
+   "name": "Deathloop",
+   "icon": "/cg/sg-kj0035-launch.webp"
+  },
+  {
+   "id": "60706200dda2403431ca76e7",
+   "name": "Deliver Us The Moon",
+   "icon": "/cg/deliver-us-the-moon-launch.jpg"
+  },
+  {
+   "id": "wl-delta-poly",
+   "name": "Delta Poly",
+   "icon": null
+  },
+  {
+   "id": "bs0043",
+   "name": "Destiny 2 (Steam)",
+   "icon": "/cg/sg-bs0043-launch.jpg"
+  },
+  {
+   "id": "jy0008",
+   "name": "Devil May Cry 4",
+   "icon": "/cg/sg-jy0008-grid.webp"
+  },
+  {
+   "id": "jy0039",
+   "name": "Devil May Cry 5",
+   "icon": "/cg/sg-jy0039-grid.jpg"
+  },
+  {
+   "id": "62c54f0bdda2403ee2b2f80f",
+   "name": "Devil's Hunt",
+   "icon": "/cg/devil-s-hunt-launch.jpg"
+  },
+  {
+   "id": "ng_discord",
+   "name": "Discord",
+   "icon": "/cg/ng-discord-launch.jpg"
+  },
+  {
+   "id": "67238893743573242fe0c849",
+   "name": "Doctor Who: The Edge of Reality",
+   "icon": "/cg/doctor-who-the-edge-of-reality-launch.jpg"
+  },
+  {
+   "id": "jy0488",
+   "name": "Doom Eternal",
+   "icon": "/cg/sg-jy0488-launch.webp"
+  },
+  {
+   "id": "jy0118",
+   "name": "Doraemon: Story of Seasons",
+   "icon": "/cg/sg-jy0118-grid.webp"
+  },
+  {
+   "id": "jy0084",
+   "name": "Dragon Ball Z: Kakarot",
+   "icon": "/cg/sg-jy0084-grid.webp"
+  },
+  {
+   "id": "kj0141",
+   "name": "Drift Racing Online",
+   "icon": "/cg/sg-kj0141-launch.jpg"
+  },
+  {
+   "id": "67f777735aa77c7f9145b445",
+   "name": "Dustborn",
+   "icon": "/cg/dustborn-launch.jpg"
+  },
+  {
+   "id": "ng_fc_mobile",
+   "name": "EA SPORTS FC Mobile",
+   "icon": "/cg/ng-fc-mobile-launch.jpg"
+  },
+  {
+   "id": "ng_ufc",
+   "name": "EA SPORTS UFC Mobile 2",
+   "icon": "/cg/ng-ufc-launch.jpg"
+  },
+  {
+   "id": "bs0035",
+   "name": "Easy Red 2",
+   "icon": "/cg/sg-bs0035-launch.webp"
+  },
+  {
+   "id": "dg0170",
+   "name": "Elden Ring",
+   "icon": "/cg/sg-dg0170-launch.jpg"
+  },
+  {
+   "id": "dg0020",
+   "name": "Euro Truck Simulator 2",
+   "icon": "/cg/sg-dg0020-grid.webp"
+  },
+  {
+   "id": "580f7d6059a8c7745f9001c7",
+   "name": "Event[0]",
+   "icon": "/cg/event-0-launch.jpg"
+  },
+  {
+   "id": "jy0310",
+   "name": "Fallout 4",
+   "icon": "/cg/sg-jy0310-launch.webp"
+  },
+  {
+   "id": "md0483",
+   "name": "Far Cry 3",
+   "icon": "/cg/sg-md0483-grid.webp"
+  },
+  {
+   "id": "66508025dda2401f67813b7c",
+   "name": "Far Cry 3 - Blood Dragon",
+   "icon": "/cg/far-cry-3-blood-dragon-launch.jpg"
+  },
+  {
+   "id": "jy0252",
+   "name": "Far Cry New Dawn",
+   "icon": "/cg/sg-jy0252-grid.jpg"
+  },
+  {
+   "id": "jy0154",
+   "name": "Far Cry Primal",
+   "icon": "/cg/sg-jy0154-grid.webp"
+  },
+  {
+   "id": "dg0139",
+   "name": "FIFA19",
+   "icon": "/cg/sg-dg0139-launch.webp"
+  },
+  {
+   "id": "dg0158",
+   "name": "FINAL FANTASY VII REMAKE INTERGRADE",
+   "icon": "/cg/sg-dg0158-grid.jpg"
+  },
+  {
+   "id": "jy0005",
+   "name": "Final Fantasy XIII",
+   "icon": "/cg/sg-jy0005-grid.webp"
+  },
+  {
+   "id": "68027249ec46ca9f2b5f3ca9",
+   "name": "Five Dates",
+   "icon": "/cg/five-dates-launch.jpg"
+  },
+  {
+   "id": "dg0589",
+   "name": "Five Hearts Under One Roof",
+   "icon": "/cg/sg-dg0589-launch.jpg"
+  },
+  {
+   "id": "6489c64edda240460dc20ade",
+   "name": "Flashback",
+   "icon": "/cg/flashback-launch.jpg"
+  },
+  {
+   "id": "659bf3fddda2404642477c2b",
+   "name": "Flashback 2",
+   "icon": "/cg/flashback-2-launch.jpg"
+  },
+  {
+   "id": "dg0022",
+   "name": "Fling to Finish",
+   "icon": "/cg/sg-dg0022-grid.webp"
+  },
+  {
+   "id": "kj0461",
+   "name": "Football Manager 2023",
+   "icon": "/cg/sg-kj0461-launch.webp"
+  },
+  {
+   "id": "dg0024",
+   "name": "Football：PES 2021",
+   "icon": "/cg/sg-dg0024-launch.jpg"
+  },
+  {
+   "id": "jy0075",
+   "name": "For The King",
+   "icon": "/cg/sg-jy0075-grid.webp"
+  },
+  {
+   "id": "jy0196",
+   "name": "Forager",
+   "icon": "/cg/sg-jy0196-grid.webp"
+  },
+  {
+   "id": "ng_fortnite",
+   "name": "Fortnite",
+   "icon": "/cg/ng-fortnite-launch.jpg"
+  },
+  {
+   "id": "jy0541",
+   "name": "Forza Horizon 4",
+   "icon": "/cg/sg-jy0541-launch.webp"
+  },
+  {
+   "id": "dg0533",
+   "name": "Frostpunk 2",
+   "icon": "/cg/sg-dg0533-launch.webp"
+  },
+  {
+   "id": "KJ0019",
+   "name": "GhostWire: Tokyo",
+   "icon": "/cg/sg-KJ0019-launch.jpg"
+  },
+  {
+   "id": "kj0237",
+   "name": "GigaBash",
+   "icon": "/cg/sg-kj0237-grid.jpg"
+  },
+  {
+   "id": "dg0154",
+   "name": "God of War 4",
+   "icon": "/cg/sg-dg0154-launch.jpg"
+  },
+  {
+   "id": "bs0017",
+   "name": "God of War: Ragnarök",
+   "icon": "/cg/sg-bs0017-launch.jpg"
+  },
+  {
+   "id": "6018223fdda240541a86f761",
+   "name": "Golazo! Soccer League",
+   "icon": "/cg/golazo-soccer-league-launch.jpg"
+  },
+  {
+   "id": "65ddaabadda2405a28110802",
+   "name": "Golf VS Zombies",
+   "icon": "/cg/golf-vs-zombies-launch.jpg"
+  },
+  {
+   "id": "62b5694ddda240545a5f685f",
+   "name": "Grand Mountain Adventure: Wonderlands",
+   "icon": "/cg/grand-mountain-adventure-wonderlands-launch.jpg"
+  },
+  {
+   "id": "dg0127",
+   "name": "Grand Theft Auto III",
+   "icon": "/cg/sg-dg0127-grid.webp"
+  },
+  {
+   "id": "jy0108",
+   "name": "Grand Theft Auto V",
+   "icon": "/cg/sg-jy0108-launch.jpg"
+  },
+  {
+   "id": "dg0128",
+   "name": "Grand Theft Auto: San Andreas",
+   "icon": "/cg/sg-dg0128-grid.jpg"
+  },
+  {
+   "id": "dg0129",
+   "name": "Grand Theft Auto: Vice City",
+   "icon": "/cg/sg-dg0129-grid.jpg"
+  },
+  {
+   "id": "kj0530",
+   "name": "GUILTY GEAR -STRIVE-",
+   "icon": "/cg/sg-kj0530-launch.jpg"
+  },
+  {
+   "id": "jy0123",
+   "name": "Hades",
+   "icon": "/cg/sg-jy0123-grid.webp"
+  },
+  {
+   "id": "kj0499",
+   "name": "Hades II",
+   "icon": "/cg/sg-kj0499-grid.jpg"
+  },
+  {
+   "id": "jy0371",
+   "name": "Halo: Reach",
+   "icon": "/cg/sg-jy0371-launch.webp"
+  },
+  {
+   "id": "kj0229",
+   "name": "Halo: The Master Chief Collection",
+   "icon": "/cg/sg-kj0229-launch.jpg"
+  },
+  {
+   "id": "jy0172",
+   "name": "Hand of Fate 2",
+   "icon": "/cg/sg-jy0172-grid.webp"
+  },
+  {
+   "id": "5fe074dadda24013a7d3c925",
+   "name": "Handball 21",
+   "icon": "/cg/handball-21-launch.jpg"
+  },
+  {
+   "id": "69de349b269e08141039febf",
+   "name": "Heading Out",
+   "icon": "/cg/heading-out-launch.jpg"
+  },
+  {
+   "id": "5ba21aa2dda2401af3d4d511",
+   "name": "Her Majesty's SPIFFING",
+   "icon": "/cg/her-majesty-s-spiffing-launch.jpg"
+  },
+  {
+   "id": "kj1227",
+   "name": "Hogwarts Legacy",
+   "icon": null
+  },
+  {
+   "id": "jy0011",
+   "name": "Hollow Knight",
+   "icon": "/cg/sg-jy0011-launch.jpg"
+  },
+  {
+   "id": "bs0046",
+   "name": "Hollow Knight: Silksong",
+   "icon": "/cg/sg-bs0046-launch.jpg"
+  },
+  {
+   "id": "5fca1378dda2403d7b08a0e5",
+   "name": "Home Sweet Home",
+   "icon": "/cg/home-sweet-home-launch.jpg"
+  },
+  {
+   "id": "dg0598",
+   "name": "Horizon Zero Dawn",
+   "icon": "/cg/sg-dg0598-launch.webp"
+  },
+  {
+   "id": "jy0015",
+   "name": "How to Train Your Dragon: Dawn of New Riders",
+   "icon": "/cg/sg-jy0015-grid.webp"
+  },
+  {
+   "id": "6807517332113a0b10b60bf5",
+   "name": "I Saw Black Clouds",
+   "icon": "/cg/i-saw-black-clouds-launch.jpg"
+  },
+  {
+   "id": "kj0179",
+   "name": "Inside the Backrooms",
+   "icon": "/cg/sg-kj0179-launch.webp"
+  },
+  {
+   "id": "ng_instagram",
+   "name": "Instagram",
+   "icon": "/cg/ng-instagram-launch.jpg"
+  },
+  {
+   "id": "kj0620",
+   "name": "inZOI",
+   "icon": "/cg/sg-kj0620-launch.jpg"
+  },
+  {
+   "id": "jy0440",
+   "name": "It Takes Two",
+   "icon": "/cg/sg-jy0440-launch.webp"
+  },
+  {
+   "id": "bs0026",
+   "name": "JDM: Japanese Drift Master",
+   "icon": "/cg/sg-bs0026-launch.jpg"
+  },
+  {
+   "id": "wl-jungle",
+   "name": "Jungle",
+   "icon": null
+  },
+  {
+   "id": "67a605f6269e0887b834bc30",
+   "name": "Just Cause 3",
+   "icon": "/cg/just-cause-3-launch.jpg"
+  },
+  {
+   "id": "jy0120",
+   "name": "Katana ZERO",
+   "icon": "/cg/sg-jy0120-grid.jpg"
+  },
+  {
+   "id": "60d2fb5fdda24029882a2f30",
+   "name": "Kill It With Fire",
+   "icon": "/cg/kill-it-with-fire-launch.jpg"
+  },
+  {
+   "id": "5e74dd06dda24063a03eba1d",
+   "name": "Kona",
+   "icon": "/cg/kona-launch.jpg"
+  },
+  {
+   "id": "5c73acfadda2402d204d8802",
+   "name": "Kopanito All-Stars Soccer",
+   "icon": "/cg/kopanito-all-stars-soccer-launch.jpg"
+  },
+  {
+   "id": "640889f1dda24041ed1ef363",
+   "name": "Layers of Fear (2016)",
+   "icon": "/cg/layers-of-fear-2016-launch.jpg"
+  },
+  {
+   "id": "66d9b8aab945d61df9272223",
+   "name": "Legend Bowl",
+   "icon": "/cg/legend-bowl-launch.jpg"
+  },
+  {
+   "id": "5cd97b2adda24051e6b03d74",
+   "name": "Legendary Eleven",
+   "icon": "/cg/legendary-eleven-launch.jpg"
+  },
+  {
+   "id": "bs0115",
+   "name": "LEGO The Incredibles",
+   "icon": "/cg/sg-bs0115-launch.webp"
+  },
+  {
+   "id": "jy0325",
+   "name": "Little Nightmares",
+   "icon": "/cg/sg-jy0325-grid.jpg"
+  },
+  {
+   "id": "jy0416",
+   "name": "Little Nightmares II",
+   "icon": "/cg/sg-jy0416-grid.webp"
+  },
+  {
+   "id": "bs0039",
+   "name": "Little Nightmares III",
+   "icon": "/cg/sg-bs0039-launch.jpg"
+  },
+  {
+   "id": "ng_madden",
+   "name": "Madden NFL 24 Mobile",
+   "icon": "/cg/ng-madden-launch.jpg"
+  },
+  {
+   "id": "dg0491",
+   "name": "Mafia II: Definitive Edition",
+   "icon": "/cg/sg-dg0491-launch.jpg"
+  },
+  {
+   "id": "dg0492",
+   "name": "Mafia III: Definitive Edition",
+   "icon": "/cg/sg-dg0492-launch.jpg"
+  },
+  {
+   "id": "jy0307",
+   "name": "Mafia: Definitive Edition",
+   "icon": "/cg/sg-jy0307-grid.jpg"
+  },
+  {
+   "id": "68011b0232113a0b10b5096b",
+   "name": "Maid of Sker",
+   "icon": "/cg/maid-of-sker-launch.jpg"
+  },
+  {
+   "id": "bs0019",
+   "name": "Mandragora: Whispers of the Witch Tree",
+   "icon": "/cg/sg-bs0019-launch.webp"
+  },
+  {
+   "id": "kp0213",
+   "name": "Manor Lords",
+   "icon": "/cg/sg-kp0213-launch.webp"
+  },
+  {
+   "id": "wl-marvel-rivals",
+   "name": "Marvel Rivals",
+   "icon": null
+  },
+  {
+   "id": "kj0089",
+   "name": "Marvel’s Spider-Man Remastered",
+   "icon": "/cg/sg-kj0089-launch.jpg"
+  },
+  {
+   "id": "6807510132113a0b10b60bd6",
+   "name": "Mia and the Dragon Princess",
+   "icon": "/cg/mia-and-the-dragon-princess-launch.jpg"
+  },
+  {
+   "id": "kj0191",
+   "name": "Minecraft: Legends",
+   "icon": "/cg/sg-kj0191-launch.jpg"
+  },
+  {
+   "id": "jy0402",
+   "name": "Minecraft:Dungeons",
+   "icon": "/cg/sg-jy0402-launch.webp"
+  },
+  {
+   "id": "5e9be530dda24007d884f7b0",
+   "name": "Minion Rush: Despicable Me",
+   "icon": "/cg/minion-rush-despicable-me-launch.jpg"
+  },
+  {
+   "id": "dg0090",
+   "name": "Mirror's Edge Catalyst",
+   "icon": "/cg/sg-dg0090-grid.webp"
+  },
+  {
+   "id": "dg0676",
+   "name": "MiSide",
+   "icon": "/cg/sg-dg0676-grid.jpg"
+  },
+  {
+   "id": "591ec03cb25b2321ec3c90ed",
+   "name": "Modern Combat 5 Blackout",
+   "icon": "/cg/modern-combat-5-blackout-launch.jpg"
+  },
+  {
+   "id": "67a083d2b945d6f4066eb29a",
+   "name": "Morbid: The Lords of Ire",
+   "icon": "/cg/morbid-the-lords-of-ire-launch.jpg"
+  },
+  {
+   "id": "kj0190",
+   "name": "Mount & Blade II: Bannerlord",
+   "icon": "/cg/sg-kj0190-grid.jpg"
+  },
+  {
+   "id": "627cb93edda24057f2facf18",
+   "name": "Moving Out",
+   "icon": "/cg/moving-out-launch.jpg"
+  },
+  {
+   "id": "jy0473",
+   "name": "My Friend Pedro",
+   "icon": "/cg/sg-jy0473-launch.webp"
+  },
+  {
+   "id": "67377bd7b945d6a08c83d2b8",
+   "name": "NBA 2K23",
+   "icon": "/cg/nba2k23-launch.jpg"
+  },
+  {
+   "id": "kj0107",
+   "name": "NBA 2K23",
+   "icon": "/cg/sg-kj0107-launch.jpg"
+  },
+  {
+   "id": "kj0181",
+   "name": "Need for Speed: Payback",
+   "icon": "/cg/sg-kj0181-launch.jpg"
+  },
+  {
+   "id": "dg0359",
+   "name": "Neon Abyss",
+   "icon": "/cg/sg-dg0359-launch.jpg"
+  },
+  {
+   "id": "jy0103",
+   "name": "NieR:Automata",
+   "icon": "/cg/sg-jy0103-grid.jpg"
+  },
+  {
+   "id": "67f916415aa77c7f9145d116",
+   "name": "Night Book",
+   "icon": "/cg/night-book-launch.jpg"
+  },
+  {
+   "id": "63f8774bdda2407571507850",
+   "name": "Night Call",
+   "icon": "/cg/night-call-launch.jpg"
+  },
+  {
+   "id": "kj0332",
+   "name": "Nintendo Star Brawl",
+   "icon": "/cg/sg-kj0332-launch.webp"
+  },
+  {
+   "id": "69d8a250b945d64db232a511",
+   "name": "Not For Broadcast",
+   "icon": "/cg/not-for-broadcast-launch.jpg"
+  },
+  {
+   "id": "640739eddda24041ed1ef29e",
+   "name": "Observer: System Redux",
+   "icon": "/cg/observer-system-redux-launch.jpg"
+  },
+  {
+   "id": "jy0112",
+   "name": "Off-Road Heroes 4",
+   "icon": "/cg/sg-jy0112-grid.webp"
+  },
+  {
+   "id": "jy0059",
+   "name": "One Piece: Burning Blood",
+   "icon": "/cg/sg-jy0059-launch.webp"
+  },
+  {
+   "id": "jy0183",
+   "name": "ONE PIECE: PIRATE WARRIORS 4",
+   "icon": "/cg/sg-jy0183-launch.webp"
+  },
+  {
+   "id": "bs0025",
+   "name": "Only Up",
+   "icon": "/cg/sg-bs0025-launch.jpg"
+  },
+  {
+   "id": "jy0094",
+   "name": "Ori and the Blind Forest",
+   "icon": "/cg/sg-jy0094-grid.webp"
+  },
+  {
+   "id": "jy0126",
+   "name": "Ori and the Will of the Wisps",
+   "icon": "/cg/sg-jy0126-launch.webp"
+  },
+  {
+   "id": "jy0281",
+   "name": "Overcooked 2",
+   "icon": "/cg/sg-jy0281-launch.webp"
+  },
+  {
+   "id": "wl-overwatch2",
+   "name": "Overwatch 2",
+   "icon": null
+  },
+  {
+   "id": "ct_bs0138",
+   "name": "Palworld",
+   "icon": null
+  },
+  {
+   "id": "ct758",
+   "name": "Palworld",
+   "icon": null
+  },
+  {
+   "id": "61388ab6dda2402cfc0e0211",
+   "name": "Paradise Lost",
+   "icon": "/cg/paradise-lost-launch.jpg"
+  },
+  {
+   "id": "jy0470",
+   "name": "Party Hard2",
+   "icon": "/cg/sg-jy0470-launch.jpg"
+  },
+  {
+   "id": "jy0017",
+   "name": "PES 2017",
+   "icon": "/cg/sg-jy0017-grid.webp"
+  },
+  {
+   "id": "kj0529",
+   "name": "Platform 8",
+   "icon": "/cg/sg-kj0529-launch.jpg"
+  },
+  {
+   "id": "kj0137",
+   "name": "Poppy Playtime: Chapter 1",
+   "icon": "/cg/sg-kj0137-launch.jpg"
+  },
+  {
+   "id": "kj0138",
+   "name": "Poppy Playtime: Chapter 2",
+   "icon": "/cg/sg-kj0138-launch.webp"
+  },
+  {
+   "id": "kj0442",
+   "name": "Poppy Playtime: Chapter 3",
+   "icon": "/cg/sg-kj0442-launch.webp"
+  },
+  {
+   "id": "dg0730",
+   "name": "Poppy Playtime: Chapter 4",
+   "icon": "/cg/sg-dg0730-launch.jpg"
+  },
+  {
+   "id": "wl-pubg",
+   "name": "PUBG: BATTLEGROUNDS",
+   "icon": null
+  },
+  {
+   "id": "kj0209",
+   "name": "Raft",
+   "icon": "/cg/sg-kj0209-launch.webp"
+  },
+  {
+   "id": "kj0085",
+   "name": "Ranch Simulator22",
+   "icon": "/cg/sg-kj0085-launch.webp"
+  },
+  {
+   "id": "kj0287",
+   "name": "Ratchet & Clank",
+   "icon": "/cg/sg-kj0287-launch.jpg"
+  },
+  {
+   "id": "bs0095",
+   "name": "Red Dead Redemption",
+   "icon": "/cg/sg-bs0095-launch.webp"
+  },
+  {
+   "id": "jy0040",
+   "name": "Resident Evil 2: Remake",
+   "icon": "/cg/sg-jy0040-launch.webp"
+  },
+  {
+   "id": "jy0095",
+   "name": "Resident Evil 7: Biohazard",
+   "icon": "/cg/sg-jy0095-grid.jpg"
+  },
+  {
+   "id": "jy0235",
+   "name": "Resident Evil: Revelations 2",
+   "icon": "/cg/sg-jy0235-launch.webp"
+  },
+  {
+   "id": "69d4e5e4b945d63c5657245f",
+   "name": "Rhythm Sprout: Sick Beats & Bad Sweets",
+   "icon": "/cg/rhythm-sprout-sick-beats-bad-sweets-launch.jpg"
+  },
+  {
+   "id": "60a271f4dda240723f23f1fa",
+   "name": "Rise of the Tomb Raider",
+   "icon": "/cg/rise-of-the-tomb-raider-launch.jpg"
+  },
+  {
+   "id": "jy0121",
+   "name": "Rise of the Tomb Raider",
+   "icon": "/cg/sg-jy0121-grid.jpg"
+  },
+  {
+   "id": "roblox",
+   "name": "Roblox",
+   "icon": "/cg/tg-roblox-launch.jpg"
+  },
+  {
+   "id": "ng_rocket_league",
+   "name": "Rocket League Sideswipe",
+   "icon": "/cg/ng-rocket-league-launch.jpg"
+  },
+  {
+   "id": "69329d81ec46ca52fe56359d",
+   "name": "Rollerdrome",
+   "icon": "/cg/rollerdrome-launch.jpg"
+  },
+  {
+   "id": "wl-roughneck-rumble",
+   "name": "Roughneck Rumble",
+   "icon": null
+  },
+  {
+   "id": "bs0022",
+   "name": "RuneScape: Dragonwilds",
+   "icon": "/cg/sg-bs0022-launch.webp"
+  },
+  {
+   "id": "5e789e43dda24063a03ebaa6",
+   "name": "Saints Row IV",
+   "icon": "/cg/saints-row-iv-launch.jpg"
+  },
+  {
+   "id": "dg0419",
+   "name": "SAND LAND",
+   "icon": "/cg/sg-dg0419-launch.webp"
+  },
+  {
+   "id": "bs0024",
+   "name": "Schedule 1",
+   "icon": "/cg/sg-bs0024-launch.webp"
+  },
+  {
+   "id": "kj0222",
+   "name": "SCUM",
+   "icon": "/cg/sg-kj0222-grid.jpg"
+  },
+  {
+   "id": "jy0038",
+   "name": "Sekiro: Shadows Die Twice",
+   "icon": "/cg/sg-jy0038-grid.jpg"
+  },
+  {
+   "id": "68b5b49cec46cabc2c3845b9",
+   "name": "Shadow of the Tomb Raider",
+   "icon": "/cg/shadow-of-the-tomb-raider-launch.jpg"
+  },
+  {
+   "id": "kj0531",
+   "name": "Sim Racing Telemetry - F1 22",
+   "icon": "/cg/sg-kj0531-launch.jpg"
+  },
+  {
+   "id": "jy0559",
+   "name": "Slime Rancher",
+   "icon": "/cg/sg-jy0559-grid.webp"
+  },
+  {
+   "id": "wl-small-project",
+   "name": "Small Project",
+   "icon": null
+  },
+  {
+   "id": "kp0133",
+   "name": "Sniper：Ghost Warrior Contracts2",
+   "icon": "/cg/sg-kp0133-launch.jpg"
+  },
+  {
+   "id": "6019760ddda240066005eaad",
+   "name": "SNOW - The Ultimate Edition",
+   "icon": "/cg/snow-the-ultimate-edition-launch.jpg"
+  },
+  {
+   "id": "670fb47dec46cadc258453b6",
+   "name": "Space Prison",
+   "icon": "/cg/space-prison-launch.jpg"
+  },
+  {
+   "id": "6311fe4fdda240640b3801c5",
+   "name": "Speed Limit",
+   "icon": "/cg/speed-limit-launch.jpg"
+  },
+  {
+   "id": "kj0161",
+   "name": "SpongeBob SquarePants: Battle for Bikini Bottom",
+   "icon": "/cg/sg-kj0161-launch.jpg"
+  },
+  {
+   "id": "kj0150",
+   "name": "SpongeBob SquarePants: The Cosmic Shake",
+   "icon": "/cg/sg-kj0150-launch.jpg"
+  },
+  {
+   "id": "jy0229",
+   "name": "Stardew Valley",
+   "icon": "/cg/sg-jy0229-grid.jpg"
+  },
+  {
+   "id": "5db991b2dda2404603c1519e",
+   "name": "Steel Rats",
+   "icon": "/cg/steel-rats-launch.jpg"
+  },
+  {
+   "id": "69c11a50b945d6b3155d36dd",
+   "name": "Steel Seed",
+   "icon": "/cg/steel-seed-launch.jpg"
+  },
+  {
+   "id": "kj0322",
+   "name": "Stick Fight: The Game",
+   "icon": "/cg/sg-kj0322-grid.jpg"
+  },
+  {
+   "id": "637e1b81dda2403ed11edf4a",
+   "name": "Stikbold! A Dodgeball Adventure",
+   "icon": "/cg/stikbold-a-dodgeball-adventure-launch.jpg"
+  },
+  {
+   "id": "dg0183",
+   "name": "Stray",
+   "icon": "/cg/sg-dg0183-launch.jpg"
+  },
+  {
+   "id": "ng_stumble_guys",
+   "name": "Stumble Guys",
+   "icon": "/cg/ng-stumble-guys-launch.jpg"
+  },
+  {
+   "id": "5c9ccb10dda24034ea6bcbb3",
+   "name": "Styx: Master of Shadows",
+   "icon": "/cg/styx-master-of-shadows-launch.jpg"
+  },
+  {
+   "id": "kj0025",
+   "name": "Subnautica Zero",
+   "icon": "/cg/sg-kj0025-launch.webp"
+  },
+  {
+   "id": "kj0171",
+   "name": "Super Bunny Man",
+   "icon": "/cg/sg-kj0171-grid.jpg"
+  },
+  {
+   "id": "jy0482",
+   "name": "SUPERHOT: Mind Control Delete",
+   "icon": "/cg/sg-jy0482-grid.webp"
+  },
+  {
+   "id": "kp0203",
+   "name": "Supermarket Simulator",
+   "icon": "/cg/sg-kp0203-launch.webp"
+  },
+  {
+   "id": "602bd13ddda2401779e0a39c",
+   "name": "Surf World Series",
+   "icon": "/cg/surf-world-series-launch.jpg"
+  },
+  {
+   "id": "kp0232",
+   "name": "TCG Card Shop",
+   "icon": "/cg/sg-kp0232-launch.webp"
+  },
+  {
+   "id": "jy0105",
+   "name": "Terminator: Resistance",
+   "icon": "/cg/sg-jy0105-grid.webp"
+  },
+  {
+   "id": "jy0459",
+   "name": "The Amazing Spider-Man",
+   "icon": "/cg/sg-jy0459-grid.jpg"
+  },
+  {
+   "id": "jy0186",
+   "name": "The Amazing Spider-Man 2",
+   "icon": "/cg/sg-jy0186-grid.webp"
+  },
+  {
+   "id": "ng_battle_cats",
+   "name": "The Battle Cats",
+   "icon": null
+  },
+  {
+   "id": "68011bd0ec46ca9f2b5efc94",
+   "name": "The Bunker",
+   "icon": "/cg/the-bunker-launch.jpg"
+  },
+  {
+   "id": "kj0483",
+   "name": "The Callisto Protocol",
+   "icon": "/cg/sg-kj0483-launch.jpg"
+  },
+  {
+   "id": "67f9086374357368da39f14b",
+   "name": "The Complex",
+   "icon": "/cg/the-complex-launch.jpg"
+  },
+  {
+   "id": "5f55e120dda24015013cc9e7",
+   "name": "The Descendant - Complete Season (Episodes 1 - 5)",
+   "icon": "/cg/the-descendant-complete-season-episodes-1-5-launch.jpg"
+  },
+  {
+   "id": "wl-skyrim",
+   "name": "The Elder Scrolls V: Skyrim",
+   "icon": null
+  },
+  {
+   "id": "69d7a249ec46ca4129d084e4",
+   "name": "The Final Station",
+   "icon": "/cg/the-final-station-launch.jpg"
+  },
+  {
+   "id": "bs0023",
+   "name": "The First Berserker: Khazan",
+   "icon": "/cg/sg-bs0023-launch.webp"
+  },
+  {
+   "id": "69dfb2f2b945d60b62f12421",
+   "name": "The Gap",
+   "icon": "/cg/the-gap-launch.jpg"
+  },
+  {
+   "id": "67fd07c932113a309389279a",
+   "name": "The Isle Tide Hotel",
+   "icon": "/cg/the-isle-tide-hotel-launch.jpg"
+  },
+  {
+   "id": "dg0174",
+   "name": "THE KING OF FIGHTERS XV",
+   "icon": "/cg/sg-dg0174-grid.webp"
+  },
+  {
+   "id": "dg0315",
+   "name": "The Last of Us™ Part I",
+   "icon": "/cg/sg-dg0315-launch.jpg"
+  },
+  {
+   "id": "jy0408",
+   "name": "The Legend of Zelda: Breath of the Wild",
+   "icon": "/cg/sg-jy0408-grid.webp"
+  },
+  {
+   "id": "kj0202",
+   "name": "The Long Drive",
+   "icon": "/cg/sg-kj0202-grid.jpg"
+  },
+  {
+   "id": "jy0324",
+   "name": "The Past Room",
+   "icon": "/cg/sg-jy0324-grid.webp"
+  },
+  {
+   "id": "6012c410dda240263be0041e",
+   "name": "The Uncertain: Last Quiet Day",
+   "icon": "/cg/the-uncertain-last-quiet-day-launch.jpg"
+  },
+  {
+   "id": "619289eadda2402619fdf39d",
+   "name": "The Uncertain: Light At The End",
+   "icon": "/cg/the-uncertain-light-at-the-end-launch.jpg"
+  },
+  {
+   "id": "657718b8dda2401bf3f091fa",
+   "name": "The Walking Dead: Destinies",
+   "icon": "/cg/the-walking-dead-destinies-launch.jpg"
+  },
+  {
+   "id": "jy0091",
+   "name": "The Witcher 3",
+   "icon": "/cg/sg-jy0091-grid.jpg"
+  },
+  {
+   "id": "ng_tiktok",
+   "name": "TikTok",
+   "icon": "/cg/ng-tiktok-launch.jpg"
+  },
+  {
+   "id": "jy0185",
+   "name": "Titanfall 2",
+   "icon": "/cg/sg-jy0185-grid.webp"
+  },
+  {
+   "id": "dg0017",
+   "name": "Tokyo 2020 Olympics",
+   "icon": "/cg/sg-dg0017-grid.webp"
+  },
+  {
+   "id": "jy0214",
+   "name": "Tom Clancy's Ghost Recon Wildlands",
+   "icon": "/cg/sg-jy0214-grid.webp"
+  },
+  {
+   "id": "68b5b46b32113aa5a01cc1d2",
+   "name": "Tomb Raider",
+   "icon": "/cg/tomb-raider-launch.jpg"
+  },
+  {
+   "id": "bs0048",
+   "name": "Tomb Raider - Definitive Edition",
+   "icon": "/cg/sg-bs0048-grid.jpg"
+  },
+  {
+   "id": "jy0435",
+   "name": "Transformers: Devastation",
+   "icon": "/cg/sg-jy0435-grid.webp"
+  },
+  {
+   "id": "jy0018",
+   "name": "Transformers: Rise of the Dark Spark",
+   "icon": "/cg/sg-jy0018-grid.webp"
+  },
+  {
+   "id": "dg0248",
+   "name": "Uncharted 4",
+   "icon": "/cg/sg-dg0248-launch.jpg"
+  },
+  {
+   "id": "kj0306",
+   "name": "Undertale",
+   "icon": "/cg/sg-kj0306-launch.webp"
+  },
+  {
+   "id": "67a24246ec46caced921c844",
+   "name": "Until Then",
+   "icon": "/cg/until-then-launch.jpg"
+  },
+  {
+   "id": "jy0124",
+   "name": "Untitled Goose Game",
+   "icon": "/cg/sg-jy0124-grid.webp"
+  },
+  {
+   "id": "bs0042",
+   "name": "War Thunder (Steam)",
+   "icon": "/cg/sg-bs0042-launch.jpg"
+  },
+  {
+   "id": "wl-warframe",
+   "name": "Warframe",
+   "icon": null
+  },
+  {
+   "id": "jy0147",
+   "name": "Watch Dogs 2",
+   "icon": "/cg/sg-jy0147-launch.jpg"
+  },
+  {
+   "id": "dg0159",
+   "name": "Watch Dogs: Legion",
+   "icon": "/cg/sg-dg0159-launch.jpg"
+  },
+  {
+   "id": "6634ff9bdda24066b733c6ba",
+   "name": "WE ARE FOOTBALL 2024",
+   "icon": "/cg/we-are-football-2024-launch.jpg"
+  },
+  {
+   "id": "jy0157",
+   "name": "What Remains of Edith Finch",
+   "icon": "/cg/sg-jy0157-grid.jpg"
+  },
+  {
+   "id": "66d710ccec46ca74265a50e5",
+   "name": "Whispers of a Machine",
+   "icon": "/cg/whispers-of-a-machine-launch.jpg"
+  },
+  {
+   "id": "67f90e7bb945d658e615a685",
+   "name": "Who Pressed Mute on Uncle Marcus?",
+   "icon": "/cg/who-pressed-mute-on-uncle-marcus-launch.jpg"
+  },
+  {
+   "id": "wl-widelands",
+   "name": "Widelands",
+   "icon": null
+  },
+  {
+   "id": "jy0122",
+   "name": "Wizard of Legend",
+   "icon": "/cg/sg-jy0122-grid.webp"
+  },
+  {
+   "id": "kj0238",
+   "name": "Wobbly Life",
+   "icon": "/cg/sg-kj0238-launch.jpg"
+  },
+  {
+   "id": "bs0036",
+   "name": "Wolf Mate",
+   "icon": "/cg/sg-bs0036-launch.webp"
+  },
+  {
+   "id": "kj0495",
+   "name": "X-Plane 11",
+   "icon": "/cg/sg-kj0495-launch.jpg"
+  },
+  {
+   "id": "dg0639",
+   "name": "Yandere Simulator",
+   "icon": "/cg/sg-dg0639-launch.webp"
+  },
+  {
+   "id": "kp0208",
+   "name": "Zoonomaly",
+   "icon": "/cg/sg-kp0208-grid.webp"
+  }
+ ]
+}
