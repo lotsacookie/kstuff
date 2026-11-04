@@ -65,15 +65,16 @@ export function init(K) {
     if (url !== current) applyWisp(url);
     const run = async target => {
       const ctl = new AbortController();
-      const timer = setTimeout(() => ctl.abort(), 6000);
+      const timer = setTimeout(() => ctl.abort(), 5000);
       try {
-        const res = await Promise.race([sandstone.libcurl.fetch(target, { method: 'HEAD', redirect: 'manual', signal: ctl.signal }), delay(6500).then(() => { throw new Error('timeout'); })]);
+        const res = await Promise.race([sandstone.libcurl.fetch(target, { method: 'HEAD', signal: ctl.signal }), delay(5500).then(() => { throw new Error('timeout'); })]);
         try { if (res.body && res.body.cancel) res.body.cancel(); } catch {}
         return true;
       } catch { return false; }
       finally { clearTimeout(timer); }
     };
     const results = await Promise.all([run('https://api.deepai.org/'), run('https://www.gstatic.com/generate_204')]);
+    console.log('[net-hub] verify', url, results);
     return results.every(Boolean);
   }
 
@@ -100,7 +101,7 @@ export function init(K) {
       });
     }
     alive.sort((x, y) => x.ping - y.ping);
-    for (const row of alive.slice(0, 4)) {
+    for (const row of alive.slice(0, 2)) {
       if (await verify(row.u)) {
         writeGood(row.u);
         return row.u;
@@ -177,6 +178,7 @@ export function init(K) {
       const hit = await choose(list, from ? [from] : []);
       const next = hit || list.find(u => u !== from && u !== current) || list.find(u => u !== from) || list[0];
       if (next && next !== current) applyWisp(next);
+      console.log('[net-hub] rotated to', current);
       return current;
     })().finally(() => { rotating = null; });
     return rotating;
@@ -186,6 +188,7 @@ export function init(K) {
 
   async function doFetch(d) {
     const sg = await boot();
+    if (rotating) await rotating.catch(() => {});
     const ctl = new AbortController();
     live.set(d.key, ctl);
     const init = Object.assign({ redirect: 'follow' }, d.init || {}, { signal: ctl.signal });
