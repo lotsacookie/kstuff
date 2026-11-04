@@ -1,276 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>SingularityCloud</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      --ink: var(--text, #fff);
-      --surface: color-mix(in srgb, var(--ink) 7%, transparent);
-      --line: color-mix(in srgb, var(--ink) 16%, transparent);
-      --line-hi: color-mix(in srgb, var(--ink) 34%, transparent);
-      --dim: color-mix(in srgb, var(--ink) 62%, transparent);
-      --faint: color-mix(in srgb, var(--ink) 40%, transparent);
-      --danger: #ff6b6b;
-    }
-    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { height: 100%; background: transparent; }
-    body { font-family: var(--font, "Comfortaa", sans-serif); font-weight: 600; color: var(--ink); overflow-x: hidden; -webkit-font-smoothing: antialiased; }
-    * { font-family: inherit; }
-    button { font: inherit; color: inherit; }
-    :focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
-    .screen { display: none; min-height: 100dvh; position: relative; }
-    .screen.active { display: flex; }
-    body.loading .screen:not(#loading-screen) { visibility: hidden; }
-
-    .ld-logo { width: 5.5rem; height: 5.5rem; overflow: visible; color: var(--ink); filter: drop-shadow(0 0 8px color-mix(in srgb, var(--ink) 50%, transparent)); }
-    .ld-logo.sm { width: 1.7rem; height: 1.7rem; filter: none; }
-    .ld-arms { opacity: .8; transform-origin: 50px 50px; stroke-dasharray: 1; animation: ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both, ld-spin 14s linear 1.2s infinite; }
-    .ld-core { transform-origin: 50px 50px; animation: ld-pulse 2.8s ease-in-out infinite; }
-    .ld-word { font-size: 1.15rem; font-weight: 900; letter-spacing: .06em; }
-    .ld-word span { font-weight: 400; opacity: .6; }
-    @keyframes ld-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
-    @keyframes ld-spin { to { transform: rotate(360deg); } }
-    @keyframes ld-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
-
-    #loading-screen {
-      position: fixed; inset: 0; z-index: 100; flex-direction: column; align-items: center; justify-content: center; gap: 1.1rem;
-      transition: opacity .5s ease, visibility .5s ease;
-    }
-    #loading-screen.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
-    .ld-bar { width: min(200px, 60vw); height: 3px; border-radius: 3px; overflow: hidden; background: color-mix(in srgb, var(--ink) 14%, transparent); }
-    .ld-fill { position: relative; width: 100%; height: 100%; transform: scaleX(0); transform-origin: left; background: var(--ink); transition: transform .5s cubic-bezier(.22,1,.36,1); }
-    .ld-status { font-size: .8rem; opacity: .6; min-height: 1.2em; font-variant-numeric: tabular-nums; text-align: center; }
-    #loading-screen.failed .ld-status { color: var(--danger); opacity: 1; }
-    .ld-count { font-size: .72rem; opacity: .45; min-height: 1em; font-variant-numeric: tabular-nums; letter-spacing: .08em; }
-    .ld-retry { margin-top: .4rem; background: none; border: 1px solid var(--line-hi); border-radius: 10px; padding: 9px 20px; cursor: pointer; font-size: .85rem; }
-    .ld-retry:hover { background: var(--surface); }
-    @media (prefers-reduced-motion: reduce) { .ld-logo, .ld-arms, .ld-core { animation: none; } .ld-arms { stroke-dashoffset: 0; } }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SingularityCloud</title>
+<style>
+  html,body{margin:0;height:100%;background:#000;color:#fff;font-family:Comfortaa,system-ui,sans-serif}
+  #boot{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:12px;opacity:.85}
+  #boot button{background:none;border:1px solid #fff5;color:#fff;border-radius:8px;padding:8px 16px;cursor:pointer}
+</style>
 </head>
 <body>
+<div id="boot"><div id="boot-msg">Checking for updates</div><button id="boot-retry" hidden type="button">Try again</button></div>
+<script>
+// Thin shell: always runs the latest SingularityCloud index.html.
+// 1) GitHub API -> newest commit SHA   2) jsDelivr (pinned to that SHA) -> index.html   3) cache the newest copy, fall back to it offline.
+(() => {
+  const REPO = "rtischeduler/SingularityCloud", BRANCH = "main";
+  const PAGES = "https://rtischeduler.github.io/SingularityCloud/";
+  const SHA_KEY = "sc_cloud_sha", HTML_KEY = "sc_cloud_index", SHA_TTL = 60000;
+  const msg = document.getElementById("boot-msg"), retry = document.getElementById("boot-retry");
+  const read = (k) => { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } };
+  const write = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  const isSha = (s) => typeof s === "string" && /^[0-9a-f]{40}$/i.test(s);
 
-  <svg width="0" height="0" style="position:absolute" aria-hidden="true">
-    <defs>
-      <g id="ld-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
-        <path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/>
-        <path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/>
-      </g>
-      <symbol id="sc-logo" viewBox="0 0 100 100">
-        <g class="ld-arms" stroke="currentColor">
-          <use href="#ld-arm"/>
-          <use href="#ld-arm" transform="rotate(120 50 50)"/>
-          <use href="#ld-arm" transform="rotate(240 50 50)"/>
-        </g>
-        <g class="ld-core" fill="currentColor">
-          <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/>
-        </g>
-      </symbol>
-    </defs>
-  </svg>
+  async function get(url, ms, type, cache) {
+    const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), ms);
+    try {
+      const r = await fetch(url, { cache, signal: ctrl.signal });
+      if (!r.ok) throw new Error(r.status + " " + url);
+      return await r[type]();
+    } finally { clearTimeout(t); }
+  }
 
-  <div id="loading-screen" class="screen active">
-    <svg class="ld-logo" aria-hidden="true"><use href="#sc-logo"/></svg>
-    <div class="ld-word">Singularity<span>Cloud</span></div>
-    <div class="ld-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="ld-fill" id="ld-fill"></div></div>
-    <div class="ld-status" id="ld-status" aria-live="polite">Loading</div>
-    <div class="ld-count" id="ld-count" aria-hidden="true"></div>
-    <button class="ld-retry" id="ld-cancel" type="button" hidden>Cancel</button>
-    <button class="ld-retry" id="ld-retry" type="button" hidden>Try again</button>
-  </div>
+  async function latestSha() {
+    const c = read(SHA_KEY);
+    if (c && isSha(c.sha) && Date.now() - c.t < SHA_TTL) return c.sha;
+    try {
+      const d = await get(`https://api.github.com/repos/${REPO}/commits/${BRANCH}`, 3500, "json", "no-store");
+      if (d && isSha(d.sha)) { write(SHA_KEY, { sha: d.sha, t: Date.now() }); return d.sha; }
+    } catch (e) { console.warn("[cloud] GitHub API unavailable:", e && e.message); }
+    return c && isSha(c.sha) ? c.sha : "";
+  }
 
-  <div id="screen-select" class="screen">
-    <header class="top-bar">
-      <div class="brand">
-        <svg class="ld-logo sm" aria-hidden="true"><use href="#sc-logo"/></svg>
-        <span class="ld-word">Singularity<span>Cloud</span></span>
-      </div>
-      <div id="server-status" class="server-pill">
-        <span class="status-dot"></span>
-        <span id="pill-text">Checking servers</span>
-      </div>
-    </header>
-    <main class="select-main">
-      <div class="section-header">
-        <h2>Library</h2>
-        <div class="slot-badge"><span id="phones-free">-</span> of <span id="phones-total">-</span> seats open</div>
-      </div>
-      <p id="astra-note" class="astra-note" role="status"></p>
-      <div id="game-grid" class="game-grid">
-        <button class="game-card has-art" id="play-roblox" type="button">
-          <div class="card-art" data-icon="/cg/tg-roblox-launch.jpg" aria-hidden="true">R</div>
-          <h3>Roblox</h3>
-          <div class="pkg-name">FreezeNova</div>
-          <div class="play-tag">Play now</div>
-        </button>
-      </div>
-    </main>
-  </div>
-
-  <div id="screen-game" class="screen">
-    <div class="game-viewport">
-      <canvas id="game-canvas"></canvas>
-    </div>
-      <p>Connecting</p>
-    </div>
-    <div class="hud">
-      <button id="btn-fullscreen" class="hud-btn" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <div id="screen-astra" class="screen">
-    <div class="game-viewport"><video id="astra-video" autoplay playsinline></video></div>
-    <div class="hud">
-      <button id="astra-fullscreen" class="hud-btn" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3M16 3h3a2 2 0 0 1 2 2v3M8 21H5a2 2 0 0 1-2-2v-3M16 21h3a2 2 0 0 0 2-2v-3"/></svg>
-      </button>
-      <button id="astra-leave" class="hud-btn" type="button" title="Leave game" aria-label="Leave game">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
-    </div>
-  </div>
-
-  <div id="toast" class="toast" role="status"></div>
-
-  <script type="module">
-
-    const REPO = "rtischeduler/SingularityCloud";
-    const BRANCH = "main";
-    const PAGES = "https://rtischeduler.github.io/SingularityCloud/";
-    const SHA_TTL = 60_000;
-    const TOTAL = 3;
-
-    const $ = (id) => document.getElementById(id);
-    const boot = $("loading-screen"), fill = $("ld-fill"), statusEl = $("ld-status"), retryBtn = $("ld-retry");
-    const bar = boot.querySelector(".ld-bar");
-    const say = (t) => { statusEl.textContent = t; };
-    const progress = (n) => {
-      const p = Math.min(n / TOTAL, 1);
-      fill.style.transform = `scaleX(${p})`;
-      bar.setAttribute("aria-valuenow", Math.round(p * 100));
-    };
-
-    const get = async (url, ms, type, cache = "no-store") => {
-      const ctrl = new AbortController(), t = setTimeout(() => ctrl.abort(), ms);
-      try {
-        const r = await fetch(url, { cache, signal: ctrl.signal });
-        if (!r.ok) throw new Error(`${r.status} ${url}`);
-        return await r[type]();
-      } finally { clearTimeout(t); }
-    };
-
-    let SHA = "";
-    async function latestSha() {
-      let c = null;
-      try { c = JSON.parse(localStorage.getItem("sc_sha")); } catch {}
-      if (c && /^[0-9a-f]{40}$/.test(c.sha) && Date.now() - c.t < SHA_TTL) return c.sha;
-      try {
-        const d = await get(`https://api.github.com/repos/${REPO}/commits/${BRANCH}`, 3500, "json");
-        if (d && /^[0-9a-f]{40}$/i.test(d.sha)) {
-          try { localStorage.setItem("sc_sha", JSON.stringify({ sha: d.sha, t: Date.now() })); } catch {}
-          return d.sha;
-        }
-      } catch (e) { console.warn("[loader] GitHub API unavailable:", e && e.message); }
-      return c && /^[0-9a-f]{40}$/.test(c.sha) ? c.sha : "";
-    }
-
-    let dbP;
-    const db = () => dbP || (dbP = new Promise((ok, no) => {
-      const q = indexedDB.open("singularitycloud", 1);
-      q.onupgradeneeded = () => q.result.createObjectStore("f");
-      q.onsuccess = () => ok(q.result);
-      q.onerror = () => no(q.error);
-    }).catch(() => null));
-    const dbGet = async (k) => {
-      const d = await db(); if (!d) return null;
-      return new Promise((r) => { const q = d.transaction("f").objectStore("f").get(k); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); });
-    };
-    const dbSet = async (k, v) => { const d = await db(); if (d) try { d.transaction("f", "readwrite").objectStore("f").put(v, k); } catch {} };
-
-    const sources = () => [
-      ...(SHA ? [[`https://cdn.jsdelivr.net/gh/${REPO}@${SHA}/`, true], [`https://raw.githubusercontent.com/${REPO}/${SHA}/`, true]] : []),
-      [`https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/`, false],
-      [`https://raw.githubusercontent.com/${REPO}/${BRANCH}/`, false],
-      [PAGES, false],
+  async function latestHtml(sha) {
+    const cached = read(HTML_KEY);
+    if (cached && sha && cached.sha === sha && cached.html) return cached.html;
+    const sources = [
+      ...(sha ? [[`https://cdn.jsdelivr.net/gh/${REPO}@${sha}/index.html`, "default"], [`https://raw.githubusercontent.com/${REPO}/${sha}/index.html`, "default"]] : []),
+      [`https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/index.html`, "no-store"],
+      [`https://raw.githubusercontent.com/${REPO}/${BRANCH}/index.html`, "no-store"],
+      [PAGES + "index.html", "no-store"],
     ];
-    const files = new Map();
-    function file(path) {
-      if (!files.has(path)) files.set(path, (async () => {
-        const hit = await dbGet(path);
-        if (hit && SHA && hit.sha === SHA) return hit.text;
-        let err;
-        for (const [base, pinned] of sources()) {
-          try {
-            const text = await get(base + path, 15000, "text", pinned ? "default" : "no-store");
-            dbSet(path, { sha: pinned ? SHA : "", text });
-            return text;
-          } catch (e) { err = e; }
-        }
-        if (hit) return hit.text;
-        throw err || new Error("Failed to load " + path);
-      })());
-      return files.get(path);
-    }
-
-    const dirOf = (p) => p.replace(/[^/]*$/, "");
-    const norm = (dir, spec) => {
-      const out = dir.split("/").filter(Boolean);
-      for (const s of spec.split("/")) { if (s === ".") continue; if (s === "..") out.pop(); else out.push(s); }
-      return out.join("/");
-    };
-    const mods = new Map();
-    function mod(path) {
-      if (!mods.has(path)) mods.set(path, (async () => {
-        let code = await file(path);
-        const dir = dirOf(path);
-        const staticRe = /(\bfrom\s*|\bimport\s*)(["'])(\.{1,2}\/[^"']+)\2/g;
-        const urls = new Map();
-        await Promise.all([...code.matchAll(staticRe)].map(async (m) => {
-          const target = norm(dir, m[3]);
-          urls.set(m[3], await mod(target));
-        }));
-        code = code
-          .replace(staticRe, (m, pre, q, spec) => `${pre}${q}${urls.get(spec)}${q}`)
-          .replace(/\bimport\(\s*(["'])(\.{1,2}\/[^"']+)\1\s*\)/g, (m, q, spec) => `window.__scImport(${JSON.stringify(norm(dir, spec))})`);
-        return URL.createObjectURL(new Blob([code], { type: "text/javascript" }));
-      })());
-      return mods.get(path);
-    }
-    const imp = (path) => mod(path).then((u) => import(u));
-    window.__scImport = imp;
-
-    async function run() {
-      retryBtn.hidden = true; boot.classList.remove("failed");
-      document.body.classList.add("loading");
-      progress(0); say("Checking for updates");
+    for (const [url, cache] of sources) {
       try {
-        SHA = await latestSha();
-        progress(1); say("Loading latest build");
-        const [css, main] = await Promise.all([file("app/style.css"), imp("main.js")]);
-        if (!$("sc-style")) { const s = document.createElement("style"); s.id = "sc-style"; s.textContent = css; document.head.appendChild(s); }
-        progress(2); say("Starting");
-
-        await main.start();
-        progress(TOTAL);
-        await (document.fonts && document.fonts.ready);
-        setTimeout(() => { boot.classList.add("hidden"); document.body.classList.remove("loading"); }, 250);
-        setTimeout(() => boot.classList.remove("active"), 800);
-        console.log(`[loader] running ${SHA ? SHA.slice(0, 7) : BRANCH}`);
-      } catch (e) {
-        console.error("Initialization error:", e);
-        boot.classList.add("failed");
-        say("Couldn't start. Check your connection and try again.");
-        retryBtn.hidden = false;
-      }
+        const html = await get(url, 15000, "text", cache);
+        if (!/<html|<body/i.test(html)) throw new Error("not html: " + url);
+        write(HTML_KEY, { sha: sha || "", html, t: Date.now() });
+        return html;
+      } catch (e) { console.warn("[cloud] source failed:", e && e.message); }
     }
-    retryBtn.addEventListener("click", () => { files.clear(); mods.clear(); run(); });
-    run();
-  </script>
+    return cached && cached.html ? cached.html : "";
+  }
+
+  async function run() {
+    retry.hidden = true; msg.textContent = "Checking for updates";
+    const sha = await latestSha();
+    msg.textContent = "Loading latest build";
+    const html = await latestHtml(sha);
+    if (!html) { msg.textContent = "Couldn't load SingularityCloud. Check your connection."; retry.hidden = false; return; }
+    document.open(); document.write(html); document.close();
+  }
+  retry.addEventListener("click", run);
+  run();
+})();
+</script>
 </body>
 </html>
