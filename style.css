@@ -2903,3 +2903,31 @@ body {
 
 /* Cloud has no navbar entry: it is only opened from a Cloud game on the Games page */
 .nav-btn.nav-btn-cloud { display: none !important; }
+
+/* ---- grid page toolbar ---- */
+/* The dropdown list spans the whole pill (icon included): anchor it to the pill instead of the inner wrapper that starts after the icon. */
+.modern-select-wrapper {
+    position: relative;
+}
+
+.modern-select-wrapper .custom-select-wrapper {
+    position: static;
+}
+
+.modern-select-wrapper .custom-select-options {
+    left: -1px;
+    right: -1px;
+    width: auto;
+    min-width: calc(100% + 2px);
+    box-sizing: border-box;
+}
+
+/* The search pill already has its outline; the input inside it gets none. */
+.filter-bar input.modern-input,
+.filter-bar input.modern-input:hover,
+.filter-bar input.modern-input:focus,
+.filter-bar input.modern-input:focus-visible {
+    border: none;
+    box-shadow: none;
+    outline: none;
+}
