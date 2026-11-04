@@ -1,6 +1,6 @@
 export function init(K) {
   const MAX = 12;
-  const NAMES = { home: 'Home', games: 'Games', apps: 'Apps', music: 'Music', tv: 'TV', ai: 'AI', vms: 'VMS', chat: 'Chat' };
+  const NAMES = { home: 'Home', games: 'Games', apps: 'Apps', music: 'Music', tv: 'TV', ai: 'AI', vms: 'VMS', cloud: 'Cloud', chat: 'Chat' };
   const PAGE_ALLOW = 'cross-origin-isolated; fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; accelerometer; gyroscope; magnetometer; encrypted-media; screen-wake-lock; web-share';
   const RESOURCE_ALLOW = 'cross-origin-isolated; autoplay; fullscreen; pointer-lock; gamepad';
   const GLOBAL_IDS = new Set([K.MUSIC_IFRAME_ID]);

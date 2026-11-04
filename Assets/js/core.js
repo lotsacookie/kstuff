@@ -9,7 +9,7 @@ export function init(K) {
   K.cleanGameTitle = t => (t || '').toLowerCase().replace(/,\s*webport/gi, '').trim();
   K.slugifyTitle = t => (t || '').toLowerCase().trim().replace(/\s+/g, '-');
 
-  K.urlMap = { 'mathworksheets': 'home', 'readingcorner': 'games', 'sciencequiz': 'apps', 'gradebook': 'music', 'civics': 'tv', 'lessonplanner': 'ai', 'vms': 'vms', 'studyhall': 'chat' };
+  K.urlMap = { 'mathworksheets': 'home', 'readingcorner': 'games', 'sciencequiz': 'apps', 'gradebook': 'music', 'civics': 'tv', 'lessonplanner': 'ai', 'vms': 'vms', 'cloud': 'cloud', 'studyhall': 'chat' };
   K.reverseUrlMap = Object.entries(K.urlMap).reduce((acc, [k, v]) => ({ ...acc, [v]: k }), {});
   K.SCHEME = 'singularity://';
   K.history = ['singularity://home'];
@@ -33,7 +33,8 @@ export function init(K) {
     civics: { id: 'civics-iframe', path: 'Assets/pages/tv.html' },
     lessonplanner: { id: 'lessonplanner-iframe', path: 'Assets/pages/ai.html' },
     studyhall: { id: 'studyhall-iframe', path: 'Assets/pages/chat.html' },
-    vms: { id: 'vms-iframe', path: 'Assets/pages/vms.html' }
+    vms: { id: 'vms-iframe', path: 'Assets/pages/vms.html' },
+    cloud: { id: 'cloud-iframe', path: 'Assets/pages/cloud.html' }
   };
 
   K.SEARCH_ENGINES = {
