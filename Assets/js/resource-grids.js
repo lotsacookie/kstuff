@@ -561,16 +561,6 @@ export function init(K) {
   const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
   const proc = arr => (Array.isArray(arr) ? arr : []).map(i => {
     let p = { ...i };
-    if (p.url?.includes('${truffled}') || !p.image || p.category === 'Truffled') {
-      const m = K.gTruf.get(K.cleanGameTitle(p.title));
-      if (m) {
-        p.title = m.name;
-        p.url = '${truffled}/' + K.trimSlash(m.url);
-        p.image = '${truffled}/' + K.trimSlash(m.thumbnail);
-        p.description = '';
-        p.category = p.category || 'Truffled';
-      }
-    }
     p.url = appB(p.url, true);
     p.image = appB(p.image);
     p._lt = (p.title || '').toLowerCase();
@@ -851,14 +841,8 @@ export function init(K) {
   K.initPromise = Promise.all([
     fetchReadingCornerRaw().catch(error => { console.error('Reading Corner initialization failed:', error); return { data: [], sig: '' }; }),
     K.fetchWithProxy('Assets/json/a.json').catch(error => { console.error('Science Quiz initialization failed:', error); return []; }),
-    K.fetchWithProxy('Assets/json/truffled.json').catch(error => { console.error('Truffled initialization failed:', error); return null; }),
     K.fetchWisps()
-  ]).then(async ([readingResult, scienceData, truffledData]) => {
-    K.gTruf.clear();
-    if (Array.isArray(truffledData?.games)) {
-      truffledData.games.forEach(game => { if (game?.name) K.gTruf.set(K.cleanGameTitle(game.name), game); });
-    }
-
+  ]).then(async ([readingResult, scienceData]) => {
     K.rawReadingCornerData = readingResult?.data || [];
     K.rawSciencequizData = Array.isArray(scienceData) ? scienceData : [];
 

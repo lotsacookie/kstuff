@@ -5,8 +5,6 @@ export function init(K) {
   K.getStorage = k => localStorage.getItem(k);
   K.setStorage = (k, v) => localStorage.setItem(k, v);
   K.cleanUrl = u => u ? u.replace(/\/+$/, '') : '';
-  K.trimSlash = u => u ? u.replace(/^\/+/, '') : '';
-  K.cleanGameTitle = t => (t || '').toLowerCase().replace(/,\s*webport/gi, '').trim();
   K.slugifyTitle = t => (t || '').toLowerCase().trim().replace(/\s+/g, '-');
 
   K.urlMap = { 'mathworksheets': 'home', 'readingcorner': 'games', 'sciencequiz': 'apps', 'gradebook': 'music', 'civics': 'tv', 'lessonplanner': 'ai', 'vms': 'vms', 'cloud': 'cloud', 'studyhall': 'chat' };
@@ -119,9 +117,8 @@ export function init(K) {
   K.pendingAuthMessage = null;
   K.authWatchdogTimer = null;
   K.backendQueue = [];
-  K.gTruf = new Map();
 
-  K.MIRROR_PH = /\$\{(scram|static|uv|frogiee|truffled)\}/;
+  K.MIRROR_PH = /\$\{(scram|static|uv|frogiee)\}/;
 
   K.savedWindowScrollY = 0;
   K.savedPageScrollTop = 0;
@@ -182,7 +179,7 @@ export function init(K) {
     return K.scramTemplatePromise;
   };
 
-  K.stripMirror = u => (u || '').replace(/\$\{(scram|static|uv|frogiee|truffled)\}/g, '');
+  K.stripMirror = u => (u || '').replace(/\$\{(scram|static|uv|frogiee)\}/g, '');
 
   K.buildScramHtml = async rawUrl => {
     const template = await K.getScramTemplate();
