@@ -8,6 +8,25 @@
   var direct = null;
   try { direct = parent && parent.kNetDirect && typeof parent.kNetDirect.fetch === 'function' ? parent.kNetDirect : null; } catch (e) {}
   var NOBODY = { 101: 1, 204: 1, 205: 1, 304: 1 };
+  var ctls = new Set(), pendingFetch = {};
+
+  window.addEventListener('pagehide', function () {
+    ctls.forEach(function (c) { try { c.abort(); } catch (e) {} });
+    ctls.clear();
+    Object.keys(pendingFetch).forEach(function (id) { try { parent && parent.postMessage({ type: 'kstuff-net:abort', id: id }, '*'); } catch (e) {} });
+  });
+
+  function directFetch(url, init) {
+    init = init || {};
+    var ctl = new AbortController(), s = init.signal;
+    if (s) { if (s.aborted) ctl.abort(); else s.addEventListener('abort', function () { ctl.abort(); }, { once: true }); }
+    ctls.add(ctl);
+    ctl.signal.addEventListener('abort', function () { ctls.delete(ctl); }, { once: true });
+    var o = {};
+    Object.keys(init).forEach(function (k) { o[k] = init[k]; });
+    o.signal = ctl.signal;
+    return direct.fetch(url, o);
+  }
 
   window.addEventListener('message', function (e) {
     var d = e.data;
@@ -68,9 +87,11 @@
       return new Promise(function (resolve, reject) {
         if (!parent) return reject(new Error('no net hub'));
         var id = 'f' + (++seq) + '-' + Date.now();
-        var onAbort = function () { delete pending[id]; try { parent.postMessage({ type: 'kstuff-net:abort', id: id }, '*'); } catch (e) {} reject(new DOMException('Aborted', 'AbortError')); };
+        pendingFetch[id] = 1;
+        var onAbort = function () { delete pending[id]; delete pendingFetch[id]; try { parent.postMessage({ type: 'kstuff-net:abort', id: id }, '*'); } catch (e) {} reject(new DOMException('Aborted', 'AbortError')); };
         if (signal) signal.addEventListener('abort', onAbort, { once: true });
         pending[id] = function (d) {
+          delete pendingFetch[id];
           if (signal) signal.removeEventListener('abort', onAbort);
           if (!d.ok) return reject(new TypeError(d.error || 'network error'));
           var status = d.status, res;
@@ -90,7 +111,7 @@
 
   window.kNet = {
     available: direct ? function () { return Promise.resolve(true); } : available,
-    fetch: direct ? function (url, init) { return direct.fetch(url, init); } : fetchViaHub,
+    fetch: direct ? directFetch : fetchViaHub,
     rotate: direct ? function (bad, soft) { return Promise.resolve(direct.rotate(bad, soft)).catch(function () {}); } : function (bad, soft) { return call({ type: 'kstuff-net:rotate', bad: bad, soft: !!soft }, null, 20000).catch(function () {}); },
     ready: direct ? function () { return direct.ready().then(function (w) { return { wisp: w }; }); } : function () { return call({ type: 'kstuff-net:ready' }, null, 40000); }
   };

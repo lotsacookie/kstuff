@@ -15,6 +15,7 @@ export function init(K) {
   const WATCH_FAILS = 3;
   const CHOOSE_BUDGET = 20000;
   const ROTATE_WAIT = 8000;
+  const HARD_MS = 90000;
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
     const t = String(entry || '').trim();
@@ -271,6 +272,12 @@ export function init(K) {
           await delay(400);
           if (await verify(current)) { writeGood(current); return current; }
         }
+        if (await probe(current, 3000) !== null) {
+          console.log('[net-hub] wisp still answers, keeping', current);
+          okUrl = current;
+          okAt = Date.now();
+          return current;
+        }
       }
       const from = bad || current;
       if (from) markBad(from, auto ? BAD_TTL : SOFT_TTL);
@@ -286,29 +293,45 @@ export function init(K) {
   }
 
   const live = new Map();
+  const owners = new Map();
+  const dropOwned = src => {
+    owners.forEach((o, k) => {
+      if (o === src) { const c = live.get(k); if (c) c.abort(); live.delete(k); owners.delete(k); }
+    });
+  };
 
   async function core(url, init) {
     const sg = await boot();
     if (rotating) await Promise.race([rotating.catch(() => {}), delay(ROTATE_WAIT)]);
+    const outer = init.signal;
+    const hard = new AbortController();
+    let hardHit = false;
+    const timer = setTimeout(() => { hardHit = true; hard.abort(); }, HARD_MS);
+    if (outer) {
+      if (outer.aborted) hard.abort();
+      else outer.addEventListener('abort', () => hard.abort(), { once: true });
+    }
+    const opts = Object.assign({}, init, { signal: hard.signal });
     const run = async () => {
       inflight++;
-      try { return await sg.libcurl.fetch(url, init); } finally { inflight--; }
+      try { return await sg.libcurl.fetch(url, opts); } finally { inflight--; }
     };
     try {
       return await run();
     } catch (err) {
-      if (init.signal && init.signal.aborted) throw err;
+      if (hardHit || hard.signal.aborted || (outer && outer.aborted)) throw err;
       const m = String(init.method || 'GET').toUpperCase();
       if (/http\/2|framing|stream error/i.test(String((err && err.message) || err))) return await run();
       await recover();
       if (m !== 'GET' && m !== 'HEAD') throw err;
       return await run();
-    }
+    } finally { clearTimeout(timer); }
   }
 
   async function doFetch(d) {
     const ctl = new AbortController();
     live.set(d.key, ctl);
+    owners.set(d.key, d.owner || null);
     return core(d.url, Object.assign({ redirect: 'follow' }, d.init || {}, { signal: ctl.signal }));
   }
 
@@ -331,7 +354,7 @@ export function init(K) {
       reply({ type: 'kstuff-net:res', id: d.id, ok: true, status: res.status, statusText: res.statusText || '', url: res.url || d.url, headers, body: buf }, buf ? [buf] : []);
     } catch (e) {
       reply({ type: 'kstuff-net:res', id: d.id, ok: false, error: String((e && e.message) || e) });
-    } finally { live.delete(d.key); }
+    } finally { live.delete(d.key); owners.delete(d.key); }
   }
 
   const isPageFrame = src => {
@@ -347,12 +370,13 @@ export function init(K) {
     const src = e.source;
     if (!src || !isPageFrame(src)) return;
     const reply = (m, t) => { try { src.postMessage(m, '*', t || []); } catch {} };
-    if (d.type === 'kstuff-net:hello') { reply({ type: 'kstuff-net:hello-ack', wisp: current }); boot().catch(() => {}); return; }
+    if (d.type === 'kstuff-net:hello') { dropOwned(src); reply({ type: 'kstuff-net:hello-ack', wisp: current }); boot().catch(() => {}); return; }
     if (d.type === 'kstuff-net:ready') { boot().then(() => reply({ type: 'kstuff-net:ready-ack', id: d.id, wisp: current }), er => reply({ type: 'kstuff-net:ready-ack', id: d.id, error: String(er && er.message || er) })); return; }
     if (d.type === 'kstuff-net:rotate') { rotate(d.bad ? toWss(d.bad) : null, !!d.soft).then(w => reply({ type: 'kstuff-net:rotate-ack', id: d.id, wisp: w }), () => reply({ type: 'kstuff-net:rotate-ack', id: d.id })); return; }
     if (d.type === 'kstuff-net:abort') { const c = live.get(d.id); if (c) c.abort(); return; }
     if (d.type === 'kstuff-net:fetch' && typeof d.url === 'string' && /^https?:\/\//i.test(d.url)) {
       d.key = d.id;
+      d.owner = src;
       handleFetch(d, reply);
     }
   });
