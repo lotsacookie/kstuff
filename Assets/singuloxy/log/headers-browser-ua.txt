@@ -1,0 +1,13 @@
+HTTP/2 403 
+access-control-allow-methods: GET, HEAD
+access-control-max-age: 0
+server: AmazonS3
+x-amz-request-id: N14R4G201SEK33V7
+x-amz-id-2: VEG98SJh4rfawJV48EyasL16puZ381k81p6mxJlOP2faMWxr/E/jwrbpFLVItHQHtoaEs4Feou0=
+content-type: application/xml
+content-length: 243
+date: Wed, 28 Oct 2026 19:22:41 GMT
+access-control-allow-origin: *
+cross-origin-resource-policy: cross-origin
+timing-allow-origin: *
+

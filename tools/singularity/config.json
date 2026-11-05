@@ -9,7 +9,9 @@
     "Assets/singularity.js",
     "Assets/singularity.json",
     "Assets/vms/**",
-    "Assets/now/**"
+    "Assets/now/**",
+    "Assets/singuloxy/**",
+    "Assets/build/**"
   ],
   "live": [
     "Assets/json/g.json",

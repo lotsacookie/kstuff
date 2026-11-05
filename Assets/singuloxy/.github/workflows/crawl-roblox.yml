@@ -1,0 +1,50 @@
+name: crawl-roblox
+on:
+  workflow_dispatch:
+    inputs:
+      start_url:
+        description: Page to start crawling from
+        required: true
+        default: https://play.roblox.com/games/start
+      out_name:
+        description: Folder name under log/ for the results
+        required: true
+        default: crawl
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: download repo
+        uses: actions/checkout@v4
+
+      - name: setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: crawl
+        run: |
+          rm -rf "log/${{ inputs.out_name }}"
+          node .github/scripts/crawl.mjs "${{ inputs.start_url }}" "log/${{ inputs.out_name }}"
+
+      - name: summary
+        run: |
+          {
+            echo "## crawl index"
+            echo '```'
+            cat "log/${{ inputs.out_name }}/engine-base.txt"
+            cut -f1-5 "log/${{ inputs.out_name }}/index.tsv" | head -c 60000
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: commit results to log folder
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@users.noreply.github.com
+          git add -A "log/${{ inputs.out_name }}"
+          git commit -m "crawl results" || echo "nothing to commit"
+          git pull --rebase origin ${{ github.ref_name }}
+          git push origin HEAD:${{ github.ref_name }}
