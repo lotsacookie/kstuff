@@ -20,7 +20,8 @@ export function init(K) {
 #gfn-loading.failed .ld-status{color:#ff6b6b;opacity:1}
 #gfn-loading .gfn-ld-btns{display:flex;gap:10px;min-height:2.6rem;align-items:center}
 #gfn-loading .page-btn{padding:8px 20px}
-#gfn-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:transparent;z-index:55;visibility:hidden}
+#gfn-frame{position:absolute;inset:0;display:block;width:100%!important;height:100%!important;min-width:100%;min-height:100%;border:0;background:transparent;z-index:55;visibility:hidden}
+#readingcorner.gfn-running{min-height:100%}
 #gfn-frame.on{visibility:visible}
 #gfn-frame.ui{z-index:70}
 #readingcorner.gfn-running>.filter-bar,#readingcorner.gfn-running>.item-grid,#readingcorner.gfn-running>.pagination-bar{display:none!important}`;
@@ -88,8 +89,29 @@ export function init(K) {
   }
   const post = msg => { try { frame?.contentWindow?.postMessage(msg, '*'); } catch {} };
 
+  // If the games page measures too small (grid hidden, no height from its parent), cover the visible area beside the nav instead.
+  function fit() {
+    if (!frame || !host) return;
+    const r = host.getBoundingClientRect();
+    const small = r.height < 300 || r.width < 320;
+    const st = frame.style;
+    if (small) {
+      const left = Math.max(r.left, 0), top = Math.max(r.top, 0);
+      st.setProperty('position', 'fixed'); st.setProperty('inset', 'auto');
+      st.setProperty('left', left + 'px'); st.setProperty('top', top + 'px');
+      st.setProperty('width', Math.max(window.innerWidth - left, 320) + 'px', 'important');
+      st.setProperty('height', Math.max(window.innerHeight - top, 300) + 'px', 'important');
+    } else {
+      ['position', 'inset', 'left', 'top'].forEach(k => st.removeProperty(k));
+      st.setProperty('width', '100%', 'important'); st.setProperty('height', '100%', 'important');
+    }
+  }
+  window.addEventListener('resize', () => fit());
+  document.addEventListener('fullscreenchange', () => fit());
+
   function showFrame(on, withUi) {
     if (!frame) return;
+    fit();
     frame.classList.toggle('on', !!on);
     frame.classList.toggle('ui', !!withUi);
   }
