@@ -3066,6 +3066,7 @@ body .nav-menu > .nav-btn .label-data {
 
 html.sg-flip {
     background: #000;
+    filter: url(#sg-cf-filter);
 }
 
 html.sg-flip body {
@@ -3073,10 +3074,9 @@ html.sg-flip body {
     filter: invert(1);
 }
 
-html {
-    filter: url(#sg-cf-filter);
-}
-
-html.sg-cf-off {
-    filter: none;
+.sg-flip-note div {
+    font-size: 0.8rem;
+    line-height: 1.5;
+    opacity: 0.85;
+    font-weight: 500;
 }
