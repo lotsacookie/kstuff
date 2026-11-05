@@ -5,8 +5,8 @@ export function init(K) {
   ];
   const DIST = 'dist/sandstone.mjs';
   const FALLBACK = 'wss://api.personalloanonline.net/ws/';
-  const LAST_KEY = 'WLAST';
-  const BAD_KEY = 'WBAD';
+  const LAST_KEY = 'WLAST2';
+  const BAD_KEY = 'WBAD2';
   const LAST_TTL = 21600000;
   const BAD_TTL = 21600000;
   const SOFT_TTL = 600000;
@@ -16,6 +16,9 @@ export function init(K) {
   const CHOOSE_BUDGET = 20000;
   const ROTATE_WAIT = 8000;
   const HARD_MS = 90000;
+  const VERIFY_BAD_TTL = 60000;
+  const COOLDOWN = 45000;
+  const CHECK_URLS = ['https://www.gstatic.com/generate_204', 'https://api.deezer.com/infos', 'https://www.cloudflare.com/cdn-cgi/trace'];
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
     const t = String(entry || '').trim();
@@ -25,7 +28,7 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0, inflight = 0;
+  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0, inflight = 0;
 
   const readJson = key => {
     try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
@@ -109,20 +112,24 @@ export function init(K) {
 
   async function verify(url) {
     if (url !== current) applyWisp(url);
-    let ok = false;
+    const ctl = new AbortController();
+    let ok = false, why = '';
     try {
-      const res = await Promise.race([
-        sandstone.libcurl.fetch('https://www.gstatic.com/generate_204', { method: 'GET' }).then(async r => { await r.arrayBuffer(); return r; }),
-        delay(6000).then(() => { throw new Error('timeout'); })
-      ]);
-      ok = !!res;
-    } catch {}
+      await Promise.any(CHECK_URLS.map(t => Promise.race([
+        sandstone.libcurl.fetch(t, { method: 'GET', signal: ctl.signal }).then(async r => { await r.arrayBuffer(); return r; }),
+        delay(10000).then(() => { throw new Error('timeout'); })
+      ])));
+      ok = true;
+    } catch (e) {
+      why = e && e.errors ? e.errors.map(x => (x && x.message) || String(x)).join(' | ') : String((e && e.message) || e);
+    }
+    try { ctl.abort(); } catch {}
     if (ok) {
       okUrl = url;
       okAt = Date.now();
       clearBad(url);
     }
-    console.log('[net-hub] verify', url, ok);
+    console.log('[net-hub] verify', url, ok, ok ? '' : why);
     return ok;
   }
 
@@ -168,6 +175,7 @@ export function init(K) {
       if ((await probe(good.url, 3000)) !== null) return good.url;
       markBad(good.url, SOFT_TTL);
     }
+    let bestAlive = null;
     for (const tier of tiers()) {
       const pool = tier.filter(u => !skip.has(u));
       const ordered = [...pool.filter(u => !isBad(u)), ...pool.filter(u => isBad(u))];
@@ -181,16 +189,17 @@ export function init(K) {
           else alive.push({ u, ping: pings[j] });
         });
         alive.sort((x, y) => x.ping - y.ping);
+        if (alive.length && (!bestAlive || alive[0].ping < bestAlive.ping)) bestAlive = alive[0];
         for (const row of alive.slice(0, 2)) {
           if (await verify(row.u)) {
             writeGood(row.u);
             return row.u;
           }
-          markBad(row.u, BAD_TTL);
+          markBad(row.u, VERIFY_BAD_TTL);
         }
       }
     }
-    return null;
+    return bestAlive ? bestAlive.u : null;
   }
 
   async function recover() {
@@ -247,6 +256,7 @@ export function init(K) {
             await delay(400);
             if (await verify(current)) { writeGood(current); return; }
           }
+          if ((await probe(current, 3000)) !== null) { console.log('[net-hub] verify failed but wisp answers, keeping', current); return; }
           rotate(current);
         })().catch(() => {});
       }, 1500);
@@ -264,6 +274,7 @@ export function init(K) {
       await boot();
       if (auto && current) {
         if (bad && bad !== current) return current;
+        if (Date.now() - lastRotateAt < COOLDOWN) return current;
         if (okUrl === current && Date.now() - okAt < OK_WINDOW) return current;
         if (await verify(current)) { writeGood(current); return current; }
         await delay(800);
@@ -280,12 +291,13 @@ export function init(K) {
         }
       }
       const from = bad || current;
-      if (from) markBad(from, auto ? BAD_TTL : SOFT_TTL);
+      if (from) markBad(from, auto ? VERIFY_BAD_TTL : SOFT_TTL);
       const hit = await choose(from ? [from] : []);
       const flat = tiers().flat();
       const next = hit || flat.find(u => u !== from && !isBad(u)) || flat.find(u => u !== from) || flat[0] || FALLBACK;
       if (next && next !== current) applyWisp(next);
       if (current) writeGood(current);
+      lastRotateAt = Date.now();
       console.log('[net-hub] rotated to', current);
       return current;
     })().finally(() => { rotating = null; });
