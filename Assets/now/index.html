@@ -195,7 +195,7 @@ body.embed #settings label{color:var(--e-dim)}
 <div class="row"><input id="set-zone-custom" placeholder="Or type a zone ID, e.g. NP-AMS-08" autocomplete="off"><button class="btn ghost" id="set-refresh" type="button">Refresh queues</button></div>
 <small id="set-note">Lower queue number means a shorter wait. Some servers may not be available on your plan.</small>
 <div class="row"><button class="btn ghost" id="set-reset" type="button">Reset</button><button class="btn" id="set-save" type="button">Save</button></div></div></div>
-<div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><div id="ptools" role="toolbar" aria-label="Game controls"><button class="ghost" id="pfs" type="button">Fullscreen</button><button class="ghost" id="pset" type="button">Settings</button><button class="danger" id="pstop" type="button">Exit</button></div></div>
+<div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><div id="ptools" role="toolbar" aria-label="Game controls"><button class="ghost" id="pfs" type="button">Fullscreen</button><button class="ghost" id="pset" type="button">Settings</button><button id="pstop" type="button">Exit</button><button class="danger" id="pend" type="button">End</button></div></div>
 <script type="module">
 const BAD_KEY = "WB_BAD";
 const BAD_TTL_MS = 6 * 3600000;
@@ -1342,11 +1342,13 @@ async function closePlayer(reason) {
   $("pstatus").textContent = "";
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   try { if (adStop) adStop(); } catch {}
-  if (c) await c.stop(); else if (s) { try { await s(); } catch {} }
+  const keep = { keep: reason === "user" || reason === "cancel" };
+  if (c) await c.stop(keep); else if (s) { try { await s(keep); } catch {} }
   toParent("closed", { reason: typeof reason === "string" ? reason : "user" });
   setTimeout(() => syncCatalog(false), 8000);
 }
 $("pstop").addEventListener("click", () => closePlayer("user"));
+$("pend").addEventListener("click", () => closePlayer("end"));
 const isLive = () => !$("player").hidden && $("player").classList.contains("live");
 const focusPlayer = () => { try { window.focus(); $("player").focus({ preventScroll: true }); } catch {} };
 const inputOpen = () => isLive() && $("settings").hidden;

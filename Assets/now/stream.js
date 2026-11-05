@@ -129,11 +129,18 @@ export function buildNvstSdp(serverNvst, answerSdp, o) {
   return head + rest;
 }
 
+export function planSessions(list, appId) {
+  const alive = (list || []).filter((x) => x && x.sessionId && x.status !== 6 && x.status !== 7);
+  const idOf = (x) => String(x.appId != null ? x.appId : x.sessionRequestData && x.sessionRequestData.appId);
+  const same = alive.find((x) => idOf(x) === String(appId)) || null;
+  return { same, others: alive.filter((x) => x !== same) };
+}
+
 // ---------- main entry ----------
 export async function startStream(o) {
   const { appId, vpcId, headers, http, getLibcurl, log, status, video, deviceId } = o;
   const width = o.width || 1920, height = o.height || 1080, fps = o.fps || 60;
-  let stopped = false, ws = null, pc = null, sessionId = null, base = null;
+  let stopped = false, ready = false, ws = null, pc = null, sessionId = null, base = null;
   const cleanups = [];
 
   const hdr = (extra) => ({ ...headers(), "x-device-id": deviceId, "Content-Type": "application/json", ...(extra || {}) });
@@ -153,8 +160,9 @@ export async function startStream(o) {
     throw lastErr || new Error("CloudMatch unreachable");
   };
 
-  async function stop() {
+  async function stop(opts) {
     if (stopped) return;
+    const keep = !!(opts && opts.keep && ready);
     stopped = true;
     try { o.stopAd && o.stopAd(); } catch {}
     cleanups.forEach((f) => { try { f(); } catch {} });
@@ -162,7 +170,8 @@ export async function startStream(o) {
     try { pc && pc.close(); } catch {}
     try { if (document.pointerLockElement) document.exitPointerLock(); } catch {}
     video.srcObject = null;
-    if (sessionId && base) {
+    if (keep) log("[stream] left the session running");
+    else if (sessionId && base) {
       try { await http(base + "/v2/session/" + sessionId, { method: "DELETE", headers: hdr(), follow: false }); log("[stream] session deleted"); } catch (e) { log("[stream] delete failed", e.message); }
     }
   }
@@ -187,7 +196,25 @@ export async function startStream(o) {
       },
     };
     let c;
-    for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const a = await call("GET", "/v2/session");
+      const { same, others } = planSessions(a.json.sessions || a.json.activeSessions, appId);
+      const endOne = async (x) => {
+        const host = (x.sessionControlInfo && x.sessionControlInfo.ip) || new URL(base).host;
+        try { const d = await http("https://" + host + "/v2/session/" + x.sessionId, { method: "DELETE", headers: hdr(), follow: false }); log("[stream] ended other session", x.sessionId, d.status); }
+        catch (e) { log("[stream] couldn't end other session", x.sessionId, e.message || e); }
+      };
+      if (others.length) { status("Ending your old session…"); for (const x of others) await endOne(x); await sleep(2500); }
+      if (same) {
+        status("Reconnecting to your game…");
+        const body = { action: 2, data: "RESUME", sessionRequestData: req.sessionRequestData, metaData: [] };
+        const r = await call("PUT", "/v2/session/" + same.sessionId + "?keyboardLayout=en-US&languageCode=en_US", body);
+        log("[stream] resume", r.status, r.text.slice(0, 500));
+        const rq = r.json.requestStatus || {};
+        if (r.json.session && (!rq.statusCode || rq.statusCode === 1)) c = r;
+      }
+    } catch (e) { log("[stream] resume check failed", e.message || e); }
+    for (let attempt = 0; attempt < 2 && !c; attempt++) {
       c = await call("POST", "/v2/session?keyboardLayout=en-US&languageCode=en_US", req);
       log("[stream] create", c.status, c.text.slice(0, attempt ? 600 : 1500));
       const r0 = c.json.requestStatus || {};
@@ -257,6 +284,7 @@ export async function startStream(o) {
     }
     if (stopped) return { stop };
     if (sess.status !== 2 && sess.status !== 3) throw new Error("Timed out waiting for a rig");
+    ready = true;
     log("[stream] ready", JSON.stringify({ ctl: sess.sessionControlInfo, conn: sess.connectionInfo }).slice(0, 600));
 
     // 3. signaling endpoint
