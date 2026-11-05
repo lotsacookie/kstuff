@@ -83,13 +83,8 @@ body.app{display:block;padding:0}body.app main{width:100%}
 #pad{position:absolute;inset:0;z-index:5;background:#000;display:flex;align-items:center;justify-content:center}#pad[hidden]{display:none}#padv{width:100%;height:100%;object-fit:contain}#padinfo{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.65);padding:6px 12px;border-radius:999px;font-size:.85rem;color:#e8eef3}#pstatus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;font-size:1.2rem;padding:24px;pointer-events:none;text-shadow:0 2px 12px #000;background:radial-gradient(500px 300px at 50% 50%,rgba(118,185,0,.18),transparent 70%)}#pstatus:empty{display:none}
 .pbar{display:none}
 #player{outline:0}
-#pmenu{position:absolute;inset:0;z-index:20;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.55);backdrop-filter:blur(6px)}#pmenu[hidden]{display:none}
-.pm-card{display:flex;flex-direction:column;gap:10px;width:min(300px,100%);padding:22px;border-radius:18px;background:var(--card);border:1px solid var(--line);text-align:center}
-.pm-title{font-weight:900;letter-spacing:.08em;text-transform:uppercase;font-size:.85rem;margin-bottom:4px}
-.pm-card .btn{padding:11px 14px;display:flex;align-items:center;justify-content:center;gap:8px}
-.pm-card .btn.danger{color:#ff6b6b}
-.pm-card small{color:var(--dim);font-size:.72rem;margin-top:2px}
-#phandle{position:absolute;top:0;left:50%;translate:-50% 0;z-index:10;border:0;border-radius:0 0 12px 12px;padding:3px 20px 4px;background:rgba(0,0,0,.5);color:#fff;font:inherit;font-size:.9rem;line-height:1;opacity:0;transition:opacity .2s;cursor:pointer}#player:hover #phandle{opacity:.65}#phandle:hover,#phandle:focus-visible{opacity:1}
+#ptools{position:absolute;top:8px;left:50%;translate:-50% 0;z-index:30;display:flex;gap:2px;padding:3px;border-radius:999px;background:rgba(0,0,0,.55);opacity:.3;transition:opacity .2s}#player:hover #ptools,#ptools:hover,#ptools:focus-within{opacity:1}
+#ptools button{border:0;background:none;color:#fff;font:inherit;font-size:.72rem;line-height:1;padding:6px 11px;border-radius:999px;cursor:pointer}#ptools button:hover,#ptools button:focus-visible{background:rgba(255,255,255,.18)}#ptools .danger{color:#ff6b6b}
 body.app details,#player~details{position:fixed;right:12px;bottom:12px;z-index:200;width:min(620px,94vw);background:rgba(11,13,16,.94);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
 details summary{font-weight:700}details .dbgbtn{margin:6px 0;padding:6px 12px;font-size:.8rem}
 .gear{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:#12161b;color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:border-color .15s,transform .3s}.gear:hover{border-color:var(--green);transform:rotate(60deg)}
@@ -127,10 +122,6 @@ body.embed .spin{border-color:var(--e-line);border-top-color:var(--e-text)}
 body.embed #player{background:transparent}
 body.embed #player.live{background:#000}
 body.embed #player:not(.live) #pv,body.embed #pstatus{visibility:hidden}
-body.embed #pmenu{background:rgba(0,0,0,.5)}
-body.embed .pm-card{background:var(--nav,var(--e-bg));border:1px solid var(--e-line);color:var(--e-text)}
-body.embed .pm-card small{color:var(--e-dim)}
-body.embed .pm-card .btn.danger{color:#ff6b6b}
 body.embed #settings{background:rgba(0,0,0,.45);backdrop-filter:none}
 body.embed #settings .panel{background:var(--nav,var(--e-bg));border:1px solid var(--e-line);color:var(--e-text);box-shadow:none}
 body.embed #settings label{color:var(--e-dim)}
@@ -204,7 +195,7 @@ body.embed #settings label{color:var(--e-dim)}
 <div class="row"><input id="set-zone-custom" placeholder="Or type a zone ID, e.g. NP-AMS-08" autocomplete="off"><button class="btn ghost" id="set-refresh" type="button">Refresh queues</button></div>
 <small id="set-note">Lower queue number means a shorter wait. Some servers may not be available on your plan.</small>
 <div class="row"><button class="btn ghost" id="set-reset" type="button">Reset</button><button class="btn" id="set-save" type="button">Save</button></div></div></div>
-<div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><button id="phandle" type="button" title="Menu (Esc)" aria-label="Menu">&#9662;</button><div id="pmenu" hidden role="dialog" aria-label="Game menu"><div class="pm-card"><div class="pm-title">Paused</div><button class="btn" id="presume" type="button">Resume</button><button class="btn ghost" id="pfs" type="button">Fullscreen</button><button class="btn ghost" id="pset" type="button">Settings</button><button class="btn ghost danger" id="pstop" type="button">Exit game</button><small>Press Esc to open or close this menu</small></div></div></div>
+<div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><div id="ptools" role="toolbar" aria-label="Game controls"><button class="ghost" id="pfs" type="button">Fullscreen</button><button class="ghost" id="pset" type="button">Settings</button><button class="danger" id="pstop" type="button">Exit</button></div></div>
 <script type="module">
 const BAD_KEY = "WB_BAD";
 const BAD_TTL_MS = 6 * 3600000;
@@ -1299,7 +1290,7 @@ async function launch(g) {
     const mk = (vpc, strict) => startStream({
       appId: g.vid || g.id, vpcId: vpc, strict, deviceId: JARVIS_DEVICE, video: pv, log, status: st,
       playAd, stopAd: () => adStop && adStop(), registerStop: (s) => { activeStop = s; },
-      inputOpen, onEscape: () => { if (isLive() && $("settings").hidden) setMenu($("pmenu").hidden); }, onUnlock: () => { if (isLive() && $("settings").hidden) setMenu(true); },
+      inputOpen,
       headers: () => gfnHeaders(token), http, getLibcurl: async () => (await window.__getProxy({ log, say })).libcurl,
       width: w, height: h, fps: Number(cfg.fps) || 60,
     });
@@ -1347,7 +1338,7 @@ async function closePlayer(reason) {
   launchGen++;
   const c = current, s = activeStop;
   current = null; activeStop = null;
-  $("player").hidden = true; $("player").classList.remove("live"); $("pmenu").hidden = true;
+  $("player").hidden = true; $("player").classList.remove("live");
   $("pstatus").textContent = "";
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
   try { if (adStop) adStop(); } catch {}
@@ -1358,17 +1349,8 @@ async function closePlayer(reason) {
 $("pstop").addEventListener("click", () => closePlayer("user"));
 const isLive = () => !$("player").hidden && $("player").classList.contains("live");
 const focusPlayer = () => { try { window.focus(); $("player").focus({ preventScroll: true }); } catch {} };
-function setMenu(on) {
-  if (!isLive()) { $("pmenu").hidden = true; return; }
-  $("pmenu").hidden = !on;
-  if (on) { if (document.pointerLockElement) document.exitPointerLock(); $("presume").focus({ preventScroll: true }); }
-  else { try { const r = $("pv").requestPointerLock && $("pv").requestPointerLock(); r && r.catch && r.catch(() => {}); } catch {} focusPlayer(); }
-}
-const inputOpen = () => isLive() && $("pmenu").hidden && $("settings").hidden;
-$("presume").addEventListener("click", () => setMenu(false));
-$("phandle").addEventListener("click", () => setMenu(true));
+const inputOpen = () => isLive() && $("settings").hidden;
 $("pset").addEventListener("click", () => openSettings());
-$("pmenu").addEventListener("click", (e) => { if (e.target.id === "pmenu") setMenu(false); });
 $("player").addEventListener("pointerdown", () => { if (inputOpen()) focusPlayer(); });
 document.addEventListener("fullscreenchange", () => {
   try { if (document.fullscreenElement) navigator.keyboard?.lock?.(["Escape", "Tab", "AltLeft", "AltRight", "MetaLeft", "MetaRight"]).catch(() => {}); else navigator.keyboard?.unlock?.(); } catch {}

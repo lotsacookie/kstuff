@@ -49,6 +49,40 @@ export function encWheel(delta, tsMs) {
   putTs(dv, 14, tsMs);
   return dv.buffer;
 }
+export function encGamepad(slot, bitmap, buttons, lt, rt, lx, ly, rx, ry, tsMs) {
+  const dv = new DataView(new ArrayBuffer(38));
+  dv.setUint32(0, 12, true);
+  dv.setUint16(4, 26, true);
+  dv.setUint16(6, slot, true);
+  dv.setUint16(8, bitmap, true);
+  dv.setUint16(10, 20, true);
+  dv.setUint16(12, buttons, true);
+  dv.setUint16(14, ((rt & 255) << 8) | (lt & 255), true);
+  dv.setInt16(16, lx, true);
+  dv.setInt16(18, ly, true);
+  dv.setInt16(20, rx, true);
+  dv.setInt16(22, ry, true);
+  dv.setUint16(24, 0, true);
+  dv.setUint16(26, 85, true);
+  dv.setUint16(28, 0, true);
+  const us = Math.floor(tsMs * 1000);
+  dv.setUint32(30, us >>> 0, true);
+  dv.setUint32(34, Math.floor(us / 4294967296), true);
+  return dv.buffer;
+}
+const PAD_BTN = [0x1000, 0x2000, 0x4000, 0x8000, 0x100, 0x200, 0, 0, 0x20, 0x10, 0x40, 0x80, 0x1, 0x2, 0x4, 0x8, 0x400];
+export function padState(gp, dead = 0.12) {
+  let b = 0;
+  for (let i = 0; i < PAD_BTN.length; i++) if (PAD_BTN[i] && gp.buttons[i] && gp.buttons[i].pressed) b |= PAD_BTN[i];
+  const trig = (i) => { const x = gp.buttons[i]; const v = x ? (x.value > 0 ? x.value : x.pressed ? 1 : 0) : 0; return Math.max(0, Math.min(255, Math.round(v * 255))); };
+  const ax = (i, inv) => {
+    let v = gp.axes[i] || 0;
+    if (Math.abs(v) < dead) return 0;
+    v = Math.sign(v) * (Math.abs(v) - dead) / (1 - dead);
+    return Math.max(-32768, Math.min(32767, Math.round((inv ? -v : v) * 32767)));
+  };
+  return { buttons: b, lt: trig(6), rt: trig(7), lx: ax(0, false), ly: ax(1, true), rx: ax(2, false), ry: ax(3, true) };
+}
 // protocol version > 2 wraps each event: 0x23, u64 BE timestamp, 0x22, payload
 export function wrapV3(payload, tsMs) {
   const p = new Uint8Array(payload), out = new Uint8Array(10 + p.length), dv = new DataView(out.buffer);
@@ -264,10 +298,6 @@ export async function startStream(o) {
       on("wheel", document, (e) => { if (locked() && open()) { pushInput(encWheel(e.deltaY, e.timeStamp), e.timeStamp); e.preventDefault(); } }, { passive: false });
       on("contextmenu", video, (e) => e.preventDefault());
       const key = (down) => (e) => {
-        if (e.code === "Escape") { // Esc is never sent to the game: it opens / closes the menu
-          if (down && !e.repeat && o.onEscape) { e.preventDefault(); e.stopPropagation(); o.onEscape(); }
-          return;
-        }
         if (!open()) { if (!down) pressed.delete(e.code); return; }
         if (down) pressed.set(e.code, e.keyCode); else pressed.delete(e.code);
         pushInput(encKey(down, e.keyCode, kmods(e), 0, e.timeStamp), e.timeStamp);
@@ -275,8 +305,33 @@ export async function startStream(o) {
       };
       on("keydown", window, key(true), true);
       on("keyup", window, key(false), true);
+      const slots = new Map(), sent = new Map();
+      const zero = { buttons: 0, lt: 0, rt: 0, lx: 0, ly: 0, rx: 0, ry: 0 };
+      const mask = () => { let m = 0; for (const sl of slots.values()) m |= (1 << sl) | (1 << (sl + 8)); return m; };
+      const sendPad = (sl, st, force) => {
+        const k = st.buttons + "," + st.lt + "," + st.rt + "," + st.lx + "," + st.ly + "," + st.rx + "," + st.ry + "," + mask();
+        const now = performance.now(), prev = sent.get(sl);
+        if (!force && prev && prev.k === k && now - prev.t < 1000) return;
+        sent.set(sl, { k, t: now });
+        pushInput(encGamepad(sl, mask(), st.buttons, st.lt, st.rt, st.lx, st.ly, st.rx, st.ry, now), now);
+      };
+      const pollPads = () => {
+        let pads = [];
+        try { pads = navigator.getGamepads ? Array.from(navigator.getGamepads()) : []; } catch {}
+        const seen = new Set();
+        for (const gp of pads) {
+          if (!gp || !gp.connected) continue;
+          seen.add(gp.index);
+          if (!slots.has(gp.index)) { let sl = 0; const used = new Set(slots.values()); while (used.has(sl)) sl++; if (sl > 3) continue; slots.set(gp.index, sl); sent.delete(sl); }
+          sendPad(slots.get(gp.index), open() ? padState(gp) : zero);
+        }
+        for (const [gi, sl] of [...slots]) if (!seen.has(gi)) { slots.delete(gi); sendPad(sl, zero, true); sent.delete(sl); }
+      };
+      const padTimer = setInterval(pollPads, 8);
+      cleanups.push(() => clearInterval(padTimer));
+      on("gamepadconnected", window, () => { try { video.muted = false; } catch {} });
       on("blur", window, releaseAll);
-      on("pointerlockchange", document, () => { if (!locked()) { releaseAll(); o.onUnlock && o.onUnlock(); } });
+      on("pointerlockchange", document, () => { if (!locked()) { releaseAll(); } });
     };
 
     const onOffer = async (from, m) => {
