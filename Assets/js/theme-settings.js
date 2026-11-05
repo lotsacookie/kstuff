@@ -92,6 +92,50 @@ export function init(K) {
     });
   }
 
+  const cfSelect = K.$('layout-cf-select');
+  const cfRange = K.$('layout-cf-int');
+  if (cfSelect && cfRange) {
+    const IDENT = [1, 0, 0, 0, 1, 0, 0, 0, 1];
+    const CF = {
+      'cf-deuteranomaly': [0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.01182, 0.04294, 0.968881],
+      'cf-protanomaly': [0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882, -0.048116, 1.051998],
+      'cf-tritanomaly': [1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733, 0.691367, 0.3039],
+      'cf-grayscale': [0.2126, 0.7152, 0.0722, 0.2126, 0.7152, 0.0722, 0.2126, 0.7152, 0.0722]
+    };
+    const matrixEl = document.getElementById('sg-cf-matrix');
+    const valEl = K.$('layout-cf-int-val');
+    const root = document.documentElement;
+    const applyCF = () => {
+      const type = cfSelect.value;
+      const t = Math.max(0, Math.min(100, Number(cfRange.value))) / 100;
+      if (valEl) valEl.textContent = Math.round(t * 100);
+      const m = CF[type];
+      if (m && matrixEl) {
+        const out = [];
+        for (let r = 0; r < 3; r++) {
+          for (let c = 0; c < 3; c++) out.push((IDENT[r * 3 + c] + t * (m[r * 3 + c] - IDENT[r * 3 + c])).toFixed(5));
+          out.push('0');
+        }
+        const rows = [];
+        for (let r = 0; r < 3; r++) rows.push(`${out[r * 4]} ${out[r * 4 + 1]} ${out[r * 4 + 2]} 0 0`);
+        rows.push('0 0 0 1 0');
+        matrixEl.setAttribute('values', rows.join(' '));
+        root.classList.add('sg-cf');
+      } else {
+        root.classList.remove('sg-cf');
+      }
+      const cover = type === 'cf-tritanomaly' ? Math.min(0.98, 1 - t) : 0.98;
+      root.style.setProperty('--sg-cf-cover', cover);
+    };
+    cfSelect.value = K.getStorage('kstuff_cf_type') || 'cf-off';
+    const storedInt = K.getStorage('kstuff_cf_int');
+    cfRange.value = storedInt === null ? '100' : storedInt;
+    applyCF();
+    K.applyCustomDropdown(cfSelect);
+    cfSelect.addEventListener('change', () => { K.setStorage('kstuff_cf_type', cfSelect.value); applyCF(); });
+    cfRange.addEventListener('input', () => { K.setStorage('kstuff_cf_int', cfRange.value); applyCF(); });
+  }
+
   K.applyCloudSettings = s => {
     if (!s) return;
     if (s.theme) K.setStorage('kstuff_theme', s.theme);
