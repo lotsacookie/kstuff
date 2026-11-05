@@ -115,6 +115,7 @@ details summary{font-weight:700}details .dbgbtn{margin:6px 0;padding:6px 12px;fo
 #settings label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--dim);font-weight:700}
 select{width:100%;background:#0b0d10;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--ink);font:inherit;outline:none}select:focus{border-color:var(--green)}
 
+#pad.stealth{inset:auto;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none;overflow:hidden;z-index:-1}#pad.stealth #padinfo{display:none}
 /* ---- embedded in kstuff: inherit its theme (--bg/--text/--nav/--font are synced from the parent), no background ---- */
 body.embed{--e-text:var(--text,#fff);--e-bg:var(--bg,#000);--e-dim:color-mix(in srgb,var(--e-text) 62%,transparent);--e-line:color-mix(in srgb,var(--e-text) 18%,transparent);
 background:transparent!important;color:var(--e-text);font-family:var(--font,"Comfortaa",system-ui,sans-serif)!important;font-weight:600;min-height:100vh;padding:16px;gap:1.1rem;overflow:hidden}
@@ -1328,15 +1329,15 @@ function playAd(ad, ev) {
   const src = (files.find((f) => /\.mp4(\?|$)/i.test(f.mediaFileUrl)) || files[0] || {}).mediaFileUrl || ad.adUrl;
   if (!src) return ev("error", { reason: "NO_AD_MEDIA" });
   let started = false, ended = false;
-  const done = (name, d) => { if (ended) return; ended = true; v.pause(); v.removeAttribute("src"); v.load(); box.hidden = true; adStop = null; if (!$("player").classList.contains("live")) toParent("view", { ui: false }); ev(name, d); };
+  const done = (name, d) => { if (ended) return; ended = true; v.pause(); v.removeAttribute("src"); v.load(); box.hidden = true; box.classList.remove("stealth"); adStop = null; ev(name, d); };
   adStop = () => done("error", { reason: "USER_CANCELED_WATCHING_ADS" });
-  box.hidden = false; $("pstatus").textContent = ""; toParent("view", { ui: true });
+  box.hidden = false; box.classList.add("stealth"); // the ad still plays (needed for validation) but is never shown: no screen takeover, no text
   v.onplaying = () => { if (!started) { started = true; ev("start"); } else ev("resume"); };
   v.onpause = () => { if (started && !ended && !v.ended) ev("pause"); };
   v.ontimeupdate = () => { info.textContent = "Ad · " + Math.max(0, Math.ceil((v.duration || ad.adLengthInSeconds || 0) - v.currentTime)) + "s — your game starts after this"; };
   v.onended = () => done("finish");
   v.onerror = () => done("error", { reason: "AD_PLAYBACK_ERROR" });
-  v.src = src; v.muted = false;
+  v.src = src; v.muted = true;
   v.play().catch(() => { v.muted = true; v.play().catch(() => done("error", { reason: "AUTOPLAY_BLOCKED" })); });
   setTimeout(() => { if (!started && !ended) done("error", { reason: "AD_LOAD_TIMEOUT" }); }, 20000);
 }
