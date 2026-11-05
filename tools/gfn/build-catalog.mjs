@@ -38,6 +38,18 @@ for (const g of list) {
   seen.add(String(id));
   games.push([Number.isFinite(Number(id)) ? Number(id) : String(id), title, String(g.store || g.appStore || ''), steamId(g), img(g)]);
 }
+// manual additions (Assets/now/extra.json): titles NVIDIA's public list leaves out. The client resolves the real id by title at launch.
+const norm = t => String(t || '').toLowerCase().replace(/[®™©]/g, '').replace(/[^a-z0-9]+/g, '');
+try {
+  const extra = JSON.parse(readFileSync('Assets/now/extra.json', 'utf8'));
+  const have = new Set(games.map(g => norm(g[1])));
+  for (const [title, store = '', steam = ''] of extra.games || []) {
+    const k = norm(title);
+    if (!k || have.has(k)) continue;
+    have.add(k);
+    games.push(['x-' + (String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || k), String(title), String(store), String(steam), '']);
+  }
+} catch (e) { console.log('no extra.json merged:', e.message); }
 games.sort((a, b) => a[1].localeCompare(b[1], 'en', { sensitivity: 'base' }));
 
 if (!games.length) {

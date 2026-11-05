@@ -1262,7 +1262,8 @@ async function resolveVid(session, g) {
   if (g.vid || !EMBED) return g;
   try {
     const r = await Promise.race([fetchApps(session, g.title, ""), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000))]);
-    const m = r.items.find((x) => String(x.id) === String(g.id)) || r.items.find((x) => (x.title || "").toLowerCase() === (g.title || "").toLowerCase());
+    const nt = (t) => String(t || "").toLowerCase().replace(/[®™©]/g, "").replace(/[^a-z0-9]+/g, "");
+    const m = r.items.find((x) => String(x.id) === String(g.id)) || r.items.find((x) => nt(x.title) === nt(g.title)) || r.items.find((x) => nt(x.title).startsWith(nt(g.title)));
     if (m && m.vid) { log("[stream] variant", m.vid, "for", g.title); return { ...g, vid: m.vid, id: m.id }; }
   } catch (e) { log("[stream] variant lookup skipped", (e && e.message) || e); }
   return g;
@@ -1288,6 +1289,7 @@ async function launch(g) {
     if (!tokens.length) throw new Error("No GeForce NOW token available");
     const token = tokens[0];
     g = await resolveVid(session, g);
+    if (!/^\d+$/.test(String(g.vid || g.id))) throw new Error("Couldn’t find “" + (g.title || "that game") + "” on GeForce NOW");
     if (gen !== launchGen) return;
     const cfg = loadSettings();
     let w, h;
