@@ -97,11 +97,23 @@ body.app details,#player~details{position:fixed;right:12px;bottom:12px;z-index:2
 details summary{font-weight:700}details .dbgbtn{margin:6px 0;padding:6px 12px;font-size:.8rem}
 .gear{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:#12161b;color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:border-color .15s,transform .3s}.gear:hover{border-color:var(--green);transform:rotate(60deg)}
 .top .gear{margin-left:auto}.top .searchbox{margin:0 auto}
-#settings{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:16px}#settings[hidden]{display:none}
-#settings .panel{width:min(480px,100%);background:#14181d;border:1px solid var(--line);border-radius:18px;padding:24px;display:flex;flex-direction:column;gap:14px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
-#settings label{display:flex;flex-direction:column;gap:6px;font-size:.85rem;color:var(--dim);font-weight:700}
+#settings{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:12px;opacity:1;visibility:visible;transition:opacity .24s ease,visibility 0s}
+#settings[hidden]{display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility 0s linear .2s}
+#settings .panel{width:min(440px,100%);max-height:calc(100vh - 24px);overflow:auto;background:#14181d;border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 30px 80px rgba(0,0,0,.6);transform:none;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+#settings[hidden] .panel{transform:translateY(14px) scale(.97);transition:transform .2s ease}
+#settings .shead{display:flex;align-items:center;justify-content:space-between}#settings h2{margin:0;font-size:1.05rem}
+#settings .sx{appearance:none;border:0;background:transparent;color:var(--dim);font-size:1.5rem;line-height:1;cursor:pointer;padding:2px 6px;border-radius:8px}#settings .sx:hover{color:var(--ink)}
+#settings .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#settings .srow{display:flex;gap:8px;align-items:flex-end}#settings .srow label{flex:1;min-width:0}
+#settings .btn.sm{padding:9px 14px;font-size:.85rem}
+#settings input{width:100%;box-sizing:border-box;background:#0b0d10;border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--ink);font:inherit;font-size:.85rem;outline:none}#settings input:focus{border-color:var(--green)}
+#settings select{padding:9px 10px;font-size:.85rem;border-radius:10px}
+#settings small{color:var(--dim);font-size:.75rem;line-height:1.35}
+#settings .sdl{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--line)}
+#settings .foot{display:flex;gap:8px}#settings .foot .btn{flex:1;padding:10px 14px}
+@media (prefers-reduced-motion:reduce){#settings,#settings .panel{transition:none!important}}
+#settings label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--dim);font-weight:700}
 select{width:100%;background:#0b0d10;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--ink);font:inherit;outline:none}select:focus{border-color:var(--green)}
-#settings .row{align-items:center}#settings .row input{flex:2}
 
 /* ---- embedded in kstuff: inherit its theme (--bg/--text/--nav/--font are synced from the parent), no background ---- */
 body.embed{--e-text:var(--text,#fff);--e-bg:var(--bg,#000);--e-dim:color-mix(in srgb,var(--e-text) 62%,transparent);--e-line:color-mix(in srgb,var(--e-text) 18%,transparent);
@@ -196,17 +208,13 @@ body.embed #settings label{color:var(--e-dim)}
 <pre id="log"></pre>
 <button class="btn ghost" id="copy-log" type="button">Copy log</button>
 </details>
-<div id="settings" hidden><div class="panel"><h2>Settings</h2>
-<label>Resolution<select id="set-res"><option value="auto">Auto (screen size, up to 1080p)</option><option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option><option value="2560x1440">2560 × 1440</option><option value="3840x2160">3840 × 2160</option></select></label>
-<label>Frame rate<select id="set-fps"><option value="30">30 FPS</option><option value="60">60 FPS</option><option value="120">120 FPS</option></select></label>
-<label>Video codec<select id="set-codec"><option value="h264">H.264 (lowest delay)</option><option value="auto">Auto</option><option value="h265">H.265</option><option value="av1">AV1</option></select></label>
-<label>Max bitrate<select id="set-kbps"><option value="0">Server default</option><option value="10000">10 Mbps</option><option value="15000">15 Mbps</option><option value="25000">25 Mbps</option><option value="40000">40 Mbps</option></select></label>
-<label>Server<select id="set-zone"><option value="">Auto (shortest queue)</option></select></label>
-<div class="row"><input id="set-zone-custom" placeholder="Or type a zone ID, e.g. NP-AMS-08" autocomplete="off"><button class="btn ghost" id="set-refresh" type="button">Refresh queues</button></div>
+<div id="settings" hidden><div class="panel"><div class="shead"><h2>Settings</h2><button class="sx" id="set-close" type="button" aria-label="Close">×</button></div>
+<div class="sgrid"><label>Resolution<select id="set-res"><option value="auto">Auto (screen size, up to 1080p)</option><option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option><option value="2560x1440">2560 × 1440</option><option value="3840x2160">3840 × 2160</option></select></label><label>Frame rate<select id="set-fps"><option value="30">30 FPS</option><option value="60">60 FPS</option><option value="120">120 FPS</option></select></label><label>Video codec<select id="set-codec"><option value="h264">H.264 (lowest delay)</option><option value="auto">Auto</option><option value="h265">H.265</option><option value="av1">AV1</option></select></label><label>Max bitrate<select id="set-kbps"><option value="0">Server default</option><option value="10000">10 Mbps</option><option value="15000">15 Mbps</option><option value="25000">25 Mbps</option><option value="40000">40 Mbps</option></select></label></div>
+<div class="srow"><label>Server<select id="set-zone"><option value="">Auto (shortest queue)</option></select></label><button class="btn ghost sm" id="set-refresh" type="button" title="Refresh queues" aria-label="Refresh queues">↻</button></div>
+<input id="set-zone-custom" placeholder="Or type a zone ID, e.g. NP-AMS-08" autocomplete="off">
 <small id="set-note">Lower queue number means a shorter wait. Some servers may not be available on your plan.</small>
-<div class="row"><button class="btn ghost" id="set-dl" type="button">Download full catalog.json</button></div>
-<small id="set-dl-note">Saves your whole signed-in GeForce NOW library, ready to drop on the games page.</small>
-<div class="row"><button class="btn ghost" id="set-reset" type="button">Reset</button><button class="btn" id="set-save" type="button">Save</button></div></div></div>
+<div class="sdl"><button class="btn ghost sm" id="set-dl" type="button">Download full catalog.json</button><small id="set-dl-note">Your whole signed-in GeForce NOW library, ready for the games page.</small></div>
+<div class="foot"><button class="btn ghost" id="set-reset" type="button">Reset</button><button class="btn" id="set-save" type="button">Save</button></div></div></div>
 <div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><div id="ptools" class="idle" role="toolbar" aria-label="Game controls"><div class="sf-group"><button class="sf-btn" id="pstop" type="button" title="Leave game (keeps the session running)" aria-label="Leave game"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M8 1L3 6l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sf-label">Exit</span></button></div><div class="sf-group sf-mid"><span class="sf-title" id="ptitle"></span></div><div class="sf-group"><div class="sf-chip sf-stats" id="pfps"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="0.5" y="7" width="2.4" height="4" rx="0.6" fill="currentColor"/><rect x="4.3" y="4" width="2.4" height="7" rx="0.6" fill="currentColor"/><rect x="8.1" y="1" width="2.4" height="10" rx="0.6" fill="currentColor"/></svg><span id="pfpst">-- FPS</span></div><button class="sf-btn sf-icon" id="pmic" type="button" title="Microphone off" aria-label="Toggle microphone" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v4"/></svg></button><button class="sf-btn" id="pfs" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 4V1h3M8 1h3v3M1 8v3h3M11 8v3H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="sf-label">Fullscreen</span></button><button class="sf-btn sf-icon" id="pset" type="button" title="Settings" aria-label="Settings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button class="sf-btn danger" id="pend" type="button" title="End the session">End</button></div></div></div>
 <script type="module">
 const BAD_KEY = "WB_BAD";
@@ -1311,6 +1319,7 @@ $("set-save").addEventListener("click", () => {
   $("settings").hidden = true;
 });
 $("settings").addEventListener("click", (e) => { if (e.target.id === "settings") $("settings").hidden = true; });
+$("set-close").addEventListener("click", () => { $("settings").hidden = true; });
 
 let adStop = null;
 function playAd(ad, ev) {
@@ -1591,9 +1600,9 @@ if (EMBED) {
   $("email-card").querySelector("h1").textContent = "Sign in to GeForce NOW";
   $("email-card").querySelector("p").textContent = "Use your NVIDIA account email. NVIDIA will send you a verification link or code.";
   const so = document.createElement("button");
-  so.className = "btn ghost"; so.type = "button"; so.id = "set-signout"; so.textContent = "Sign out of GeForce NOW";
+  so.className = "btn ghost"; so.type = "button"; so.id = "set-signout"; so.textContent = "Sign out";
   so.onclick = signOut;
-  $("set-save").closest(".row").after(so);
+  $("set-reset").before(so);
   const syncTheme = () => { try {
     const cs = parent.getComputedStyle(parent.document.body), d = document.documentElement.style, g = (n) => (cs.getPropertyValue(n) || "").trim();
     const m = { "--bg": g("--bg-color") || g("--background"), "--text": g("--text-color") || cs.color, "--nav": g("--nav-bg"), "--font": g("--font") };

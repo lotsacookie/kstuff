@@ -1,0 +1,2 @@
+catalog.json is locked: CI (tools/gfn/build-catalog.mjs / gfn-catalog.yml) will not overwrite it while this file exists.
+Delete this file to let the workflow rebuild the catalog again.

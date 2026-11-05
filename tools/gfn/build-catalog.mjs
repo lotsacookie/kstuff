@@ -3,6 +3,7 @@
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
 
 const OUT = 'Assets/now/catalog.json';
+if (existsSync('Assets/now/catalog.lock')) { console.log('Assets/now/catalog.lock exists; catalog.json is locked, not touching it'); process.exit(0); }
 const SOURCES = [
   'https://static.nvidiagrid.net/supported-public-games-list/locales/gfnpc-en-US.json',
   'https://static.nvidiagrid.net/supported-public-game-list/locales/gfnpc-en-US.json',

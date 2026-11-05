@@ -24,10 +24,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: node tools/gfn/build-catalog.mjs
+      - name: Build catalog (skipped while Assets/now/catalog.lock exists)
+        if: hashFiles('Assets/now/catalog.lock') == ''
+        run: node tools/gfn/build-catalog.mjs
       - name: Commit if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -f Assets/now/catalog.lock ]; then echo "catalog locked"; exit 0; fi
           git add Assets/now/catalog.json
           if git diff --cached --quiet; then echo "no change"; else git commit -m "Update GeForce NOW catalog" && git pull --rebase -q && git push; fi
