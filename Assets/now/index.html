@@ -1370,7 +1370,7 @@ async function launch(g) {
     if (gen !== launchGen) return;
     const msg = String((e && e.message) || e);
     log("[stream] launch failed", msg);
-    if (EMBED && /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH|INTERNAL_ERROR_STATUS/i.test(msg)) {
+    if (EMBED && /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH/i.test(msg) && Date.now() - (session.at || 0) > 180000) {
       saveStore(null); pendingGame = g; pl.hidden = true; toParent("status", { text: "Your GeForce NOW sign-in expired. Please sign in again." }); show("email-card"); return;
     }
     st("Couldn’t start the game: " + msg + (/code 60|certificate/i.test(msg) ? " — that server isn’t reachable here; pick an NP- server in Settings." : ""));
