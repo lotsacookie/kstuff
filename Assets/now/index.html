@@ -1264,7 +1264,7 @@ async function rankedZones() {
 }
 const ZBAD_KEY = "singularitynow.badzones", ZBAD_TTL = 30 * 60 * 1000;
 const loadZBad = () => { try { const o = JSON.parse(localStorage.getItem(ZBAD_KEY) || "{}"), n = Date.now(); for (const k in o) if (n - o[k] > ZBAD_TTL) delete o[k]; return o; } catch { return {}; } };
-const saveZBad = (o) => { try { localStorage.setItem(BAD_KEY, JSON.stringify(o)); } catch {} };
+const saveZBad = (o) => { try { localStorage.setItem(ZBAD_KEY, JSON.stringify(o)); } catch {} };
 // every zone once, random order; zones that failed recently go last so repeated launches don't hit the same dead ones first
 function orderZones(ids, bad, rnd) {
   const sh = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor((rnd || Math.random)() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
