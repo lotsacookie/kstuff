@@ -92,6 +92,37 @@ details summary{font-weight:700}details .dbgbtn{margin:6px 0;padding:6px 12px;fo
 #settings label{display:flex;flex-direction:column;gap:6px;font-size:.85rem;color:var(--dim);font-weight:700}
 select{width:100%;background:#0b0d10;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--ink);font:inherit;outline:none}select:focus{border-color:var(--green)}
 #settings .row{align-items:center}#settings .row input{flex:2}
+
+/* ---- embedded in kstuff: inherit its theme (--bg/--text/--nav/--font are synced from the parent), no background ---- */
+body.embed{--e-text:var(--text,#fff);--e-bg:var(--bg,#000);--e-dim:color-mix(in srgb,var(--e-text) 62%,transparent);--e-line:color-mix(in srgb,var(--e-text) 18%,transparent);
+background:transparent!important;color:var(--e-text);font-family:var(--font,"Comfortaa",system-ui,sans-serif)!important;font-weight:600;min-height:100vh;padding:16px;gap:1.1rem;overflow:hidden}
+body.embed *{font-family:inherit!important}
+body.embed main{width:min(380px,100%)}
+body.embed #boot,body.embed #account,body.embed #log,body.embed details{display:none!important}
+body.embed .emb-brand{display:flex;flex-direction:column;align-items:center;gap:1.1rem;margin-bottom:.4rem}
+body.embed .ld-logo{width:5.5rem;height:5.5rem;overflow:visible;color:var(--e-text);filter:drop-shadow(0 0 8px color-mix(in srgb,var(--e-text) 50%,transparent))}
+body.embed .ld-arms{opacity:.8;transform-origin:50px 50px;stroke-dasharray:1;animation:ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both,ld-spin 14s linear 1.2s infinite}
+body.embed .ld-core{transform-origin:50px 50px;animation:ld-pulse 2.8s ease-in-out infinite}
+body.embed .ld-word{font-size:1.15rem;font-weight:900;letter-spacing:.06em}
+@keyframes ld-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes ld-spin{to{transform:rotate(360deg)}}@keyframes ld-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+body.embed .card{background:transparent;border:0;box-shadow:none;backdrop-filter:none;padding:0;align-items:stretch;text-align:center;gap:.9rem}
+body.embed .card h1{font-size:1rem;font-weight:900;letter-spacing:.06em}
+body.embed .card h1 b{color:inherit}
+body.embed p,body.embed small{color:var(--e-dim);font-size:.8rem}
+body.embed .err{color:#ff6b6b}
+body.embed input,body.embed select{background:transparent;color:var(--e-text);border:1px solid var(--e-line);border-radius:12px;text-align:center}
+body.embed input:focus,body.embed select:focus{border-color:var(--e-text)}
+body.embed input::placeholder{color:var(--e-dim)}
+body.embed .btn{background:var(--e-text);color:var(--e-bg);border-radius:12px;font-weight:800}
+body.embed .btn.ghost{background:transparent;color:var(--e-text);border:1px solid var(--e-line)}
+body.embed .btn.ghost:hover{border-color:var(--e-text)}
+body.embed .spin{border-color:var(--e-line);border-top-color:var(--e-text)}
+body.embed #player{background:transparent}
+body.embed #player.live{background:#000}
+body.embed #player:not(.live) #pv,body.embed #player:not(.live) #phint,body.embed #pstatus{visibility:hidden}
+body.embed #settings{background:rgba(0,0,0,.45);backdrop-filter:none}
+body.embed #settings .panel{background:var(--nav,var(--e-bg));border:1px solid var(--e-line);color:var(--e-text);box-shadow:none}
+body.embed #settings label{color:var(--e-dim)}
 </style>
 </head>
 <body>
@@ -516,9 +547,14 @@ const EP = {
 };
 
 const $ = (id) => document.getElementById(id);
+const EMBED = !!window.__NOW_EMBED;
+const toParent = (type, d) => { if (!EMBED) return; try { parent.postMessage({ type: "gfn:" + type, ...(d || {}) }, "*"); } catch {} };
+const progOf = (t) => { t = String(t || ""); if (!t) return 1; if (/^Starting/.test(t)) return 0.06; if (/Requesting/.test(t)) return 0.2; if (/Ending your old/.test(t)) return 0.25; const q = /position (\d+)/.exec(t); if (q) return 0.3 + 0.45 * (1 - Math.min(Number(q[1]), 100) / 100); if (/Setting up/.test(t)) return 0.78; if (/Connecting to your rig/.test(t)) return 0.92; return null; };
+let pendingGame = null, launchGen = 0, activeStop = null;
 const screens = ["boot", "email-card", "wait-card", "code-card", "password-card", "account"];
-const show = (name) => { screens.forEach((s) => $(s).classList.toggle("active", s === name)); document.body.classList.toggle("app", name === "account"); };
-const say = (t) => { $("boot-status").textContent = t; };
+const LOGIN_CARDS = ["email-card", "wait-card", "code-card", "password-card"];
+const show = (name) => { screens.forEach((s) => $(s).classList.toggle("active", s === name)); document.body.classList.toggle("app", name === "account" && !EMBED); if (EMBED) toParent("view", { ui: LOGIN_CARDS.includes(name) }); };
+const say = (t) => { $("boot-status").textContent = t; if (EMBED) toParent("status", { text: t }); };
 const form = (o) => new URLSearchParams(o).toString();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const setWait = (title, desc) => { $("wait-title").textContent = title; $("wait-desc").textContent = desc || ""; show("wait-card"); };
@@ -1155,9 +1191,9 @@ function playAd(ad, ev) {
   const src = (files.find((f) => /\.mp4(\?|$)/i.test(f.mediaFileUrl)) || files[0] || {}).mediaFileUrl || ad.adUrl;
   if (!src) return ev("error", { reason: "NO_AD_MEDIA" });
   let started = false, ended = false;
-  const done = (name, d) => { if (ended) return; ended = true; v.pause(); v.removeAttribute("src"); v.load(); box.hidden = true; adStop = null; ev(name, d); };
+  const done = (name, d) => { if (ended) return; ended = true; v.pause(); v.removeAttribute("src"); v.load(); box.hidden = true; adStop = null; if (!$("player").classList.contains("live")) toParent("view", { ui: false }); ev(name, d); };
   adStop = () => done("error", { reason: "USER_CANCELED_WATCHING_ADS" });
-  box.hidden = false; $("pstatus").textContent = "";
+  box.hidden = false; $("pstatus").textContent = ""; toParent("view", { ui: true });
   v.onplaying = () => { if (!started) { started = true; ev("start"); } else ev("resume"); };
   v.onpause = () => { if (started && !ended && !v.ended) ev("pause"); };
   v.ontimeupdate = () => { info.textContent = "Ad · " + Math.max(0, Math.ceil((v.duration || ad.adLengthInSeconds || 0) - v.currentTime)) + "s — your game starts after this"; };
@@ -1176,26 +1212,45 @@ async function rankedZones() {
   } catch { return []; }
 }
 let current = null;
+async function resolveVid(session, g) {
+  if (g.vid || !EMBED) return g;
+  try {
+    const r = await Promise.race([fetchApps(session, g.title, ""), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000))]);
+    const m = r.items.find((x) => String(x.id) === String(g.id)) || r.items.find((x) => (x.title || "").toLowerCase() === (g.title || "").toLowerCase());
+    if (m && m.vid) { log("[stream] variant", m.vid, "for", g.title); return { ...g, vid: m.vid, id: m.id }; }
+  } catch (e) { log("[stream] variant lookup skipped", (e && e.message) || e); }
+  return g;
+}
 async function launch(g) {
   if (current) return;
   const session = loadStore();
-  if (!session) return;
+  if (!session) { if (EMBED) { pendingGame = g; show("email-card"); } return; }
+  const gen = ++launchGen;
   const pl = $("player"), pv = $("pv");
-  pl.hidden = false;
-  const st = (t) => { $("pstatus").textContent = t || ""; };
+  pl.hidden = false; pl.classList.remove("live");
+  let lastP = 0;
+  const st = (t) => {
+    $("pstatus").textContent = t || "";
+    if (!EMBED || gen !== launchGen) return;
+    if (!t) { pl.classList.add("live"); toParent("live"); return; }
+    const p = progOf(t); if (p != null) lastP = Math.max(lastP, p);
+    toParent("status", { text: t, p: lastP });
+  };
   st("Starting " + (g.title || "game") + "…");
   try {
     const tokens = await gfnTokens(session);
     if (!tokens.length) throw new Error("No GeForce NOW token available");
     const token = tokens[0];
+    g = await resolveVid(session, g);
+    if (gen !== launchGen) return;
     const cfg = loadSettings();
     let w, h;
     if (cfg.res === "auto") { const lo = Math.min(screen.width, screen.height) * (devicePixelRatio || 1), hi = Math.max(screen.width, screen.height) * (devicePixelRatio || 1); w = Math.min(1920, hi | 0) || 1920; h = Math.min(1080, lo | 0) || 1080; }
     else [w, h] = cfg.res.split("x").map(Number);
-    const { startStream } = await import("./stream.js");
+    const { startStream } = await import((window.__NOW_BASE || "./") + "stream.js");
     const mk = (vpc, strict) => startStream({
       appId: g.vid || g.id, vpcId: vpc, strict, deviceId: JARVIS_DEVICE, video: pv, log, status: st,
-      playAd, stopAd: () => adStop && adStop(),
+      playAd, stopAd: () => adStop && adStop(), registerStop: (s) => { activeStop = s; },
       headers: () => gfnHeaders(token), http, getLibcurl: async () => (await window.__getProxy({ log, say })).libcurl,
       width: w, height: h, fps: Number(cfg.fps) || 60,
     });
@@ -1207,13 +1262,15 @@ async function launch(g) {
     for (const z of ranked.slice(0, 4)) if (!cands.some((c) => c.id === z.id)) cands.push({ id: z.id, tries: 1, q: z.q });
     if (!cands.some((c) => c.id === home)) cands.push({ id: home, tries: 1 });
     const bad = /error code (6|7|28|35|52|56)\b|timed out|unreachable|refused|INVALID_ZONE|ZONE|NOT_AVAILABLE|CAPACITY/i;
-    let lastErr;
+    let lastErr, got = null;
     outer: for (const c of cands) {
       for (let t = 0; t < c.tries; t++) {
+        if (gen !== launchGen) return;
         log("[stream] server", c.id, c.id === cfg.zone ? "(chosen, try " + (t + 1) + ")" : c.q != null ? "(auto, queue " + c.q + ")" : "(nearest)", "res", cfg.res, "fps", cfg.fps);
-        try { current = await mk(c.id, true); break outer; }
+        try { got = await mk(c.id, true); break outer; }
         catch (err) {
           lastErr = err;
+          if (gen !== launchGen) return;
           if (!bad.test(String((err && err.message) || err))) throw err;
           log("[stream]", c.id, "failed:", (err && err.message) || err);
           st("Server " + c.id + " didn’t work, trying another…");
@@ -1221,23 +1278,34 @@ async function launch(g) {
         }
       }
     }
-    if (!current) throw lastErr || new Error("No server reachable");
+    if (!got) throw lastErr || new Error("No server reachable");
+    if (gen !== launchGen) { try { await got.stop(); } catch {} return; }
+    current = got;
   } catch (e) {
-    log("[stream] launch failed", e.message || e);
-    st("Couldn’t start the game: " + (e.message || e) + (/code 60|certificate/i.test(String(e.message)) ? " — that server isn’t reachable here; pick an NP- server in Settings." : ""));
+    if (gen !== launchGen) return;
+    const msg = String((e && e.message) || e);
+    log("[stream] launch failed", msg);
+    if (EMBED && /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH/i.test(msg)) {
+      saveStore(null); pendingGame = g; pl.hidden = true; toParent("status", { text: "Your GeForce NOW sign-in expired. Please sign in again." }); show("email-card"); return;
+    }
+    st("Couldn’t start the game: " + msg + (/code 60|certificate/i.test(msg) ? " — that server isn’t reachable here; pick an NP- server in Settings." : ""));
     current = { stop: async () => {} };
+    if (EMBED) { pl.hidden = true; toParent("failed", { text: "Couldn’t start the game: " + msg }); current = null; return; }
     setTimeout(() => { if (current && $("pstatus").textContent.startsWith("Couldn")) closePlayer(); }, 6000);
   }
 }
-async function closePlayer() {
-  const c = current;
-  current = null;
-  $("player").hidden = true;
+async function closePlayer(reason) {
+  launchGen++;
+  const c = current, s = activeStop;
+  current = null; activeStop = null;
+  $("player").hidden = true; $("player").classList.remove("live");
   $("pstatus").textContent = "";
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
-  if (c) await c.stop();
+  try { if (adStop) adStop(); } catch {}
+  if (c) await c.stop(); else if (s) { try { await s(); } catch {} }
+  toParent("closed", { reason: typeof reason === "string" ? reason : "user" });
 }
-$("pstop").addEventListener("click", closePlayer);
+$("pstop").addEventListener("click", () => closePlayer("user"));
 $("pfs").addEventListener("click", () => { const p = $("player"); (document.fullscreenElement ? document.exitFullscreen() : p.requestFullscreen()).catch(() => {}); });
 
 { const d = $("log").closest("details"), b = document.createElement("button"); b.className = "btn ghost dbgbtn"; b.type = "button"; b.textContent = "Copy log"; b.onclick = () => copy(logLines.join("\n"), b); d.insertBefore(b, $("log")); const sw = document.createElement("button"); sw.className = "btn ghost dbgbtn"; sw.type = "button"; sw.textContent = "Switch proxy"; sw.onclick = async () => { sw.disabled = true; try { await rotateProxy(log, say); } catch (e) { log("[proxy] switch failed", e.message || e); } sw.disabled = false; }; d.insertBefore(sw, $("log")); d.querySelector("summary").textContent = "Debug log"; }
@@ -1254,6 +1322,11 @@ $("lib-more").addEventListener("click", () => { const s = libSession(); if (s) l
 
 function render(session) {
   if (!session) { show("email-card"); return; }
+  if (EMBED) {
+    show("boot"); toParent("signedin", { email: (session.user && session.user.email) || "" });
+    if (pendingGame) { const g = pendingGame; pendingGame = null; launch(g); }
+    return;
+  }
   const u = session.user || {};
   $("acct-email").textContent = u.email || "(no email returned)";
   $("acct-name").textContent = u.name || u.sub || "";
@@ -1273,6 +1346,7 @@ function signOut() {
   flow = null;
   saveStore(null);
   setError("email-error", "");
+  if (EMBED) { $("settings").hidden = true; toParent("signedout"); return; }
   show("email-card");
 }
 
@@ -1296,9 +1370,43 @@ $("signout").addEventListener("click", signOut);
 $("copy-token").addEventListener("click", (e) => { const s = loadStore(); if (s) copy(s.tokens.access_token, e.currentTarget); });
 $("copy-log").addEventListener("click", (e) => copy(logLines.join("\n"), e.currentTarget));
 
-const existing = loadStore();
-if (existing) render(existing);
-else show("email-card");
+if (EMBED) {
+  document.body.classList.add("embed");
+  const brand = document.createElement("div");
+  brand.className = "emb-brand";
+  brand.innerHTML = '<svg class="ld-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><g id="emb-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10"><path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/><path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/></g></defs><g class="ld-arms" stroke="currentColor"><use href="#emb-arm"/><use href="#emb-arm" transform="rotate(120 50 50)"/><use href="#emb-arm" transform="rotate(240 50 50)"/></g><g class="ld-core" fill="currentColor"><path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/></g></svg><div class="ld-word">Singularity</div>';
+  document.querySelector("main").before(brand);
+  $("email-card").querySelector("h1").textContent = "Sign in to GeForce NOW";
+  $("email-card").querySelector("p").textContent = "Use your NVIDIA account email. NVIDIA will send you a verification link or code.";
+  const so = document.createElement("button");
+  so.className = "btn ghost"; so.type = "button"; so.id = "set-signout"; so.textContent = "Sign out of GeForce NOW";
+  so.onclick = signOut;
+  $("set-save").closest(".row").after(so);
+  const syncTheme = () => { try {
+    const cs = parent.getComputedStyle(parent.document.body), d = document.documentElement.style, g = (n) => (cs.getPropertyValue(n) || "").trim();
+    const m = { "--bg": g("--bg-color") || g("--background"), "--text": g("--text-color") || cs.color, "--nav": g("--nav-bg"), "--font": g("--font") };
+    for (const k in m) m[k] ? d.setProperty(k, m[k]) : d.removeProperty(k);
+  } catch {} };
+  syncTheme();
+  new MutationObserver(() => toParent("view", { ui: !$("settings").hidden || LOGIN_CARDS.some((c) => $(c).classList.contains("active")) })).observe($("settings"), { attributes: true, attributeFilter: ["hidden"] });
+  const pb = document.querySelector(".pbar"), sb = document.createElement("button");
+  sb.className = "btn ghost"; sb.type = "button"; sb.textContent = "Settings"; sb.onclick = openSettings; pb.prepend(sb);
+  window.addEventListener("message", (e) => {
+    if (e.source !== parent) return;
+    const d = e.data;
+    if (d === "theme-updated") return syncTheme();
+    if (!d || typeof d !== "object") return;
+    if (d.type === "gfn:launch" && d.game) { syncTheme(); if (current) return; const s = loadStore(); if (!s) { pendingGame = d.game; show("email-card"); } else launch(d.game); }
+    else if (d.type === "gfn:stop") { pendingGame = null; if (LOGIN_CARDS.some((c) => $(c).classList.contains("active"))) cancelLogin(); $("settings").hidden = true; closePlayer("cancel"); show("boot"); toParent("view", { ui: false }); }
+    else if (d.type === "gfn:settings") { syncTheme(); openSettings(); }
+  });
+  show("boot");
+  toParent("ready", { signedIn: !!loadStore() });
+} else {
+  const existing = loadStore();
+  if (existing) render(existing);
+  else show("email-card");
+}
 window.__getProxy({ log, say }).catch((e) => log("[proxy] failed", (e && e.message) || e));
 </script>
 </body>

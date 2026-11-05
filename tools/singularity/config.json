@@ -8,7 +8,8 @@
   "exclude": [
     "Assets/singularity.js",
     "Assets/singularity.json",
-    "Assets/vms/**"
+    "Assets/vms/**",
+    "Assets/now/**"
   ],
   "live": [
     "Assets/json/g.json",

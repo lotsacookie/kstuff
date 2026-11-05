@@ -244,11 +244,59 @@ export function init(K) {
     } else if (d.type === 'singularity:catalog') K.cacheCloudCatalog(d.games);
   });
 
+  // ---- GeForce NOW catalog (SingularityNOW). The list is a small JSON built by CI into Assets/now/catalog.json.
+  // We ask the GitHub API for the latest commit, read the catalog from jsDelivr at that exact commit, and keep the
+  // result pinned in localStorage: while the commit is unchanged the catalog is served from the pinned copy.
+  const GFN_REPO = K.MAIN_REPO || 'lotsacookie/kstuff';
+  const GFN_STORE = 'kstuff_gfn_catalog_v1';
+  const GFN_LIST = 'https://static.nvidiagrid.net/supported-public-games-list/locales/gfnpc-en-US.json';
+  const readGfn = () => { try { const c = JSON.parse(localStorage.getItem(GFN_STORE) || 'null'); return c && Array.isArray(c.games) ? c : null; } catch { return null; } };
+  const writeGfn = (sha, games) => { try { localStorage.setItem(GFN_STORE, JSON.stringify({ sha, at: Date.now(), games })); } catch {} };
+  const gfnItems = games => games.filter(r => Array.isArray(r) && r[0] && r[1]).map(r => {
+    const cover = [];
+    if (r[4]) cover.push(r[4]);
+    if (r[3]) cover.push(`https://cdn.cloudflare.steamstatic.com/steam/apps/${r[3]}/header.jpg`);
+    cover.push(K.gameFallbackIcon(r[1]));
+    return { source: 'gfn', gfnId: String(r[0]), name: String(r[1]), store: r[2] || '', cover };
+  });
+  async function fetchGfn() {
+    const sha = await K.getRefSha(GFN_REPO, 'main').catch(() => '');
+    const cached = readGfn();
+    if (cached && sha && cached.sha === sha && cached.games.length) return gfnItems(cached.games);
+    const urls = [];
+    if (sha) urls.push(`https://cdn.jsdelivr.net/gh/${GFN_REPO}@${sha}/Assets/now/catalog.json`);
+    urls.push(`https://cdn.jsdelivr.net/gh/${GFN_REPO}@main/Assets/now/catalog.json`);
+    let games = null;
+    for (const u of urls) {
+      try {
+        const r = await fetch(u, { cache: u.includes('@main') ? 'no-cache' : 'default' });
+        if (!r.ok) continue;
+        const j = await r.json();
+        if (Array.isArray(j?.games) && j.games.length) { games = j.games; break; }
+      } catch {}
+    }
+    if (!games) {
+      try { // straight from NVIDIA when the CI catalog isn't there yet (needs their CORS to allow it)
+        const r = await fetch(GFN_LIST, { cache: 'no-cache' });
+        if (r.ok) {
+          const j = await r.json();
+          games = (Array.isArray(j) ? j : j.games || []).filter(x => x && x.id && x.title).map(x => {
+            const m = /store\.steampowered\.com\/app\/(\d+)/.exec(x.steamUrl || '');
+            return [x.id, x.title, x.store || '', m ? m[1] : '', ''];
+          });
+        }
+      } catch {}
+    }
+    if (games && games.length) { writeGfn(sha, games); return gfnItems(games); }
+    return cached ? gfnItems(cached.games) : [];
+  }
+
   K.fetchExtraGames = async () => {
     const lists = await Promise.all([
       source('seraph', fetchSeraph),
       source('storage', fetchStorageGames),
-      source('cloud', fetchCloud)
+      source('cloud', fetchCloud),
+      source('gfn', fetchGfn)
     ]);
     return lists.flat();
   };

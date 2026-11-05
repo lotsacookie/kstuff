@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - 'Assets/singularity.js'
       - 'Assets/singularity.json'
+      - 'Assets/now/catalog.json'
       - '**.md'
   workflow_dispatch:
 

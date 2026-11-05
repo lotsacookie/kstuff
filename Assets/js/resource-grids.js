@@ -125,6 +125,7 @@ export function init(K) {
   const openResource = async (item, opts = {}) => {
     if (!item) return;
     if (item.cloudId) return K.openCloudGame?.(item); // Cloud games open inside SingularityCloud, not in this grid's frame
+    if (item.gfnId) return K.openGfnGame?.(item); // GeForce NOW games stream through the SingularityNOW client
     const pageId = opts.pageId || document.querySelector('.page.active')?.id;
     if (!pageId || !grids[pageId]) return;
     const ifr = resourceIframeFor(pageId, true);
@@ -673,6 +674,13 @@ export function init(K) {
           used.add(key);
         }
         if (baseName.includes('[!]')) return;
+        if (item.source === 'gfn') {
+          const art = Array.isArray(item.cover) ? item.cover : [item.cover];
+          const row = { title: `${baseName} (GFN)`, image: art[0] || '', url: '', category: 'GeForce NOW', description: item.store || '', gfnId: item.gfnId, gfnName: baseName };
+          if (art.length > 1) row.imageAlts = art.slice(1);
+          mappedData.push(row);
+          return;
+        }
         if (item.source === 'cloud') {
           const art = Array.isArray(item.cover) ? item.cover : [item.cover];
           const cloudRow = { title: `${baseName} (Cloud)`, image: art[0] || '', url: '', category: 'Cloud', description: '', cloudId: item.cloudId, cloudName: baseName };

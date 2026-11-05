@@ -133,6 +133,7 @@ export async function startStream(o) {
     }
   }
 
+  try { o.registerStop && o.registerStop(stop); } catch {}
   try {
     // 1. create session
     status("Requesting a gaming rig…");
