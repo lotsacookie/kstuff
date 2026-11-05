@@ -268,6 +268,7 @@ export async function startStream(o) {
       break;
     }
     const rs = c.json.requestStatus || {};
+    if (!c.json.session || (rs.statusCode && rs.statusCode !== 1)) log("[stream] session rejected", "zone", (typeof base === "string" ? base : ""), "http", c.status, "requestStatus", JSON.stringify(rs), "body", String(c.text || JSON.stringify(c.json) || "").slice(0, 700));
     if (!c.json.session || (rs.statusCode && rs.statusCode !== 1)) throw new Error("GeForce NOW refused the session: " + (rs.statusDescription || c.status) + (rs.unifiedErrorCode ? " (" + rs.unifiedErrorCode + ")" : ""));
     sessionId = c.json.session.sessionId;
 
