@@ -989,17 +989,57 @@ const gfnHeaders = (token) => ({
 });
 const lib = { tokens: [], vpc: null, cursor: "", more: false, q: "", seq: 0, authed: true, pub: null, items: [] };
 
+const CT_HEADERS = [
+  { Accept: "application/json" },
+  { Accept: "application/json", Origin: "https://nvfile", Referer: "https://nvfile/" },
+  { Accept: "application/json", Origin: "https://play.geforcenow.com", Referer: "https://play.geforcenow.com/" },
+];
+const looksJson = (t) => /^\s*[\[{]/.test(t || "");
+
+// Exchange a stored client_token for fresh access/id tokens (same grant the web client uses in fetchSession).
+async function refreshSession(session) {
+  const t = session.tokens || {};
+  const ct = t.client_token, sub = session.user && session.user.sub;
+  if (!ct || !sub) return null;
+  try {
+    const r = await http(STARFLEET + "/token", { method: "POST", headers: TOKEN_HEADERS, body: form({ grant_type: "urn:ietf:params:oauth:grant-type:client_token", client_token: ct, client_id: CLIENT_ID, sub }), follow: false });
+    log("[lib] token refresh", r.status);
+    if (!looksJson(r.text)) { log("[lib] token refresh gave a non-JSON reply", String(r.text).slice(0, 80).replace(/\s+/g, " ")); return null; }
+    const j = JSON.parse(r.text);
+    if (!j.access_token) return null;
+    session.tokens = { ...t, ...j }; session.at = Date.now();
+    saveStore(session);
+    return session;
+  } catch (e) { log("[lib] token refresh failed", e.message || e); return null; }
+}
+
+async function fetchClientToken(access) {
+  for (const h of CT_HEADERS) {
+    try {
+      const r = await http(STARFLEET + "/client_token", { headers: { ...h, Authorization: "Bearer " + access }, follow: false });
+      if (looksJson(r.text)) {
+        const j = JSON.parse(r.text);
+        log("[lib] client_token", r.status);
+        if (j.client_token) return j.client_token;
+      } else log("[lib] client_token non-JSON", r.status, String(r.text || "").slice(0, 80).replace(/\s+/g, " "));
+    } catch (e) { log("[lib] client_token failed", e.message || e); }
+  }
+  return null;
+}
+
 async function gfnTokens(session) {
   if (lib.tokens.length) return lib.tokens;
-  const t = session.tokens || {}, out = [];
-  try {
-    const r = await http(STARFLEET + "/client_token", { headers: { Accept: "application/json", Authorization: "Bearer " + t.access_token, Origin: "https://nvfile", Referer: "https://nvfile/" }, follow: false });
-    const j = JSON.parse(r.text);
-    log("[lib] client_token", r.status);
-    if (j.client_token) out.push(j.client_token);
-  } catch (e) { log("[lib] client_token failed", e.message || e); }
-  if (t.id_token) out.push(t.id_token);
-  if (t.access_token) out.push(t.access_token);
+  const t = session.tokens || {};
+  // Refresh first when the saved access token has (nearly) expired.
+  const left = t.expires_in && session.at ? session.at + t.expires_in * 1000 - Date.now() : Infinity;
+  if (left < 120000) { const s2 = await refreshSession(session); if (s2) session = s2; }
+  let tk = session.tokens || t, out = [];
+  let ct = await fetchClientToken(tk.access_token);
+  if (!ct) { const s2 = await refreshSession(session); if (s2) { session = s2; tk = s2.tokens; ct = await fetchClientToken(tk.access_token); } }
+  if (ct) { out.push(ct); if (ct !== tk.client_token) { session.tokens = { ...tk, client_token: ct }; saveStore(session); } }
+  else if (tk.client_token) out.push(tk.client_token);
+  if (tk.id_token) out.push(tk.id_token);
+  if (tk.access_token) out.push(tk.access_token);
   return (lib.tokens = out);
 }
 
@@ -1056,6 +1096,7 @@ async function fetchApps(session, search, cursor) {
 async function publicApps(q) {
   if (!lib.pub) {
     const r = await http(PUBLIC_LIST, { headers: { Accept: "application/json" }, follow: true });
+    if (!/^\s*[\[{]/.test(r.text || "")) throw new Error("public catalog blocked (" + r.status + ")");
     const j = JSON.parse(r.text);
     lib.pub = (Array.isArray(j) ? j : j.games || []).map((g) => ({ id: g.id, title: g.title, img: g.images && (g.images.TV_BANNER || g.images.HERO_IMAGE) || g.image, store: g.store }));
     log("[lib] public catalog", lib.pub.length);
@@ -1329,7 +1370,7 @@ async function launch(g) {
     if (gen !== launchGen) return;
     const msg = String((e && e.message) || e);
     log("[stream] launch failed", msg);
-    if (EMBED && /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH/i.test(msg)) {
+    if (EMBED && /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH|INTERNAL_ERROR_STATUS/i.test(msg)) {
       saveStore(null); pendingGame = g; pl.hidden = true; toParent("status", { text: "Your GeForce NOW sign-in expired. Please sign in again." }); show("email-card"); return;
     }
     st("Couldn’t start the game: " + msg + (/code 60|certificate/i.test(msg) ? " — that server isn’t reachable here; pick an NP- server in Settings." : ""));
