@@ -1,7 +1,3 @@
-// Keeps the navbar usable when the window is too small for every button (any navbar position).
-// The last buttons fold into a "..." button that opens a small icon-only popup beside the bar, one at a time.
-// Moving a button keeps its handlers; when there is room again everything goes back where it was.
-// Settings and Profile live in the bottom card and stay pinned. The active page's button never folds away.
 export function init(K, opts = {}) {
   const nav = opts.nav || K.navBar || document.getElementById('teachertouchbar');
   if (!nav || nav.__sgNavOverflow) return null;
@@ -30,13 +26,12 @@ export function init(K, opts = {}) {
   const anchor = () => nav.querySelector(':scope > .nav-favs') || nav.querySelector(':scope > .nav-card');
   nav.insertBefore(more, anchor());
 
-  const parked = []; // { el, ph }
+  const parked = [];
   let busy = false;
 
   const pinned = () => Array.from(nav.children).filter(c => c.classList.contains('nav-btn') && c !== more);
   const isShown = el => !el.hidden && getComputedStyle(el).display !== 'none';
 
-  // The text on the buttons is stored back to front in .label-data; read it forwards for the tooltip.
   function labelFor(el) {
     const parts = Array.from(el.querySelectorAll('.label-data > div')).map(d => d.textContent);
     const word = parts.reverse().join('').trim();
@@ -46,7 +41,7 @@ export function init(K, opts = {}) {
   function measure() {
     const favs = nav.querySelector(':scope > .nav-favs');
     const prev = favs ? favs.style.display : '';
-    if (favs) favs.style.display = 'none'; // bookmarks scroll on their own; they don't decide what folds
+    if (favs) favs.style.display = 'none';
     nav.scrollTop = 0; nav.scrollLeft = 0;
     const cs = getComputedStyle(nav);
     const r = nav.getBoundingClientRect();
@@ -96,7 +91,7 @@ export function init(K, opts = {}) {
     if (label && !el.title) { el.title = label; el.setAttribute('data-nav-title', ''); }
     if (label && !el.getAttribute('aria-label')) { el.setAttribute('aria-label', label); el.setAttribute('data-nav-aria', ''); }
     parked.push({ el, ph });
-    menu.insertBefore(el, menu.firstChild); // parked last-to-first, so this keeps the bar's order
+    menu.insertBefore(el, menu.firstChild);
     more.hidden = false;
   }
 
@@ -120,7 +115,7 @@ export function init(K, opts = {}) {
     try {
       restoreAll();
       if (measure()) {
-        more.hidden = false; // the "..." button takes room too
+        more.hidden = false;
         const candidates = pinned().filter(isShown).reverse();
         for (const el of candidates) {
           if (!measure()) break;
@@ -162,7 +157,7 @@ export function init(K, opts = {}) {
   window.addEventListener('resize', schedule);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
   if (typeof MutationObserver !== 'undefined') {
-    // Buttons added/removed/shown/hidden, the active page changing, or a layout setting (position, size, labels) changing.
+
     const navMo = new MutationObserver(() => { if (!busy) schedule(); });
     navMo.observe(nav, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'hidden'] });
     observers.push(navMo);

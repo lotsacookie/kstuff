@@ -2938,7 +2938,6 @@ body {
     outline: none;
 }
 
-/* ---- header bar: stays on the bar at any width (see Assets/js/header-overflow.js) ---- */
 .learning-header .hdr-more { order: 100; }
 .learning-header .textbook-bar-container { min-width: 120px; }
 
@@ -2982,7 +2981,6 @@ body {
 
 .hdr-menu[hidden] { display: none; }
 
-/* icon-only: the name is the tooltip / aria-label, not text on screen */
 .hdr-menu > .study-nav-btn {
     flex: 0 0 auto;
     width: 36px;
@@ -3019,10 +3017,8 @@ body {
     max-width: 150px;
 }
 
-/* .study-nav-btn sets display:flex, which would otherwise win over the hidden attribute */
 .study-nav-btn[hidden] { display: none; }
 
-/* ---- navbar overflow: last buttons fold into an icon-only popup (see Assets/js/nav-overflow.js) ---- */
 .nav-more[hidden] { display: none; }
 
 .nav-menu {
@@ -3047,7 +3043,6 @@ body {
 
 .nav-menu[hidden] { display: none; }
 
-/* icon-only, whatever the navbar's size / label / expand settings are */
 .nav-menu > .nav-btn,
 body .nav-menu > .nav-btn {
     flex: 0 0 auto !important;
