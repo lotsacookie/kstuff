@@ -590,6 +590,10 @@ function log(...a) {
 }
 
 const loadStore = () => { try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch { return null; } };
+const CRED_KEY = "singularitynow.cred";
+const loadCred = () => { try { const c = JSON.parse(localStorage.getItem(CRED_KEY) || "null"); return c && c.email && c.pw ? c : null; } catch { return null; } };
+const saveCred = (email, pw) => { try { localStorage.setItem(CRED_KEY, JSON.stringify({ email, pw })); } catch {} };
+const clearCred = () => { try { localStorage.removeItem(CRED_KEY); } catch {} };
 const saveStore = (v) => { try { v ? localStorage.setItem(STORE, JSON.stringify(v)) : localStorage.removeItem(STORE); } catch {} };
 
 const jwt = (t) => {
@@ -773,11 +777,14 @@ function askPassword(err) {
 async function passwordStage(mine) {
   let err = "";
   for (let i = 0; i < 3; i++) {
-    const password = await askPassword(err);
+    const cred = loadCred();
+    const auto = i === 0 && cred && flow && cred.email.toLowerCase() === String(flow.email || "").toLowerCase();
+    const password = auto ? cred.pw : await askPassword(err);
     alive(mine);
     setWait("Signing in…", "");
     const r = await api(EP.password, { password, rememberLogin: false, deviceId: JARVIS_DEVICE });
-    if (r.ok) return;
+    if (r.ok) { saveCred(flow.email, password); return; }
+    if (auto) clearCred();
     err = apiError(r).message;
   }
   throw new Error("Too many wrong passwords.");
@@ -923,6 +930,27 @@ async function onEmail(ev) {
     flow = null;
     setError("email-error", e && e.message ? e.message : String(e));
     show("email-card");
+  }
+}
+
+async function autoLogin() {
+  const cred = loadCred();
+  if (!cred || flow) return false;
+  setError("email-error", "");
+  setWait("Signing in…", "");
+  try {
+    const tokens = await startLogin(cred.email);
+    await finish(tokens);
+    flow = null;
+    return true;
+  } catch (e) {
+    flow = null;
+    if (e && e.cancelled) return false;
+    log("[auth] auto sign-in failed", (e && e.message) || e);
+    $("email").value = cred.email;
+    setError("email-error", e && e.message ? e.message : String(e));
+    show("email-card");
+    return false;
   }
 }
 
@@ -1316,7 +1344,7 @@ async function resolveVid(session, g) {
 async function launch(g) {
   if (current) return;
   const session = loadStore();
-  if (!session) { if (EMBED) { pendingGame = g; show("email-card"); } return; }
+  if (!session) { if (EMBED) { pendingGame = g; if (loadCred()) autoLogin(); else show("email-card"); } return; }
   const gen = ++launchGen;
   const pl = $("player"), pv = $("pv");
   pl.hidden = false; pl.classList.remove("live");
@@ -1385,7 +1413,7 @@ async function launch(g) {
     const msg = String((e && e.message) || e);
     log("[stream] launch failed", msg);
     if (EMBED && /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH/i.test(msg) && Date.now() - (session.at || 0) > 180000) {
-      saveStore(null); pendingGame = g; pl.hidden = true; toParent("status", { text: "Your GeForce NOW sign-in expired. Please sign in again." }); show("email-card"); return;
+      saveStore(null); pendingGame = g; pl.hidden = true; if (loadCred()) { toParent("status", { text: "Signing you in again…" }); autoLogin(); return; } toParent("status", { text: "Your GeForce NOW sign-in expired. Please sign in again." }); show("email-card"); return;
     }
     st("Couldn’t start the game: " + msg + (/code 60|certificate/i.test(msg) ? " — that server isn’t reachable here; pick an NP- server in Settings." : ""));
     current = { stop: async () => {} };
@@ -1456,6 +1484,7 @@ function signOut() {
   run++;
   flow = null;
   saveStore(null);
+  clearCred();
   setError("email-error", "");
   if (EMBED) { $("settings").hidden = true; toParent("signedout"); return; }
   show("email-card");
@@ -1505,7 +1534,7 @@ if (EMBED) {
     const d = e.data;
     if (d === "theme-updated") return syncTheme();
     if (!d || typeof d !== "object") return;
-    if (d.type === "gfn:launch" && d.game) { syncTheme(); if (current) return; const s = loadStore(); if (!s) { pendingGame = d.game; show("email-card"); } else launch(d.game); }
+    if (d.type === "gfn:launch" && d.game) { syncTheme(); if (current) return; const s = loadStore(); if (!s) { pendingGame = d.game; if (loadCred()) autoLogin(); else show("email-card"); } else launch(d.game); }
     else if (d.type === "gfn:stop") { pendingGame = null; if (LOGIN_CARDS.some((c) => $(c).classList.contains("active"))) cancelLogin(); $("settings").hidden = true; closePlayer("cancel"); show("boot"); toParent("view", { ui: false }); }
     else if (d.type === "gfn:settings") { syncTheme(); openSettings(); }
     else if (d.type === "gfn:sync") syncCatalog(false);
@@ -1515,6 +1544,7 @@ if (EMBED) {
 } else {
   const existing = loadStore();
   if (existing) render(existing);
+  else if (loadCred()) autoLogin();
   else show("email-card");
 }
 window.__getProxy({ log, say }).catch((e) => log("[proxy] failed", (e && e.message) || e));
