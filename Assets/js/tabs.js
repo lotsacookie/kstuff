@@ -1,6 +1,7 @@
 export function init(K) {
   const MAX = 12;
   const NAMES = { home: 'Home', games: 'Games', apps: 'Apps', music: 'Music', tv: 'TV', ai: 'AI', vms: 'VMS', cloud: 'Cloud', chat: 'Chat' };
+  const ICONS = { home: 'house', games: 'game-controller', apps: 'app-window', music: 'music-notes', tv: 'monitor-play', ai: 'robot', vms: 'desktop', cloud: 'cloud', chat: 'chats', settings: 'gear', profile: 'user' };
   const PAGE_ALLOW = 'cross-origin-isolated; fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; display-capture; picture-in-picture; document-picture-in-picture; accelerometer; gyroscope; magnetometer; encrypted-media; screen-wake-lock; web-share';
   const RESOURCE_ALLOW = 'cross-origin-isolated; autoplay; fullscreen; pointer-lock; gamepad';
   const GLOBAL_IDS = new Set([K.MUSIC_IFRAME_ID]);
@@ -32,6 +33,21 @@ export function init(K) {
     try { return new URL(v).hostname.replace(/^www\./, ''); } catch { return v; }
   };
 
+  const glyphFor = value => {
+    const m = (value || '').trim().match(/^singularity:\/\/([^\/?#]+)/i);
+    return m ? (ICONS[m[1].toLowerCase()] || '') : '';
+  };
+
+  const editable = el => !!el && (el.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(el.tagName || ''));
+
+  const cycle = dir => {
+    const n = state.tabs.length;
+    if (n < 2 || !state.active) return;
+    const i = state.tabs.indexOf(state.active);
+    activate(state.tabs[(i + dir + n) % n].id);
+    try { window.focus(); } catch {}
+  };
+
   const emit = () => {
     if (renderPending) return;
     renderPending = true;
@@ -43,6 +59,15 @@ export function init(K) {
   };
 
   const onKey = e => {
+    if (e.key === 'Tab' && !e.altKey && !e.metaKey) {
+      const target = e.target;
+      const doc = target && target.ownerDocument;
+      if (!e.ctrlKey && (editable(target) || (doc && doc.pointerLockElement))) return;
+      if (state.tabs.length < 2) return;
+      e.preventDefault();
+      cycle(e.shiftKey ? -1 : 1);
+      return;
+    }
     if (!e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
     if (e.code === 'KeyT') { e.preventDefault(); openTab(); }
     else if (e.code === 'KeyW') { e.preventDefault(); if (state.active) closeTab(state.active.id); }
@@ -219,7 +244,7 @@ export function init(K) {
   };
 
   const createTab = () => {
-    const t = { id: ++state.seq, frames: new Map(), snapshot: null, title: 'Home', address: 'singularity://home', fresh: true };
+    const t = { id: ++state.seq, frames: new Map(), snapshot: null, title: 'Home', address: 'singularity://home', glyph: 'house', fresh: true };
     state.tabs.push(t);
     return t;
   };
@@ -288,15 +313,25 @@ export function init(K) {
       el.innerHTML = '<span class="sg-fav"></span><span class="sg-title"></span><button class="sg-x" type="button" aria-label="Close tab">' + XICON + '</button>';
       const fav = el.querySelector('.sg-fav');
       const letter = (t.title.charAt(0) || '?').toUpperCase();
+      const showFallback = () => {
+        fav.textContent = '';
+        if (t.glyph) {
+          const gi = document.createElement('i');
+          gi.className = 'ph ph-' + t.glyph;
+          fav.appendChild(gi);
+        } else {
+          fav.textContent = letter;
+        }
+      };
       if (t.icon) {
         const im = document.createElement('img');
         im.alt = '';
         im.style.cssText = 'width:100%;height:100%;object-fit:contain;border-radius:inherit;display:block';
-        im.onerror = () => { im.remove(); fav.textContent = letter; };
+        im.onerror = () => { im.remove(); showFallback(); };
         im.src = t.icon;
         fav.appendChild(im);
       } else {
-        fav.textContent = letter;
+        showFallback();
       }
       el.querySelector('.sg-title').textContent = t.title;
       bar.appendChild(el);
@@ -367,7 +402,8 @@ export function init(K) {
         const norm = u => (u || '').replace(/\/+$/, '').trim().toLowerCase();
         if (t.pinfo && norm(t.pinfo.url) !== norm(addr)) { t.pinfo = null; t.icon = ''; }
         const title = (t.pinfo && t.pinfo.title) || titleFor(addr);
-        if (title !== t.title) { t.title = title; emit(); }
+        const glyph = glyphFor(addr);
+        if (title !== t.title || glyph !== t.glyph) { t.title = title; t.glyph = glyph; emit(); }
       }
       return result;
     };

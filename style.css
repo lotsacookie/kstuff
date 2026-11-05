@@ -2422,6 +2422,11 @@ body.floating-on .sg-tabbar {
     background: var(--tint);
 }
 
+.sg-fav .ph {
+    font-size: 14px;
+    line-height: 1;
+}
+
 .sg-title {
     flex: 1 1 auto;
     min-width: 0;
