@@ -42,7 +42,6 @@
     "https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/",
     "https://fastly.jsdelivr.net/gh/lotsacookie/Singuloxy@main/"
   ];
-  const SANDSTONE_DIST = "dist/sandstone.mjs";
   const FILE_ICON = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>');
   const UA = navigator.userAgent;
 
@@ -363,79 +362,16 @@
     return out;
   }
 
-  function provisionalWisp(network) {
-    const last = store.get(LAST_KEY);
-    const url = toWss(last && last.entry && !badList.has(last.entry) ? last.entry : FALLBACK);
-    network.set_websocket(url);
-    return url;
-  }
-
-  async function pickWisp(network, exclude) {
-    const skip = new Set((exclude || []).map(toWss));
-    const allowed = entry => !skip.has(toWss(entry));
-    const prefer = list => {
-      const ok = list.filter(allowed);
-      return [...ok.filter(e => !badList.has(e)), ...ok.filter(e => badList.has(e))];
-    };
-    let settled = false;
-    const apply = entry => {
-      const url = toWss(entry);
-      network.set_websocket(url);
-      try {
-        network.set_wisp_pool([url]);
-      } catch (e) {}
-      store.set(LAST_KEY, { entry, ts: Date.now() });
-      return url;
-    };
-    const search = async () => {
-      await parentReady();
-      const last = store.get(LAST_KEY);
-      if (last && last.entry && allowed(last.entry) && !badList.has(last.entry) && Date.now() - last.ts < 600000 && (await probeWisp(last.entry, 3000)) !== null) {
-        return settled ? null : apply(last.entry);
-      }
-      const local = prefer(localCandidates());
-      let hit = await firstAlive(local);
-      if (hit) return settled ? null : apply(hit.entry);
-      const remote = await fetchWispList();
-      const extra = prefer([FALLBACK, ...shuffle(remote.filter(u => !local.includes(u))).slice(0, 16)]);
-      hit = await firstAlive(extra);
-      if (hit) return settled ? null : apply(hit.entry);
-      return null;
-    };
-    const timeout = new Promise(resolve => setTimeout(() => resolve(null), 20000));
-    let url = null;
-    try {
-      url = await Promise.race([search(), timeout]);
-    } catch (e) {
-      url = null;
+  async function createProxy(exclude) {
+    let up = !!(window.kNet && await window.kNet.available());
+    if (!up) {
+      await delay(1500);
+      up = !!(window.kNet && await window.kNet.available());
     }
-    settled = true;
-    if (url) return url;
-    return apply([FALLBACK, ...BUILTIN].find(allowed) || FALLBACK);
-  }
-
-  async function loadSandstone() {
-    for (const base of SANDSTONE_BASES) {
-      try {
-        return await import(base + SANDSTONE_DIST);
-      } catch (e) {}
-    }
-    const code = await (await fetch("https://raw.githubusercontent.com/lotsacookie/Singuloxy/main/" + SANDSTONE_DIST)).text();
-    return import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
-  }
-
-  async function createProxy(exclude, useHub) {
-    if (useHub && window.kNet && await window.kNet.available()) {
-      if (exclude && exclude.length) await window.kNet.rotate(undefined, true);
-      await window.kNet.ready();
-      return { fetch: (target, init) => window.kNet.fetch(target, init), wisp: "hub" };
-    }
-    const sandstone = await loadSandstone();
-    provisionalWisp(sandstone.network);
-    for (let i = 0; i < 300 && !sandstone.libcurl.ready; i++) await delay(100);
-    if (!sandstone.libcurl.ready) throw new Error("libcurl did not load");
-    const wisp = await pickWisp(sandstone.network, exclude);
-    return { fetch: (target, init) => sandstone.libcurl.fetch(target, init), wisp };
+    if (!up) throw new Error("Net hub unavailable");
+    if (exclude && exclude.length) await window.kNet.rotate(undefined, true);
+    await window.kNet.ready();
+    return { fetch: (target, init) => window.kNet.fetch(target, init), wisp: "hub" };
   }
 
   function createClient(send) {
@@ -944,30 +880,19 @@
 
   async function attemptBoot() {
     if (!state.models.length) say("Connecting…");
-    const hubOk = !!(window.kNet && await window.kNet.available());
-    const order = hubOk ? (state.hub ? [true, false] : [false, true]) : [false];
     let client = null;
     let models = null;
     let failure = null;
-    for (const useHub of order) {
-      const proxy = await createProxy(state.skip, useHub);
-      state.wisp = proxy.wisp;
-      client = createClient(proxy.fetch);
-      try {
-        models = await withTimeout(client.listModels(), 12000, "DeepAI did not respond");
-      } catch (error) {
-        failure = error;
-        models = null;
-      }
-      if (models) {
-        state.hub = useHub;
-        break;
-      }
-      if (!useHub) {
-        badList.add(proxy.wisp);
-        state.skip.push(proxy.wisp);
-      }
+    const proxy = await createProxy(state.skip);
+    state.wisp = proxy.wisp;
+    client = createClient(proxy.fetch);
+    try {
+      models = await withTimeout(client.listModels(), 12000, "DeepAI did not respond");
+    } catch (error) {
+      failure = error;
+      models = null;
     }
+    if (models) state.hub = true;
     if (!models) throw failure || new Error("no models");
     let user = null;
     try {

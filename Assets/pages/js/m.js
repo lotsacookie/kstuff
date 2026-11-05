@@ -539,65 +539,23 @@ async function hubFetch(url, timeoutMs) {
 }
 
 async function wispFetch(url, timeoutMs = 15000, critical = true) {
-    if (window.kNet && await window.kNet.available()) {
-        try {
-            let res = await hubFetch(url, timeoutMs);
-            if (critical && BLOCKED_STATUSES.has(res.status)) {
-                await window.kNet.rotate();
-                res = await hubFetch(url, timeoutMs);
-            }
-            return res;
-        } catch (hubErr) {
-            if (!critical) throw hubErr;
-            console.warn("Shared net hub failed, using local wisp:", hubErr && hubErr.message ? hubErr.message : hubErr);
-        }
+    let hubUp = !!(window.kNet && await window.kNet.available());
+    if (!hubUp) {
+        await sleep(1500);
+        hubUp = !!(window.kNet && await window.kNet.available());
     }
-    let lastErr = null;
-    const serverCount = Math.max(WISP_URLS.length, 1);
-    const perAttemptCap = timeoutMs > 30000 ? 3 : 6;
-    const maxAttempts = critical ? Math.max(2, Math.min(serverCount, perAttemptCap)) : 2;
-
-    for (let attempt = 0; attempt < maxAttempts; attempt++) {
-        let client = null;
-        try {
-            client = await withTimeout(getEpoxyClient(), 10000, "Wisp setup");
-            const raw = await withTimeout(client.fetch(url), timeoutMs, "Wisp fetch");
-            const result = await readWispBody(raw, timeoutMs > 30000 ? 45000 : 20000);
-
-            if (critical && WISP_URLS.length > 1 && BLOCKED_STATUSES.has(result.status)) {
-                throw new Error(`Wisp server blocked (HTTP ${result.status})`);
-            }
-
-            if (client && clientServer.has(client)) wispFails[clientServer.get(client)] = 0;
-            return result;
-        } catch (err) {
-            lastErr = err;
-            const errMsg = (err && err.message ? err.message : String(err || "")).toLowerCase();
-            const softTimeout = errMsg.includes("timed out") && timeoutMs <= 30000;
-            const retryable = isConnectionError(err) || softTimeout;
-            const hasMoreServers = attempt < maxAttempts - 1 && WISP_URLS.length > 1;
-
-            if (!critical) throw err;
-            if (!retryable || !hasMoreServers) throw err;
-
-            if (client) {
-                penalizeWisp(client, true);
-                resetEpoxyClient(client);
-            } else {
-                penalizeWisp(null, true);
-            }
-            await sleep(150);
+    if (!hubUp) throw new Error("Net hub unavailable");
+    try {
+        let res = await hubFetch(url, timeoutMs);
+        if (critical && BLOCKED_STATUSES.has(res.status)) {
+            await window.kNet.rotate();
+            res = await hubFetch(url, timeoutMs);
         }
+        return res;
+    } catch (hubErr) {
+        throw hubErr;
     }
-    revalidateWisps();
-    throw lastErr || new Error("Wisp fetch failed");
 }
-
-const wispUrlsReady = loadWispUrlsFromRemote();
-wispUrlsReady.then(async () => {
-    if (window.kNet && await window.kNet.available()) return;
-    getEpoxyClient().catch(() => {});
-});
 
 function createLimiter(max) {
     let active = 0;
