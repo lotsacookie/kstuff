@@ -3,9 +3,9 @@ export function init(K, opts = {}) {
   if (!hdr || hdr.__sgOverflow) return null;
   hdr.__sgOverflow = true;
 
-  const COLLAPSE = ['.mini-player', '#study-fit-btn', '#study-fullscreen-btn', '#study-cookies-btn', '#study-console-btn', '#reload-study-btn', '#study-forward-btn'];
+  const COLLAPSE = ['.mini-player', '#study-fit-btn', '#study-fullscreen-btn', '#study-cookies-btn', '#study-pip-btn', '#study-console-btn', '#reload-study-btn', '#study-forward-btn'];
 
-  const MENU_ORDER = ['#study-forward-btn', '#reload-study-btn', '#study-console-btn', '#study-cookies-btn', '#study-fullscreen-btn', '#study-fit-btn', '.mini-player'];
+  const MENU_ORDER = ['#study-forward-btn', '#reload-study-btn', '#study-console-btn', '#study-cookies-btn', '#study-pip-btn', '#study-fullscreen-btn', '#study-fit-btn', '.mini-player'];
   const LABELS = { 'study-forward-btn': 'Forward', 'reload-study-btn': 'Reload' };
   const NS = 'http://www.w3.org/2000/svg';
 
