@@ -34,6 +34,10 @@ export function init(K) {
   };
   K.setCursorSuppressed = setCursorSuppressed;
 
+  const rootEl = document.documentElement;
+  const cursorXY = (x, y, o) => rootEl.classList.contains('sg-flip')
+    ? `translate(${window.innerWidth - x - o[0]}px, ${window.innerHeight - y - o[1]}px)`
+    : `translate(${x - o[0]}px, ${y - o[1]}px)`;
   let pointerPending = false, lastPointerEvent = null, cursorIsHand = false;
   let lastTarget = null, lastTipEl = null, lastTipText = null;
 
@@ -55,7 +59,7 @@ export function init(K) {
     }
 
     const off = cursorIsHand ? K.CURSOR_OFFSETS.hand : K.CURSOR_OFFSETS.arrow;
-    cursorEl.style.transform = `translate(${e.clientX - off[0]}px, ${e.clientY - off[1]}px)`;
+    cursorEl.style.transform = cursorXY(e.clientX, e.clientY, off);
 
     const text = lastTipEl ? lastTipEl.dataset.tooltip : undefined;
     if (text === undefined) {
@@ -66,7 +70,11 @@ export function init(K) {
         tooltipEl.textContent = text;
         lastTipText = text;
       }
-      tooltipEl.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 12}px)`;
+      if (rootEl.classList.contains('sg-flip')) {
+        tooltipEl.style.transform = `translate(${window.innerWidth - e.clientX - 12 - tooltipEl.offsetWidth}px, ${window.innerHeight - e.clientY - 12 - tooltipEl.offsetHeight}px)`;
+      } else {
+        tooltipEl.style.transform = `translate(${e.clientX + 12}px, ${e.clientY + 12}px)`;
+      }
       if (tooltipEl.style.display !== 'block') tooltipEl.style.display = 'block';
     }
   }
@@ -75,7 +83,7 @@ export function init(K) {
     lastPointerEvent = e;
     {
       const o = cursorIsHand ? K.CURSOR_OFFSETS.hand : K.CURSOR_OFFSETS.arrow;
-      cursorEl.style.transform = `translate(${e.clientX - o[0]}px, ${e.clientY - o[1]}px)`;
+      cursorEl.style.transform = cursorXY(e.clientX, e.clientY, o);
     }
     if (cursorSuppressed && !(e.target instanceof HTMLIFrameElement)) cursorSuppressed = false;
     if (!pointerPending) { pointerPending = true; requestAnimationFrame(onPointerFrame); }

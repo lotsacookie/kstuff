@@ -79,6 +79,19 @@ export function init(K) {
     });
   });
 
+  const flipSelect = K.$('layout-flip-select');
+  if (flipSelect) {
+    const applyFlip = v => document.documentElement.classList.toggle('sg-flip', v === 'flip-on');
+    const flipVal = K.getStorage('kstuff_flip') || 'flip-off';
+    flipSelect.value = flipVal;
+    applyFlip(flipVal);
+    K.applyCustomDropdown(flipSelect);
+    flipSelect.addEventListener('change', e => {
+      applyFlip(e.target.value);
+      K.setStorage('kstuff_flip', e.target.value);
+    });
+  }
+
   K.applyCloudSettings = s => {
     if (!s) return;
     if (s.theme) K.setStorage('kstuff_theme', s.theme);

@@ -3063,3 +3063,12 @@ body .nav-menu > .nav-btn .nav-label,
 body .nav-menu > .nav-btn .label-data {
     display: none !important;
 }
+
+html.sg-flip {
+    background: #000;
+}
+
+html.sg-flip body {
+    transform: rotate(180deg);
+    filter: invert(1);
+}
