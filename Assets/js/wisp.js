@@ -89,7 +89,7 @@ export function init(K) {
     'wss://southpadreislandkiteboarding.com/socket/'
   ];
   K.WISP_FALLBACK = 'wss://api.personalloanonline.net/ws/';
-  K.WISP_VERSION = 9;
+  K.WISP_VERSION = 10;
   K.WISP_BASE = K.WISP_SERVERS.slice();
   console.log('[wisp] module loaded, build', K.WISP_VERSION);
   K.wispUrls = [];
@@ -481,10 +481,13 @@ export function init(K) {
     const storedPrimary = readStore(PRIMARY_KEY);
     const ordered = [...primaries.filter(entry => !isBad(entry)), ...primaries.filter(entry => isBad(entry))];
     if (storedPrimary && primaries.includes(storedPrimary) && !isBad(storedPrimary)) ordered.unshift(storedPrimary);
-    for (const entry of new Set(ordered)) {
-      const ping = await testWlspDomain(entry);
-      if (ping !== null) return acceptPrimary(entry, ping);
-      markBad(entry);
+    const queue = [...new Set(ordered)];
+    for (let i = 0; i < queue.length; i += PROBE_WAVE) {
+      const wave = queue.slice(i, i + PROBE_WAVE);
+      const pings = await Promise.all(wave.map(entry => testWlspDomain(entry)));
+      const hit = pings.findIndex(ping => ping !== null);
+      wave.forEach((entry, j) => { if (j !== hit && pings[j] === null) markBad(entry); });
+      if (hit !== -1) return acceptPrimary(wave[hit], pings[hit]);
     }
     let extra = [];
     try { extra = (await K.fetchWisps()) || []; } catch {}
