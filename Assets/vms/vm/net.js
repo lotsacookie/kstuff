@@ -1,4 +1,4 @@
-/** Fetch any URL: direct first, then through the Singuloxy/libcurl proxy (?net=direct|proxy forces a path). */
+/** Fetch any URL: direct first, then through the net hub (window.kNetDirect) (?net=direct|proxy forces a path). */
 const FORCE = new URLSearchParams(location.search).get("net");
 let mode = FORCE === "proxy" ? "proxy" : "direct";
 export const currentMode = () => mode;

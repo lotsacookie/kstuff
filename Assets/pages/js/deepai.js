@@ -38,10 +38,6 @@
     "https://raw.githubusercontent.com/" + KSTUFF + "/main/",
     "https://cdn.statically.io/gh/" + KSTUFF + "/main/"
   ];
-  const SANDSTONE_BASES = [
-    "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/build/",
-    "https://fastly.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/build/"
-  ];
   const FILE_ICON = "data:image/svg+xml;utf8," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/></svg>');
   const UA = navigator.userAgent;
 

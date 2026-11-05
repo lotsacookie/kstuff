@@ -1,6 +1,6 @@
 /**
  * Game hub: FreezeNova Roblox (ours, always first) + the Astra library. Clicking an Astra card calls `hub.onSelect(game)`.
- * Everything that touches the network goes through the injected `fetchAstra` (the Singuloxy/libcurl proxy),
+ * Everything that touches the network goes through the injected `fetchAstra` (the site net hub),
  * so the list and the icons are proxied and this file has no browser-only imports.
  */
 import { ASTRA_ICONS } from "./astra-icons.js";

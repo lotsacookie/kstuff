@@ -1,32 +1,23 @@
-// Browser-side proxy, taken from WebBlox (src/join/proxy.mjs): Sandstone's bundled libcurl.js tunnelled
-// over a Wisp relay. Used only when the backend can't be reached directly from this origin.
-// libcurl.fetch / libcurl.WebSocket add no Origin header and no spoofed headers; they're plain clients.
-import { pickWisp, provisionalWisp } from "./wisps.mjs";
-
-const DIST = "dist/sandstone.mjs";
-const BASES = [
-  "https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/",
-  "https://fastly.jsdelivr.net/gh/lotsacookie/Singuloxy@main/",
-];
-
-async function loadSandstone(log) {
-  for (const base of BASES) {
-    try { return await import(base + DIST); } catch { log("[proxy] sandstone import failed", base); }
+// Network access for the VM client. This no longer loads Singuloxy or picks a wisp of its own: everything
+// goes through the site's net hub (Assets/js/net-hub.js, exposed as window.kNetDirect), which owns the one
+// shared sandstone/libcurl instance and handles wisp selection, health checks and rotation.
+const findHub = () => {
+  for (const w of [window, window.parent, window.top, window.opener]) {
+    try { if (w && w.kNetDirect && typeof w.kNetDirect.fetch === "function") return w.kNetDirect; } catch {}
   }
-  const code = await (await fetch("https://raw.githubusercontent.com/lotsacookie/Singuloxy/main/" + DIST)).text();
-  return import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
-}
+  return null;
+};
 
 let ready = null;
 export function getProxy({ log = () => {}, say = () => {} } = {}) {
   return (ready ||= (async () => {
-    say("Loading proxy…");
-    const sandstone = await loadSandstone(log);
-    provisionalWisp(sandstone.network);
-    for (let i = 0; i < 300 && !sandstone.libcurl.ready; i++) await new Promise((r) => setTimeout(r, 100));
-    if (!sandstone.libcurl.ready) throw new Error("libcurl did not load");
-    const wisp = await pickWisp(sandstone.network, say);
-    log("[proxy] wisp", String(wisp));
-    return { libcurl: sandstone.libcurl, network: sandstone.network, wisp: String(wisp) };
+    say("Connecting to net hub…");
+    let hub = findHub();
+    for (let i = 0; !hub && i < 100; i++) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
+    if (!hub) throw new Error("Net hub unavailable: open this from the main site so it can provide the proxy.");
+    const wisp = String(await hub.ready());
+    const lc = await hub.libcurl();
+    log("[proxy] net hub", wisp);
+    return { libcurl: { fetch: (url, init) => hub.fetch(url, init), WebSocket: lc.WebSocket }, hub, get wisp() { return hub.wisp(); } };
   })().catch((e) => { ready = null; throw e; }));
 }

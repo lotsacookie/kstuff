@@ -399,7 +399,13 @@ export function init(K) {
   window.kNetDirect = {
     fetch: (url, init) => core(String(url), Object.assign({ redirect: 'follow' }, init || {})),
     ready: () => boot().then(() => current),
-    rotate: (bad, soft) => rotate(bad ? toWss(bad) : null, !!soft)
+    rotate: (bad, soft) => rotate(bad ? toWss(bad) : null, !!soft),
+    // The hub's single Singuloxy instance. Everything that needs sandstone (ProxyFrame, network) or libcurl
+    // (WebSocket) borrows it from here instead of loading and configuring its own copy.
+    sandstone: () => boot(),
+    libcurl: () => boot().then(sg => sg.libcurl),
+    websocket: async (url, protocols) => { const sg = await boot(); return new sg.libcurl.WebSocket(url, protocols); },
+    wisp: () => current
   };
 
   async function handleFetch(d, reply) {

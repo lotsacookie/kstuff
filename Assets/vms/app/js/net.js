@@ -1,7 +1,7 @@
 /**
  * Where the backend (/status and /ws) lives, and how to reach it.
  * The client used to be served from the backend's own origin; here it is served from this repo, so
- * requests go to BACKEND. Order: direct (plain fetch/WebSocket); if that fails, the WebBlox proxy.
+ * requests go to BACKEND. Order: direct (plain fetch/WebSocket); if that fails, the net hub.
  *   ?backend=https://host   override the backend origin
  *   ?net=direct|proxy       force a path (default: auto)
  */
