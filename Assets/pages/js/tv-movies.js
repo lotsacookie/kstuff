@@ -616,28 +616,48 @@
         return q ? name + ' · ' + q + 'p' : name;
     }
 
+    function codecOk(lv) {
+        var codec = lv && lv.videoCodec;
+        if (!codec) return true;
+        try {
+            if (window.MediaSource && MediaSource.isTypeSupported) return MediaSource.isTypeSupported('video/mp4; codecs="' + codec + '"');
+        } catch (e) {}
+        return true;
+    }
+
+    function levelHasVideo(lv) {
+        return (lv.height > 0 || (lv.videoCodec && lv.videoCodec.length)) && codecOk(lv);
+    }
+
     function pickStartLevel(h, cap) {
         var best = -1;
         var bestHeight = 0;
         h.levels.forEach(function (lv, i) {
-            var hasVideo = lv.height > 0 || (lv.videoCodec && lv.videoCodec.length);
-            if (!hasVideo) return;
+            if (!levelHasVideo(lv)) return;
             var height = lv.height || 0;
             if (height <= cap && height >= bestHeight) { best = i; bestHeight = height; }
         });
         if (best === -1) {
             h.levels.forEach(function (lv, i) {
-                if ((lv.height > 0 || (lv.videoCodec && lv.videoCodec.length)) && best === -1) best = i;
+                if (levelHasVideo(lv) && best === -1) best = i;
             });
         }
         return best;
+    }
+
+    function framesDecoded(video) {
+        try {
+            if (video.getVideoPlaybackQuality) return video.getVideoPlaybackQuality().totalVideoFrames;
+        } catch (e) {}
+        return -1;
     }
 
     function hasPicture(video, ms) {
         return new Promise(function (resolve) {
             var start = performance.now();
             (function check() {
-                if (video.videoWidth > 0 && video.readyState >= 2) return resolve(true);
+                var frames = framesDecoded(video);
+                if (video.videoWidth > 0 && video.readyState >= 2 && (video.paused || frames !== 0)) return resolve(true);
                 if (performance.now() - start > ms) return resolve(false);
                 setTimeout(check, 250);
             })();
@@ -933,6 +953,11 @@
             p.round = 0;
             if (p.ctx) TV.store.set(goodKey(p.ctx[0], p.ctx[1], p.ctx[2]), providerOf(stream));
             p.watch = { index: index, again: sameAgain, next: moveOn };
+            var blackAt = p.video.currentTime;
+            setTimeout(function () {
+                if (gen !== playGen || player !== p || p.index !== index || p.video.paused) return;
+                if (p.video.currentTime - blackAt > 2 && framesDecoded(p.video) === 0) moveOn('audio plays but no video frames decode');
+            }, 6000);
             p.video.onerror = function () {
                 if (!started || gen !== playGen || player !== p) return;
                 if (p.fileRetry++ < 2) sameAgain(); else moveOn('playback error');
