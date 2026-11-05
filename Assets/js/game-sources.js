@@ -306,13 +306,39 @@ export function init(K) {
     return cached ? gfnItems(cached.games) : [];
   }
 
+  // Assets/now/extra.json (hand-added titles missing from NVIDIA's list) is read live: GitHub API -> latest commit -> jsDelivr at that commit,
+  // pinned in localStorage per commit, so a new title shows up without waiting for the catalog workflow to rebuild catalog.json.
+  const GFN_MANUAL = 'kstuff_gfn_manual_v1';
+  async function fetchGfnManual() {
+    const sha = await K.getRefSha(GFN_REPO, 'main').catch(() => '');
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem(GFN_MANUAL) || 'null'); } catch {}
+    if (cached && sha && cached.sha === sha && Array.isArray(cached.games)) return cached.games;
+    const urls = [];
+    if (sha) urls.push(`https://cdn.jsdelivr.net/gh/${GFN_REPO}@${sha}/Assets/now/extra.json`, `https://raw.githubusercontent.com/${GFN_REPO}/${sha}/Assets/now/extra.json`);
+    urls.push(`https://cdn.jsdelivr.net/gh/${GFN_REPO}@main/Assets/now/extra.json`);
+    for (const u of urls) {
+      try {
+        const r = await fetch(u, { cache: u.includes('@main') ? 'no-cache' : 'default' });
+        if (!r.ok) continue;
+        const j = await r.json();
+        const games = manualRows(j && j.games);
+        try { localStorage.setItem(GFN_MANUAL, JSON.stringify({ sha, at: Date.now(), games })); } catch {}
+        return games;
+      } catch {}
+    }
+    return cached && Array.isArray(cached.games) ? cached.games : [];
+  }
+  const manualRows = list => (Array.isArray(list) ? list : []).filter(r => Array.isArray(r) && r[0]).map(([title, store = '', steam = '']) => ['x-' + (String(title).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || normTitle(title)), String(title), String(store), String(steam), '']);
+
   async function fetchGfn() {
     const items = await fetchGfnBase();
     gfnBaseNames = new Set(items.map(i => normTitle(i.name)));
-    const extra = readExtra();
-    if (!extra) return items;
     const have = new Set(gfnBaseNames), add = [];
-    for (const r of extra.games) { const k = normTitle(r[1]); if (!k || have.has(k)) continue; have.add(k); add.push(r); }
+    const take = rows => { for (const r of rows) { const k = normTitle(r[1]); if (!k || have.has(k)) continue; have.add(k); add.push(r); } };
+    take(await fetchGfnManual().catch(() => []));
+    const extra = readExtra();
+    if (extra) take(extra.games);
     return add.length ? items.concat(gfnItems(add)) : items;
   }
 
