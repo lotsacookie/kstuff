@@ -24,6 +24,7 @@ export function init(K) {
 #gfn-frame{position:absolute;inset:0;display:block;width:100%!important;height:100%!important;min-width:100%;min-height:100%;border:0;background:transparent;z-index:55;visibility:hidden}
 #readingcorner.gfn-running{min-height:100%}
 #gfn-frame.on{visibility:visible}
+#gfn-frame:not(.on){visibility:hidden!important;pointer-events:none!important}
 #gfn-frame.ui{z-index:70;background:var(--bg-color,var(--background,#0b0d10))}
 #gfn-x{position:absolute;top:10px;right:10px;z-index:80;width:2.2rem;height:2.2rem;border-radius:50%;display:none;align-items:center;justify-content:center;padding:0;cursor:pointer;background:var(--nav-bg,rgba(0,0,0,.6));color:var(--text-color,#fff);border:1px solid var(--line,rgba(255,255,255,.25))}
 #gfn-x.on{display:flex}
@@ -57,10 +58,16 @@ export function init(K) {
     host = host || $('readingcorner');
     return host;
   }
+  let styled = false;
+  function ensureStyle() {
+    if (styled) return;
+    styled = true;
+    const style = document.createElement('style'); style.id = 'gfn-style'; style.textContent = CSS; document.head.appendChild(style);
+  }
   function ensureUi() {
     if (ui) return ui;
     ensureHost();
-    const style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
+    ensureStyle();
     const load = document.createElement('div'); load.id = 'gfn-loading'; load.className = 'hidden';
     load.innerHTML = `${LOGO}<div class="ld-word">Singularity<span>NOW</span></div><div class="ld-bar"><div class="ld-fill" id="gfn-ld-fill"></div></div><div class="ld-status" id="gfn-ld-status">Loading</div><div class="gfn-ld-btns"><button class="page-btn" id="gfn-ld-cancel" type="button">Cancel</button><button class="page-btn" id="gfn-ld-set" type="button">Settings</button><button class="page-btn" id="gfn-ld-back" type="button" hidden>Back</button></div>`;
     host.appendChild(load);
@@ -76,6 +83,7 @@ export function init(K) {
   function mountFrame() {
     if (frameP) return frameP;
     ensureHost();
+    ensureStyle();
     frameP = (async () => {
       const html = await clientHtml(false);
       const boot = `<script>window.__NOW_EMBED=true;window.__NOW_BASE=${JSON.stringify(base)};<\/script>`;
@@ -98,6 +106,10 @@ export function init(K) {
   // If the games page measures too small (grid hidden, no height from its parent), cover the visible area beside the nav instead.
   function fit() {
     if (!frame || !host) return;
+    if (!frame.classList.contains('on')) {
+      ['position', 'inset', 'left', 'top', 'width', 'height', 'z-index', 'visibility'].forEach(k => frame.style.removeProperty(k));
+      return;
+    }
     const r = host.getBoundingClientRect();
     const small = r.height < 300 || r.width < 320;
     const st = frame.style;
@@ -117,9 +129,9 @@ export function init(K) {
 
   function showFrame(on, withUi) {
     if (!frame) return;
-    fit();
     frame.classList.toggle('on', !!on);
     frame.classList.toggle('ui', !!withUi);
+    fit();
     // the exit button sits above the client while it needs the screen (sign-in, ads, settings), so there is always a way out
     ui?.x?.classList.toggle('on', !!on && !live);
     if (!on) return;
