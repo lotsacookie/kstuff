@@ -110,11 +110,19 @@ export function buildNvstSdp(serverNvst, answerSdp, o) {
   let rest = cut < 0 ? "" : text.slice(cut + 2);
   const set = (k, v) => {
     const re = new RegExp("^a=" + k.replace(/\./g, "\\.") + ":.*$", "m");
-    if (re.test(rest)) rest = rest.replace(re, "a=" + k + ":" + v);
+    if (re.test(rest)) { rest = rest.replace(re, "a=" + k + ":" + v); return true; }
+    return false;
   };
   set("video.clientViewportWd", o.width);
   set("video.clientViewportHt", o.height);
   set("video.maxFPS", o.fps);
+  if (o.maxKbps > 0) {
+    set("vqos.bw.maximumBitrateKbps", o.maxKbps);
+    set("video.initialBitrateKbps", Math.round(o.maxKbps * 0.6));
+    set("video.initialPeakBitrateKbps", o.maxKbps);
+    const mn = rest.match(/^a=vqos\.bw\.minimumBitrateKbps:(\d+)/m);
+    if (mn && Number(mn[1]) > o.maxKbps) set("vqos.bw.minimumBitrateKbps", Math.round(o.maxKbps / 2));
+  }
   const setHead = (k, v) => {
     const re = new RegExp("^a=" + k.replace(/\./g, "\\.") + ":.*\\r\\n", "m");
     head = head.replace(re, "");
@@ -134,6 +142,29 @@ export function planSessions(list, appId) {
   const idOf = (x) => String(x.appId != null ? x.appId : x.sessionRequestData && x.sessionRequestData.appId);
   const same = alive.find((x) => idOf(x) === String(appId)) || null;
   return { same, others: alive.filter((x) => x !== same) };
+}
+
+export function orderCodecs(codecs, name) {
+  const n = String(name || "auto").toLowerCase();
+  if (n === "auto") return codecs;
+  const want = "video/" + n;
+  const first = codecs.filter((c) => String(c.mimeType).toLowerCase() === want);
+  return first.length ? first.concat(codecs.filter((c) => !first.includes(c))) : codecs;
+}
+export function videoStatsDelta(prev, cur) {
+  if (!prev || !cur) return null;
+  const dt = (cur.t - prev.t) / 1000;
+  if (!(dt > 0)) return null;
+  const fr = cur.framesDecoded - prev.framesDecoded;
+  const jb = cur.jbEmitted - prev.jbEmitted;
+  return {
+    fps: Math.round(fr / dt),
+    decodeMs: fr > 0 ? Math.round(((cur.totalDecodeTime - prev.totalDecodeTime) / fr) * 1000) : 0,
+    jitterBufMs: jb > 0 ? Math.round(((cur.jbDelay - prev.jbDelay) / jb) * 1000) : 0,
+    lost: cur.packetsLost - prev.packetsLost,
+    dropped: cur.framesDropped - prev.framesDropped,
+    nack: cur.nackCount - prev.nackCount,
+  };
 }
 
 // ---------- main entry ----------
@@ -362,6 +393,31 @@ export async function startStream(o) {
       on("pointerlockchange", document, () => { if (!locked()) { releaseAll(); } });
     };
 
+    const tuneRx = (r) => { try { if (r && "jitterBufferTarget" in r) r.jitterBufferTarget = 0; if (r && "playoutDelayHint" in r) r.playoutDelayHint = 0; } catch {} };
+    let prevStats = null, statTick = 0;
+    const statTimer = setInterval(async () => {
+      if (!pc || stopped) return;
+      try {
+        for (const t of pc.getTransceivers()) tuneRx(t.receiver);
+        const rep = await pc.getStats(), by = {};
+        rep.forEach((r) => { by[r.id] = r; });
+        let v = null, pair = null;
+        rep.forEach((r) => {
+          if (r.type === "inbound-rtp" && (r.kind === "video" || r.mediaType === "video")) v = r;
+          if (r.type === "transport" && r.selectedCandidatePairId) pair = by[r.selectedCandidatePairId];
+        });
+        if (!v) return;
+        const cur = { t: performance.now(), framesDecoded: v.framesDecoded || 0, totalDecodeTime: v.totalDecodeTime || 0, jbEmitted: v.jitterBufferEmittedCount || 0, jbDelay: v.jitterBufferDelay || 0, packetsLost: v.packetsLost || 0, framesDropped: v.framesDropped || 0, nackCount: v.nackCount || 0 };
+        const d = videoStatsDelta(prevStats, cur);
+        prevStats = cur;
+        if (!d || ++statTick % 3) return;
+        const codec = by[v.codecId] ? by[v.codecId].mimeType : "?";
+        const lc = pair && by[pair.localCandidateId];
+        log("[stream] video", d.fps + "fps", "decode " + d.decodeMs + "ms", "jitterbuf " + d.jitterBufMs + "ms", "lost " + d.lost, "dropped " + d.dropped, "nack " + d.nack, codec, v.decoderImplementation || "", lc ? (lc.candidateType + "/" + (lc.relayProtocol || lc.protocol)) : "", pair && pair.currentRoundTripTime != null ? "rtt " + Math.round(pair.currentRoundTripTime * 1000) + "ms" : "");
+      } catch {}
+    }, 2000);
+    cleanups.push(() => clearInterval(statTimer));
+
     const onOffer = async (from, m) => {
       serverId = from || 1;
       const turn = attr(m.nvstSdp || "", "general.turnInfo");
@@ -370,7 +426,7 @@ export async function startStream(o) {
       log("[stream] offer received; ice servers", cfg.iceServers.length, cfg.iceTransportPolicy);
       pc = new RTCPeerConnection(cfg);
       pc.ontrack = (ev) => {
-        try { if (ev.receiver && "playoutDelayHint" in ev.receiver) ev.receiver.playoutDelayHint = 0; } catch {}
+        tuneRx(ev.receiver);
         const ms = video.srcObject instanceof MediaStream ? video.srcObject : new MediaStream();
         ms.addTrack(ev.track);
         if (video.srcObject !== ms) video.srcObject = ms;
@@ -399,9 +455,13 @@ export async function startStream(o) {
       };
       wireInput();
       await pc.setRemoteDescription({ type: "offer", sdp: m.sdp });
+      try {
+        const vt = pc.getTransceivers().find((x) => x.receiver && x.receiver.track && x.receiver.track.kind === "video");
+        if (vt && vt.setCodecPreferences && typeof RTCRtpReceiver !== "undefined" && RTCRtpReceiver.getCapabilities) vt.setCodecPreferences(orderCodecs(RTCRtpReceiver.getCapabilities("video").codecs, o.codec));
+      } catch (e) { log("[stream] codec preference failed", e.message); }
       const ans = await pc.createAnswer();
       await pc.setLocalDescription(ans);
-      const nvst = buildNvstSdp(m.nvstSdp, ans.sdp, { width, height, fps });
+      const nvst = buildNvstSdp(m.nvstSdp, ans.sdp, { width, height, fps, maxKbps: Number(o.maxKbps) || 0 });
       peerSend(serverId, { type: "answer", sdp: ans.sdp, nvstSdp: nvst });
       answered = true;
       log("[stream] answer sent");

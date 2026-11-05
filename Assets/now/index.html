@@ -191,6 +191,8 @@ body.embed #settings label{color:var(--e-dim)}
 <div id="settings" hidden><div class="panel"><h2>Settings</h2>
 <label>Resolution<select id="set-res"><option value="auto">Auto (screen size, up to 1080p)</option><option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option><option value="2560x1440">2560 × 1440</option><option value="3840x2160">3840 × 2160</option></select></label>
 <label>Frame rate<select id="set-fps"><option value="30">30 FPS</option><option value="60">60 FPS</option><option value="120">120 FPS</option></select></label>
+<label>Video codec<select id="set-codec"><option value="h264">H.264 (lowest delay)</option><option value="auto">Auto</option><option value="h265">H.265</option><option value="av1">AV1</option></select></label>
+<label>Max bitrate<select id="set-kbps"><option value="0">Server default</option><option value="10000">10 Mbps</option><option value="15000">15 Mbps</option><option value="25000">25 Mbps</option><option value="40000">40 Mbps</option></select></label>
 <label>Server<select id="set-zone"><option value="">Auto (shortest queue)</option></select></label>
 <div class="row"><input id="set-zone-custom" placeholder="Or type a zone ID, e.g. NP-AMS-08" autocomplete="off"><button class="btn ghost" id="set-refresh" type="button">Refresh queues</button></div>
 <small id="set-note">Lower queue number means a shorter wait. Some servers may not be available on your plan.</small>
@@ -1140,7 +1142,7 @@ async function loadLibrary(session, append) {
 
 
 const SET_KEY = "singularitynow.settings";
-const DEFAULTS = { res: "auto", fps: "60", zone: "" };
+const DEFAULTS = { res: "auto", fps: "60", zone: "", codec: "h264", kbps: "25000" };
 const loadSettings = () => { try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SET_KEY) || "{}") }; } catch { return { ...DEFAULTS }; } };
 const saveSettings = (v) => { try { localStorage.setItem(SET_KEY, JSON.stringify(v)); } catch {} };
 const QUEUE_API = "https://api.printedwaste.com/gfn/queue/";
@@ -1174,7 +1176,7 @@ async function loadZones(force) {
 }
 function openSettings() {
   const c = loadSettings();
-  $("set-res").value = c.res; $("set-fps").value = c.fps; $("set-zone-custom").value = "";
+  $("set-res").value = c.res; $("set-fps").value = c.fps; $("set-codec").value = c.codec; $("set-kbps").value = c.kbps; $("set-zone-custom").value = "";
   $("set-zone").value = c.zone;
   if (c.zone && ![...$("set-zone").options].some((o) => o.value === c.zone)) $("set-zone").add(new Option(c.zone, c.zone)), $("set-zone").value = c.zone;
   $("settings").hidden = false;
@@ -1185,7 +1187,7 @@ $("set-refresh").addEventListener("click", () => loadZones(true));
 $("set-reset").addEventListener("click", () => { saveSettings({ ...DEFAULTS }); $("settings").hidden = true; });
 $("set-save").addEventListener("click", () => {
   const custom = $("set-zone-custom").value.trim().toUpperCase();
-  saveSettings({ res: $("set-res").value, fps: $("set-fps").value, zone: /^[A-Z]{2,4}-[A-Z0-9-]+$/.test(custom) ? custom : $("set-zone").value });
+  saveSettings({ res: $("set-res").value, fps: $("set-fps").value, codec: $("set-codec").value, kbps: $("set-kbps").value, zone: /^[A-Z]{2,4}-[A-Z0-9-]+$/.test(custom) ? custom : $("set-zone").value });
   $("settings").hidden = true;
 });
 $("settings").addEventListener("click", (e) => { if (e.target.id === "settings") $("settings").hidden = true; });
@@ -1292,7 +1294,7 @@ async function launch(g) {
       playAd, stopAd: () => adStop && adStop(), registerStop: (s) => { activeStop = s; },
       inputOpen,
       headers: () => gfnHeaders(token), http, getLibcurl: async () => (await window.__getProxy({ log, say })).libcurl,
-      width: w, height: h, fps: Number(cfg.fps) || 60,
+      width: w, height: h, fps: Number(cfg.fps) || 60, codec: cfg.codec, maxKbps: Number(cfg.kbps) || 0,
     });
     // candidate order: chosen server (retried), then lowest-queue servers, then nearest
     const home = await findVpc(session);
