@@ -44,8 +44,11 @@ jobs:
             exit 0
           fi
           git commit -m "build: singularity bundle"
-          git pull --rebase origin main
-          git push
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin main && git push && break
+            echo "push attempt $i failed, retrying"; sleep $((i*3))
+          done
+          git push --dry-run >/dev/null 2>&1 || { echo "push failed"; exit 1; }
           echo "changed=true" >> "$GITHUB_OUTPUT"
 
       - name: Purge jsDelivr cache
