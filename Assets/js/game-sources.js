@@ -259,7 +259,22 @@ export function init(K) {
     cover.push(K.gameFallbackIcon(r[1]));
     return { source: 'gfn', gfnId: String(r[0]), name: String(r[1]), store: r[2] || '', cover };
   });
-  async function fetchGfn() {
+  const GFN_EXTRA = 'kstuff_gfn_extra_v1';
+  const normTitle = t => String(t || '').toLowerCase().replace(/[®™©]/g, '').replace(/[^a-z0-9]+/g, '');
+  const readExtra = () => { try { const c = JSON.parse(localStorage.getItem(GFN_EXTRA) || 'null'); return c && Array.isArray(c.games) ? c : null; } catch { return null; } };
+  let gfnBaseNames = null;
+  // full catalog from the signed-in SingularityNOW client; returns how many of its titles the grid doesn't have yet
+  K.mergeGfnExtra = rows => {
+    const games = (Array.isArray(rows) ? rows : []).filter(r => Array.isArray(r) && r[0] && r[1]).slice(0, 6000);
+    if (!games.length) return 0;
+    const prev = readExtra();
+    const same = prev && prev.games.length === games.length && prev.games[0][0] === games[0][0] && prev.games[games.length - 1][0] === games[games.length - 1][0];
+    try { localStorage.setItem(GFN_EXTRA, JSON.stringify({ at: Date.now(), games })); } catch {}
+    if (same) return 0;
+    const have = gfnBaseNames || new Set();
+    return games.filter(r => !have.has(normTitle(r[1]))).length;
+  };
+  async function fetchGfnBase() {
     const sha = await K.getRefSha(GFN_REPO, 'main').catch(() => '');
     const cached = readGfn();
     if (cached && sha && cached.sha === sha && cached.games.length) return gfnItems(cached.games);
@@ -289,6 +304,16 @@ export function init(K) {
     }
     if (games && games.length) { writeGfn(sha, games); return gfnItems(games); }
     return cached ? gfnItems(cached.games) : [];
+  }
+
+  async function fetchGfn() {
+    const items = await fetchGfnBase();
+    gfnBaseNames = new Set(items.map(i => normTitle(i.name)));
+    const extra = readExtra();
+    if (!extra) return items;
+    const have = new Set(gfnBaseNames), add = [];
+    for (const r of extra.games) { const k = normTitle(r[1]); if (!k || have.has(k)) continue; have.add(k); add.push(r); }
+    return add.length ? items.concat(gfnItems(add)) : items;
   }
 
   K.fetchExtraGames = async () => {

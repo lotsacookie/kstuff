@@ -1032,9 +1032,9 @@ async function findVpc(session) {
   return lib.vpc;
 }
 
-async function fetchApps(session, search, cursor) {
+async function appsRaw(session, search, cursor, count) {
   const vpcId = await findVpc(session);
-  const vars = { vpcId, locale: "en_US", sortString: search ? "relevance" : "a_to_z", fetchCount: 60, cursor, filters: {} };
+  const vars = { vpcId, locale: "en_US", sortString: search ? "relevance" : "a_to_z", fetchCount: count || 60, cursor, filters: {} };
   if (search) vars.searchString = search;
   const key = search ? "search" : "plain";
   const huId = "";
@@ -1047,6 +1047,10 @@ async function fetchApps(session, search, cursor) {
   }
   const a = j.data && j.data.apps;
   if (!a) throw new Error("GeForce NOW returned no game list");
+  return a;
+}
+async function fetchApps(session, search, cursor) {
+  const a = await appsRaw(session, search, cursor, 60);
   return {
     items: (a.items || []).map((g) => ({ id: g.id, title: g.title, img: g.images && (g.images.TV_BANNER || g.images.HERO_IMAGE), hero: g.images && (g.images.HERO_IMAGE || g.images.TV_BANNER), playable: g.gfn && g.gfn.playabilityState, vid: (() => { const vs = g.variants || [], v = vs.find((x) => x.gfn && x.gfn.library && x.gfn.library.selected) || vs[0]; return v && /^\d+$/.test(String(v.id)) ? v.id : null; })(), tier: g.gfn && g.gfn.minimumMembershipTierLabel, store: (g.variants || []).map((v) => v.appStore).filter(Boolean)[0] })),
     next: a.pageInfo && a.pageInfo.hasNextPage ? a.pageInfo.endCursor : "",
@@ -1223,6 +1227,37 @@ async function rankedZones() {
   } catch { return []; }
 }
 let current = null;
+// The public NVIDIA list leaves some titles out (e.g. Teardown). While signed in and idle, page through the full catalog
+// and hand it to kstuff, which adds the titles its games grid is missing. Runs at most every 12 hours.
+const FULL_KEY = "kstuff_gfn_full_at";
+let catSyncing = false;
+async function syncCatalog(force) {
+  if (!EMBED || catSyncing || current) return;
+  const session = loadStore();
+  if (!session) return;
+  try { if (!force && Date.now() - Number(localStorage.getItem(FULL_KEY) || 0) < 12 * 3600 * 1000) return; } catch {}
+  catSyncing = true;
+  const gen = launchGen;
+  try {
+    const rows = [];
+    let cursor = "", pages = 0;
+    do {
+      if (current || gen !== launchGen) throw new Error("a game is starting");
+      const a = await appsRaw(session, "", cursor, 60);
+      for (const g of a.items || []) {
+        if (!g || !g.id || !g.title) continue;
+        const v = (g.variants || []).find((x) => x && x.appStore) || {};
+        rows.push([String(g.id), String(g.title), String(v.appStore || ""), "", (g.images && (g.images.TV_BANNER || g.images.HERO_IMAGE)) || ""]);
+      }
+      cursor = a.pageInfo && a.pageInfo.hasNextPage ? a.pageInfo.endCursor : "";
+      pages++;
+      await sleep(150);
+    } while (cursor && pages < 150);
+    if (rows.length) { toParent("catalog", { games: rows }); try { localStorage.setItem(FULL_KEY, String(Date.now())); } catch {} }
+    log("[catalog] full list", rows.length);
+  } catch (e) { log("[catalog] sync stopped", (e && e.message) || e); }
+  finally { catSyncing = false; }
+}
 async function resolveVid(session, g) {
   if (g.vid || !EMBED) return g;
   try {
@@ -1316,6 +1351,7 @@ async function closePlayer(reason) {
   try { if (adStop) adStop(); } catch {}
   if (c) await c.stop(); else if (s) { try { await s(); } catch {} }
   toParent("closed", { reason: typeof reason === "string" ? reason : "user" });
+  setTimeout(() => syncCatalog(false), 8000);
 }
 $("pstop").addEventListener("click", () => closePlayer("user"));
 const isLive = () => !$("player").hidden && $("player").classList.contains("live");
@@ -1427,6 +1463,7 @@ if (EMBED) {
     if (d.type === "gfn:launch" && d.game) { syncTheme(); if (current) return; const s = loadStore(); if (!s) { pendingGame = d.game; show("email-card"); } else launch(d.game); }
     else if (d.type === "gfn:stop") { pendingGame = null; if (LOGIN_CARDS.some((c) => $(c).classList.contains("active"))) cancelLogin(); $("settings").hidden = true; closePlayer("cancel"); show("boot"); toParent("view", { ui: false }); }
     else if (d.type === "gfn:settings") { syncTheme(); openSettings(); }
+    else if (d.type === "gfn:sync") syncCatalog(false);
   });
   show("boot");
   toParent("ready", { signedIn: !!loadStore() });

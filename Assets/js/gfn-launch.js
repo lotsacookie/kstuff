@@ -180,6 +180,11 @@ export function init(K) {
         end(false);
         break;
       case 'gfn:signedout': break;
+      case 'gfn:catalog': { // the full GeForce NOW list from the signed-in client: add the titles the public list lacks
+        const n = Array.isArray(d.games) && K.mergeGfnExtra ? K.mergeGfnExtra(d.games) : 0;
+        if (n && !launching && !live) K.hardRefreshGrid?.('readingcorner');
+        break;
+      }
     }
   });
 
@@ -205,6 +210,14 @@ export function init(K) {
       fail('Couldn’t start GeForce NOW: ' + ((err && err.message) || err));
     }
   };
+
+  // quietly load the client while idle so a signed-in user's full catalog gets merged into the grid
+  const signedIn = () => { try { return !!localStorage.getItem('singularitynow.session'); } catch { return false; } };
+  K.syncGfnCatalog = async () => {
+    if (launching || live || !signedIn()) return;
+    try { await mountFrame(); if (!launching && !live) post({ type: 'gfn:sync' }); } catch {}
+  };
+  setTimeout(() => K.syncGfnCatalog(), 8000);
 
   K.openGfnSettings = async () => {
     try { await mountFrame(); } catch (e) { return; }
