@@ -45,6 +45,20 @@ export function init(K, opts = {}) {
     });
   });
 
+  function placeMenu() {
+    const cs = getComputedStyle(hdr);
+    const hr = hdr.getBoundingClientRect();
+    const mr = more.getBoundingClientRect();
+    const right = hr.right - mr.right - (parseFloat(cs.borderRightWidth) || 0);
+    menu.style.right = Math.max(0, right) + 'px';
+  }
+
+  function openMenu() {
+    menu.hidden = false;
+    more.setAttribute('aria-expanded', 'true');
+    placeMenu();
+  }
+
   function closeMenu() {
     menu.hidden = true;
     more.setAttribute('aria-expanded', 'false');
@@ -109,7 +123,7 @@ export function init(K, opts = {}) {
       sortMenu();
 
       if (!parked.length) closeMenu();
-      else if (wasOpen) { menu.hidden = false; more.setAttribute('aria-expanded', 'true'); }
+      else if (wasOpen) openMenu();
     } finally {
       dropOwnMutations();
       busy = false;
@@ -124,9 +138,7 @@ export function init(K, opts = {}) {
 
   more.addEventListener('click', e => {
     e.stopPropagation();
-    const open = menu.hidden;
-    menu.hidden = !open;
-    more.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (menu.hidden) openMenu(); else closeMenu();
   });
   menu.addEventListener('click', e => {
     const btn = e.target.closest('button');

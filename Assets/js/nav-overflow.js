@@ -47,12 +47,12 @@ export function init(K, opts = {}) {
     const r = nav.getBoundingClientRect();
     const vert = isVertical();
     const limit = vert
-      ? r.top + nav.clientHeight - (parseFloat(cs.paddingBottom) || 0)
-      : r.left + nav.clientWidth - (parseFloat(cs.paddingRight) || 0);
+      ? r.bottom - (parseFloat(cs.borderBottomWidth) || 0) - (parseFloat(cs.paddingBottom) || 0)
+      : r.right - (parseFloat(cs.borderRightWidth) || 0) - (parseFloat(cs.paddingRight) || 0);
     const over = Array.from(nav.children).some(c => {
       if (c.classList.contains('nav-indicator') || !isShown(c)) return false;
       const cr = c.getBoundingClientRect();
-      return (vert ? cr.bottom : cr.right) > limit + 0.5;
+      return (vert ? cr.bottom : cr.right) > limit + 1.5;
     });
     if (favs) favs.style.display = prev;
     return over;
