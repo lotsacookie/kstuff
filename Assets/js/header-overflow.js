@@ -63,7 +63,13 @@ export function init(K, opts = {}) {
   function park(el) {
     const ph = document.createComment('hdr-slot');
     el.parentNode.insertBefore(ph, el);
-    if (!el.classList.contains('mini-player')) el.setAttribute('data-label', labelFor(el));
+    if (!el.classList.contains('mini-player')) {
+      // Icon-only in the menu, so the name lives in the tooltip / accessible name instead of on screen.
+      const label = labelFor(el);
+      el.setAttribute('data-label', label);
+      if (label && !el.title) { el.title = label; el.setAttribute('data-hdr-title', ''); }
+      if (label && !el.getAttribute('aria-label')) { el.setAttribute('aria-label', label); el.setAttribute('data-hdr-aria', ''); }
+    }
     parked.push({ el, ph });
     menu.appendChild(el);
     more.hidden = false;
@@ -74,6 +80,8 @@ export function init(K, opts = {}) {
       const { el, ph } = parked.pop();
       if (ph.parentNode) ph.parentNode.replaceChild(el, ph);
       el.removeAttribute('data-label');
+      if (el.hasAttribute('data-hdr-title')) { el.removeAttribute('title'); el.removeAttribute('data-hdr-title'); }
+      if (el.hasAttribute('data-hdr-aria')) { el.removeAttribute('aria-label'); el.removeAttribute('data-hdr-aria'); }
     }
     more.hidden = true;
   }

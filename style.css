@@ -2965,11 +2965,12 @@ body {
     position: absolute;
     top: calc(100% + 8px);
     right: 0;
-    min-width: 210px;
+    width: max-content;
     max-width: calc(100vw - 2 * var(--fg));
     display: flex;
-    flex-direction: column;
-    gap: 2px;
+    flex-flow: row wrap;
+    justify-content: flex-end;
+    gap: 4px;
     padding: 6px;
     box-sizing: border-box;
     background: var(--nav-bg);
@@ -2981,24 +2982,17 @@ body {
 
 .hdr-menu[hidden] { display: none; }
 
+/* icon-only: the name is the tooltip / aria-label, not text on screen */
 .hdr-menu > .study-nav-btn {
-    width: 100%;
-    height: auto;
-    min-height: 36px;
-    justify-content: flex-start;
-    gap: 10px;
-    padding: 8px 12px;
+    flex: 0 0 auto;
+    width: 36px;
+    height: 36px;
+    padding: 8px;
+    justify-content: center;
     background: transparent;
     border-color: transparent;
     border-radius: 10px;
     opacity: 1;
-}
-
-.hdr-menu > .study-nav-btn::after {
-    content: attr(data-label);
-    font-size: 0.85rem;
-    font-weight: 700;
-    white-space: nowrap;
 }
 
 .hdr-menu > .study-nav-btn:hover:not(:disabled) {
@@ -3014,6 +3008,7 @@ body {
 }
 
 .hdr-menu > .mini-player {
+    flex: 1 0 100%;
     max-width: none;
     margin: 0;
     padding: 6px 8px;
@@ -3026,3 +3021,52 @@ body {
 
 /* .study-nav-btn sets display:flex, which would otherwise win over the hidden attribute */
 .study-nav-btn[hidden] { display: none; }
+
+/* ---- navbar overflow: last buttons fold into an icon-only popup (see Assets/js/nav-overflow.js) ---- */
+.nav-more[hidden] { display: none; }
+
+.nav-menu {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: max-content;
+    max-width: min(264px, calc(100vw - 16px));
+    display: flex;
+    flex-flow: row wrap;
+    gap: 4px;
+    padding: 6px;
+    box-sizing: border-box;
+    background: var(--nav-bg);
+    border: 1px solid var(--line, var(--hairline));
+    border-radius: 14px;
+    box-shadow: var(--lift);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    z-index: 40;
+}
+
+.nav-menu[hidden] { display: none; }
+
+/* icon-only, whatever the navbar's size / label / expand settings are */
+.nav-menu > .nav-btn,
+body .nav-menu > .nav-btn {
+    flex: 0 0 auto !important;
+    width: max(var(--btn-size), 38px) !important;
+    height: max(var(--btn-size), 38px) !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    margin: 0 !important;
+}
+
+.nav-menu > .nav-btn i {
+    font-size: max(var(--btn-icon-size), 1.05rem) !important;
+    margin: 0 !important;
+}
+
+.nav-menu > .nav-btn span,
+body .nav-menu > .nav-btn .nav-label,
+body .nav-menu > .nav-btn .label-data {
+    display: none !important;
+}
