@@ -10,6 +10,55 @@ const SYNC_MAX = 32;
 const HOST_RE = /^[a-z0-9]([a-z0-9-]*[a-z0-9])?(\.[a-z0-9]([a-z0-9-]*[a-z0-9])?)+$/i;
 const WSS_RE = /^wss:\/\/[a-z0-9.-]+(:\d{1,5})?(\/[\w\-./]*)?$/i;
 
+const KORONA_BLOBS = [
+  'aw1.J-dMWdO8_D0S.FgEQTkZMQAkGBB1DCk8eAlQ-VAkkORA8FjA2V3xNWBICTCUnW2stBkAQficyQFxTG0xUHSdRKVNpNgkGCkcUFDsVRmlaHxpJWwIGDgEEVCsDECUyEydRKyFUPExUEhELGwYPXkIGARMCGggAGxUbY1wLFgt8XAwOY2ANWDATUyQZVksHXwFNeF0XBg1iKwJuOiQXdRdwKVEnUhwVFxAARAgDXlFDQUUMDB4KVC5fDTsySjxQMDQfJFNCEV0yOlElbANaFydnPlJEAmsrHTQ9YgIkDi19ZWNMRAcqAltjFF4fU1xbQAwVG0ZOL14QYDxKLlM-KlUgT1IKAU0XDwcCGwAABAI8L0steyUeAB4dN3wPNhVRY2pBVBQIQhtaeFwfBhJ1DE55HEk5F0tiOgU7UHIwVSBOHApcABgGFkkBBhwaAw4HF0RNI14UYgYqd34eKwM3aXsyQVQdOAIdPBlGEkZbE0o-CjxYAhU2S0VPLDcKfBVcAAYLWR0GXhhEGFpJCA0HCkg_QwFjNAIrFygtQyMVYC9KJTUGUEk_IyBHGgQwEltqOhgCJmEWdm1vMkU1YlBOeBQHGlkCQwQSAEVAFRYYTmdGSik-ACtBcSlfPhVGCAETWzgtFSooHEdJPisgWA0jfAV9BxR6XjRyQmpvARcHBSwITCcbGgBOAkIMEh9SZ1kBPiNJJBY7PVwyVFgSXAwaBQpDCUYEHV4dTiIlAgxsC34zNwVrbHNZAlsBMQJWEgJVX1U8QwJYCzkSRDA9Xhd3eEsiWSssHSdfQhVfCFoNGkENBx4XRB4AABgUKUsAYiANPEhwFX5rfHAOQQcnIzAeWwAiFR09EUYNUXxfXRhnEjpeByUfWU1CEkhMWwQCWQREBxFeGUwYRVw4QgMoIxAqFjwiVHxNWBICTCUnW2stBkAQficyQFxTG0xUHSdRKVNpNgkGCkcUFDsVRmlaHxpJWwIAAAcDFz5IFzl6D2FeLStXOl9UUFwAEg1MWgUaA1t8I1k1KlV5STcHBFd4UQ4lAANKBAcZVQZQNh0aHBUsTEJrBBhJcAJLIDYQJxUrIUMnF1pPFBEbDgpIHxsQFUkITxANXmVaDT4nSx52ZwJxPAlVMjgwR14KfA1ZIwQYCwpFGQMfHRI4MTwuF1UzQyAAHk4fAgABTlkJGgdZRkMHBghROUIIInkXJ1cva0c6SUFOIy1MLyJCXw0gPn5eVho6W3p9FHgxD3lKZhEAJU9XORNMfh4QXlZGXBlMGQleH185WUkmeQMqVjY-SX1ZVwVdFB0aEwI9J0sybAJSFzhwGR5TJAYFf2gvcVY4DENYJ1MCHAV1DUZ5A14eW1xEVytZDGAjATxMci8eNFQcDBMXHEcBSB8dXANEHhFcOnRyayUiZAAccgx3BzprUFEiE0EPCBseUCZEWxgHKwoVQFoXPm1LYFU-MFh-TlQSBk4fRwRDQQQSAEVDAhBETSNeFGIGKnd-HisDN2l7MkFUHTgCHTwZRhJGWxNKPgo8WAIVNktFTyw3CnwVXAAGC1kdBl4YRBhaSgNMHgpOIgMHKzNLOFEsNB8CdAknMwxHDTBnP1pEHXwMUSMbDyxGUj9uMX9OKiJoMhU7FgEQTkZMQA0dG1lZCBIHRlFkSgpgOgU7UHEzXyFRQk4FCgcZTHwiUTU1Ql4FICFpeRoNHDZUH0hqIltlSAg0QhUBDztMQ2MEB15XTlwGWz5FSTkyFzsVNGpXPF1EAAAHHQgNXhkKGAcDDgcXRE0jXhRiBip3fh4rAzdpezJBVB04Ah08GUYSRlsTSj4KPFgCFTZLRU8sNwp8FVwABgtZHQZeGEQYWkoCBgYKSC5EBSMkESxTLGpDO1VBTgUKBxlMfCJRNTVCXgUgIWl5Gg0cNlQfSGoiW2VICDRCFQEPO0xDYwQHXldOXAZbPkVJOTIXOxU0alc8VV8IHAQSBhEDAAAVEQIaCAAbFRtjXAsWC3xcDA5jYA1YMBNTJBlWSwdfAU14XRcGDWIrAm46JBd1F3ApUSdSHBUXEABECAMEAB8BQAQPEgcUKUsAYiANPEhwFX5rfHAOQQcnIzAeWwAiFR09EUYNUXxfXRhnEjpeByUfWU1CEkhMWwQCWQREBxFeGUwYRVI6XhcuPwsgVCxqXyFdHhYbEARGMmNULzIbHgkyOTgJfUQ1LGc0Pw05LwYhA2RRBBYSMQICZh4ABxdCTh4KTiIAECgkEGJTcShZNFJFEgIGEQ0KXg0aAFpeBQ4DRE0jXhRiBip3fh4rAzdpezJBVB04Ah08GUYSRlsTSj4KPFgCFTZLRU8sNwp8FVwABgtZHQZeGEQYWkEEBhsfSTpIASk-FyhZJmpTNV4eFhsQBEYyY1QvMhseCTI5OAl9RDUsZzQ_DTkvBiEDZFEEFhIxAgJmHgAHF0JOHgpOIgAQKCQQYlNxKVUhSEgCGhEdGhdADRpdF0sJTgQCSToCNQNvIg5XbCBjGWkCVhsyFVkzXVkPGEJfVDRDHU8sdQViXRM8S2VrHz5bRQlfFxEaFwAHRwERTgwVXQhcLgITJCQUYGkRfHYSVQIFISknWlREPQhDJF1YBxhdSHN4VDsiAhdZcE5HIEkLTl0OFR0LABgMAAAABk8BDlkrWUohPgIqFygtQyMVYC9KJTUGUEk_IyBHGgQwEltqOhgCJmEWdm1vMkU1YlBOeBQHGlkCQwQSAEVAFRYYTmdGSj8yBy5McTdYPEoeFhsQBEYyY1QvMhseCTI5OAl9RDUsZzQ_DTkvBiEDZFEEFhIxAgJmHgAHF0JOHgpOIgAQKCQQYlNxN1UyVlgEAQIGCgJJCUcQEklCFhoYSmV8KnURJSALOxd6AAkGCCMCRDkTGAoCRQYUOFEFHlwSTEtHIBc8AnBrXTJOWUwGBgcdTkZCHRsRWgUIBw5eJVsBPjQMIFczNx48SFZOBQoHGUx8IlE1NUJeBSAhaXkaDRw2VB9IaiJbZUgINEIVAQ87TENjBAdeV05cBls-RUk5Mhc7FTRqRDpZXg8EBgYdBl9CBRwYAhoIABsVG2NcCxYLfFwMDmNgDVgwE1MkGVZLB18BTXhdFwYNYisCbjokF3UXcClRJ1IcFRcQAEQIAxkaFhVDBg5dE0MwAhMkJBRgaRF8dhJVAgUhKSdaVEQ9CEMkXVgHGF1Ic3hUOyICF1lwTkcgSQtOXQ4VHQsAGAwAAAAGTwYYXytaFGM0AisXKC1DIxVgL0olNQZQST8jIEcaBDASW2o6GAImYRZ2bW8yRTViUE54FAcaWQJDBBIARUAVFhhOZ0ZKO2VKPk06N0R8TVgSAkwlJ1trLQZAEH4nMkBcUxtMVB0nUSlTaTYJBgpHFBQ7FUZpWh8aSVsCDBMQH1MpAwgsI0sQSXAVfmt8cA5BBycjMB5bACIVHT0RRg1RfF9dGGcSOl4HJR9ZTUISSExbAgJBWl5FQwMACB0fQydECjkkSiBKOGtvIhVgL0olNQZQST8jIEcaBDASW2o6GAImYRZ2bW8yRTViUE4',
+  'aw1.F8iGkUqBml5M.FgEQTkZMQAkGBB1DCk8eAlQyQQQuBSECbAIeUmJNWBICTA8CHgJmHgAHF0JOGARIKVYIaR89FDUFBUEoXl4XFxAXAQxCABpdG18KTgQCSTYXEiwWens1Hh8PYhVcAAYLWR0GXhhEGFofVVFGA1srVQgpDycYNAhCRiVVQU4FCgcZTFYHFFx-Wh4SSUQVK1kdL0YhFDEZQV5jW1oAHAYHHABGH0cQEklCFhoYSmlDAjpEXwYxHlYaYldQFRpOAAwQWUECXRdBAhQXBlUpVkckDTFeNQQfRWJBWhxdaQMaEBdDRh4VWQVMBw5JMhUCaQ8wHTYMHkAjXx8CFAdbHgpeHEYIH1BCawQYSXwXRioKIRlvGQlGORdaTxYKEA0aAwEGHltaBBIDREEtRUZNHCYCeEJDWCxOWUwGBgcdTkZCDQoYTAMIAEVVKFQAKQ56BiseHBo2UUxOeBQHGlkCQwQSAEVAFRYYTmtTRyMSORAsAA9cPltCElwAEg1MWgUaA1tWBhxcYU01S1NoRDgQNgVBQShJRUwZTRIbDEoJHQcRAw4HF0RNL0sZaBA-DG1nG0Y-AB5OHwIAAU5ZCRoHWUZDBwEEXS9dDHZFNhcmQhtcPkoeGhkeW2MUXh9TXFtADBUbRk4jSx1qAHsXMAILXChJQwITBxFHAEsIRgQdXh1OCABHaTIeNBhvXm0ADUElF0UEARdZAk1LGQoYB0IBDl0YUilIRjACJgFtFgdIYjBGEgFZW0YOTBgBXgBIHhVeABQhXQcuESxfIQsIGjpTQhFdGB8UTCcbGgBOAkIMEh9Sa0wMNB94GmwKAhggW0UJXAERGhcCGwAABAIWCg5EMDFLGn1EehwjGQQYOV9CFV8IWg4NAAEIBxwDDgJcHFM1SEY8ACheSBofRncVHgwTFxxEF0gfHV4fAwoPXgZbMlBHJA0xXjUEH0ViQVocXWkDGhAXQ0YeFVkFTAcOSTIVAmkMO1wvDBhdY01eExkQWx4KXhxGCB9QQmsEGEl8F0YqCiEZbxkJRjkXWk8VDBMcAl8IABIaXhgCGBgUJV4NaBw8AjJCF14wFTsWARBORkxADR0bWVkIEgdGUWhfBiAeNAMmBA1bPk9SCgFNBwEMXUMeGgddQhoYFhVMTxo0UXpeLwwYXWBOVBIGTh9HBEIDBxoaSgsOAUVWL14MaBw8AjJCF14wFTsWARBORkxADR0bWVkIEgdGUWhQACseOBgsDAAbLlxVTgUKBxlMVgcUXH5aHhJJRBUrWR0vRiEUMRlBXmNSQRIBABwGDEEfRxwGSkIWGhhKaUMCOkRfBjEeVhpiV1AVGk4ADBBZQQJdGEQKCQcYSiNdDS4YNAIxQx9dIkoeFhsQBEYYRhFGeQNeHltcRFcnTAFqHzACNkAHGyFTVgkGEAQMBkkFGhQVVEMCFQ8VMVEaN0QuGj9CZkI-SQtOXQ4VHQsAGAwAAAAGTx4OSDRBCi8ZPAI2AA1GY1lXBV0UHRoTAhcCDlsnGhIAURVpVQgzA3gFJx4YGCYUQwQRAgBHAEsIRgQdXh1OCABHaTIeNBhvXm0ADUElF0UEARdZAk1fCQoSAAMBCBUOFTFRGjdELho_QmZCPkkLTl0OFR0LABgMAAAABk8BDlknTEc0AzoBbRoFRj0VSgoPTH4eEF5WRlwZTBkJXh9fNUxELEUmFCMBBVA-W0MCEwcRRwBLCEYEHV4dTggAR2kyHjQYb15tAA1BJRdFBAEXWQJNWQQMBBxEGQQXBEwjSwovBDodMUMDRyoVRggBE1sSCFBDYwQHXldOXAZbMlBEMw4mBW8GQkEkWV4PBAYGHQZfQgUcGAIaCAAbFT1TFGhhIgIxV0MaIFtFCV8XERoXAAdHBgdIDA8YBBQ-QRNoHDwCMkIXXjAVOxYBEE5GTEANHRtZWQgSB0ZRaE0aIgoiAWwOClFiTVgSAkwPAh4CZh4ABxdCTh4KTi4VHSIYIVwpQxoHY0tEBAEXWx4KXhxGCB9QQmsEGEl8F0YmGTYFKw5CWSxOHj4DTA8CHgJmHgAHF0JOGApWcA9fcEU4GCwZFVgkVEUSXAwGDkxyHUYIH1BC'
+];
+const KORONA_MAX = 256;
+
+export function normalizeWss(value) {
+  try {
+    const u = new URL(String(value).trim());
+    if (u.protocol !== 'wss:' || u.username || u.password || u.search || u.hash) return null;
+    if (!u.pathname.endsWith('/')) u.pathname += '/';
+    return u.toString();
+  } catch { return null; }
+}
+
+function unmaskWispBlob(raw) {
+  const parts = String(raw).trim().split('.');
+  if (parts.length !== 3 || parts[0] !== 'aw1' || !parts[1] || !/^[A-Za-z0-9_-]+$/.test(parts[2])) return null;
+  try {
+    const b64 = parts[2].replace(/-/g, '+').replace(/_/g, '/');
+    const bin = atob(b64 + '='.repeat((4 - b64.length % 4) % 4));
+    const key = new TextEncoder().encode('arctic-list-mask:' + parts[1] + ':1');
+    const bytes = Uint8Array.from(bin, (c, i) => c.charCodeAt(0) ^ key[i % key.length]);
+    return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+  } catch { return null; }
+}
+
+export function parseKoronaWisps(blobs) {
+  const out = [];
+  for (const blob of blobs) {
+    let text = String(blob).trim();
+    for (let depth = 0; depth < 4; depth++) {
+      const inner = unmaskWispBlob(text);
+      if (inner === null) break;
+      text = inner.trim();
+    }
+    for (const line of text.split(/\r?\n/)) {
+      const value = line.trim();
+      if (!value || value.startsWith('#')) continue;
+      const url = normalizeWss(value);
+      if (url && !out.includes(url)) out.push(url);
+      if (out.length >= KORONA_MAX) return out;
+    }
+  }
+  return out;
+}
+
+export const KORONA_WISPS = parseKoronaWisps(KORONA_BLOBS);
+
 function decodeLoaderList(src, depth = 0) {
   if (depth > 3 || typeof src !== 'string') return [];
   let code = null;
@@ -63,6 +112,7 @@ export function init(K) {
   const SPEED_GOOD = 1500000;
   const SPEED_CANDIDATES = 4;
   const EXTRA_LIMIT = 16;
+  const BACKUP_TRY_LIMIT = 12;
   const BACKUP_KEY = 'WBK';
   const BACKUP_TTL = 21600000;
   const HISTORY_KEY = 'WBH';
@@ -93,6 +143,16 @@ export function init(K) {
   K.WISP_BASE = K.WISP_SERVERS.slice();
   console.log('[wisp] module loaded, build', K.WISP_VERSION);
   K.wispUrls = [];
+  const shuffled = list => {
+    const out = list.slice();
+    for (let i = out.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [out[i], out[j]] = [out[j], out[i]];
+    }
+    return out;
+  };
+  K.KORONA_WISPS = shuffled(KORONA_WISPS);
+  window.koronaWisps = K.KORONA_WISPS;
   window.serverList = K.WISP_SERVERS;
 
   const wlspUrl = entry => (entry.includes('://') ? entry : `wss://${entry}/`);
@@ -379,29 +439,34 @@ export function init(K) {
       recordOutcome(stored.entry, false);
       markBad(stored.entry);
     }
-    const alive = [];
-    for (let i = 0; i < ordered.length && alive.length < SPEED_CANDIDATES; i += PROBE_WAVE) {
+    let tried = 0;
+    for (let i = 0; i < ordered.length && tried < BACKUP_TRY_LIMIT; i += PROBE_WAVE) {
       const wave = ordered.slice(i, i + PROBE_WAVE);
       const pings = await Promise.all(wave.map(entry => testWlspDomain(entry)));
+      const alive = [];
       wave.forEach((entry, j) => {
         if (pings[j] === null) {
           recordOutcome(entry, false);
           markBad(entry);
         } else alive.push({ entry, ping: pings[j] });
       });
+      alive.sort((a, b) => a.ping - b.ping);
+      let best = null;
+      for (const row of alive.slice(0, SPEED_CANDIDATES)) {
+        tried++;
+        const result = await speedTestWisp(row.entry);
+        const score = speedScore(row.entry, result);
+        recordOutcome(row.entry, score > 0);
+        if (score <= 0) {
+          markBad(row.entry);
+          continue;
+        }
+        if (!best || score > best.score) best = { ...row, score, bps: result.bps };
+        if (result.bps >= SPEED_GOOD && result.completed === SPEED_CHUNKS) break;
+      }
+      if (best) return acceptBackup(best.entry, best.ping, best.bps);
     }
-    alive.sort((a, b) => a.ping - b.ping);
-    if (!alive.length) return null;
-    let best = null;
-    for (const row of alive.slice(0, SPEED_CANDIDATES)) {
-      const result = await speedTestWisp(row.entry);
-      const score = speedScore(row.entry, result);
-      recordOutcome(row.entry, score > 0);
-      if (score > 0 && (!best || score > best.score)) best = { ...row, score, bps: result.bps };
-      if (result && result.bps >= SPEED_GOOD && result.completed === SPEED_CHUNKS) break;
-    }
-    if (best) return acceptBackup(best.entry, best.ping, best.bps);
-    return acceptBackup(alive[0].entry, alive[0].ping, 0);
+    return null;
   }
 
   function acceptPrimary(entry, ping) {
@@ -496,7 +561,7 @@ export function init(K) {
       const j = Math.floor(Math.random() * (i + 1));
       [extra[i], extra[j]] = [extra[j], extra[i]];
     }
-    const candidates = [...list.filter(isBackupServer), K.WISP_FALLBACK, ...extra.slice(0, EXTRA_LIMIT)];
+    const candidates = [...K.KORONA_WISPS.filter(u => !list.includes(u)), ...list.filter(isBackupServer), K.WISP_FALLBACK, ...extra.slice(0, EXTRA_LIMIT)];
     const picked = await pickBackup(candidates);
     if (picked) return picked;
     window.WlspPing = undefined;

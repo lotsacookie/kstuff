@@ -18,6 +18,10 @@ export function init(K) {
   const HARD_MS = 90000;
   const VERIFY_BAD_TTL = 60000;
   const COOLDOWN = 45000;
+  const VERIFY_EVERY = 3;
+  const RETRY_STEPS = [3000, 6000, 12000, 24000, 30000];
+  const STRIKE_BASE = 30000;
+  const STRIKE_MAX = 1800000;
   const CHECK_URLS = ['https://www.gstatic.com/generate_204', 'https://api.deezer.com/infos', 'https://www.cloudflare.com/cdn-cgi/trace'];
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
@@ -28,7 +32,7 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0, inflight = 0;
+  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0, inflight = 0, verified = false, retryTimer = null, retryStep = 0, watchTick = 0;
 
   const readJson = key => {
     try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
@@ -45,11 +49,14 @@ export function init(K) {
     return badMem;
   };
   const isBad = url => Object.prototype.hasOwnProperty.call(liveBad(), url);
-  const markBad = (url, ttl) => {
+  const strikes = {};
+  const markBad = url => {
     if (!url) return;
-    badMem[url] = Math.max(badMem[url] || 0, Date.now() + Math.min(ttl || SOFT_TTL, 60000));
+    const count = Math.min((strikes[url] || 0) + 1, 8);
+    strikes[url] = count;
+    badMem[url] = Math.max(badMem[url] || 0, Date.now() + Math.min(STRIKE_BASE * Math.pow(4, count - 1), STRIKE_MAX));
   };
-  const clearBad = url => { delete badMem[url]; };
+  const clearBad = url => { delete badMem[url]; delete strikes[url]; };
 
   const readGood = () => {
     const v = readJson(LAST_KEY);
@@ -103,6 +110,7 @@ export function init(K) {
   }
 
   async function verify(url) {
+    const prev = current;
     if (url !== current) applyWisp(url);
     const ctl = new AbortController();
     let ok = false, why = '';
@@ -120,6 +128,11 @@ export function init(K) {
       okUrl = url;
       okAt = Date.now();
       clearBad(url);
+      verified = true;
+      retryStep = 0;
+    } else {
+      if (url === prev) verified = false;
+      if (prev && prev !== url && current === url) applyWisp(prev);
     }
     console.log('[net-hub] verify', url, ok, ok ? '' : why);
     return ok;
@@ -141,32 +154,34 @@ export function init(K) {
   const tiers = () => {
     const servers = Array.isArray(K.WISP_SERVERS) && K.WISP_SERVERS.length ? K.WISP_SERVERS : (Array.isArray(window.serverList) ? window.serverList : []);
     const primary = [];
+    const korona = [];
     const backup = [];
+    const taken = u => primary.includes(u) || korona.includes(u) || backup.includes(u);
     const put = (list, entry) => {
       const u = toWss(entry);
-      if (u && !primary.includes(u) && !backup.includes(u)) list.push(u);
+      if (u && !taken(u)) list.push(u);
     };
     servers.forEach(entry => { if (typeof entry === 'string' && !entry.includes('://')) put(primary, entry); });
+    (Array.isArray(K.KORONA_WISPS) ? K.KORONA_WISPS : []).forEach(entry => put(korona, entry));
     servers.forEach(entry => { if (typeof entry === 'string' && entry.includes('://')) put(backup, entry); });
     put(backup, K.WISP_FALLBACK);
     put(backup, FALLBACK);
     (Array.isArray(K.wispUrls) ? K.wispUrls : []).forEach(entry => put(backup, entry));
     const hint = toWss(window.wlspServer);
-    [primary, backup].forEach(tier => {
+    [primary, korona, backup].forEach(tier => {
       const i = tier.indexOf(hint);
       if (i > 0) tier.unshift(tier.splice(i, 1)[0]);
     });
-    return [primary, backup];
+    return [primary, korona, backup];
   };
 
   async function choose(exclude) {
     const skip = new Set(exclude);
     const good = readGood();
     if (good && !skip.has(good.url) && Date.now() - good.ts < LAST_TTL && !isBad(good.url)) {
-      if ((await probe(good.url, 3000)) !== null) return good.url;
-      markBad(good.url, SOFT_TTL);
+      if (await verify(good.url)) return good.url;
+      markBad(good.url);
     }
-    let bestAlive = null;
     for (const tier of tiers()) {
       const deadline = Date.now() + CHOOSE_BUDGET;
       const pool = tier.filter(u => !skip.has(u));
@@ -181,7 +196,6 @@ export function init(K) {
           else alive.push({ u, ping: pings[j] });
         });
         alive.sort((x, y) => x.ping - y.ping);
-        if (alive.length && (!bestAlive || alive[0].ping < bestAlive.ping)) bestAlive = alive[0];
         for (const row of alive.slice(0, 2)) {
           if (await verify(row.u)) {
             writeGood(row.u);
@@ -191,7 +205,7 @@ export function init(K) {
         }
       }
     }
-    return bestAlive ? bestAlive.u : null;
+    return null;
   }
 
   let lastMainTry = 0, mainBusy = null;
@@ -232,13 +246,15 @@ export function init(K) {
   async function watch() {
     if (current && !tiers()[0].includes(current) && Date.now() - lastMainTry > 60000 && !rotating && !mainBusy) preferMain().catch(() => {});
     if (!current || document.hidden || rotating || live.size || inflight) return;
-    const ping = await probe(current, 4000);
-    if (ping === null) fails++;
+    let healthy = (await probe(current, 4000)) !== null;
+    watchTick++;
+    if (healthy && (!verified || watchTick % VERIFY_EVERY === 0)) healthy = await verify(current);
+    if (!healthy) fails++;
     else {
       fails = 0;
       writeGood(current);
     }
-    if (fails >= WATCH_FAILS) {
+    if (fails >= (verified ? WATCH_FAILS : 1)) {
       fails = 0;
       rotate(current, true);
     }
@@ -279,7 +295,6 @@ export function init(K) {
             await delay(400);
             if (await verify(current)) { writeGood(current); return; }
           }
-          if ((await probe(current, 3000)) !== null) { console.log('[net-hub] verify failed but wisp answers, keeping', current); return; }
           rotate(current);
         })().catch(() => {});
       }, 1500);
@@ -306,12 +321,6 @@ export function init(K) {
           await delay(400);
           if (await verify(current)) { writeGood(current); return current; }
         }
-        if (await probe(current, 3000) !== null) {
-          console.log('[net-hub] wisp still answers, keeping', current);
-          okUrl = current;
-          okAt = Date.now();
-          return current;
-        }
       }
       const from = bad || current;
       if (from) markBad(from, auto ? VERIFY_BAD_TTL : SOFT_TTL);
@@ -319,12 +328,29 @@ export function init(K) {
       const flat = tiers().flat();
       const next = hit || flat.find(u => u !== from && !isBad(u)) || flat.find(u => u !== from) || flat[0] || FALLBACK;
       if (next && next !== current) applyWisp(next);
-      if (current) writeGood(current);
+      if (hit) writeGood(current);
+      else {
+        verified = false;
+        scheduleRetry();
+      }
       lastRotateAt = Date.now();
       console.log('[net-hub] rotated to', current);
       return current;
     })().finally(() => { rotating = null; });
     return rotating;
+  }
+
+  function scheduleRetry() {
+    if (retryTimer || verified) return;
+    const wait = RETRY_STEPS[Math.min(retryStep, RETRY_STEPS.length - 1)];
+    retryStep++;
+    retryTimer = setTimeout(async () => {
+      retryTimer = null;
+      if (verified) { retryStep = 0; return; }
+      try { if (!rotating) await rotate(current); } catch {}
+      if (verified) retryStep = 0;
+      else scheduleRetry();
+    }, wait);
   }
 
   const live = new Map();
