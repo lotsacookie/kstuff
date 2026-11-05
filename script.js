@@ -102,9 +102,6 @@ function initApp() {
       loadModule('cookie-viewer')
         .then(mod => mod.init(K))
         .catch(err => console.warn('cookie viewer unavailable', err));
-      loadModule('pip-mode')
-        .then(mod => mod.init(K))
-        .catch(err => console.warn('pip mode unavailable', err));
       loadModule('welcome-tour')
         .then(mod => mod.init(K))
         .catch(err => console.warn('welcome tour unavailable', err));
