@@ -173,6 +173,7 @@ export async function startStream(o) {
   const width = o.width || 1920, height = o.height || 1080, fps = o.fps || 60;
   let stopped = false, ready = false, ws = null, pc = null, sessionId = null, base = null;
   const cleanups = [];
+  const micApi = { setMic: async () => { throw new Error("Microphone isn’t ready yet"); }, micOn: () => false, hasMic: () => false };
 
   const hdr = (extra) => ({ ...headers(), "x-device-id": deviceId, "Content-Type": "application/json", ...(extra || {}) });
   const call = async (method, path, body) => {
@@ -411,6 +412,7 @@ export async function startStream(o) {
         const cur = { t: performance.now(), framesDecoded: v.framesDecoded || 0, totalDecodeTime: v.totalDecodeTime || 0, jbEmitted: v.jitterBufferEmittedCount || 0, jbDelay: v.jitterBufferDelay || 0, packetsLost: v.packetsLost || 0, framesDropped: v.framesDropped || 0, nackCount: v.nackCount || 0 };
         const d = videoStatsDelta(prevStats, cur);
         prevStats = cur;
+        if (d && o.onStats) { try { o.onStats(d); } catch {} }
         if (!d || ++statTick % 3) return;
         const codec = by[v.codecId] ? by[v.codecId].mimeType : "?";
         const lc = pair && by[pair.localCandidateId];
@@ -418,6 +420,53 @@ export async function startStream(o) {
       } catch {}
     }, 2000);
     cleanups.push(() => clearInterval(statTimer));
+
+    // ---- microphone: the server's offer has an audio line it can receive on. We answer with a silent placeholder track on it
+    // and swap the real mic in/out with replaceTrack (no renegotiation), so the mic can be toggled any time during the stream.
+    let micTx = null, micOn = false, micReal = null, micCtx = null, micDest = null;
+    const micSections = (sdp) => String(sdp || "").split(/\r?\nm=/).slice(1).map((sec) => {
+      const kind = sec.split(" ")[0], mid = (/a=mid:(\S+)/.exec(sec) || [])[1], dir = (/a=(sendrecv|recvonly|sendonly|inactive)/.exec(sec) || [])[1] || "sendrecv";
+      return { kind, mid, dir };
+    }).filter((x) => x.kind === "audio");
+    const attachMic = async (sdp) => {
+      try {
+        const secs = micSections(sdp);
+        const pick = secs.find((x) => x.dir === "recvonly") || secs.find((x) => x.dir === "sendrecv");
+        log("[mic] offer audio lines", secs.map((x) => x.mid + ":" + x.dir).join(",") || "none");
+        if (!pick) return;
+        const tx = pc.getTransceivers().find((t) => t.mid === pick.mid);
+        if (!tx || !tx.sender) return;
+        const AC = window.AudioContext || window.webkitAudioContext;
+        micCtx = new AC(); micDest = micCtx.createMediaStreamDestination();
+        const ph = micDest.stream.getAudioTracks()[0]; ph.enabled = false;
+        tx.direction = "sendrecv";
+        await tx.sender.replaceTrack(ph);
+        micTx = tx;
+        log("[mic] ready on mid", pick.mid, "(offer " + pick.dir + ")");
+      } catch (e) { log("[mic] setup failed", e.message || e); micTx = null; }
+    };
+    const setMic = async (on) => {
+      if (!micTx) throw new Error("This stream has no microphone channel");
+      if (on === micOn) return micOn;
+      if (on) {
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) throw new Error("Microphone isn't available in this browser");
+        let ms;
+        try { ms = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 } }); }
+        catch (e) { throw new Error(e && e.name === "NotAllowedError" ? "Microphone permission was denied" : "Couldn't open the microphone (" + ((e && e.name) || e) + ")"); }
+        micReal = ms;
+        try { await micCtx.resume(); } catch {}
+        await micTx.sender.replaceTrack(ms.getAudioTracks()[0]);
+      } else {
+        const ph = micDest.stream.getAudioTracks()[0];
+        try { await micTx.sender.replaceTrack(ph); } catch {}
+        if (micReal) { micReal.getTracks().forEach((t) => t.stop()); micReal = null; }
+      }
+      micOn = on;
+      log("[mic]", on ? "on" : "off");
+      return micOn;
+    };
+    micApi.setMic = setMic; micApi.micOn = () => micOn; micApi.hasMic = () => !!micTx;
+    cleanups.push(() => { try { if (micReal) micReal.getTracks().forEach((t) => t.stop()); if (micCtx) micCtx.close(); } catch {} });
 
     const onOffer = async (from, m) => {
       serverId = from || 1;
@@ -456,6 +505,7 @@ export async function startStream(o) {
       };
       wireInput();
       await pc.setRemoteDescription({ type: "offer", sdp: m.sdp });
+      await attachMic(m.sdp);
       try {
         const vt = pc.getTransceivers().find((x) => x.receiver && x.receiver.track && x.receiver.track.kind === "video");
         if (vt && vt.setCodecPreferences && typeof RTCRtpReceiver !== "undefined" && RTCRtpReceiver.getCapabilities) vt.setCodecPreferences(orderCodecs(RTCRtpReceiver.getCapabilities("video").codecs, o.codec));
@@ -510,5 +560,5 @@ export async function startStream(o) {
     await stop();
     throw e;
   }
-  return { stop };
+  return { stop, ...micApi };
 }

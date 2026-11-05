@@ -81,7 +81,7 @@ export function init(K) {
       const doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + boot) : boot + html;
       frame = document.createElement('iframe');
       frame.id = 'gfn-frame'; frame.title = 'GeForce NOW';
-      frame.setAttribute('allow', K.IFRAME_ALLOW || 'fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write');
+      frame.setAttribute('allow', K.IFRAME_ALLOW || 'fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; microphone');
       frame.setAttribute('allowfullscreen', '');
       host.appendChild(frame);
       ready = false;
