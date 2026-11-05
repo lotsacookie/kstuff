@@ -1262,6 +1262,15 @@ async function rankedZones() {
       .filter((x) => /^NP-[A-Za-z0-9-]+$/i.test(x.id)).sort((a, b) => a.q - b.q);
   } catch { return []; }
 }
+const ZBAD_KEY = "singularitynow.badzones", ZBAD_TTL = 30 * 60 * 1000;
+const loadZBad = () => { try { const o = JSON.parse(localStorage.getItem(ZBAD_KEY) || "{}"), n = Date.now(); for (const k in o) if (n - o[k] > ZBAD_TTL) delete o[k]; return o; } catch { return {}; } };
+const saveZBad = (o) => { try { localStorage.setItem(BAD_KEY, JSON.stringify(o)); } catch {} };
+// every zone once, random order; zones that failed recently go last so repeated launches don't hit the same dead ones first
+function orderZones(ids, bad, rnd) {
+  const sh = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor((rnd || Math.random)() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const u = [...new Set(ids)];
+  return [...sh(u.filter((i) => !bad[i])), ...sh(u.filter((i) => bad[i]))];
+}
 let current = null;
 // The public NVIDIA list leaves some titles out (e.g. Teardown). While signed in and idle, page through the full catalog
 // and hand it to kstuff, which adds the titles its games grid is missing. Runs at most every 12 hours.
@@ -1344,22 +1353,27 @@ async function launch(g) {
     const cands = [];
     if (cfg.zone) cands.push({ id: cfg.zone, tries: 3 });
     const ranked = await rankedZones();
-    for (const z of ranked.slice(0, 4)) if (!cands.some((c) => c.id === z.id)) cands.push({ id: z.id, tries: 1, q: z.q });
-    if (!cands.some((c) => c.id === home)) cands.push({ id: home, tries: 1 });
-    const bad = /error code (6|7|28|35|52|56)\b|timed out|unreachable|refused|INVALID_ZONE|ZONE|NOT_AVAILABLE|CAPACITY/i;
-    let lastErr, got = null;
+    const badMap = loadZBad();
+    const qOf = Object.fromEntries(ranked.map((z) => [z.id, z.q]));
+    for (const id of orderZones([...ranked.map((z) => z.id), home], badMap)) if (!cands.some((c) => c.id === id)) cands.push({ id, tries: 1, q: qOf[id] });
+    log("[stream] trying up to", cands.length, "servers");
+    const authErr = /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH/i;
+    let lastErr, got = null, n = 0;
     outer: for (const c of cands) {
+      n++;
       for (let t = 0; t < c.tries; t++) {
         if (gen !== launchGen) return;
-        log("[stream] server", c.id, c.id === cfg.zone ? "(chosen, try " + (t + 1) + ")" : c.q != null ? "(auto, queue " + c.q + ")" : "(nearest)", "res", cfg.res, "fps", cfg.fps);
-        try { got = await mk(c.id, true); break outer; }
+        log("[stream] server", c.id, "(" + n + "/" + cands.length + (c.id === cfg.zone ? ", chosen, try " + (t + 1) : c.q != null && c.q < 1e9 ? ", queue " + c.q : "") + ")", "res", cfg.res, "fps", cfg.fps);
+        try { got = await mk(c.id, true); const bm = loadZBad(); delete bm[c.id]; saveZBad(bm); break outer; }
         catch (err) {
           lastErr = err;
           if (gen !== launchGen) return;
-          if (!bad.test(String((err && err.message) || err))) throw err;
-          log("[stream]", c.id, "failed:", (err && err.message) || err);
-          st("Server " + c.id + " didn’t work, trying another…");
-          await new Promise((r) => setTimeout(r, 1500));
+          const em = String((err && err.message) || err);
+          if (authErr.test(em)) throw err;
+          const bm = loadZBad(); bm[c.id] = Date.now(); saveZBad(bm);
+          log("[stream]", c.id, "failed:", em);
+          st("Server " + c.id + " didn’t work, trying another (" + n + "/" + cands.length + ")…");
+          await new Promise((r) => setTimeout(r, 800));
         }
       }
     }
