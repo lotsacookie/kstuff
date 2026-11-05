@@ -11,7 +11,7 @@ export function init(K) {
   const BAD_TTL = 21600000;
   const SOFT_TTL = 600000;
   const OK_WINDOW = 15000;
-  const WATCH_MS = 30000;
+  const WATCH_MS = 20000;
   const WATCH_FAILS = 3;
   const CHOOSE_BUDGET = 20000;
   const ROTATE_WAIT = 8000;
@@ -37,27 +37,19 @@ export function init(K) {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
   };
 
+  try { localStorage.removeItem('WBAD'); localStorage.removeItem('WBAD2'); } catch {}
+  let badMem = {};
   const liveBad = () => {
-    const raw = readJson(BAD_KEY);
-    const out = {};
-    if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return out;
     const now = Date.now();
-    for (const [key, until] of Object.entries(raw)) if (typeof until === 'number' && until > now) out[key] = until;
-    return out;
+    for (const k of Object.keys(badMem)) if (badMem[k] <= now) delete badMem[k];
+    return badMem;
   };
   const isBad = url => Object.prototype.hasOwnProperty.call(liveBad(), url);
   const markBad = (url, ttl) => {
     if (!url) return;
-    const bad = liveBad();
-    bad[url] = Math.max(bad[url] || 0, Date.now() + (ttl || SOFT_TTL));
-    writeJson(BAD_KEY, bad);
+    badMem[url] = Math.max(badMem[url] || 0, Date.now() + Math.min(ttl || SOFT_TTL, 60000));
   };
-  const clearBad = url => {
-    const bad = liveBad();
-    if (!(url in bad)) return;
-    delete bad[url];
-    writeJson(BAD_KEY, bad);
-  };
+  const clearBad = url => { delete badMem[url]; };
 
   const readGood = () => {
     const v = readJson(LAST_KEY);
@@ -169,7 +161,6 @@ export function init(K) {
 
   async function choose(exclude) {
     const skip = new Set(exclude);
-    const deadline = Date.now() + CHOOSE_BUDGET;
     const good = readGood();
     if (good && !skip.has(good.url) && Date.now() - good.ts < LAST_TTL && !isBad(good.url)) {
       if ((await probe(good.url, 3000)) !== null) return good.url;
@@ -177,10 +168,11 @@ export function init(K) {
     }
     let bestAlive = null;
     for (const tier of tiers()) {
+      const deadline = Date.now() + CHOOSE_BUDGET;
       const pool = tier.filter(u => !skip.has(u));
       const ordered = [...pool.filter(u => !isBad(u)), ...pool.filter(u => isBad(u))];
       for (let i = 0; i < ordered.length; i += 6) {
-        if (Date.now() > deadline) return null;
+        if (Date.now() > deadline) break;
         const wave = ordered.slice(i, i + 6);
         const pings = await Promise.all(wave.map(u => probe(u, 3000)));
         const alive = [];
@@ -202,6 +194,34 @@ export function init(K) {
     return bestAlive ? bestAlive.u : null;
   }
 
+  let lastMainTry = 0, mainBusy = null;
+  async function preferMain() {
+    if (mainBusy) return mainBusy;
+    mainBusy = (async () => {
+      lastMainTry = Date.now();
+      const primary = tiers()[0];
+      if (!primary.length || primary.includes(current)) return false;
+      const prev = current;
+      for (let i = 0; i < primary.length; i += 8) {
+        const wave = primary.slice(i, i + 8);
+        const pings = await Promise.all(wave.map(u => probe(u, 3000)));
+        const alive = [];
+        wave.forEach((u, j) => { if (pings[j] !== null) alive.push({ u, ping: pings[j] }); });
+        alive.sort((x, y) => x.ping - y.ping);
+        for (const row of alive.slice(0, 3)) {
+          if (await verify(row.u)) {
+            writeGood(row.u);
+            console.log('[net-hub] main wisp back, using', row.u);
+            return true;
+          }
+        }
+      }
+      if (prev && current !== prev) applyWisp(prev);
+      return false;
+    })().finally(() => { mainBusy = null; });
+    return mainBusy;
+  }
+
   async function recover() {
     if (!current) return;
     if (rotating) return rotating;
@@ -210,6 +230,7 @@ export function init(K) {
 
   let fails = 0;
   async function watch() {
+    if (current && !tiers()[0].includes(current) && Date.now() - lastMainTry > 60000 && !rotating && !mainBusy) preferMain().catch(() => {});
     if (!current || document.hidden || rotating || live.size || inflight) return;
     const ping = await probe(current, 4000);
     if (ping === null) fails++;
@@ -247,8 +268,10 @@ export function init(K) {
       applyWisp(url);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready) throw new Error('libcurl did not load');
+      const mainFirst = preferMain().catch(() => false);
       setTimeout(() => {
         (async () => {
+          if (await mainFirst) return;
           if (await verify(current)) { writeGood(current); return; }
           await delay(800);
           if (await verify(current)) { writeGood(current); return; }
