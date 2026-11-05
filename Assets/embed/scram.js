@@ -11,9 +11,9 @@
         statusEl.classList.add('hidden');
     };
 
-    const REPO = "lotsacookie/Singuloxy";
+    const REPO = "lotsacookie/kstuff";
     const BRANCH = "main";
-    const DIST_PATH = "dist/sandstone.js";
+    const DIST_PATH = "Assets/build/sandstone.js";
     const KSTUFF_REPO = "lotsacookie/kstuff";
     const SELF_PATH = "Assets/embed/scram.js";
     const WISP_MODULE_PATH = "Assets/js/wisp.js";

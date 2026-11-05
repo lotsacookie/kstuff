@@ -1,9 +1,9 @@
 export function init(K) {
   const BASES = [
-    'https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/',
-    'https://fastly.jsdelivr.net/gh/lotsacookie/Singuloxy@main/'
+    'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/build/',
+    'https://fastly.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/build/'
   ];
-  const DIST = 'dist/sandstone.mjs';
+  const DIST = 'sandstone.mjs';
   const FALLBACK = 'wss://api.personalloanonline.net/ws/';
   const LAST_KEY = 'WLAST2';
   const BAD_KEY = 'WBAD2';
@@ -262,7 +262,7 @@ export function init(K) {
 
   async function loadSandstone() {
     for (const b of BASES) { try { return await import(b + DIST); } catch {} }
-    const code = await (await fetch('https://raw.githubusercontent.com/lotsacookie/Singuloxy/main/' + DIST)).text();
+    const code = await (await fetch('https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/build/' + DIST)).text();
     return import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   }
 

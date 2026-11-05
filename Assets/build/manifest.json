@@ -1,0 +1,6 @@
+{
+  "source": "Assets/singuloxy",
+  "commit": "local-seed",
+  "built": "2026-11-05T22:54:08Z",
+  "files": ["sandstone.js","sandstone.mjs","sandstone_frame.js","singuloxy.html"]
+}

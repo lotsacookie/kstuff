@@ -64,6 +64,9 @@ jobs:
           git add -A Assets/build
           if git diff --cached --quiet; then echo "no change"; exit 0; fi
           git commit -m "build: bundle singuloxy [skip ci]"
+          # npm install / webpack dirtied tracked files (dist/, lockfiles); drop them so rebase can run
+          git checkout -- .
+          git clean -fdq
           for i in 1 2 3 4 5; do
             git pull --rebase -X theirs origin main && git push origin HEAD:main && exit 0
             sleep $((i*3))

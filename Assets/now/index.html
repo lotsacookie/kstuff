@@ -478,10 +478,10 @@ async function pickWisp(network, say = () => {}, opts = {}) {
   return apply([FALLBACK, ...BUILTIN.filter(isBackup)].find(allowed) || FALLBACK);
 }
 
-const DIST = "dist/sandstone.mjs";
+const DIST = "sandstone.mjs";
 const BASES = [
-  "https://cdn.jsdelivr.net/gh/lotsacookie/Singuloxy@main/",
-  "https://fastly.jsdelivr.net/gh/lotsacookie/Singuloxy@main/",
+  "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/build/",
+  "https://fastly.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/build/",
 ];
 
 const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
@@ -489,7 +489,7 @@ const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promi
 async function loadSandstone(log) {
   try { return await Promise.any(BASES.map((b) => withTimeout(import(b + DIST), 12000, "proxy script"))); }
   catch { log("[proxy] CDN import failed, trying GitHub raw"); }
-  const r = await withTimeout(fetch("https://raw.githubusercontent.com/lotsacookie/Singuloxy/main/" + DIST), 12000, "GitHub raw");
+  const r = await withTimeout(fetch("https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/build/" + DIST), 12000, "GitHub raw");
   const code = await r.text();
   return import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
 }
