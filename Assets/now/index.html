@@ -204,6 +204,8 @@ body.embed #settings label{color:var(--e-dim)}
 <label>Server<select id="set-zone"><option value="">Auto (shortest queue)</option></select></label>
 <div class="row"><input id="set-zone-custom" placeholder="Or type a zone ID, e.g. NP-AMS-08" autocomplete="off"><button class="btn ghost" id="set-refresh" type="button">Refresh queues</button></div>
 <small id="set-note">Lower queue number means a shorter wait. Some servers may not be available on your plan.</small>
+<div class="row"><button class="btn ghost" id="set-dl" type="button">Download full catalog.json</button></div>
+<small id="set-dl-note">Saves your whole signed-in GeForce NOW library, ready to drop on the games page.</small>
 <div class="row"><button class="btn ghost" id="set-reset" type="button">Reset</button><button class="btn" id="set-save" type="button">Save</button></div></div></div>
 <div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><div id="ptools" class="idle" role="toolbar" aria-label="Game controls"><div class="sf-group"><button class="sf-btn" id="pstop" type="button" title="Leave game (keeps the session running)" aria-label="Leave game"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M8 1L3 6l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sf-label">Exit</span></button></div><div class="sf-group sf-mid"><span class="sf-title" id="ptitle"></span></div><div class="sf-group"><div class="sf-chip sf-stats" id="pfps"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="0.5" y="7" width="2.4" height="4" rx="0.6" fill="currentColor"/><rect x="4.3" y="4" width="2.4" height="7" rx="0.6" fill="currentColor"/><rect x="8.1" y="1" width="2.4" height="10" rx="0.6" fill="currentColor"/></svg><span id="pfpst">-- FPS</span></div><button class="sf-btn sf-icon" id="pmic" type="button" title="Microphone off" aria-label="Toggle microphone" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v4"/></svg></button><button class="sf-btn" id="pfs" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 4V1h3M8 1h3v3M1 8v3h3M11 8v3H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="sf-label">Fullscreen</span></button><button class="sf-btn sf-icon" id="pset" type="button" title="Settings" aria-label="Settings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button class="sf-btn danger" id="pend" type="button" title="End the session">End</button></div></div></div>
 <script type="module">
@@ -1259,6 +1261,47 @@ function openSettings() {
   $("settings").hidden = false;
   loadZones(false);
 }
+// Pages through the signed-in account's full catalog and saves it as catalog.json (same shape the games page reads).
+let dlBusy = false;
+async function downloadFullCatalog() {
+  if (dlBusy) return;
+  const btn = $("set-dl"), note = $("set-dl-note");
+  const session = loadStore();
+  if (!session) { note.textContent = "Sign in to GeForce NOW first, then try again."; return; }
+  dlBusy = true; btn.disabled = true;
+  try {
+    const rows = [], seen = new Set();
+    let cursor = "", pages = 0, total = 0;
+    do {
+      note.textContent = "Fetching your catalog… " + rows.length + (total ? " / " + total : "");
+      const a = await appsRaw(session, "", cursor, 60);
+      total = (a.pageInfo && a.pageInfo.totalCount) || total;
+      for (const g of a.items || []) {
+        if (!g || !g.id || !g.title || seen.has(String(g.id))) continue;
+        seen.add(String(g.id));
+        const v = (g.variants || []).find((x) => x && x.appStore) || {};
+        const n = Number(g.id);
+        rows.push([Number.isFinite(n) ? n : String(g.id), String(g.title).trim(), String(v.appStore || ""), "", (g.images && (g.images.TV_BANNER || g.images.HERO_IMAGE)) || ""]);
+      }
+      cursor = a.pageInfo && a.pageInfo.hasNextPage ? a.pageInfo.endCursor : "";
+      pages++;
+      await sleep(150);
+    } while (cursor && pages < 150);
+    if (!rows.length) throw new Error("GeForce NOW returned no games");
+    rows.sort((x, y) => x[1].localeCompare(y[1], "en", { sensitivity: "base" }));
+    const blob = new Blob([JSON.stringify({ v: 1, at: new Date().toISOString(), count: rows.length, authed: true, games: rows })], { type: "application/json" });
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = "catalog.json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    if (EMBED) toParent("catalog", { games: rows });
+    note.textContent = "Downloaded catalog.json with " + rows.length + " games.";
+    log("[catalog] downloaded full list", rows.length);
+  } catch (e) {
+    log("[catalog] download failed", (e && e.message) || e);
+    note.textContent = "Couldn’t build the catalog: " + ((e && e.message) || e);
+  } finally { dlBusy = false; btn.disabled = false; }
+}
+$("set-dl").addEventListener("click", downloadFullCatalog);
 $("gear-btn").addEventListener("click", openSettings);
 $("set-refresh").addEventListener("click", () => loadZones(true));
 $("set-reset").addEventListener("click", () => { saveSettings({ ...DEFAULTS }); $("settings").hidden = true; });

@@ -62,11 +62,12 @@ export function init(K) {
     ensureHost();
     const style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
     const load = document.createElement('div'); load.id = 'gfn-loading'; load.className = 'hidden';
-    load.innerHTML = `${LOGO}<div class="ld-word">Singularity<span>NOW</span></div><div class="ld-bar"><div class="ld-fill" id="gfn-ld-fill"></div></div><div class="ld-status" id="gfn-ld-status">Loading</div><div class="gfn-ld-btns"><button class="page-btn" id="gfn-ld-cancel" type="button">Cancel</button><button class="page-btn" id="gfn-ld-back" type="button" hidden>Back</button></div>`;
+    load.innerHTML = `${LOGO}<div class="ld-word">Singularity<span>NOW</span></div><div class="ld-bar"><div class="ld-fill" id="gfn-ld-fill"></div></div><div class="ld-status" id="gfn-ld-status">Loading</div><div class="gfn-ld-btns"><button class="page-btn" id="gfn-ld-cancel" type="button">Cancel</button><button class="page-btn" id="gfn-ld-set" type="button">Settings</button><button class="page-btn" id="gfn-ld-back" type="button" hidden>Back</button></div>`;
     host.appendChild(load);
     const x = document.createElement('button'); x.id = 'gfn-x'; x.type = 'button'; x.title = 'Close'; x.innerHTML = '<i class="ph ph-x"></i>'; x.onclick = () => end(true); host.appendChild(x);
-    ui = { x, load, fill: $('gfn-ld-fill'), status: $('gfn-ld-status'), cancel: $('gfn-ld-cancel'), back: $('gfn-ld-back') };
+    ui = { x, load, fill: $('gfn-ld-fill'), status: $('gfn-ld-status'), cancel: $('gfn-ld-cancel'), back: $('gfn-ld-back'), set: $('gfn-ld-set') };
     ui.cancel.onclick = ui.back.onclick = () => end(true);
+    ui.set.onclick = () => { post({ type: 'gfn:settings' }); };
     return ui;
   }
   const setStatus = t => { if (ui) ui.status.textContent = t || ''; };
