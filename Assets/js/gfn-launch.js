@@ -23,7 +23,9 @@ export function init(K) {
 #gfn-frame{position:absolute;inset:0;display:block;width:100%!important;height:100%!important;min-width:100%;min-height:100%;border:0;background:transparent;z-index:55;visibility:hidden}
 #readingcorner.gfn-running{min-height:100%}
 #gfn-frame.on{visibility:visible}
-#gfn-frame.ui{z-index:70}
+#gfn-frame.ui{z-index:70;background:var(--bg-color,var(--background,#0b0d10))}
+#gfn-x{position:absolute;top:10px;right:10px;z-index:80;width:2.2rem;height:2.2rem;border-radius:50%;display:none;align-items:center;justify-content:center;padding:0;cursor:pointer;background:var(--nav-bg,rgba(0,0,0,.6));color:var(--text-color,#fff);border:1px solid var(--line,rgba(255,255,255,.25))}
+#gfn-x.on{display:flex}
 #readingcorner.gfn-running>.filter-bar,#readingcorner.gfn-running>.item-grid,#readingcorner.gfn-running>.pagination-bar{display:none!important}`;
 
   // ---------------------------------------------------------------- loading the client (GitHub API -> jsDelivr @commit)
@@ -61,7 +63,8 @@ export function init(K) {
     const load = document.createElement('div'); load.id = 'gfn-loading'; load.className = 'hidden';
     load.innerHTML = `${LOGO}<div class="ld-word">Singularity</div><div class="ld-bar"><div class="ld-fill" id="gfn-ld-fill"></div></div><div class="ld-status" id="gfn-ld-status">Loading</div><div class="gfn-ld-btns"><button class="page-btn" id="gfn-ld-cancel" type="button">Cancel</button><button class="page-btn" id="gfn-ld-back" type="button" hidden>Back</button></div>`;
     host.appendChild(load);
-    ui = { load, fill: $('gfn-ld-fill'), status: $('gfn-ld-status'), cancel: $('gfn-ld-cancel'), back: $('gfn-ld-back') };
+    const x = document.createElement('button'); x.id = 'gfn-x'; x.type = 'button'; x.title = 'Close'; x.innerHTML = '<i class="ph ph-x"></i>'; x.onclick = () => end(true); host.appendChild(x);
+    ui = { x, load, fill: $('gfn-ld-fill'), status: $('gfn-ld-status'), cancel: $('gfn-ld-cancel'), back: $('gfn-ld-back') };
     ui.cancel.onclick = ui.back.onclick = () => end(true);
     return ui;
   }
@@ -114,6 +117,24 @@ export function init(K) {
     fit();
     frame.classList.toggle('on', !!on);
     frame.classList.toggle('ui', !!withUi);
+    // the exit button sits above the client while it needs the screen (sign-in, ads, settings), so there is always a way out
+    ui?.x?.classList.toggle('on', !!on && !live);
+    if (!on) return;
+    requestAnimationFrame(fit); setTimeout(fit, 250); setTimeout(fit, 1000);
+    setTimeout(() => {
+      if (!frame || !frame.classList.contains('on')) return;
+      const r = frame.getBoundingClientRect();
+      if (r.width < 100 || r.height < 100 || getComputedStyle(frame).visibility !== 'visible') {
+        // still collapsed or hidden: pin it over the visible area beside the nav
+        const st = frame.style, h = host?.getBoundingClientRect();
+        const left = Math.max(h?.left || 0, 0), top = Math.max(h?.top || 0, 0);
+        st.setProperty('position', 'fixed'); st.setProperty('inset', 'auto');
+        st.setProperty('left', left + 'px'); st.setProperty('top', top + 'px');
+        st.setProperty('width', Math.max(window.innerWidth - left, 320) + 'px', 'important');
+        st.setProperty('height', Math.max(window.innerHeight - top, 300) + 'px', 'important');
+        st.setProperty('visibility', 'visible', 'important'); st.setProperty('z-index', '70', 'important');
+      }
+    }, 400);
   }
 
   function end(userCancelled) {
@@ -122,12 +143,14 @@ export function init(K) {
     launching = false; live = false; wanted = null;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     showFrame(false);
+    frame?.style.removeProperty('visibility');
+    ui?.x?.classList.remove('on');
     host?.classList.remove('gfn-running');
     if (ui) { ui.load.classList.add('hidden'); ui.load.classList.remove('failed'); ui.back.hidden = true; ui.cancel.hidden = false; }
   }
   function fail(text) {
     if (!ui) return;
-    live = false; showFrame(false);
+    live = false; showFrame(false); frame?.style.removeProperty('visibility'); ui.x.classList.remove('on');
     ui.load.classList.remove('hidden'); ui.load.classList.add('failed');
     setStatus(text); ui.cancel.hidden = true; ui.back.hidden = false;
   }
@@ -149,7 +172,7 @@ export function init(K) {
         else if (!live) { showFrame(false); if (launching && !ui.load.classList.contains('failed')) ui.load.classList.remove('hidden'); }
         break;
       case 'gfn:live':
-        live = true; setProg(1); showFrame(true, false); ui?.load.classList.add('hidden'); break;
+        live = true; setProg(1); showFrame(true, false); ui?.x?.classList.remove('on'); ui?.load.classList.add('hidden'); break;
       case 'gfn:failed': if (launching) fail(d.text || 'Couldn’t start the game'); break;
       case 'gfn:closed':
         if (!launching && !live) break;
@@ -187,15 +210,6 @@ export function init(K) {
     post({ type: 'gfn:settings' });
   };
 
-  // small gear next to the games search so server / resolution / FPS can be changed
-  const addSettingsButton = () => {
-    const bar = document.querySelector('#readingcorner .filter-bar');
-    if (!bar || $('gfn-settings-btn')) return;
-    const b = document.createElement('button');
-    b.id = 'gfn-settings-btn'; b.className = 'refresh-btn'; b.type = 'button'; b.title = 'GeForce NOW settings';
-    b.innerHTML = '<i class="ph ph-gear"></i>';
-    b.onclick = () => K.openGfnSettings();
-    bar.appendChild(b);
-  };
-  addSettingsButton();
+  // (the settings gear that used to sit in the games filter bar was removed; server / resolution / FPS stay reachable from the client's own Settings button while streaming)
+  document.getElementById('gfn-settings-btn')?.remove();
 }

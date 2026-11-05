@@ -34,6 +34,7 @@ export function init(K) {
   const releaseImage = img => {
     if (!img) return;
     clearTimeout(img._stall);
+    img._pt = (img._pt || 0) + 1;
     img.onload = img.onerror = null;
     img.removeAttribute('src');
     img.style.display = 'none';
@@ -43,6 +44,42 @@ export function init(K) {
   };
 
   const IMAGE_STALL_MS = 15000;
+
+  // Game art from these hosts (Steam / NVIDIA CDNs) is often blocked on school networks, so it is fetched through the
+  // site's own proxy (window.kNetDirect, the libcurl/wisp hub) and shown from a blob URL. A few at a time, results cached.
+  const PROXY_IMG = /^https?:\/\/(?:[^/]*\.)?(?:steamstatic\.com|steamcdn-a\.akamaihd\.net|nvidiagrid\.net|nvidia\.com)\//i;
+  const imgCache = new Map();
+  const IMG_CACHE_MAX = 600, IMG_SLOTS = 6;
+  const imgWaiters = [];
+  let imgBusy = 0;
+  const imgSlot = async () => { if (imgBusy >= IMG_SLOTS) await new Promise(r => imgWaiters.push(r)); imgBusy++; };
+  const imgFree = () => { imgBusy--; const w = imgWaiters.shift(); if (w) w(); };
+  const proxiedImage = url => {
+    if (imgCache.has(url)) return imgCache.get(url);
+    const job = (async () => {
+      await imgSlot();
+      try {
+        const res = await Promise.race([
+          window.kNetDirect.fetch(url, { headers: { Accept: 'image/avif,image/webp,image/*,*/*;q=0.8' } }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))
+        ]);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        if (buf.byteLength < 64) throw new Error('empty image');
+        const type = (res.headers.get && res.headers.get('content-type')) || '';
+        return URL.createObjectURL(new Blob([buf], { type: /^image\//i.test(type) ? type : 'image/jpeg' }));
+      } finally { imgFree(); }
+    })();
+    imgCache.set(url, job);
+    job.catch(() => imgCache.delete(url));
+    if (imgCache.size > IMG_CACHE_MAX) {
+      const old = imgCache.keys().next().value;
+      const oldJob = imgCache.get(old);
+      imgCache.delete(old);
+      oldJob.then(u => URL.revokeObjectURL(u), () => {});
+    }
+    return job;
+  };
 
   const armImage = (p, url, alts) => {
     const card = p.el;
@@ -58,8 +95,21 @@ export function init(K) {
       p.img.classList.remove('loaded');
       p.img.style.display = 'none';
     };
+    const setSrc = u => {
+      const my = p.img._pt = (p.img._pt || 0) + 1;
+      if (window.kNetDirect && PROXY_IMG.test(u)) {
+        proxiedImage(u).then(
+          blobUrl => { if (p.img._pt === my) p.img.src = blobUrl; },
+          err => {
+            if (p.img._pt !== my) return;
+            if (/^HTTP 4\d\d/.test(String((err && err.message) || err))) { p.img.onerror && p.img.onerror(); return; } // missing art: go straight to the next one
+            p.img.src = u; // proxy couldn't get it: try the direct URL once, then the alternates
+          }
+        );
+      } else p.img.src = u;
+    };
     const next = () => {
-      if (alts.length) { p.img.src = alts.shift(); return true; }
+      if (alts.length) { setSrc(alts.shift()); return true; }
       return false;
     };
     p.img.onload = () => {
@@ -72,8 +122,8 @@ export function init(K) {
     };
     p.img.onerror = () => { if (!next()) fail(); };
     // a request that never answers should not leave the card shimmering forever
-    p.img._stall = setTimeout(() => { if (card.classList.contains('img-loading')) fail(); }, IMAGE_STALL_MS);
-    p.img.src = url;
+    p.img._stall = setTimeout(() => { if (card.classList.contains('img-loading')) fail(); }, PROXY_IMG.test(url) ? 45000 : IMAGE_STALL_MS);
+    setSrc(url);
   };
 
   function clearGridPool(type) {
