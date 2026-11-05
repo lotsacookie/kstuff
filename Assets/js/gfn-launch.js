@@ -90,6 +90,7 @@ export function init(K) {
     })().catch(e => { frameP = null; if (frame) { frame.remove(); frame = null; } throw e; });
     return frameP;
   }
+  const focusFrame = () => { try { frame?.focus(); frame?.contentWindow?.focus(); } catch {} };
   const post = msg => { try { frame?.contentWindow?.postMessage(msg, '*'); } catch {} };
 
   // If the games page measures too small (grid hidden, no height from its parent), cover the visible area beside the nav instead.
@@ -172,7 +173,7 @@ export function init(K) {
         else if (!live) { showFrame(false); if (launching && !ui.load.classList.contains('failed')) ui.load.classList.remove('hidden'); }
         break;
       case 'gfn:live':
-        live = true; setProg(1); showFrame(true, false); ui?.x?.classList.remove('on'); ui?.load.classList.add('hidden'); break;
+        live = true; setProg(1); showFrame(true, false); ui?.x?.classList.remove('on'); ui?.load.classList.add('hidden'); focusFrame(); setTimeout(focusFrame, 300); break;
       case 'gfn:failed': if (launching) fail(d.text || 'Couldn’t start the game'); break;
       case 'gfn:closed':
         if (!launching && !live) break;

@@ -253,15 +253,30 @@ export async function startStream(o) {
       const kmods = (e) => (e.shiftKey ? 1 : 0) | (e.ctrlKey ? 2 : 0) | (e.altKey ? 4 : 0) | (e.metaKey ? 8 : 0);
       const on = (t, tgt, f, opt) => { tgt.addEventListener(t, f, opt); cleanups.push(() => tgt.removeEventListener(t, f, opt)); };
       const locked = () => document.pointerLockElement === video;
-      on("click", video, () => { if (!locked()) video.requestPointerLock && video.requestPointerLock(); video.muted = false; video.play().catch(() => {}); });
-      on("mousemove", document, (e) => { if (locked() && (e.movementX || e.movementY)) pushInput(encMouseMove(e.movementX | 0, e.movementY | 0, e.timeStamp), e.timeStamp); });
-      on("mousedown", document, (e) => { if (locked()) { pushInput(encMouseButton(true, e.button + 1, e.timeStamp), e.timeStamp); e.preventDefault(); } });
-      on("mouseup", document, (e) => { if (locked()) { pushInput(encMouseButton(false, e.button + 1, e.timeStamp), e.timeStamp); e.preventDefault(); } });
-      on("wheel", document, (e) => { if (locked()) { pushInput(encWheel(e.deltaY, e.timeStamp), e.timeStamp); e.preventDefault(); } }, { passive: false });
+      // keys go to the game whenever the player owns the screen (menu / settings closed): pointer lock is only needed for the mouse
+      const open = () => (o.inputOpen ? o.inputOpen() : true);
+      const pressed = new Map();
+      const releaseAll = () => { const t = performance.now(); for (const kc of pressed.values()) pushInput(encKey(false, kc, 0, 0, t), t); pressed.clear(); };
+      on("click", video, () => { if (open() && !locked()) { try { const r = video.requestPointerLock && video.requestPointerLock(); r && r.catch && r.catch(() => {}); } catch {} } video.muted = false; video.play().catch(() => {}); });
+      on("mousemove", document, (e) => { if (locked() && open() && (e.movementX || e.movementY)) pushInput(encMouseMove(e.movementX | 0, e.movementY | 0, e.timeStamp), e.timeStamp); });
+      on("mousedown", document, (e) => { if (locked() && open()) { pushInput(encMouseButton(true, e.button + 1, e.timeStamp), e.timeStamp); e.preventDefault(); } });
+      on("mouseup", document, (e) => { if (locked() && open()) { pushInput(encMouseButton(false, e.button + 1, e.timeStamp), e.timeStamp); e.preventDefault(); } });
+      on("wheel", document, (e) => { if (locked() && open()) { pushInput(encWheel(e.deltaY, e.timeStamp), e.timeStamp); e.preventDefault(); } }, { passive: false });
       on("contextmenu", video, (e) => e.preventDefault());
-      const key = (down) => (e) => { if (!locked()) return; if (e.code === "Escape") return; pushInput(encKey(down, e.keyCode, kmods(e), 0, e.timeStamp), e.timeStamp); e.preventDefault(); };
-      on("keydown", document, key(true));
-      on("keyup", document, key(false));
+      const key = (down) => (e) => {
+        if (e.code === "Escape") { // Esc is never sent to the game: it opens / closes the menu
+          if (down && !e.repeat && o.onEscape) { e.preventDefault(); e.stopPropagation(); o.onEscape(); }
+          return;
+        }
+        if (!open()) { if (!down) pressed.delete(e.code); return; }
+        if (down) pressed.set(e.code, e.keyCode); else pressed.delete(e.code);
+        pushInput(encKey(down, e.keyCode, kmods(e), 0, e.timeStamp), e.timeStamp);
+        e.preventDefault();
+      };
+      on("keydown", window, key(true), true);
+      on("keyup", window, key(false), true);
+      on("blur", window, releaseAll);
+      on("pointerlockchange", document, () => { if (!locked()) { releaseAll(); o.onUnlock && o.onUnlock(); } });
     };
 
     const onOffer = async (from, m) => {
