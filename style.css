@@ -3080,18 +3080,3 @@ html.sg-flip body {
     opacity: 0.85;
     font-weight: 500;
 }
-
-@keyframes sg-glitch {
-    0%, 86%, 100% { transform: rotate(180deg); filter: invert(1); }
-    87% { transform: rotate(180deg) translate(-8px, 2px) skewX(5deg); filter: invert(1) hue-rotate(50deg); }
-    89% { transform: rotate(180deg) translate(10px, -3px) scaleY(1.03); filter: invert(1) saturate(3); }
-    91% { transform: rotate(180deg) translate(-5px, 4px) skewX(-6deg); filter: invert(1) hue-rotate(-70deg) contrast(1.4); }
-    93% { transform: rotate(180deg) translate(7px, 0); filter: invert(1) brightness(1.4); }
-    95% { transform: rotate(180deg) translate(-3px, -2px) skewY(2deg); filter: invert(1) hue-rotate(120deg); }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-    html.sg-flip body {
-        animation: sg-glitch 2.2s steps(1, end) infinite;
-    }
-}

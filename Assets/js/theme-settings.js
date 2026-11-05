@@ -81,7 +81,41 @@ export function init(K) {
 
   const flipSelect = K.$('layout-flip-select');
   if (flipSelect) {
-    const applyFlip = v => document.documentElement.classList.toggle('sg-flip', v === 'flip-on');
+    const reduceMq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const originals = new Map();
+    const SKIP = 'script,style,noscript,textarea,#homeworkhelper-modal';
+    const CHARS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#$%&@?!*+=';
+    let scrambleTimer = null;
+    const scrambleText = str => str.replace(/[^\s]/g, () => CHARS[Math.floor(Math.random() * CHARS.length)]);
+    const scrambleTick = () => {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+        acceptNode: n => {
+          if (!n.data.trim()) return NodeFilter.FILTER_REJECT;
+          const p = n.parentElement;
+          return p && !p.closest(SKIP) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
+        }
+      });
+      let n;
+      while ((n = walker.nextNode())) {
+        const rec = originals.get(n);
+        if (!rec || n.data !== rec.scrambled) originals.set(n, { original: n.data, scrambled: '' });
+        const r = originals.get(n);
+        r.scrambled = scrambleText(r.original);
+        n.data = r.scrambled;
+      }
+      originals.forEach((r, node) => { if (!node.isConnected) originals.delete(node); });
+    };
+    const restoreText = () => {
+      originals.forEach((r, node) => { if (node.isConnected && node.data === r.scrambled) node.data = r.original; });
+      originals.clear();
+    };
+    const syncScramble = () => {
+      const should = document.documentElement.classList.contains('sg-flip') && !reduceMq.matches;
+      if (should && !scrambleTimer) scrambleTimer = setInterval(scrambleTick, 140);
+      if (!should && scrambleTimer) { clearInterval(scrambleTimer); scrambleTimer = null; restoreText(); }
+    };
+    const applyFlip = v => { document.documentElement.classList.toggle('sg-flip', v === 'flip-on'); syncScramble(); };
+    reduceMq.addEventListener('change', syncScramble);
     const flipVal = K.getStorage('kstuff_flip') || 'flip-off';
     flipSelect.value = flipVal;
     applyFlip(flipVal);
