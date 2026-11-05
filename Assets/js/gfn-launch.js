@@ -16,6 +16,7 @@ export function init(K) {
   const CSS = `
 #gfn-loading{position:absolute;inset:0;width:100%;height:100%;background:transparent;color:var(--text-color,#fff);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.1rem;z-index:60;transition:opacity .5s ease,visibility .5s ease}
 #gfn-loading.hidden{opacity:0;visibility:hidden;pointer-events:none}
+#gfn-loading .ld-word span{font-weight:400;opacity:.6}
 #gfn-loading .ld-status{text-align:center;max-width:80vw;padding:0 12px}
 #gfn-loading.failed .ld-status{color:#ff6b6b;opacity:1}
 #gfn-loading .gfn-ld-btns{display:flex;gap:10px;min-height:2.6rem;align-items:center}
@@ -61,7 +62,7 @@ export function init(K) {
     ensureHost();
     const style = document.createElement('style'); style.textContent = CSS; document.head.appendChild(style);
     const load = document.createElement('div'); load.id = 'gfn-loading'; load.className = 'hidden';
-    load.innerHTML = `${LOGO}<div class="ld-word">Singularity</div><div class="ld-bar"><div class="ld-fill" id="gfn-ld-fill"></div></div><div class="ld-status" id="gfn-ld-status">Loading</div><div class="gfn-ld-btns"><button class="page-btn" id="gfn-ld-cancel" type="button">Cancel</button><button class="page-btn" id="gfn-ld-back" type="button" hidden>Back</button></div>`;
+    load.innerHTML = `${LOGO}<div class="ld-word">Singularity<span>NOW</span></div><div class="ld-bar"><div class="ld-fill" id="gfn-ld-fill"></div></div><div class="ld-status" id="gfn-ld-status">Loading</div><div class="gfn-ld-btns"><button class="page-btn" id="gfn-ld-cancel" type="button">Cancel</button><button class="page-btn" id="gfn-ld-back" type="button" hidden>Back</button></div>`;
     host.appendChild(load);
     const x = document.createElement('button'); x.id = 'gfn-x'; x.type = 'button'; x.title = 'Close'; x.innerHTML = '<i class="ph ph-x"></i>'; x.onclick = () => end(true); host.appendChild(x);
     ui = { x, load, fill: $('gfn-ld-fill'), status: $('gfn-ld-status'), cancel: $('gfn-ld-cancel'), back: $('gfn-ld-back') };
@@ -169,6 +170,7 @@ export function init(K) {
         if (typeof d.p === 'number') setProg(d.p);
         break;
       case 'gfn:view': // the client needs the screen (sign-in, ads, settings) or gives it back to the loading screen
+        if (!launching && !live) { showFrame(false); break; }
         if (d.ui) { showFrame(true, true); ui?.load.classList.add('hidden'); }
         else if (!live) { showFrame(false); if (launching && !ui.load.classList.contains('failed')) ui.load.classList.remove('hidden'); }
         break;
@@ -218,6 +220,13 @@ export function init(K) {
     try { await mountFrame(); if (!launching && !live) post({ type: 'gfn:sync' }); } catch {}
   };
   setTimeout(() => K.syncGfnCatalog(), 8000);
+
+  K.hideGfn = () => {
+    if (launching || live) return;
+    showFrame(false);
+    host?.classList.remove('gfn-running');
+    if (ui) { ui.load.classList.add('hidden'); ui.load.classList.remove('failed'); ui.x?.classList.remove('on'); }
+  };
 
   K.openGfnSettings = async () => {
     try { await mountFrame(); } catch (e) { return; }

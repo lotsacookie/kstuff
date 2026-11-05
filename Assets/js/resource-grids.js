@@ -176,6 +176,7 @@ export function init(K) {
     if (!item) return;
     if (item.cloudId) return K.openCloudGame?.(item); // Cloud games open inside SingularityCloud, not in this grid's frame
     if (item.gfnId) return K.openGfnGame?.(item); // GeForce NOW games stream through the SingularityNOW client
+    K.hideGfn?.(); // any other title: make sure no GeForce NOW loader or frame is left over the grid
     const pageId = opts.pageId || document.querySelector('.page.active')?.id;
     if (!pageId || !grids[pageId]) return;
     const ifr = resourceIframeFor(pageId, true);
