@@ -738,26 +738,78 @@
         return within.concat(above);
     }
 
-    async function fetchSources(entry, s, e) {
+    async function fetchSources(entry, s, e, fresh) {
         var path = entry.type === 'tv' ? '/stream/tv/' + entry.tid + '/' + s + '/' + e : '/stream/movie/' + entry.tid;
+        if (fresh) path += '?fresh=' + Date.now();
         return sortStreams(await TV.api(path, 25000));
+    }
+
+    function goodKey(entry, s, e) {
+        return 'tvGood:' + entry.type + ':' + entry.tid + (entry.type === 'tv' ? ':' + s + ':' + e : '');
+    }
+
+    function providerOf(stream) {
+        return String(stream.providerName || stream.name || stream.provider || '').toLowerCase();
+    }
+
+    function failCount(p, stream) {
+        return (p.failed && p.failed[stream.url]) || 0;
+    }
+
+    function markFailed(p, stream) {
+        if (!p.failed) p.failed = {};
+        p.failed[stream.url] = (p.failed[stream.url] || 0) + 1;
+        var name = providerOf(stream);
+        if (!p.failedProv) p.failedProv = {};
+        p.failedProv[name] = (p.failedProv[name] || 0) + 1;
+    }
+
+    function rankStreams(p, list) {
+        var good = TV.store.get(goodKey(p.ctx[0], p.ctx[1], p.ctx[2])) || '';
+        var order = list.map(function (x, i) { return { x: x, i: i }; });
+        order.sort(function (a, b) {
+            var fa = failCount(p, a.x);
+            var fb = failCount(p, b.x);
+            if (fa !== fb) return fa - fb;
+            var ga = good && providerOf(a.x) === good ? 0 : 1;
+            var gb = good && providerOf(b.x) === good ? 0 : 1;
+            if (ga !== gb) return ga - gb;
+            return a.i - b.i;
+        });
+        return order.map(function (o) { return o.x; });
+    }
+
+    function mergeStreams(p, incoming) {
+        var seen = {};
+        var out = [];
+        incoming.concat(p.streams || []).forEach(function (x) {
+            if (!x || !x.url || seen[x.url]) return;
+            seen[x.url] = true;
+            out.push(x);
+        });
+        return rankStreams(p, out);
     }
 
     async function recover(gen, resume) {
         var p = player;
         if (!p || gen !== playGen) return;
         p.round = (p.round || 0) + 1;
-        setStatus('Having trouble with this one. Still trying...', true);
-        await TV.sleep(Math.min(8000, 1500 * p.round));
+        var tried = Object.keys(p.failed || {}).length;
+        setStatus('Looking for more sources (' + tried + ' tried)...', true);
+        await TV.sleep(Math.min(6000, 1000 * p.round));
         if (gen !== playGen || player !== p) return;
         try {
-            var fresh = await fetchSources(p.ctx[0], p.ctx[1], p.ctx[2]);
+            var fresh = await fetchSources(p.ctx[0], p.ctx[1], p.ctx[2], true);
             if (gen !== playGen || player !== p) return;
             if (fresh.length) {
-                p.streams = fresh;
-                p.next.hidden = fresh.length < 2;
+                p.streams = mergeStreams(p, fresh);
+                p.next.hidden = p.streams.length < 2;
+            } else {
+                p.streams = rankStreams(p, p.streams);
             }
-        } catch (err) {}
+        } catch (err) {
+            p.streams = rankStreams(p, p.streams);
+        }
         if (gen !== playGen || player !== p) return;
         tryStream(0, gen, [], resume);
     }
@@ -779,7 +831,7 @@
         p.fileRetry = 0;
         var stream = p.streams[index];
         var label = streamLabel(stream, index);
-        setStatus((index ? 'Trying ' : 'Loading ') + label + '...', true);
+        setStatus((index ? 'Trying ' : 'Loading ') + label + ' (' + (index + 1) + '/' + p.streams.length + ')...', true);
         teardownMedia();
         var url = TV.proxyUrl(stream.url);
         var started = false;
@@ -788,6 +840,7 @@
             if (gen !== playGen || player !== p) return;
             var where = cur();
             console.warn('[tv] ' + label + ' failed: ' + why);
+            markFailed(p, stream);
             tryStream(index + 1, gen, reasons.concat([label + ': ' + why]), where);
         };
         var sameAgain = function () {
@@ -878,6 +931,7 @@
             if (!picture) throw new Error(p.video.readyState >= 2 ? 'audio only, the video track did not load or decode' : 'no data received');
             started = true;
             p.round = 0;
+            if (p.ctx) TV.store.set(goodKey(p.ctx[0], p.ctx[1], p.ctx[2]), providerOf(stream));
             p.watch = { index: index, again: sameAgain, next: moveOn };
             p.video.onerror = function () {
                 if (!started || gen !== playGen || player !== p) return;
@@ -907,7 +961,9 @@
                 var list = await fetchSources(entry, s, e);
                 if (gen !== playGen || !player) return;
                 if (list.length) {
-                    player.streams = list;
+                    player.failed = {};
+                    player.failedProv = {};
+                    player.streams = rankStreams(player, list);
                     player.next.hidden = list.length < 2;
                     tryStream(0, gen, [], loadResume(player.ctx));
                     return;
