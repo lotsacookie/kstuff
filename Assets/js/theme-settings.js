@@ -99,8 +99,23 @@ export function init(K) {
     const CF = {
       'cf-deuteranomaly': [0.367322, 0.860646, -0.227968, 0.280085, 0.672501, 0.047413, -0.01182, 0.04294, 0.968881],
       'cf-protanomaly': [0.152286, 1.052583, -0.204868, 0.114503, 0.786281, 0.099216, -0.003882, -0.048116, 1.051998],
-      'cf-tritanomaly': [1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733, 0.691367, 0.3039],
-      'cf-grayscale': [0.2126, 0.7152, 0.0722, 0.2126, 0.7152, 0.0722, 0.2126, 0.7152, 0.0722]
+      'cf-tritanomaly': [1.255528, -0.076749, -0.178779, -0.078411, 0.930809, 0.147602, 0.004733, 0.691367, 0.3039]
+    };
+    const hueRotate = deg => {
+      const a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+      return [
+        0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715, 0.072 - c * 0.072 + s * 0.928,
+        0.213 - c * 0.213 + s * 0.143, 0.715 + c * 0.285 + s * 0.14, 0.072 - c * 0.072 - s * 0.283,
+        0.213 - c * 0.213 - s * 0.787, 0.715 - c * 0.715 + s * 0.715, 0.072 + c * 0.928 + s * 0.072
+      ];
+    };
+    const mix = (m, t) => m.map((v, i) => IDENT[i] + t * (v - IDENT[i]));
+    const invert3 = m => {
+      const [a, b, c, d, e, f, g, h, i] = m;
+      const A = e * i - f * h, B = -(d * i - f * g), C = d * h - e * g;
+      const det = a * A + b * B + c * C;
+      if (Math.abs(det) < 1e-6) return IDENT;
+      return [A / det, -(b * i - c * h) / det, (b * f - c * e) / det, B / det, (a * i - c * g) / det, -(a * f - c * d) / det, C / det, -(a * h - b * g) / det, (a * e - b * d) / det];
     };
     const matrixEl = document.getElementById('sg-cf-matrix');
     const valEl = K.$('layout-cf-int-val');
@@ -109,25 +124,17 @@ export function init(K) {
       const type = cfSelect.value;
       const t = Math.max(0, Math.min(100, Number(cfRange.value))) / 100;
       if (valEl) valEl.textContent = Math.round(t * 100);
-      const m = CF[type];
-      if (m && matrixEl) {
-        const out = [];
-        for (let r = 0; r < 3; r++) {
-          for (let c = 0; c < 3; c++) out.push((IDENT[r * 3 + c] + t * (m[r * 3 + c] - IDENT[r * 3 + c])).toFixed(5));
-          out.push('0');
-        }
-        const rows = [];
-        for (let r = 0; r < 3; r++) rows.push(`${out[r * 4]} ${out[r * 4 + 1]} ${out[r * 4 + 2]} 0 0`);
-        rows.push('0 0 0 1 0');
-        matrixEl.setAttribute('values', rows.join(' '));
-        root.classList.add('sg-cf');
-      } else {
-        root.classList.remove('sg-cf');
+      if (type === 'cf-off' || !matrixEl) {
+        root.classList.add('sg-cf-off');
+        return;
       }
-      const cover = type === 'cf-tritanomaly' ? Math.min(0.98, 1 - t) : 0.98;
-      root.style.setProperty('--sg-cf-cover', cover);
+      const m = type === 'cf-grayscale' ? mix(hueRotate(140), t) : invert3(mix(CF[type], t));
+      const rows = [0, 1, 2].map(r => `${m[r * 3].toFixed(5)} ${m[r * 3 + 1].toFixed(5)} ${m[r * 3 + 2].toFixed(5)} 0 0`);
+      rows.push('0 0 0 1 0');
+      matrixEl.setAttribute('values', rows.join(' '));
+      root.classList.remove('sg-cf-off');
     };
-    cfSelect.value = K.getStorage('kstuff_cf_type') || 'cf-off';
+    cfSelect.value = K.getStorage('kstuff_cf_type') || 'cf-tritanomaly';
     const storedInt = K.getStorage('kstuff_cf_int');
     cfRange.value = storedInt === null ? '100' : storedInt;
     applyCF();

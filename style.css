@@ -3074,23 +3074,9 @@ html.sg-flip body {
 }
 
 html {
-    --sg-cf-cover: .98;
-}
-
-html.sg-cf {
     filter: url(#sg-cf-filter);
 }
 
-body::after {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background: var(--bg-color, #000);
-    opacity: var(--sg-cf-cover);
-    pointer-events: none;
-    z-index: 2147483000;
-}
-
-body:has(#homeworkhelper-modal.active)::after {
-    opacity: 0;
+html.sg-cf-off {
+    filter: none;
 }
