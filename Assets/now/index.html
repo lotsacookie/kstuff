@@ -553,7 +553,14 @@ async function registerStage() {
   flow.signup = null; // one attempt only; the user re-enters on failure
   setWait("Creating your account…", "");
   const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false };
-  const r = await api(EP.register, body);
+  const mine = run;
+  await sleep(2500); // NVIDIA rejects a register that arrives right after the session starts
+  let r = await api(EP.register, body);
+  for (let i = 0; i < 5 && !r.ok && /EARLY_REQUEST/.test(r.text); i++) {
+    await sleep(3000 + i * 2000);
+    alive(mine);
+    r = await api(EP.register, body);
+  }
   if (!r.ok) throw apiError(r);
   log("[auth] account registered");
 }
