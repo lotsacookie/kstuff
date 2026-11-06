@@ -1,7 +1,31 @@
+import { quiet_warn } from "../util.mjs";
+
 const STORE_KEY = "proxy_epoxy_jar";
 const MAX_COOKIES = 3000;
 const MAX_HOPS = 20;
 const FALLBACK_MS = 60000;
+const HEADERS_MS = 20000;
+const MAX_ACTIVE = 8;
+const FAIL_LIMIT = 3;
+const HOP_HEADERS = ["accept-encoding", "connection", "keep-alive", "host", "content-length", "transfer-encoding", "te", "upgrade", "proxy-connection"];
+
+let active = 0;
+let fails = 0;
+const waiting = [];
+
+function take_slot() {
+  if (active < MAX_ACTIVE) {
+    active++;
+    return Promise.resolve();
+  }
+  return new Promise((resolve) => waiting.push(resolve));
+}
+
+function free_slot() {
+  let next = waiting.shift();
+  if (next) next();
+  else active = Math.max(0, active - 1);
+}
 
 let requester = null;
 let down_until = 0;
@@ -333,6 +357,7 @@ async function request(url, options) {
   let follow = options.redirect !== "manual" && options.redirect !== "error";
   let method = String(options.method || "GET").toUpperCase();
   let headers = plain_headers(options.headers);
+  drop_headers(headers, HOP_HEADERS);
   let explicit_cookie = !!find_header(headers, "cookie");
   let body = await plain_body(options.body, headers);
   let target = String(url);
@@ -381,16 +406,52 @@ async function request(url, options) {
 export function route_session(target) {
   if (!target || typeof target.fetch !== "function") return target;
   let original = target.fetch.bind(target);
-  target.fetch = (url, options) => {
+  target.fetch = async (url, options) => {
     if (!transport_active()) return original(url, options);
     seed_from(target);
-    return request(url, options).catch((error) => {
-      if (error && error.epoxy_unavailable) {
-        down_until = Date.now() + FALLBACK_MS;
-        return original(url, options);
-      }
-      throw error;
+    let outer = options?.signal;
+    if (outer?.aborted) return original(url, options);
+    await take_slot();
+    let controller = new AbortController();
+    let relay = () => controller.abort();
+    if (outer) outer.addEventListener("abort", relay, {once: true});
+    let timer = null;
+    let pending = request(url, {...options, signal: controller.signal});
+    let timeout = new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        let error = new Error(`epoxy returned no response for ${HEADERS_MS / 1000}s`);
+        error.epoxy_timeout = true;
+        controller.abort();
+        reject(error);
+      }, HEADERS_MS);
     });
+    try {
+      let response = await Promise.race([pending, timeout]);
+      fails = 0;
+      return response;
+    }
+    catch (error) {
+      pending.then((late) => {
+        try {
+          late.body?.cancel?.().catch?.(() => {});
+        }
+        catch {}
+      }, () => {});
+      if (outer?.aborted) throw error;
+      fails++;
+      quiet_warn("sandstone host: epoxy request failed, retrying with libcurl:", String(url), String(error?.message ?? error));
+      if (error?.epoxy_unavailable || fails >= FAIL_LIMIT) {
+        down_until = Date.now() + FALLBACK_MS;
+        fails = 0;
+        quiet_warn(`sandstone host: epoxy paused for ${FALLBACK_MS / 1000}s, using libcurl`);
+      }
+      return original(url, options);
+    }
+    finally {
+      clearTimeout(timer);
+      if (outer) outer.removeEventListener("abort", relay);
+      free_slot();
+    }
   };
   return target;
 }
