@@ -48,7 +48,7 @@ export function init(K) {
   };
 
   const readTransport = () => {
-    try { return localStorage.getItem(TRANSPORT_KEY) === 'epoxy' ? 'epoxy' : 'libcurl'; } catch { return 'libcurl'; }
+    try { return localStorage.getItem(TRANSPORT_KEY) === 'libcurl' ? 'libcurl' : 'epoxy'; } catch { return 'epoxy'; }
   };
   let transportMode = readTransport();
   const useEpoxy = () => transportMode === 'epoxy';
@@ -485,7 +485,7 @@ export function init(K) {
   }
 
   function setTransport(next) {
-    const mode = next === 'epoxy' ? 'epoxy' : 'libcurl';
+    const mode = next === 'libcurl' ? 'libcurl' : 'epoxy';
     const changed = mode !== transportMode;
     transportMode = mode;
     window.kTransportMode = mode;
@@ -521,14 +521,33 @@ export function init(K) {
     setTransport
   };
 
+  function cookieLines(res) {
+    const out = [];
+    const add = v => { if (typeof v === 'string' && v && !out.includes(v)) out.push(v); };
+    try {
+      const sc = res.headers && res.headers.getSetCookie && res.headers.getSetCookie();
+      if (sc) sc.forEach(add);
+    } catch {}
+    [res.rawHeaders, res.raw_headers].forEach(raw => {
+      if (!raw) return;
+      try {
+        const pairs = Array.isArray(raw) ? raw : Object.keys(raw).map(k => [k, raw[k]]);
+        pairs.forEach(p => {
+          if (!Array.isArray(p) || String(p[0]).toLowerCase() !== 'set-cookie') return;
+          if (Array.isArray(p[1])) p[1].forEach(add); else add(p[1]);
+        });
+      } catch {}
+    });
+    return out;
+  }
+
   async function handleFetch(d, reply) {
     try {
       const res = await doFetch(d);
       const headers = [];
       try { res.headers.forEach((v, k) => headers.push([k, v])); } catch {}
       try {
-        const sc = res.headers.getSetCookie && res.headers.getSetCookie();
-        if (sc && sc.length && !headers.some(h => h[0].toLowerCase() === 'set-cookie')) sc.forEach(c => headers.push(['set-cookie', c]));
+        if (!headers.some(h => h[0].toLowerCase() === 'set-cookie')) cookieLines(res).forEach(c => headers.push(['set-cookie', c]));
       } catch {}
       const buf = NO_BODY.has(res.status) ? null : await res.arrayBuffer();
       reply({ type: 'kstuff-net:res', id: d.id, ok: true, status: res.status, statusText: res.statusText || '', url: res.url || d.url, headers, body: buf }, buf ? [buf] : []);

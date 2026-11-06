@@ -111,18 +111,33 @@
   function createJar() {
     const jar = new Map(Object.entries(store.get(COOKIE_KEY) || {}));
     const save = () => store.set(COOKIE_KEY, Object.fromEntries(jar));
-    const lines = headers => {
-      if (typeof headers.getSetCookie === "function") {
-        const list = headers.getSetCookie();
-        if (list.length) return list;
+    const lines = (headers, response) => {
+      const out = [];
+      const add = v => {
+        if (typeof v === "string" && v && !out.includes(v)) out.push(v);
+      };
+      if (headers && typeof headers.getSetCookie === "function") headers.getSetCookie().forEach(add);
+      if (!out.length && headers) {
+        const raw = headers.get("set-cookie");
+        if (raw) raw.split(/,(?=\s*[A-Za-z0-9_.\-]+=)/).forEach(add);
       }
-      const raw = headers.get("set-cookie");
-      return raw ? raw.split(/,(?=\s*[A-Za-z0-9_.\-]+=)/) : [];
+      [response && response.rawHeaders, response && response.raw_headers].forEach(raw => {
+        if (!raw) return;
+        try {
+          const pairs = Array.isArray(raw) ? raw : Object.keys(raw).map(k => [k, raw[k]]);
+          pairs.forEach(p => {
+            if (!Array.isArray(p) || String(p[0]).toLowerCase() !== "set-cookie") return;
+            if (Array.isArray(p[1])) p[1].forEach(add);
+            else add(p[1]);
+          });
+        } catch (e) {}
+      });
+      return out;
     };
     return {
-      absorb(headers) {
+      absorb(headers, response) {
         let changed = false;
-        for (const line of lines(headers)) {
+        for (const line of lines(headers, response)) {
           const pair = line.split(";")[0];
           const eq = pair.indexOf("=");
           if (eq < 1) continue;
@@ -400,7 +415,7 @@
         console.error("[deepai] <- network error", init.method || "GET", url, e);
         throw e;
       }
-      jar.absorb(response.headers);
+      jar.absorb(response.headers, response);
       console.log("[deepai] <-", response.status, init.method || "GET", url, (response.headers.get("content-type") || ""), (Date.now() - started) + "ms");
       return response;
     }
@@ -440,6 +455,10 @@
           const via = (type.login_with_social_accounts || [])[0] || "a social account";
           throw new DeepAIError("This account signs in with " + via, { code: "social_only", body: type });
         }
+        await post("/daily-time-sync/login/", { username: email, password });
+        return this.me();
+      },
+      async loginDirect(email, password) {
         await post("/daily-time-sync/login/", { username: email, password });
         return this.me();
       },
@@ -713,53 +732,101 @@
     return guest;
   }
 
-  async function accountFor(client, name) {
+  function credsFor(name) {
+    const creds = store.get(CRED_KEY) || {};
+    return typeof creds[name] === "string" && creds[name] ? creds[name] : "";
+  }
+
+  function savedName() {
+    const email = store.get(USER_KEY);
+    if (typeof email !== "string" || email.indexOf("@") < 1) return "";
+    const name = email.split("@")[0];
+    return credsFor(name) ? name : "";
+  }
+
+  async function registerAccount(client, name) {
     const email = name + "@" + DOMAIN;
     const creds = store.get(CRED_KEY) || {};
-    const current = await client.me();
-    if (current && store.get(USER_KEY) === email) return current;
-    if (current) await client.logout();
-    const type = await client.userLoginType(email);
-    let user = null;
-    if (type && type.user_exists) {
-      if (!creds[name]) return null;
-      user = await client.login(email, creds[name]);
-    } else {
-      const password = creds[name] || randomText(24);
-      creds[name] = password;
-      store.set(CRED_KEY, creds);
-      user = await client.register(email, password);
-    }
+    const password = creds[name] || randomText(24);
+    creds[name] = password;
+    store.set(CRED_KEY, creds);
+    const user = await client.register(email, password);
     if (user) store.set(USER_KEY, email);
     return user;
   }
 
-  async function ensureAccount(client) {
-    const names = [];
-    const known = kstuffUsername();
-    if (known) names.push(known);
-    names.push(guestName());
-    for (const name of names) {
-      try {
-        const user = await accountFor(client, name);
-        if (user) return user;
-      } catch (error) {
-        console.warn("[deepai] account setup failed for", name, error);
+  async function loginAccount(client, name) {
+    const email = name + "@" + DOMAIN;
+    const password = credsFor(name);
+    if (!password) return null;
+    try {
+      const user = await client.loginDirect(email, password);
+      if (user) {
+        store.set(USER_KEY, email);
+        return user;
       }
-    }
-    for (let i = 0; i < 2; i++) {
-      const fresh = "guest" + randomText(8);
-      try {
-        const user = await accountFor(client, fresh);
-        if (user) {
-          store.set(GUEST_KEY, fresh);
-          return user;
-        }
-      } catch (error) {
-        console.warn("[deepai] account setup failed for", fresh, error);
-      }
+    } catch (error) {
+      if (!(error instanceof DeepAIError) || ![400, 401, 403].includes(error.status)) throw error;
+      console.warn("[deepai] login failed for", name, error && error.message);
     }
     return null;
+  }
+
+  async function createAccount(client, name) {
+    const first = name || guestName();
+    if (!credsFor(first)) {
+      try {
+        const user = await registerAccount(client, first);
+        if (user) return user;
+      } catch (error) {
+        console.warn("[deepai] register failed for", first, error && error.message);
+      }
+    } else {
+      const type = await client.userLoginType(first + "@" + DOMAIN).catch(() => null);
+      if (type && !type.user_exists) {
+        const user = await registerAccount(client, first);
+        if (user) return user;
+      }
+    }
+    const fresh = "guest" + randomText(8);
+    const user = await registerAccount(client, fresh);
+    if (user) store.set(GUEST_KEY, fresh);
+    return user;
+  }
+
+  async function resolveAccount(client) {
+    const wanted = kstuffUsername();
+    const saved = savedName();
+    const current = await client.me();
+    if (current) {
+      if (!wanted || !saved || saved === wanted) return current;
+      if (credsFor(wanted)) {
+        await client.logout();
+        const switched = await loginAccount(client, wanted);
+        if (switched) return switched;
+        return (await loginAccount(client, saved)) || (await client.me());
+      }
+      return current;
+    }
+    const order = [];
+    [wanted, saved, store.get(GUEST_KEY)].forEach(name => {
+      if (name && typeof name === "string" && !order.includes(name) && credsFor(name)) order.push(name);
+    });
+    for (const name of order) {
+      const user = await loginAccount(client, name);
+      if (user) return user;
+    }
+    return createAccount(client, wanted && !credsFor(wanted) ? wanted : order[0] || "");
+  }
+
+  let accountFlight = null;
+
+  function ensureAccount(client) {
+    if (accountFlight) return accountFlight;
+    accountFlight = resolveAccount(client).finally(() => {
+      accountFlight = null;
+    });
+    return accountFlight;
   }
 
   async function signIn() {
