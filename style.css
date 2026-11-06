@@ -194,6 +194,10 @@ body.size-large.text-hide {
     color: #f87171;
 }
 
+.conn-item[data-state="idle"] i {
+    color: #fbbf24;
+}
+
 .clock-item {
     font-family: 'Orbitron', monospace, sans-serif !important;
     letter-spacing: 0.5px;

@@ -43,7 +43,7 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, okUrl = null, okAt = 0, inflight = 0, verified = false, linkUp = false;
+  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, okUrl = null, okAt = 0, inflight = 0, verified = false, linkUp = false, booted = false;
   let aliveFallback = null, lastDone = Date.now(), vchain = Promise.resolve(), trialP = null, rotateStreak = 0, rotateHoldUntil = 0, failStreak = 0, lastSaved = 0;
 
   const readJson = key => {
@@ -600,6 +600,8 @@ export function init(K) {
 
   function boot() {
     if (bootP) return bootP;
+    booted = true;
+    updateConnUi();
     bootP = (async () => {
       const sg = await loadSandstone();
       sandstone = sg;
@@ -846,13 +848,15 @@ export function init(K) {
     const box = document.getElementById('conn-indicator');
     if (!box) return;
     const on = linkUp && !!current;
-    const state = on ? 'on' : 'off';
+    const state = !booted ? 'idle' : on ? 'on' : 'off';
     if (box.dataset.state === state) return;
     box.dataset.state = state;
+    const icons = { idle: 'ph-pause-circle', on: 'ph-plugs-connected', off: 'ph-plugs' };
+    const labels = { idle: 'Idle', on: 'Connected', off: 'Not connected' };
     const icon = document.getElementById('conn-icon');
     const text = document.getElementById('conn-text');
-    if (icon) icon.className = 'ph ' + (on ? 'ph-plugs-connected' : 'ph-plugs');
-    if (text) text.textContent = on ? 'Connected' : 'Not connected';
+    if (icon) icon.className = 'ph ' + icons[state];
+    if (text) text.textContent = labels[state];
   };
   function setLink(value) {
     linkUp = !!value;
