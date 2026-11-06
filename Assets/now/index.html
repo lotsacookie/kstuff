@@ -611,6 +611,10 @@ async function registerStage() {
   const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false, deviceId: JARVIS_DEVICE, authFactorType: "WebAuthn" };
   const mine = run;
   await sleep(2500); // NVIDIA rejects a register that arrives right after the session starts
+  const k0 = flow.key;
+  const nm = await api("/api/1/search/user?q=" + encodeURIComponent(JSON.stringify({ displayName: u.displayName })), null, "GET", true);
+  flow.key = k0;
+  if (nm.status === 200) throw new Error("That display name is already taken. Choose another one.");
   const k = flow.key;
   const vc = await api(EP.validator, null, "GET", true, { "Content-Type": "application/json" });
   flow.key = k; // the validator reply must not replace the session key
@@ -644,7 +648,8 @@ async function registerStage() {
   }
   if (!r.ok) {
     const e = apiError(r);
-    e.message += " [register " + r.status + "] " + r.text.slice(0, 400);
+    const det = (r.json && (r.json.details || (r.json.error && r.json.error.details))) || [];
+    e.message += " [register " + r.status + "] " + (det.length ? det.map((d) => d.field + ": " + d.reason).join("; ") : r.text.slice(0, 400));
     throw e;
   }
   log("[auth] account registered");
