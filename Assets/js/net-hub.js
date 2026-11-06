@@ -6,30 +6,21 @@ export function init(K) {
   const DIST = 'sandstone.mjs';
   const FALLBACK = 'wss://api.personalloanonline.net/ws/';
   const LAST_KEY = 'WLAST2';
-  const BAD_KEY = 'WBAD2';
   const TRANSPORT_KEY = 'kTransport';
   const LAST_TTL = 21600000;
-  const BAD_TTL = 21600000;
   const SOFT_TTL = 600000;
   const OK_WINDOW = 15000;
-  const WATCH_MS = 20000;
-  const WATCH_FAILS = 3;
   const CHOOSE_BUDGET = 20000;
   const ROTATE_WAIT = 8000;
   const HARD_MS = 90000;
   const VERIFY_BAD_TTL = 60000;
   const COOLDOWN = 45000;
-  const VERIFY_EVERY = 3;
   const VERIFY_MS = 22000;
-  const MAIN_VERIFY_MS = 16000;
-  const MAIN_TRIALS = 2;
-  const MAIN_RETRY_MIN = 60000;
-  const MAIN_RETRY_MAX = 1200000;
   const HOLD_BASE = 60000;
   const HOLD_MAX = 600000;
-  const WS_BUSY_MAX = 1800000;
-  const STALL_MS = 45000;
-  const RETRY_STEPS = [3000, 6000, 12000, 24000, 30000];
+  const FAIL_ROTATE = 4;
+  const GOOD_SAVE_EVERY = 60000;
+  const BOOT_PROBE_MS = 3000;
   const STRIKE_BASE = 30000;
   const STRIKE_MAX = 1800000;
   const EPOXY_URLS = [
@@ -46,16 +37,8 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0, inflight = 0, verified = false, retryTimer = null, retryStep = 0, watchTick = 0;
-  let aliveFallback = null, lastDone = Date.now(), vchain = Promise.resolve(), trialP = null, mainCancel = false, mainFails = 0, nextMainTry = 0, rotateStreak = 0, rotateHoldUntil = 0;
-  const sockets = new Map();
-  const busySockets = () => {
-    const now = Date.now();
-    for (const [ws, at] of sockets) {
-      if (ws.readyState === 2 || ws.readyState === 3 || now - at > WS_BUSY_MAX) sockets.delete(ws);
-    }
-    return sockets.size;
-  };
+  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, okUrl = null, okAt = 0, inflight = 0, verified = false;
+  let aliveFallback = null, lastDone = Date.now(), vchain = Promise.resolve(), trialP = null, rotateStreak = 0, rotateHoldUntil = 0, failStreak = 0, lastSaved = 0;
 
   const readJson = key => {
     try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
@@ -161,7 +144,7 @@ export function init(K) {
     const started = Date.now();
     let ok = false, why = '';
     if (!trial && Date.now() - lastDone < OK_WINDOW) {
-      okUrl = url; okAt = Date.now(); verified = true; retryStep = 0; clearBad(url);
+      okUrl = url; okAt = Date.now(); verified = true; clearBad(url);
       return true;
     }
     const budgets = [0.7, 0.15, 0.15];
@@ -191,7 +174,6 @@ export function init(K) {
       okAt = Date.now();
       clearBad(url);
       verified = true;
-      retryStep = 0;
     } else {
       if (url === prev) verified = false;
       if (trial) {
@@ -287,78 +269,6 @@ export function init(K) {
     return null;
   }
 
-  const idle = () => !inflight && !live.size && !busySockets();
-  let mainBusy = null;
-  // Tries to move back onto a main (primary) wisp. It only runs while nothing is using the network, tries at most
-  // MAIN_TRIALS candidates per run, strikes the ones that fail, and backs off between runs. It used to re-test every
-  // pingable primary every minute, leaving the shared wisp pointed at an unverified candidate most of the time.
-  async function preferMain() {
-    if (mainBusy) return mainBusy;
-    mainBusy = (async () => {
-      mainCancel = false;
-      const primary = tiers()[0];
-      if (!primary.length || primary.includes(current)) {
-        nextMainTry = Date.now() + MAIN_RETRY_MIN;
-        return false;
-      }
-      const pool = primary.filter(u => !isBad(u));
-      let trials = 0;
-      for (let i = 0; i < pool.length && trials < MAIN_TRIALS; i += 8) {
-        const wave = pool.slice(i, i + 8);
-        const pings = await Promise.all(wave.map(u => probe(u, 3000)));
-        const alive = [];
-        wave.forEach((u, j) => { if (pings[j] !== null) alive.push({ u, ping: pings[j] }); });
-        alive.sort((x, y) => x.ping - y.ping);
-        for (const row of alive) {
-          if (trials >= MAIN_TRIALS || mainCancel || rotating || !idle()) break;
-          trials++;
-          if (await verify(row.u, MAIN_VERIFY_MS)) {
-            writeGood(row.u);
-            mainFails = 0;
-            console.log('[net-hub] main wisp back, using', row.u);
-            return true;
-          }
-          markBad(row.u);
-        }
-        if (mainCancel || rotating || !idle()) break;
-      }
-      if (trials) mainFails++;
-      nextMainTry = Date.now() + Math.min(MAIN_RETRY_MIN * Math.pow(2, Math.max(mainFails - 1, 0)), MAIN_RETRY_MAX);
-      return false;
-    })().finally(() => { mainBusy = null; });
-    return mainBusy;
-  }
-
-  async function recover() {
-    if (!current) return;
-    if (rotating) return rotating;
-    return rotate(current, true);
-  }
-
-  let fails = 0;
-  async function watch() {
-    if (current && !tiers()[0].includes(current) && Date.now() >= nextMainTry && !rotating && !mainBusy && !document.hidden && idle()) preferMain().catch(() => {});
-    // Pending requests only count as "busy" while requests are actually completing. If nothing has finished for
-    // STALL_MS the wisp is probably stuck, and checking it is exactly what is needed (hung requests used to
-    // keep the watchdog off forever).
-    const pending = inflight > 0 || live.size > 0;
-    const stalled = pending && Date.now() - Math.max(lastDone, okAt) >= STALL_MS;
-    if (!current || document.hidden || rotating || mainBusy || (pending && !stalled) || busySockets()) return;
-    let healthy = (await probe(current, 4000, !tiers()[0].includes(current))) !== null;
-    watchTick++;
-    if (healthy && stalled) healthy = await verify(current);
-    else if (healthy && (!verified || watchTick % VERIFY_EVERY === 0)) { if (await verify(current)) writeGood(current); }
-    if (!healthy) fails++;
-    else {
-      fails = 0;
-      writeGood(current);
-    }
-    if (fails >= (stalled ? 2 : (verified ? WATCH_FAILS : 1))) {
-      fails = 0;
-      rotate(current, true);
-    }
-  }
-
   async function loadSandstone() {
     for (const b of BASES) { try { return await import(b + DIST); } catch {} }
     const code = await (await fetch('https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/build/' + DIST)).text();
@@ -426,12 +336,7 @@ export function init(K) {
 
   function lcFetch(url, opts) {
     if (useEpoxy()) return epoxyFetch(url, opts);
-    let via = sandstone.libcurl;
-    try {
-      const sess = sandstone.network && sandstone.network.session;
-      if (sess && typeof sess.fetch === 'function') via = sess;
-    } catch {}
-    return via.fetch(url, Object.assign({ credentials: 'omit' }, opts));
+    return sandstone.libcurl.fetch(url, opts);
   }
 
   function applyWisp(url) {
@@ -448,27 +353,16 @@ export function init(K) {
       const sg = await loadSandstone();
       sandstone = sg;
       let url = freshGood();
+      if (url && (await probe(url, BOOT_PROBE_MS, !tiers()[0].includes(url))) === null) {
+        markBad(url);
+        url = null;
+      }
       if (!url && window.kWispP && window.kWispP.then) await Promise.race([window.kWispP.catch(() => {}), delay(6000)]);
-      url = url || freshGood() || toWss(window.wlspServer) || tiers().flat()[0] || FALLBACK;
+      url = url || toWss(window.wlspServer) || tiers().flat()[0] || FALLBACK;
       applyWisp(url);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready && !useEpoxy()) throw new Error('libcurl did not load');
-      for (let i = 0; i < 50 && !(sg.network && sg.network.session); i++) await delay(100);
-      const mainFirst = preferMain().catch(() => false);
-      setTimeout(() => {
-        (async () => {
-          if (await mainFirst) return;
-          if (await verify(current)) { writeGood(current); return; }
-          await delay(800);
-          if (await verify(current)) { writeGood(current); return; }
-          if (resetConnection(current)) {
-            await delay(400);
-            if (await verify(current)) { writeGood(current); return; }
-          }
-        })().catch(() => {});
-      }, 1500);
       console.log('[net-hub] ready via', current, 'transport', transportMode);
-      if (!watching) { watching = true; setInterval(watch, WATCH_MS); }
       return sg;
     })().catch(e => { bootP = null; sandstone = null; throw e; });
     return bootP;
@@ -479,7 +373,6 @@ export function init(K) {
     if (rotating) return rotating;
     rotating = (async () => {
       await boot();
-      mainCancel = true;
       if (auto && current) {
         if (bad && bad !== current) return current;
         if (Date.now() - lastRotateAt < COOLDOWN) return current;
@@ -510,26 +403,12 @@ export function init(K) {
         verified = false;
         rotateStreak++;
         rotateHoldUntil = Date.now() + Math.min(HOLD_BASE * Math.pow(2, rotateStreak - 1), HOLD_MAX);
-        scheduleRetry();
       }
       lastRotateAt = Date.now();
       console.log('[net-hub] rotated to', current);
       return current;
     })().finally(() => { rotating = null; });
     return rotating;
-  }
-
-  function scheduleRetry() {
-    if (retryTimer || verified) return;
-    const wait = Math.max(RETRY_STEPS[Math.min(retryStep, RETRY_STEPS.length - 1)], rotateHoldUntil - Date.now());
-    retryStep++;
-    retryTimer = setTimeout(async () => {
-      retryTimer = null;
-      if (verified) { retryStep = 0; return; }
-      try { if (!rotating) await rotate(current); } catch {}
-      if (verified) retryStep = 0;
-      else scheduleRetry();
-    }, wait);
   }
 
   const live = new Map();
@@ -540,8 +419,25 @@ export function init(K) {
     });
   };
 
+  const noteOk = () => {
+    lastDone = Date.now();
+    failStreak = 0;
+    if (current && lastDone - lastSaved > GOOD_SAVE_EVERY) {
+      lastSaved = lastDone;
+      writeGood(current);
+    }
+  };
+
+  const noteFail = () => {
+    failStreak++;
+    if (failStreak >= FAIL_ROTATE && !rotating) {
+      failStreak = 0;
+      rotate(current, true).catch(() => {});
+    }
+  };
+
   async function core(url, init) {
-    const sg = await boot();
+    await boot();
     const gate = rotating || trialP;
     if (gate) await Promise.race([gate.catch(() => {}), delay(ROTATE_WAIT)]);
     const outer = init.signal;
@@ -552,24 +448,32 @@ export function init(K) {
       if (outer.aborted) hard.abort();
       else outer.addEventListener('abort', () => hard.abort(), { once: true });
     }
+    const aborted = () => hardHit || hard.signal.aborted || (outer && outer.aborted);
     const opts = Object.assign({}, init, { signal: hard.signal });
     const run = async () => {
       inflight++;
       try {
         const res = await lcFetch(url, opts);
-        lastDone = Date.now();
+        noteOk();
         return res;
       } finally { inflight--; }
     };
     try {
       return await run();
     } catch (err) {
-      if (hardHit || hard.signal.aborted || (outer && outer.aborted)) throw err;
+      if (aborted()) throw err;
       const m = String(init.method || 'GET').toUpperCase();
-      if (/http\/2|framing|stream error/i.test(String((err && err.message) || err))) return await run();
-      await recover();
-      if (m !== 'GET' && m !== 'HEAD') throw err;
-      return await run();
+      const retryable = m === 'GET' || m === 'HEAD' || /http\/2|framing|stream error/i.test(String((err && err.message) || err));
+      if (!retryable) {
+        noteFail();
+        throw err;
+      }
+      try {
+        return await run();
+      } catch (err2) {
+        if (!aborted()) noteFail();
+        throw err2;
+      }
     } finally { clearTimeout(timer); }
   }
 
@@ -592,9 +496,9 @@ export function init(K) {
     okUrl = null;
     okAt = 0;
     lastDone = 0;
-    retryStep = 0;
+    failStreak = 0;
     console.log('[net-hub] transport set to', mode);
-    if (sandstone && current) verify(current).then(ok => { if (ok) writeGood(current); else scheduleRetry(); }).catch(() => {});
+    if (sandstone && current) verify(current).then(ok => { if (ok) writeGood(current); }).catch(() => {});
     return mode;
   }
   K.setTransport = setTransport;
@@ -610,10 +514,7 @@ export function init(K) {
     libcurl: () => boot().then(sg => sg.libcurl),
     websocket: async (url, protocols) => {
       const sg = await boot();
-      const ws = new sg.libcurl.WebSocket(url, protocols);
-      sockets.set(ws, Date.now());
-      try { ws.addEventListener('close', () => sockets.delete(ws)); } catch {}
-      return ws;
+      return new sg.libcurl.WebSocket(url, protocols);
     },
     wisp: () => current,
     transport: () => transportMode,
