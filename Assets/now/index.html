@@ -177,6 +177,7 @@ body.embed #settings label{color:var(--e-dim)}
 <input id="su-dob" type="date" autocomplete="bday" aria-label="Date of birth" required>
 <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;text-align:left"><input id="su-terms" type="checkbox" style="width:auto;margin-top:3px" required><span>I agree to NVIDIA's terms and privacy policy.</span></label>
 <button class="btn ghost" id="su-cap-btn" type="button">Solve the human check</button>
+<div id="su-capframe" hidden style="width:100%"></div>
 <small id="su-cap-state"></small>
 <button class="btn" id="su-submit" type="submit">Create account</button>
 </form>
@@ -559,11 +560,46 @@ let capToken = null;
 function setCapState(t) { $("su-cap-state").textContent = t; }
 function loadCaptcha() {}
 function resetCaptcha() { capToken = null; setCapState("Solve the human check again before retrying."); }
-function openCaptcha() {
-  const w = window.open(new URL("captcha.html", location.href).href, "now-captcha", "width=420,height=560");
-  if (!w) setCapState("Your browser blocked the popup. Allow popups for this site and try again.");
-  else setCapState("Waiting for you to solve it…");
+let capFrame = null, capPoll = 0;
+function captchaUrl() {
+  const base = /^https?:/.test(location.href) ? location.href : "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/now/";
+  return new URL("captcha.html", base).href;
 }
+function openCaptchaPopup() {
+  const w = window.open(captchaUrl(), "now-captcha", "width=420,height=560");
+  setCapState(w ? "Waiting for you to solve it…" : "Your browser blocked the popup. Allow popups for this site and try again.");
+}
+async function openCaptcha() {
+  const box = $("su-capframe"), id = ++capPoll;
+  try {
+    const hub = findHub();
+    if (!hub) throw new Error("net hub unavailable");
+    setCapState("Loading the human check through the proxy…");
+    await hub.ready();
+    const sg = await hub.sandstone();
+    if (!capFrame) {
+      capFrame = new sg.controller.ProxyFrame();
+      capFrame.iframe.style.cssText = "width:100%;height:540px;border:0;border-radius:12px;background:#0b0d10";
+    }
+    box.hidden = false;
+    box.append(capFrame.iframe);
+    await capFrame.navigate_to(captchaUrl());
+    setCapState("Solve the human check above.");
+    for (let t = 0; t < 180 && id === capPoll; t++) {
+      await sleep(1000);
+      let r = "";
+      try { r = await capFrame.eval_js("window.__capToken||''"); } catch {}
+      r = typeof r === "string" ? r : (r && (r.result || r.value)) || "";
+      if (r) { capToken = r; box.hidden = true; setCapState("Human check solved. Now press Create account."); return; }
+    }
+    if (id === capPoll) setCapState("The human check timed out. Press the button to try again.");
+  } catch (e) {
+    log("[auth] proxied captcha failed, using popup", (e && e.message) || e);
+    box.hidden = true;
+    openCaptchaPopup();
+  }
+}
+
 window.addEventListener("message", (ev) => {
   if (ev.origin !== location.origin || !ev.data || ev.data.type !== "now-captcha" || !ev.data.token) return;
   capToken = ev.data.token;

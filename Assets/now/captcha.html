@@ -9,8 +9,9 @@
 const KEY = "3443d8f6-da7a-4326-929f-4d7fc89ab0d1";
 const m = document.getElementById("m");
 function done(t) {
-  try { (window.opener || parent).postMessage({ type: "now-captcha", token: t }, location.origin); m.textContent = "Done. You can close this window."; setTimeout(() => window.close(), 400); }
-  catch (e) { m.textContent = "Could not return to the sign-up page. Reopen it from there."; }
+  window.__capToken = t; // read by the host page when this runs inside the proxy frame
+  m.textContent = "Done. You can close this window.";
+  try { if (window.opener) { window.opener.postMessage({ type: "now-captcha", token: t }, location.origin); setTimeout(() => window.close(), 400); } } catch (e) {}
 }
 window.onLoad = () => hcaptcha.render("c", { sitekey: KEY, theme: "dark", callback: done, "error-callback": (e) => { m.textContent = "Captcha error: " + e; } });
 const s = document.createElement("script");
