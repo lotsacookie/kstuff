@@ -552,7 +552,7 @@ async function registerStage() {
   const u = flow.signup;
   flow.signup = null; // one attempt only; the user re-enters on failure
   setWait("Creating your account…", "");
-  const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false };
+  const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false, deviceId: JARVIS_DEVICE, authFactorType: "WebAuthn" };
   const mine = run;
   await sleep(2500); // NVIDIA rejects a register that arrives right after the session starts
   let r = await api(EP.register, body);
@@ -561,7 +561,20 @@ async function registerStage() {
     alive(mine);
     r = await api(EP.register, body);
   }
-  if (!r.ok) throw apiError(r);
+  for (let i = 0; i < 3 && !r.ok && /SCHEMA_VIOLATION/.test(r.text); i++) {
+    // drop any field NVIDIA says it does not accept, then try again
+    const det = (r.json && (r.json.details || (r.json.error && r.json.error.details))) || [];
+    const bad = det.map((d) => String(d.field || "").split(".")[0]).filter((f) => f in body && f !== "email" && f !== "password" && f !== "displayName");
+    if (!bad.length) break;
+    log("[auth] register dropping", bad.join(","));
+    bad.forEach((f) => delete body[f]);
+    r = await api(EP.register, body);
+  }
+  if (!r.ok) {
+    const e = apiError(r);
+    if (/SCHEMA_VIOLATION/.test(r.text)) e.message += " " + r.text.slice(0, 300);
+    throw e;
+  }
   log("[auth] account registered");
 }
 
