@@ -164,10 +164,20 @@ body.embed #settings label{color:var(--e-dim)}
 </section>
 <section class="card" id="signup-card">
 <h1>Create account</h1>
-<p>NVIDIA protects new accounts with a human check, so you create the account yourself on NVIDIA's own page: enter your details there and confirm the email NVIDIA sends you. Nothing is filled in for you.</p>
-<button class="btn" id="su-open" type="button">Open NVIDIA sign-up</button>
-<button class="btn ghost" id="su-back" type="button">I verified my email, sign in</button>
-<small>Opens in a new tab. If it doesn't load, use the sign-up link on the GeForce NOW site.</small>
+<p>Enter your own details for a new NVIDIA account and solve the human check yourself. NVIDIA then emails you to confirm the address, and you confirm it yourself.</p>
+<p class="err" id="signup-error" hidden></p>
+<form id="signup-form">
+<input id="su-email" type="email" inputmode="email" autocomplete="email" placeholder="Email" required>
+<input id="su-name" type="text" autocomplete="nickname" placeholder="Display name" minlength="3" maxlength="32" required>
+<input id="su-pw" type="password" autocomplete="new-password" placeholder="Password" minlength="8" required>
+<input id="su-pw2" type="password" autocomplete="new-password" placeholder="Confirm password" minlength="8" required>
+<input id="su-dob" type="date" autocomplete="bday" aria-label="Date of birth" required>
+<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;text-align:left"><input id="su-terms" type="checkbox" style="width:auto;margin-top:3px" required><span>I agree to NVIDIA's terms and privacy policy.</span></label>
+<div id="su-captcha" style="min-height:78px;display:flex;justify-content:center"></div>
+<button class="btn" id="su-submit" type="submit">Create account</button>
+</form>
+<button class="btn ghost" id="su-open" type="button">Sign up on NVIDIA's page instead</button>
+<button class="btn ghost" id="su-back" type="button">Back to sign in</button>
 </section>
 <section class="card" id="wait-card">
 <h1 id="wait-title">Working…</h1>
@@ -297,6 +307,7 @@ const EP = {
   consent: "/api/1/frontend/oauth/user/consent",
   password: "/api/1/frontend/oauth/user/login/password",
   register: "/api/1/frontend/oauth/user/register",
+  validator: "/api/1/frontend/oauth/validator",
   verifyPoll: "/api/1/frontend/oauth/user/email/verification/poll",
   skipFactorSetup: "/api/1/frontend/oauth/auth/factor/setup/skip",
   skipPasskeySetup: "/api/1/frontend/oauth/passkey/setup/skip",
@@ -540,6 +551,24 @@ async function passwordStage(mine) {
   throw new Error("Too many wrong passwords.");
 }
 
+const HCAPTCHA_KEY = "3443d8f6-da7a-4326-929f-4d7fc89ab0d1"; // NVIDIA sign-up hCaptcha (from the reference login page config)
+let capToken = null, capWidget = null, capLoading = false;
+function loadCaptcha() {
+  if (capWidget !== null || capLoading) return;
+  capLoading = true;
+  window.__hcLoaded = () => {
+    try {
+      capWidget = hcaptcha.render("su-captcha", { sitekey: HCAPTCHA_KEY, theme: "dark", callback: (t) => { capToken = t; }, "expired-callback": () => { capToken = null; }, "error-callback": () => { capToken = null; } });
+    } catch (e) { capLoading = false; log("[auth] captcha render failed", e && e.message); }
+  };
+  const sc = document.createElement("script");
+  sc.src = "https://hcaptcha.com/1/api.js?render=explicit&onload=__hcLoaded";
+  sc.async = true;
+  sc.onerror = () => { capLoading = false; setError("signup-error", "Could not load the captcha. Check your connection and try again."); };
+  document.head.appendChild(sc);
+}
+function resetCaptcha() { capToken = null; try { if (capWidget !== null) hcaptcha.reset(capWidget); } catch {} }
+
 async function registerStage() {
   const u = flow.signup;
   flow.signup = null; // one attempt only; the user re-enters on failure
@@ -547,6 +576,13 @@ async function registerStage() {
   const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false, deviceId: JARVIS_DEVICE, authFactorType: "WebAuthn" };
   const mine = run;
   await sleep(2500); // NVIDIA rejects a register that arrives right after the session starts
+  const k = flow.key;
+  const vc = await api(EP.validator, null, "GET", true);
+  flow.key = k; // the validator reply must not replace the session key
+  if (!vc.ok) throw apiError(vc);
+  const c = (vc.json && vc.json.validation) || vc.json || {};
+  body.validation = { key: c.key, type: c.type, captchaMode: c.captchaMode, response: u.captcha };
+  log("[auth] validator", String(c.type), String(c.captchaMode));
   let r = await api(EP.register, body);
   for (let i = 0; i < 5 && !r.ok && /EARLY_REQUEST/.test(r.text); i++) {
     await sleep(3000 + i * 2000);
@@ -556,7 +592,7 @@ async function registerStage() {
   for (let i = 0; i < 3 && !r.ok && /SCHEMA_VIOLATION/.test(r.text); i++) {
     // drop any field NVIDIA says it does not accept, then try again
     const det = (r.json && (r.json.details || (r.json.error && r.json.error.details))) || [];
-    const bad = det.map((d) => String(d.field || "").split(".")[0]).filter((f) => f in body && f !== "email" && f !== "password" && f !== "displayName");
+    const bad = det.map((d) => String(d.field || "").split(".")[0]).filter((f) => f in body && f !== "email" && f !== "password" && f !== "displayName" && f !== "validation");
     if (!bad.length) break;
     log("[auth] register dropping", bad.join(","));
     bad.forEach((f) => delete body[f]);
@@ -743,7 +779,9 @@ async function onSignup(ev) {
   const email = $("su-email").value.trim(), pw = $("su-pw").value;
   if (pw !== $("su-pw2").value) { setError("signup-error", "The passwords do not match."); return; }
   if (!$("su-terms").checked) { setError("signup-error", "Please accept the terms to continue."); return; }
-  const signup = { displayName: $("su-name").value.trim(), password: pw, birthdate: $("su-dob").value };
+  if (!capToken) { setError("signup-error", "Please complete the captcha first."); return; }
+  const signup = { displayName: $("su-name").value.trim(), password: pw, birthdate: $("su-dob").value, captcha: capToken };
+  capToken = null;
   setWait("Contacting NVIDIA…", "");
   try {
     const tokens = await startLogin(email, signup);
@@ -753,6 +791,7 @@ async function onSignup(ev) {
     if (e && e.cancelled) return;
     log("[auth] sign-up failed", (e && e.message) || e);
     flow = null;
+    resetCaptcha();
     setError("signup-error", e && e.message ? e.message : String(e));
     show("signup-card");
   }
@@ -1385,7 +1424,8 @@ async function copy(text, btn) {
 }
 
 $("email-form").addEventListener("submit", onEmail);
-$("to-signup").addEventListener("click", () => show("signup-card"));
+$("signup-form").addEventListener("submit", onSignup);
+$("to-signup").addEventListener("click", () => { $("su-email").value = $("email").value; setError("signup-error", ""); show("signup-card"); loadCaptcha(); });
 $("su-open").addEventListener("click", () => window.open("https://login.nvidia.com/signup", "_blank", "noopener"));
 $("su-back").addEventListener("click", () => show("email-card"));
 $("code-form").addEventListener("submit", onCode);
