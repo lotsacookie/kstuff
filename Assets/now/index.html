@@ -613,10 +613,10 @@ async function registerStage() {
   const k = flow.key;
   const vc = await api(EP.validator, null, "GET", true);
   flow.key = k; // the validator reply must not replace the session key
-  if (!vc.ok) throw apiError(vc);
+  if (!vc.ok) { const ve = apiError(vc); ve.message += " [validator " + vc.status + "] " + vc.text.slice(0, 300); throw ve; }
   const c = (vc.json && vc.json.validation) || vc.json || {};
   body.validation = { key: c.key, type: c.type, captchaMode: c.captchaMode, response: u.captcha };
-  log("[auth] validator", String(c.type), String(c.captchaMode));
+  log("[auth] validator", String(c.type), String(c.captchaMode), String(c.key).slice(0, 12), "token", String(u.captcha).length);
   let r = await api(EP.register, body);
   for (let i = 0; i < 5 && !r.ok && /EARLY_REQUEST/.test(r.text); i++) {
     await sleep(3000 + i * 2000);
@@ -634,7 +634,7 @@ async function registerStage() {
   }
   if (!r.ok) {
     const e = apiError(r);
-    if (/SCHEMA_VIOLATION/.test(r.text)) e.message += " " + r.text.slice(0, 300);
+    e.message += " [register " + r.status + "] " + r.text.slice(0, 400);
     throw e;
   }
   log("[auth] account registered");
