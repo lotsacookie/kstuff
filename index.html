@@ -190,7 +190,7 @@ async function legacy(){
             <button class="nav-btn" data-target="changelog" title="Changelog"><i class="ph ph-list-bullets"></i><span class="label-data"><div>g</div><div>o</div><div>l</div><div>e</div><div>g</div><div>n</div><div>a</div><div>h</div><div>C</div></span></button>
             <button class="nav-btn" data-target="homeworkhelper"><i class="ph ph-gear"></i><span class="label-data"><div>s</div><div>g</div><div>n</div><div>i</div><div>t</div><div>t</div><div>e</div><div>S</div></span></button>
             <button class="nav-btn" data-target="profile" id="profile-nav-btn"><i class="ph ph-user" id="profile-nav-icon"></i><span class="label-data"><div>e</div><div>l</div><div>i</div><div>f</div><div>o</div><div>r</div><div>P</div></span></button>
-            <button class="nav-os-btn" id="os-mode-btn" title="OS Mode" aria-label="OS Mode"><i class="ph ph-desktop-tower"></i><span class="label-data"><div>e</div><div>d</div><div>o</div><div>M</div><div> </div><div>S</div><div>O</div></span></button>
+            <button class="nav-os-btn" id="os-mode-btn" hidden title="OS Mode" aria-label="OS Mode"><i class="ph ph-desktop-tower"></i><span class="label-data"><div>e</div><div>d</div><div>o</div><div>M</div><div> </div><div>S</div><div>O</div></span></button>
             </div>
             <div class="nav-indicator"></div>
         </nav>
@@ -452,6 +452,12 @@ const R='lotsacookie/kstuff',B='Assets/os/';
 const srcs=f=>[`https://cdn.jsdelivr.net/gh/${R}@main/${B}${f}?i_=${Date.now()}`,`https://api.github.com/repos/${R}/contents/${B}${f}?ref=main`,B+f];
 const get=async f=>{for(const u of srcs(f)){try{const r=await fetch(u,u.includes('api.github.com')?{headers:{Accept:'application/vnd.github.raw'}}:{});if(r.ok)return r}catch(_){}}throw new Error('os asset failed: '+f)};
 window.__osGet=get;
+const OS_USER='lotzi';
+const who=()=>{try{const u=(window.K&&K.currentUser)||JSON.parse(localStorage.getItem('kstuff_user')||'null');return String(u&&u.username||'').trim().toLowerCase()}catch(_){return ''}};
+const allowed=()=>who()===OS_USER;
+const sync=()=>{const b=document.getElementById('os-mode-btn');if(b)b.hidden=!allowed()};
+const st=document.createElement('style');st.textContent='#os-mode-btn[hidden]{display:none!important}';document.head.appendChild(st);
+sync();setInterval(sync,1500);window.addEventListener('storage',sync);window.addEventListener('load',sync);
 const enter=async()=>{
   const [idx,css,js,wp]=await Promise.all(['index.html','os.css','os.js','wallpaper.svg'].map(f=>get(f).then(r=>r.text())));
   const wall=URL.createObjectURL(new Blob([wp],{type:'image/svg+xml'}));
@@ -466,7 +472,7 @@ const enter=async()=>{
   const s=document.createElement('script');s.textContent=js;document.body.appendChild(s);
   requestAnimationFrame(()=>{const f=document.getElementById('os-fade');if(f)f.remove()}); // both sides are black: seamless
 };
-document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#os-mode-btn');if(!b)return;e.preventDefault();e.stopPropagation();if(window.__osLaunching)return;window.__osLaunching=true;
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#os-mode-btn');if(!b)return;e.preventDefault();e.stopPropagation();if(!allowed()||window.__osLaunching)return;window.__osLaunching=true;
   const f=document.createElement('div');f.id='os-fade';document.documentElement.appendChild(f);void f.offsetWidth;f.classList.add('on');
   const wait=new Promise(r=>setTimeout(r,800));
   Promise.all([wait,Promise.all(['index.html','os.css','os.js','wallpaper.svg'].map(get))]).then(enter).catch(err=>{console.error(err);window.__osLaunching=false;f.classList.remove('on');setTimeout(()=>f.remove(),800)});
