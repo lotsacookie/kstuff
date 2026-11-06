@@ -689,8 +689,13 @@ async function startLogin(email, signup) {
   alive(mine);
   flow.email = email;
   flow.signup = signup || null;
-  const first = await api(EP.check, { email, rememberLogin: false, deviceId: JARVIS_DEVICE });
-  if (!first.ok) throw apiError(first);
+  if (flow.signup) {
+    // Like NVIDIA's own page, sign-up goes straight to register on a fresh session; account/check only knows existing accounts.
+    await registerStage();
+  } else {
+    const first = await api(EP.check, { email, rememberLogin: false, deviceId: JARVIS_DEVICE });
+    if (!first.ok) throw apiError(first);
+  }
   const landed = await drive(mine);
   alive(mine);
   return claimTokens(landed);
