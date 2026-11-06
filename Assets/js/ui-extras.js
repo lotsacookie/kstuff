@@ -474,13 +474,14 @@ export function init(K) {
     };
 
     let ready = null;
+    let loaded = null;
     const ensure = () => ready || (ready = load().then(entries => {
-      if (entries) render(entries); else { status('Change log unavailable'); ready = null; }
+      if (entries) { loaded = entries; render(entries); } else { status('Change log unavailable'); ready = null; }
       return entries;
     }));
 
     K.openChangelog = () => {
-      status('Loading...');
+      if (loaded) render(loaded); else status('Loading...');
       modal.classList.add('active');
       ensure();
     };
