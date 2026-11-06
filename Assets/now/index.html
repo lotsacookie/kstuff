@@ -173,7 +173,8 @@ body.embed #settings label{color:var(--e-dim)}
 <input id="su-pw2" type="password" autocomplete="new-password" placeholder="Confirm password" minlength="8" required>
 <input id="su-dob" type="date" autocomplete="bday" aria-label="Date of birth" required>
 <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;text-align:left"><input id="su-terms" type="checkbox" style="width:auto;margin-top:3px" required><span>I agree to NVIDIA's terms and privacy policy.</span></label>
-<div id="su-captcha" style="min-height:78px;display:flex;justify-content:center"></div>
+<button class="btn ghost" id="su-cap-btn" type="button">Solve the human check</button>
+<small id="su-cap-state"></small>
 <button class="btn" id="su-submit" type="submit">Create account</button>
 </form>
 <button class="btn ghost" id="su-open" type="button">Sign up on NVIDIA's page instead</button>
@@ -551,23 +552,20 @@ async function passwordStage(mine) {
   throw new Error("Too many wrong passwords.");
 }
 
-const HCAPTCHA_KEY = "3443d8f6-da7a-4326-929f-4d7fc89ab0d1"; // NVIDIA sign-up hCaptcha (from the reference login page config)
-let capToken = null, capWidget = null, capLoading = false;
-function loadCaptcha() {
-  if (capWidget !== null || capLoading) return;
-  capLoading = true;
-  window.__hcLoaded = () => {
-    try {
-      capWidget = hcaptcha.render("su-captcha", { sitekey: HCAPTCHA_KEY, theme: "dark", callback: (t) => { capToken = t; }, "expired-callback": () => { capToken = null; }, "error-callback": () => { capToken = null; } });
-    } catch (e) { capLoading = false; log("[auth] captcha render failed", e && e.message); }
-  };
-  const sc = document.createElement("script");
-  sc.src = "https://hcaptcha.com/1/api.js?render=explicit&onload=__hcLoaded";
-  sc.async = true;
-  sc.onerror = () => { capLoading = false; setError("signup-error", "Could not load the captcha. Check your connection and try again."); };
-  document.head.appendChild(sc);
+let capToken = null;
+function setCapState(t) { $("su-cap-state").textContent = t; }
+function loadCaptcha() {}
+function resetCaptcha() { capToken = null; setCapState("Solve the human check again before retrying."); }
+function openCaptcha() {
+  const w = window.open(new URL("captcha.html", location.href).href, "now-captcha", "width=420,height=560");
+  if (!w) setCapState("Your browser blocked the popup. Allow popups for this site and try again.");
+  else setCapState("Waiting for you to solve it…");
 }
-function resetCaptcha() { capToken = null; try { if (capWidget !== null) hcaptcha.reset(capWidget); } catch {} }
+window.addEventListener("message", (ev) => {
+  if (ev.origin !== location.origin || !ev.data || ev.data.type !== "now-captcha" || !ev.data.token) return;
+  capToken = ev.data.token;
+  setCapState("Human check solved. Now press Create account.");
+});
 
 async function registerStage() {
   const u = flow.signup;
@@ -1425,6 +1423,7 @@ async function copy(text, btn) {
 
 $("email-form").addEventListener("submit", onEmail);
 $("signup-form").addEventListener("submit", onSignup);
+$("su-cap-btn").addEventListener("click", openCaptcha);
 $("to-signup").addEventListener("click", () => { $("su-email").value = $("email").value; setError("signup-error", ""); show("signup-card"); loadCaptcha(); });
 $("su-open").addEventListener("click", () => window.open("https://login.nvidia.com/signup", "_blank", "noopener"));
 $("su-back").addEventListener("click", () => show("email-card"));
