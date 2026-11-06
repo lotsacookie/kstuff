@@ -322,7 +322,8 @@ export function init(K) {
     if (!current || document.hidden || rotating || mainBusy || (pending && !stalled) || busySockets()) return;
     let healthy = (await probe(current, 4000, !tiers()[0].includes(current))) !== null;
     watchTick++;
-    if (healthy && (stalled || !verified || watchTick % VERIFY_EVERY === 0)) healthy = await verify(current);
+    if (healthy && stalled) healthy = await verify(current);
+    else if (healthy && (!verified || watchTick % VERIFY_EVERY === 0)) { if (await verify(current)) writeGood(current); }
     if (!healthy) fails++;
     else {
       fails = 0;
@@ -369,7 +370,6 @@ export function init(K) {
             await delay(400);
             if (await verify(current)) { writeGood(current); return; }
           }
-          rotate(current);
         })().catch(() => {});
       }, 1500);
       console.log('[net-hub] ready via', current);
