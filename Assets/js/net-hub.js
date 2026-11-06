@@ -31,6 +31,12 @@ export function init(K) {
   const RETRY_STEPS = [3000, 6000, 12000, 24000, 30000];
   const STRIKE_BASE = 30000;
   const STRIKE_MAX = 1800000;
+  const EPOXY_URLS = [
+    'https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-tls@2.1.19-1/full/epoxy-bundled.js',
+    'https://fastly.jsdelivr.net/npm/@mercuryworkshop/epoxy-tls@2.1.19-1/full/epoxy-bundled.js'
+  ];
+  const EPOXY_VERIFY_MS = 12000;
+  const EPOXY_STICKY = 600000;
   const CHECK_URLS = ['https://deepai.org/favicon.ico', 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json', 'https://login.nvidia.com/.well-known/openid-configuration', 'https://www.gstatic.com/generate_204', 'https://api.deezer.com/infos', 'https://www.cloudflare.com/cdn-cgi/trace'];
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
@@ -169,6 +175,22 @@ export function init(K) {
         why_list.push(CHECK_URLS[i] + ' -> ' + res.status + ' ' + (Date.now() - t0) + 'ms');
       } catch (e) {
         why_list.push(CHECK_URLS[i] + ' -> ' + String((e && e.message) || e));
+      }
+    }
+    if (ok) epoxyUntil.delete(url);
+    if (!ok) {
+      const t0 = Date.now();
+      try {
+        const lim = Math.max(Math.min(EPOXY_VERIFY_MS, ms - (Date.now() - started)), 8000);
+        const r = await Promise.race([
+          epoxyFetch(CHECK_URLS[0], { method: 'GET' }).then(async x => { await x.arrayBuffer(); return x; }),
+          delay(lim).then(() => { throw new Error('timeout ' + lim + 'ms'); })
+        ]);
+        ok = true;
+        epoxyUntil.set(url, Date.now() + EPOXY_STICKY);
+        why_list.push('epoxy ' + CHECK_URLS[0] + ' -> ' + r.status + ' ' + (Date.now() - t0) + 'ms');
+      } catch (e) {
+        why_list.push('epoxy -> ' + String((e && e.message) || e));
       }
     }
     why = why_list.join(' | ');
@@ -345,7 +367,61 @@ export function init(K) {
     return import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   }
 
+  const epoxyUntil = new Map();
+  const epoxyClients = new Map();
+  let epoxyLoad = null;
+  const isEpoxy = u => !!u && (epoxyUntil.get(u) || 0) > Date.now();
+
+  function loadEpoxy() {
+    if (epoxyLoad) return epoxyLoad;
+    epoxyLoad = (async () => {
+      let last = null;
+      for (const u of EPOXY_URLS) {
+        try {
+          const m = await import(u);
+          if (typeof m.default === 'function') await m.default();
+          if (!m.EpoxyClient || !m.EpoxyClientOptions) throw new Error('epoxy exports missing');
+          return m;
+        } catch (e) { last = e; }
+      }
+      throw last || new Error('epoxy failed to load');
+    })().catch(e => { epoxyLoad = null; throw e; });
+    return epoxyLoad;
+  }
+
+  function epoxyFor(url) {
+    let c = epoxyClients.get(url);
+    if (!c) {
+      c = loadEpoxy().then(async m => {
+        const o = new m.EpoxyClientOptions();
+        o.user_agent = navigator.userAgent;
+        return await new m.EpoxyClient(url, o);
+      });
+      c.catch(() => { if (epoxyClients.get(url) === c) epoxyClients.delete(url); });
+      epoxyClients.set(url, c);
+    }
+    return c;
+  }
+
+  async function epoxyFetch(url, init) {
+    const c = await epoxyFor(current);
+    const o = { method: (init && init.method) || 'GET', redirect: (init && init.redirect) || 'follow' };
+    const h = init && init.headers;
+    if (h) o.headers = h instanceof Headers ? Object.fromEntries(h.entries()) : Array.isArray(h) ? Object.fromEntries(h) : Object.assign({}, h);
+    if (init && init.body != null) o.body = init.body;
+    const p = c.fetch(String(url), o);
+    const sig = init && init.signal;
+    if (!sig) return p;
+    return new Promise((res, rej) => {
+      const abort = () => rej(new DOMException('The operation was aborted.', 'AbortError'));
+      if (sig.aborted) { abort(); return; }
+      sig.addEventListener('abort', abort, { once: true });
+      p.then(res, rej);
+    });
+  }
+
   function lcFetch(url, opts) {
+    if (isEpoxy(current)) return epoxyFetch(url, opts);
     let via = sandstone.libcurl;
     try {
       const sess = sandstone.network && sandstone.network.session;
@@ -486,6 +562,17 @@ export function init(K) {
     } catch (err) {
       if (hardHit || hard.signal.aborted || (outer && outer.aborted)) throw err;
       const m = String(init.method || 'GET').toUpperCase();
+      if (isEpoxy(current)) epoxyUntil.delete(current);
+      else if (m === 'GET' || m === 'HEAD') {
+        inflight++;
+        try {
+          const res = await epoxyFetch(url, opts);
+          lastDone = Date.now();
+          epoxyUntil.set(current, Date.now() + EPOXY_STICKY);
+          console.log('[net-hub] epoxy fallback active for', current);
+          return res;
+        } catch {} finally { inflight--; }
+      }
       if (/http\/2|framing|stream error/i.test(String((err && err.message) || err))) return await run();
       await recover();
       if (m !== 'GET' && m !== 'HEAD') throw err;
@@ -515,7 +602,8 @@ export function init(K) {
       try { ws.addEventListener('close', () => sockets.delete(ws)); } catch {}
       return ws;
     },
-    wisp: () => current
+    wisp: () => current,
+    transport: () => (isEpoxy(current) ? 'epoxy' : 'libcurl')
   };
 
   async function handleFetch(d, reply) {
