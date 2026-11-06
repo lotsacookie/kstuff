@@ -43,7 +43,7 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, okUrl = null, okAt = 0, inflight = 0, verified = false, linkUp = false, booted = false;
+  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, okUrl = null, okAt = 0, inflight = 0, verified = false, linkUp = false, booted = false, okSeen = false;
   let aliveFallback = null, lastDone = Date.now(), vchain = Promise.resolve(), trialP = null, rotateStreak = 0, rotateHoldUntil = 0, failStreak = 0, lastSaved = 0;
 
   const readJson = key => {
@@ -190,7 +190,7 @@ export function init(K) {
     }
     const started = Date.now();
     let ok = false, why = '';
-    if (!other && Date.now() - lastDone < OK_WINDOW) {
+    if (!other && okSeen && Date.now() - lastDone < OK_WINDOW) {
       okUrl = url; okAt = Date.now(); verified = true; clearBad(url);
       return true;
     }
@@ -225,7 +225,6 @@ export function init(K) {
       if (!other) setLink(true);
     } else {
       if (url === prev) verified = false;
-      if (!other) setLink(false);
       if (other) resetConnection(url, true);
       if (trial && prev && current === url) applyWisp(prev);
     }
@@ -681,7 +680,9 @@ export function init(K) {
 
   const noteOk = () => {
     lastDone = Date.now();
+    okSeen = true;
     failStreak = 0;
+    monitorFails = 0;
     if (current) setLink(true);
     if (current && lastDone - lastSaved > GOOD_SAVE_EVERY) {
       lastSaved = lastDone;
@@ -691,7 +692,7 @@ export function init(K) {
 
   const noteFail = () => {
     failStreak++;
-    if (failStreak >= 2) setLink(false);
+    if (failStreak >= 2) setTimeout(() => linkMonitor(true), 1500);
     if (failStreak >= FAIL_ROTATE && !rotating) {
       failStreak = 0;
       rotate(current, true).catch(() => {});
@@ -862,13 +863,23 @@ export function init(K) {
     linkUp = !!value;
     updateConnUi();
   }
-  async function linkMonitor() {
+  let monitorFails = 0;
+  async function linkMonitor(force) {
     if (document.hidden || !sandstone || !current || rotating || trialP) return;
     if (navigator.onLine === false) { setLink(false); return; }
-    if (linkUp && Date.now() - lastDone < 30000) return;
-    try { await verify(current); } catch { setLink(false); }
+    if (force !== true && linkUp && Date.now() - lastDone < 30000) return;
+    let ok = false;
+    try { ok = await verify(current); } catch {}
+    if (ok) {
+      monitorFails = 0;
+      setLink(true);
+      return;
+    }
+    monitorFails++;
+    if (monitorFails >= 2) setLink(false);
+    else setTimeout(() => linkMonitor(true), 4000);
   }
-  setInterval(linkMonitor, 30000);
+  setInterval(linkMonitor, 15000);
   window.addEventListener('online', () => setTimeout(linkMonitor, 500));
   window.addEventListener('offline', () => setLink(false));
   document.addEventListener('visibilitychange', () => { if (!document.hidden) linkMonitor(); });
