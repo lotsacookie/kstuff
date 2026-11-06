@@ -165,7 +165,11 @@ export function init(K) {
     try { localStorage.setItem(key, String(value)); } catch {}
   };
 
+  const isMainEntry = entry => K.WISP_SERVERS.some(e => !isBackupServer(e) && normKey(e) === normKey(entry));
+
   function testWlspDomain(entry, timeoutMs = TEST_TIMEOUT) {
+    const plain = !isMainEntry(entry);
+    const openedAt = performance.now();
     return new Promise(resolve => {
       let ws;
       try {
@@ -195,6 +199,7 @@ export function init(K) {
           if (type === 5 && stream === 0) {
             ws.send(new Uint8Array([5, 0, 0, 0, 0, 2, 1]));
           } else if (type === 3 && stream === 0) {
+            if (plain) { finish(Math.round(performance.now() - openedAt)); return; }
             connected = true;
             const host = new TextEncoder().encode('127.0.0.1');
             const buf = new ArrayBuffer(8 + host.length);

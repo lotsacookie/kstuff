@@ -20,7 +20,7 @@ export function init(K) {
   const COOLDOWN = 45000;
   const VERIFY_EVERY = 3;
   const VERIFY_MS = 12000;
-  const MAIN_VERIFY_MS = 6000;
+  const MAIN_VERIFY_MS = 10000;
   const MAIN_TRIALS = 2;
   const MAIN_RETRY_MIN = 60000;
   const MAIN_RETRY_MAX = 1200000;
@@ -31,7 +31,7 @@ export function init(K) {
   const RETRY_STEPS = [3000, 6000, 12000, 24000, 30000];
   const STRIKE_BASE = 30000;
   const STRIKE_MAX = 1800000;
-  const CHECK_URLS = ['https://www.gstatic.com/generate_204', 'https://api.deezer.com/infos', 'https://www.cloudflare.com/cdn-cgi/trace'];
+  const CHECK_URLS = ['https://login.nvidia.com/.well-known/openid-configuration', 'https://www.gstatic.com/generate_204', 'https://api.deezer.com/infos', 'https://www.cloudflare.com/cdn-cgi/trace'];
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
     const t = String(entry || '').trim();
@@ -42,7 +42,7 @@ export function init(K) {
   const NO_BODY = new Set([101, 204, 205, 304]);
 
   let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0, inflight = 0, verified = false, retryTimer = null, retryStep = 0, watchTick = 0;
-  let lastDone = Date.now(), vchain = Promise.resolve(), trialP = null, mainCancel = false, mainFails = 0, nextMainTry = 0, rotateStreak = 0, rotateHoldUntil = 0;
+  let aliveFallback = null, lastDone = Date.now(), vchain = Promise.resolve(), trialP = null, mainCancel = false, mainFails = 0, nextMainTry = 0, rotateStreak = 0, rotateHoldUntil = 0;
   const sockets = new Map();
   const busySockets = () => {
     const now = Date.now();
@@ -86,12 +86,13 @@ export function init(K) {
     return good && Date.now() - good.ts < LAST_TTL && !isBad(good.url) ? good.url : null;
   };
 
-  function probe(url, ms) {
+  function probe(url, ms, plain) {
     return new Promise(resolve => {
       let ws;
       try { ws = new WebSocket(url); } catch { resolve(null); return; }
       ws.binaryType = 'arraybuffer';
       let connected = false, sentAt = 0;
+      const openedAt = performance.now();
       const streamId = Math.floor(Math.random() * 0xFFFFFFFE) + 1 >>> 0;
       const finish = ping => {
         clearTimeout(timer);
@@ -107,6 +108,7 @@ export function init(K) {
         if (!connected) {
           if (type === 5 && stream === 0) ws.send(new Uint8Array([5, 0, 0, 0, 0, 2, 1]));
           else if (type === 3 && stream === 0) {
+            if (plain) { finish(Math.round(performance.now() - openedAt)); return; }
             connected = true;
             const host = new TextEncoder().encode('127.0.0.1');
             const buf = new ArrayBuffer(8 + host.length);
@@ -149,7 +151,7 @@ export function init(K) {
     let ok = false, why = '';
     try {
       await Promise.any(CHECK_URLS.map(t => Promise.race([
-        sandstone.libcurl.fetch(t, { method: 'GET', signal: ctl.signal }).then(async r => { await r.arrayBuffer(); return r; }),
+        sandstone.libcurl.fetch(t, { method: 'GET', redirect: 'manual', signal: ctl.signal }).then(async r => { await r.arrayBuffer(); return r; }),
         delay(ms).then(() => { throw new Error('timeout'); })
       ])));
       ok = true;
@@ -218,6 +220,8 @@ export function init(K) {
 
   async function choose(exclude) {
     const skip = new Set(exclude);
+    const mains = new Set(tiers()[0]);
+    aliveFallback = null;
     const good = readGood();
     if (good && !skip.has(good.url) && Date.now() - good.ts < LAST_TTL && !isBad(good.url)) {
       if (await verify(good.url)) return good.url;
@@ -230,7 +234,7 @@ export function init(K) {
       for (let i = 0; i < ordered.length; i += 6) {
         if (Date.now() > deadline) break;
         const wave = ordered.slice(i, i + 6);
-        const pings = await Promise.all(wave.map(u => probe(u, 3000)));
+        const pings = await Promise.all(wave.map(u => probe(u, 3000, !mains.has(u))));
         const alive = [];
         wave.forEach((u, j) => {
           if (pings[j] === null) markBad(u, SOFT_TTL);
@@ -242,6 +246,7 @@ export function init(K) {
             writeGood(row.u);
             return row.u;
           }
+          if (!aliveFallback) aliveFallback = row.u;
           markBad(row.u, VERIFY_BAD_TTL);
         }
       }
@@ -306,7 +311,7 @@ export function init(K) {
     const pending = inflight > 0 || live.size > 0;
     const stalled = pending && Date.now() - Math.max(lastDone, okAt) >= STALL_MS;
     if (!current || document.hidden || rotating || mainBusy || (pending && !stalled) || busySockets()) return;
-    let healthy = (await probe(current, 4000)) !== null;
+    let healthy = (await probe(current, 4000, !tiers()[0].includes(current))) !== null;
     watchTick++;
     if (healthy && (stalled || !verified || watchTick % VERIFY_EVERY === 0)) healthy = await verify(current);
     if (!healthy) fails++;
@@ -388,7 +393,7 @@ export function init(K) {
       if (from) markBad(from, auto ? VERIFY_BAD_TTL : SOFT_TTL);
       const hit = await choose(from ? [from] : []);
       const flat = tiers().flat();
-      const next = hit || flat.find(u => u !== from && !isBad(u)) || flat.find(u => u !== from) || flat[0] || FALLBACK;
+      const next = hit || aliveFallback || flat.find(u => u !== from && !isBad(u)) || flat.find(u => u !== from) || flat[0] || FALLBACK;
       if (next && next !== current) applyWisp(next);
       if (hit) {
         writeGood(current);
