@@ -998,6 +998,37 @@
     throw new Error("Could not reach DeepAI through the proxy. Try again in a moment.");
   }
 
+  function pageShown() {
+    if (document.hidden) return false;
+    try {
+      const frame = window.frameElement;
+      if (!frame) return true;
+      return !!(frame.offsetWidth || frame.offsetHeight || frame.getClientRects().length);
+    } catch {
+      return true;
+    }
+  }
+
+  let waitingForPage = false;
+  function whenPageShown(fn) {
+    if (pageShown()) {
+      fn();
+      return;
+    }
+    if (waitingForPage) return;
+    waitingForPage = true;
+    const winEvents = ["resize", "focus", "pointerdown", "keydown"];
+    const check = () => {
+      if (!pageShown()) return;
+      winEvents.forEach(name => window.removeEventListener(name, check, true));
+      document.removeEventListener("visibilitychange", check);
+      waitingForPage = false;
+      fn();
+    };
+    winEvents.forEach(name => window.addEventListener(name, check, true));
+    document.addEventListener("visibilitychange", check);
+  }
+
   async function connect(attempt) {
     if (state.client) return;
     try {
@@ -1010,7 +1041,7 @@
         return;
       }
       if (!state.models.length) say("DeepAI proxy failed, trying another server…");
-      setTimeout(() => connect(attempt + 1), 500 * (attempt + 1));
+      setTimeout(() => whenPageShown(() => connect(attempt + 1)), 500 * (attempt + 1));
     }
   }
 
@@ -1320,7 +1351,7 @@
       rerender();
       setTimeout(rerender, 400);
     }
-    setTimeout(() => connect(0), 200);
+    whenPageShown(() => setTimeout(() => connect(0), 200));
   }
 
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start);
