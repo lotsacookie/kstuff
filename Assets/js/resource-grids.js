@@ -49,7 +49,7 @@ export function init(K) {
   // site's own proxy (window.kNetDirect, the libcurl/wisp hub) and shown from a blob URL. A few at a time, results cached.
   const PROXY_IMG = /^https?:\/\/(?:[^/]*\.)?(?:steamstatic\.com|steamcdn-a\.akamaihd\.net|nvidiagrid\.net|nvidia\.com)\//i;
   const imgCache = new Map();
-  const IMG_CACHE_MAX = 600, IMG_SLOTS = 6;
+  const IMG_CACHE_MAX = 600, IMG_SLOTS = 3;
   const imgWaiters = [];
   let imgBusy = 0;
   const imgSlot = async () => { if (imgBusy >= IMG_SLOTS) await new Promise(r => imgWaiters.push(r)); imgBusy++; };
@@ -89,6 +89,7 @@ export function init(K) {
     clearTimeout(p.img._stall);
     const fail = () => {
       clearTimeout(p.img._stall);
+      clearTimeout(p.img._fb);
       p.img.onload = p.img.onerror = null;
       card.classList.remove('img-loading');
       card.classList.add('img-failed');
@@ -97,16 +98,10 @@ export function init(K) {
     };
     const setSrc = u => {
       const my = p.img._pt = (p.img._pt || 0) + 1;
-      if (window.kNetDirect && PROXY_IMG.test(u)) {
-        proxiedImage(u).then(
-          blobUrl => { if (p.img._pt === my) p.img.src = blobUrl; },
-          err => {
-            if (p.img._pt !== my) return;
-            if (/^HTTP 4\d\d/.test(String((err && err.message) || err))) { p.img.onerror && p.img.onerror(); return; } // missing art: go straight to the next one
-            p.img.src = u; // proxy couldn't get it: try the direct URL once, then the alternates
-          }
-        );
-      } else p.img.src = u;
+      clearTimeout(p.img._fb);
+      p.img._proxyUrl = window.kNetDirect && PROXY_IMG.test(u) ? u : null;
+      p.img.src = u;
+      if (p.img._proxyUrl) p.img._fb = setTimeout(() => { if (p.img._pt === my && p.img._proxyUrl === u && p.img.onerror) p.img.onerror(); }, 5000);
     };
     const next = () => {
       if (alts.length) { setSrc(alts.shift()); return true; }
@@ -116,11 +111,25 @@ export function init(K) {
       // a 1px or empty image is a blank tile, treat it like a failed one
       if (p.img.naturalWidth < 8 || p.img.naturalHeight < 8) { if (!next()) fail(); return; }
       clearTimeout(p.img._stall);
+      clearTimeout(p.img._fb);
       p.img.onload = p.img.onerror = null;
       card.classList.remove('img-loading');
       p.img.classList.add('loaded');
     };
-    p.img.onerror = () => { if (!next()) fail(); };
+    p.img.onerror = () => {
+      const u = p.img._proxyUrl;
+      clearTimeout(p.img._fb);
+      if (u && window.kNetDirect) {
+        p.img._proxyUrl = null;
+        const my = p.img._pt;
+        proxiedImage(u).then(
+          blobUrl => { if (p.img._pt === my) p.img.src = blobUrl; },
+          () => { if (p.img._pt === my && !next()) fail(); }
+        );
+        return;
+      }
+      if (!next()) fail();
+    };
     // a request that never answers should not leave the card shimmering forever
     p.img._stall = setTimeout(() => { if (card.classList.contains('img-loading')) fail(); }, PROXY_IMG.test(url) ? 45000 : IMAGE_STALL_MS);
     setSrc(url);

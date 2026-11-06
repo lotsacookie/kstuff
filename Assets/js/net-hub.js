@@ -73,6 +73,7 @@ export function init(K) {
     if (!url) return;
     const count = Math.min((strikes[url] || 0) + 1, 8);
     strikes[url] = count;
+    if (count >= 2) forgetGood(url);
     badMem[url] = Math.max(badMem[url] || 0, Date.now() + Math.min(STRIKE_BASE * Math.pow(4, count - 1), STRIKE_MAX));
   };
   const clearBad = url => { delete badMem[url]; delete strikes[url]; };
@@ -81,7 +82,47 @@ export function init(K) {
     const v = readJson(LAST_KEY);
     return v && typeof v.url === 'string' && typeof v.ts === 'number' ? v : null;
   };
-  const writeGood = url => writeJson(LAST_KEY, { url, ts: Date.now() });
+  const GOOD_LIST_KEY = 'WGOOD3';
+  const GOOD_LIST_TTL = 604800000;
+  const GOOD_LIST_MAX = 8;
+  const GOOD_TRY = 3;
+  const FAST_VERIFY_MS = 9000;
+  const lastPing = {};
+  const readGoodList = () => {
+    const list = readJson(GOOD_LIST_KEY);
+    const now = Date.now();
+    if (!Array.isArray(list)) return [];
+    return list.filter(r => r && typeof r.url === 'string' && typeof r.ts === 'number' && r.via === transportMode && now - r.ts < GOOD_LIST_TTL).sort((a, b) => b.ts - a.ts);
+  };
+  const rememberGood = url => {
+    if (!url) return;
+    const now = Date.now();
+    const raw = readJson(GOOD_LIST_KEY);
+    const keep = (Array.isArray(raw) ? raw : []).filter(r => r && typeof r.url === 'string' && typeof r.ts === 'number' && now - r.ts < GOOD_LIST_TTL && !(r.url === url && r.via === transportMode));
+    const p = lastPing[url];
+    keep.push({ url, via: transportMode, ts: now, ping: Number.isFinite(p) ? p : null });
+    keep.sort((a, b) => b.ts - a.ts);
+    writeJson(GOOD_LIST_KEY, keep.slice(0, GOOD_LIST_MAX * 2));
+  };
+  const forgetGood = url => {
+    const raw = readJson(GOOD_LIST_KEY);
+    if (!Array.isArray(raw)) return;
+    writeJson(GOOD_LIST_KEY, raw.filter(r => r && !(r.url === url && r.via === transportMode)));
+  };
+  const writeGood = url => {
+    writeJson(LAST_KEY, { url, ts: Date.now() });
+    rememberGood(url);
+  };
+  const goodCandidates = skip => {
+    const out = [];
+    const add = u => { if (u && !skip.has(u) && !isBad(u) && !out.includes(u)) out.push(u); };
+    readGoodList().forEach(r => add(r.url));
+    if (!out.length) {
+      const g = readGood();
+      if (g && Date.now() - g.ts < LAST_TTL) add(g.url);
+    }
+    return out;
+  };
   const freshGood = () => {
     const good = readGood();
     return good && Date.now() - good.ts < LAST_TTL && !isBad(good.url) ? good.url : null;
@@ -178,6 +219,7 @@ export function init(K) {
     if (ok) {
       okUrl = url;
       okAt = Date.now();
+      lastPing[url] = okAt - started;
       clearBad(url);
       verified = true;
     } else {
@@ -240,10 +282,15 @@ export function init(K) {
     const skip = new Set(exclude);
     const mains = new Set(tiers()[0]);
     aliveFallback = null;
-    const good = readGood();
-    if (good && !skip.has(good.url) && Date.now() - good.ts < LAST_TTL && !isBad(good.url)) {
-      if (await verify(good.url)) return good.url;
-      markBad(good.url);
+    const known = goodCandidates(skip).slice(0, GOOD_TRY);
+    if (known.length) {
+      const kp = await Promise.all(known.map(u => probe(u, 2500, !mains.has(u))));
+      for (let i = 0; i < known.length; i++) {
+        if (kp[i] === null) { markBad(known[i]); continue; }
+        lastPing[known[i]] = kp[i];
+        if (await verify(known[i], FAST_VERIFY_MS)) { writeGood(known[i]); return known[i]; }
+        markBad(known[i]);
+      }
     }
     for (const tier of tiers()) {
       const deadline = Date.now() + CHOOSE_BUDGET;
@@ -554,10 +601,14 @@ export function init(K) {
     bootP = (async () => {
       const sg = await loadSandstone();
       sandstone = sg;
-      let url = freshGood();
-      if (url && (await probe(url, BOOT_PROBE_MS, !tiers()[0].includes(url))) === null) {
-        markBad(url);
-        url = null;
+      let url = null;
+      const mainsNow = tiers()[0];
+      const known = goodCandidates(new Set()).slice(0, GOOD_TRY);
+      if (known.length) {
+        const bp = await Promise.all(known.map(u => probe(u, BOOT_PROBE_MS, !mainsNow.includes(u))));
+        known.forEach((u, i) => { if (bp[i] === null) markBad(u); });
+        const at = bp.findIndex(p => p !== null);
+        if (at >= 0) { url = known[at]; lastPing[url] = bp[at]; }
       }
       if (!url && window.kWispP && window.kWispP.then) await Promise.race([window.kWispP.catch(() => {}), delay(6000)]);
       url = url || toWss(window.wlspServer) || tiers().flat()[0] || FALLBACK;
@@ -834,15 +885,13 @@ export function init(K) {
     if (e.key === TRANSPORT_KEY) setTransport(e.newValue);
   });
 
-  setTimeout(() => { boot().catch(() => {}); }, 1500);
-
   window.addEventListener('message', e => {
     const d = e.data;
     if (!d || typeof d !== 'object' || typeof d.type !== 'string' || d.type.indexOf('kstuff-net:') !== 0) return;
     const src = e.source;
     if (!src || !isPageFrame(src)) return;
     const reply = (m, t) => { try { src.postMessage(m, '*', t || []); } catch {} };
-    if (d.type === 'kstuff-net:hello') { dropOwned(src); reply({ type: 'kstuff-net:hello-ack', wisp: current }); boot().catch(() => {}); return; }
+    if (d.type === 'kstuff-net:hello') { dropOwned(src); reply({ type: 'kstuff-net:hello-ack', wisp: current }); return; }
     if (d.type === 'kstuff-net:ready') { boot().then(() => reply({ type: 'kstuff-net:ready-ack', id: d.id, wisp: current }), er => reply({ type: 'kstuff-net:ready-ack', id: d.id, error: String(er && er.message || er) })); return; }
     if (d.type === 'kstuff-net:rotate') { rotate(d.bad ? toWss(d.bad) : null, !!d.soft).then(w => reply({ type: 'kstuff-net:rotate-ack', id: d.id, wisp: w }), () => reply({ type: 'kstuff-net:rotate-ack', id: d.id })); return; }
     if (d.type === 'kstuff-net:abort') { const c = live.get(d.id); if (c) c.abort(); return; }

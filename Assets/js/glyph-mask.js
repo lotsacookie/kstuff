@@ -109,11 +109,19 @@ export function maskDocument(win, live, light) {
 
   var queue = [];
   var pending = false;
+  var qi = 0;
   function flush() {
     pending = false;
-    var items = queue;
-    queue = [];
-    for (var i = 0; i < items.length; i++) walk(items[i]);
+    var end = win.performance.now() + 6;
+    while (qi < queue.length) {
+      var node = queue[qi++];
+      if (node.nodeType === 1 && node.childNodes.length > 30 && node.isConnected && !blocked(node)) {
+        var kids = node.childNodes;
+        for (var k = 0; k < kids.length; k++) queue.push(kids[k]);
+      } else walk(node);
+      if (win.performance.now() > end) break;
+    }
+    if (qi >= queue.length) { queue = []; qi = 0; } else schedule();
   }
   function schedule() {
     if (pending) return;
@@ -130,7 +138,7 @@ export function maskDocument(win, live, light) {
         for (var j = 0; j < r.addedNodes.length; j++) queue.push(r.addedNodes[j]);
       }
     }
-    if (queue.length) schedule();
+    if (qi < queue.length) schedule();
   }).observe(doc.documentElement, { childList: true, subtree: true, characterData: true });
 
   if (doc.body) {

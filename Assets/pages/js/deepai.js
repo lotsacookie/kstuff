@@ -378,7 +378,7 @@
     let up = false;
     if (net) up = typeof net.waitAvailable === "function" ? await net.waitAvailable(45000) : await net.available();
     if (!up) throw new Error("Net hub unavailable");
-    if (exclude && exclude.length) await window.kNet.rotate(undefined, true);
+    if (exclude && exclude.length) await window.kNet.rotate(undefined, false);
     await window.kNet.ready();
     return { fetch: (target, init) => window.kNet.fetch(target, init), wisp: "hub" };
   }
@@ -1010,7 +1010,7 @@
         return;
       }
       if (!state.models.length) say("DeepAI proxy failed, trying another server…");
-      setTimeout(() => connect(attempt + 1), 1500 * (attempt + 1));
+      setTimeout(() => connect(attempt + 1), 500 * (attempt + 1));
     }
   }
 
