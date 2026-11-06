@@ -312,6 +312,11 @@ export function init(K) {
         return;
       }
 
+      if (targetId === 'changelog') {
+        K.openChangelog?.();
+        return;
+      }
+
       if (targetId === 'homeworkhelper') {
         K.$('homeworkhelper-modal')?.classList.add('active');
         return;
@@ -323,7 +328,7 @@ export function init(K) {
       }
 
       K.navBtns.forEach(other => {
-        if (!['homeworkhelper', 'profile'].includes(other.dataset.target)) {
+        if (!['homeworkhelper', 'profile', 'changelog'].includes(other.dataset.target)) {
           other.classList.remove('active');
         }
       });

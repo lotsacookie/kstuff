@@ -368,4 +368,140 @@ export function init(K) {
       setTimeout(() => { window.__sgReloading = false; }, 3000);
     });
   }
+  // ---- Change log modal: opened from the navbar button, and once on page load when the log changed ----
+  (() => {
+    const modal = byId('changelog-modal');
+    const body = byId('changelog-modal-body');
+    if (!modal || !body) return;
+
+    const BUNDLE_PATH = 'Assets/json/change-log.json';
+    const SEEN_KEY = 'kstuff_changelog_seen';
+    const CACHE_KEY = 'kstuff_changelog_cache_v2';
+    const sources = [
+      'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/change-log.json',
+      'https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/json/change-log.json'
+    ];
+
+    const toText = i => i == null ? '' : typeof i === 'string' ? i : typeof i === 'number' ? String(i) : (i.text || i.message || i.description || i.title || i.name || '');
+    const toList = v => v == null ? [] : Array.isArray(v) ? v.map(toText).filter(Boolean) : [toText(v)].filter(Boolean);
+    const entryOf = e => {
+      if (typeof e === 'string') return { version: '', title: '', date: '', changes: [e] };
+      let version = e.version || e.v || e.tag || '';
+      let title = e.title || e.name || '';
+      if (!version && title) { version = title; title = ''; }
+      return {
+        version: String(version), title: String(title),
+        date: String(e.date || e.timestamp || e.time || e.released || ''),
+        changes: toList(e.changes || e.items || e.notes || e.changelog || e.log || e.list || e.description || e.text)
+      };
+    };
+    const normalize = data => {
+      let list = null;
+      if (Array.isArray(data)) list = data;
+      else if (data && typeof data === 'object') {
+        if (Array.isArray(data.changes) && !data.changes.some(x => x && typeof x === 'object')) list = [data];
+        else {
+          for (const k of ['changelog', 'changeLog', 'changes', 'entries', 'log', 'versions', 'updates', 'releases']) {
+            if (Array.isArray(data[k])) { list = data[k]; break; }
+          }
+        }
+        if (!list) list = (data.version || data.date || data.timestamp) ? [data] : Object.keys(data).map(k => ({ version: k, changes: data[k] }));
+      }
+      const entries = (list || []).map(entryOf).filter(e => e.version || e.title || e.changes.length);
+      if (entries.length > 1 && entries.every(e => e.date && !isNaN(Date.parse(e.date)))) entries.sort((a, b) => Date.parse(b.date) - Date.parse(a.date));
+      return entries.slice(0, 10);
+    };
+
+    const signature = entries => {
+      const str = JSON.stringify(entries);
+      let h = 5381;
+      for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+      return String(h >>> 0);
+    };
+
+    const fetchJson = async (url, ms) => {
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), ms);
+      try {
+        const res = await fetch(url, { cache: 'no-cache', signal: ctrl.signal });
+        if (!res.ok) throw new Error('bad status');
+        return await res.json();
+      } finally { clearTimeout(timer); }
+    };
+
+    const load = async () => {
+      try {
+        const sg = window.singularity;
+        if (sg && sg.has && sg.has(BUNDLE_PATH)) {
+          const entries = normalize(sg.json(BUNDLE_PATH));
+          if (entries.length) return entries;
+        }
+      } catch {}
+      for (const url of sources) {
+        try {
+          const entries = normalize(await fetchJson(url, 5000));
+          if (entries.length) { try { localStorage.setItem(CACHE_KEY, JSON.stringify(entries)); } catch {} return entries; }
+        } catch (err) { console.warn('Change log source failed:', url, err); }
+      }
+      try {
+        const cached = JSON.parse(localStorage.getItem(CACHE_KEY));
+        if (Array.isArray(cached) && cached.length) return cached;
+      } catch {}
+      return null;
+    };
+
+    const status = text => {
+      body.textContent = '';
+      body.appendChild(K.el('div', { className: 'changelog-status', textContent: text }));
+    };
+
+    const render = entries => {
+      body.textContent = '';
+      entries.forEach(e => {
+        const wrap = K.el('div', {});
+        const head = K.el('div', { className: 'changelog-entry-head' });
+        if (e.version) head.appendChild(K.el('span', { className: 'changelog-version', textContent: e.version }));
+        if (e.title) head.appendChild(K.el('span', { className: 'changelog-title', textContent: e.title }));
+        if (e.date) head.appendChild(K.el('span', { className: 'changelog-date', textContent: e.date }));
+        if (head.childNodes.length) wrap.appendChild(head);
+        if (e.changes.length) {
+          const ul = K.el('ul', { className: 'changelog-list' });
+          e.changes.forEach(c => ul.appendChild(K.el('li', { textContent: c })));
+          wrap.appendChild(ul);
+        }
+        body.appendChild(wrap);
+      });
+    };
+
+    let ready = null;
+    const ensure = () => ready || (ready = load().then(entries => {
+      if (entries) render(entries); else { status('Change log unavailable'); ready = null; }
+      return entries;
+    }));
+
+    K.openChangelog = () => {
+      status('Loading...');
+      modal.classList.add('active');
+      ensure();
+    };
+
+    // Initial page load only: pop the modal up if the log differs from the last one this browser was shown.
+    const tourPending = () => {
+      try { return /[?&]welcome\b/.test(location.search) || !localStorage.getItem('kstuff_welcome_seen'); } catch { return false; }
+    };
+    ensure().then(entries => {
+      if (!entries) return;
+      let seen = null;
+      try { seen = localStorage.getItem(SEEN_KEY); } catch {}
+      const sig = signature(entries);
+      if (seen === sig) return;
+      // The welcome tour owns the first visit; the change log is shown on a later load instead.
+      if (tourPending()) return;
+      setTimeout(() => {
+        if (document.querySelector('.modal-overlay.active')) return;
+        modal.classList.add('active');
+        try { localStorage.setItem(SEEN_KEY, sig); } catch {}
+      }, 600);
+    });
+  })();
 }
