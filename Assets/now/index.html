@@ -487,7 +487,7 @@ async function beginFlow() {
   flow = { verifier, key, email: "" };
 }
 
-async function api(path, body, method = "POST", quiet = false) {
+async function api(path, body, method = "POST", quiet = false, extra = null) {
   if (!flow || !flow.key) throw new Error("No active sign-in session");
   const headers = {
     Accept: "application/json, text/plain, */*",
@@ -496,6 +496,7 @@ async function api(path, body, method = "POST", quiet = false) {
     Origin: LOGIN_ORIGIN,
     Referer: LOGIN_ORIGIN + "/",
   };
+  if (extra) Object.assign(headers, extra);
   const init = { method, headers, follow: false };
   if (method === "POST") {
     headers["Content-Type"] = "application/json";
@@ -611,11 +612,12 @@ async function registerStage() {
   const mine = run;
   await sleep(2500); // NVIDIA rejects a register that arrives right after the session starts
   const k = flow.key;
-  const vc = await api(EP.validator, null, "GET", true);
+  const vc = await api(EP.validator, null, "GET", true, { "Content-Type": "application/json" });
   flow.key = k; // the validator reply must not replace the session key
-  if (!vc.ok) { const ve = apiError(vc); ve.message += " [validator " + vc.status + "] " + vc.text.slice(0, 300); throw ve; }
-  const c = (vc.json && vc.json.validation) || vc.json || {};
-  body.validation = { key: c.key, type: c.type, captchaMode: c.captchaMode, response: u.captcha };
+  let c = {};
+  if (vc.ok) c = (vc.json && vc.json.validation) || vc.json || {};
+  else log("[auth] validator lookup failed, guessing", vc.status, vc.text.slice(0, 200));
+  body.validation = { key: c.key, type: c.type || "CaptchaHCaptcha", captchaMode: c.captchaMode || "Invisible", response: u.captcha };
   log("[auth] validator", String(c.type), String(c.captchaMode), String(c.key).slice(0, 12), "token", String(u.captcha).length);
   let r = await api(EP.register, body);
   for (let i = 0; i < 5 && !r.ok && /EARLY_REQUEST/.test(r.text); i++) {
