@@ -1,0 +1,21 @@
+*{box-sizing:border-box;margin:0}html,body{height:100%;overflow:hidden;background:#000;font-family:Roboto,"Google Sans","Segoe UI",system-ui,sans-serif;color:#202124}
+#boot{position:fixed;inset:0;background:#000;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1.4rem;z-index:5;transition:opacity .8s ease}
+#boot.out{opacity:0;pointer-events:none}
+.logo{width:6rem;height:6rem;opacity:0;transform:scale(.92);transition:opacity 1.2s ease,transform 1.2s ease;filter:drop-shadow(0 0 10px rgba(255,255,255,.4))}
+.logo.in{opacity:1;transform:none}
+.bar{width:11rem;height:4px;border-radius:4px;background:#ffffff26;overflow:hidden;opacity:0;transition:opacity .8s ease .5s}
+.bar.in{opacity:1}.fill{height:100%;width:0;background:#8ab4f8;border-radius:4px;transition:width .3s ease}
+.status{font-size:.8rem;color:#ffffff99;opacity:0;transition:opacity .8s ease .5s;min-height:1em}.status.in{opacity:1}
+#desktop{position:fixed;inset:0;background:#aecbfa url(wallpaper.svg) center/cover;opacity:0;transition:opacity .8s ease}
+#desktop.on{opacity:1}
+#shelf{position:absolute;left:0;right:0;bottom:8px;height:48px;display:flex;justify-content:center;pointer-events:none}
+#shelf::before{content:"";position:absolute;inset:0 auto 0 50%;transform:translateX(-50%);width:min(560px,60vw);background:rgba(32,33,36,.78);backdrop-filter:blur(20px);border-radius:24px;pointer-events:none}
+#launcher{pointer-events:all;position:relative;align-self:center;margin-right:calc(min(560px,60vw) - 56px);width:36px;height:36px;border-radius:50%;border:0;background:#e8eaed;cursor:pointer;display:grid;place-items:center;transition:transform .15s}
+#launcher:hover{transform:scale(1.08)}#launcher span{width:14px;height:14px;border-radius:50%;background:#202124;display:block}
+#tray{position:absolute;right:10px;bottom:12px;height:40px;padding:0 14px;display:flex;align-items:center;gap:12px;border-radius:20px;background:rgba(32,33,36,.78);backdrop-filter:blur(20px);color:#e8eaed;font-size:.8rem}
+#tray #net{font-size:.65rem}
+#launcher-panel{position:absolute;left:50%;bottom:64px;transform:translate(-50%,16px);width:min(520px,92vw);height:min(420px,60vh);background:rgba(241,243,244,.92);backdrop-filter:blur(30px);border-radius:28px;padding:18px;opacity:0;pointer-events:none;transition:opacity .2s,transform .2s}
+#launcher-panel.open{opacity:1;pointer-events:all;transform:translate(-50%,0)}
+.search{display:flex;gap:10px;align-items:center;height:44px;padding:0 16px;border-radius:22px;background:#fff}.search input{flex:1;border:0;outline:0;background:none;font:inherit;font-size:.9rem}.g{color:#5f6368}
+.empty{margin-top:3rem;text-align:center;color:#5f6368;font-size:.9rem}
+@media(prefers-reduced-motion:reduce){*{transition-duration:.01ms!important}}

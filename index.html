@@ -190,6 +190,7 @@ async function legacy(){
             <button class="nav-btn" data-target="changelog" title="Changelog"><i class="ph ph-list-bullets"></i><span class="label-data"><div>g</div><div>o</div><div>l</div><div>e</div><div>g</div><div>n</div><div>a</div><div>h</div><div>C</div></span></button>
             <button class="nav-btn" data-target="homeworkhelper"><i class="ph ph-gear"></i><span class="label-data"><div>s</div><div>g</div><div>n</div><div>i</div><div>t</div><div>t</div><div>e</div><div>S</div></span></button>
             <button class="nav-btn" data-target="profile" id="profile-nav-btn"><i class="ph ph-user" id="profile-nav-icon"></i><span class="label-data"><div>e</div><div>l</div><div>i</div><div>f</div><div>o</div><div>r</div><div>P</div></span></button>
+            <button class="nav-os-btn" id="os-mode-btn" title="OS Mode" aria-label="OS Mode"><i class="ph ph-desktop-tower"></i><span class="label-data"><div>e</div><div>d</div><div>o</div><div>M</div><div> </div><div>S</div><div>O</div></span></button>
             </div>
             <div class="nav-indicator"></div>
         </nav>
@@ -445,5 +446,6 @@ document.addEventListener('webkitfullscreenchange',sync);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fsEl()&&root.classList.contains('sg-fit'))setFit(false)});
 })();
     </script>
+<script src="Assets/js/os-mode.js"></script>
 </body>
 </html>
