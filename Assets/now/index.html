@@ -1,0 +1,1587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SingularityNOW</title>
+<style>
+:root{--bg:#0b0d10;--card:#14181d;--line:#262c34;--ink:#f2f5f7;--dim:#98a2ad;--green:#76b900;--warn:#e6a23c;--danger:#ff6b6b}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{min-height:100%}
+body{background:radial-gradient(1200px 600px at 50% -10%,#1b2a0b 0%,var(--bg) 60%);color:var(--ink);font:500 15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px;min-height:100vh;-webkit-font-smoothing:antialiased}
+main{width:min(420px,100%)}
+.card{width:100%;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:28px 24px;display:none;flex-direction:column;gap:16px}
+.card.active{display:flex}
+h1{font-size:1.35rem;letter-spacing:.01em}
+h1 b{color:var(--green)}
+p{color:var(--dim)}
+input{width:100%;background:#0b0d10;border:1px solid var(--line);border-radius:12px;padding:13px 14px;color:var(--ink);font:inherit;outline:none}
+input:focus{border-color:var(--green)}
+input.otp{font:700 1.4rem/1 ui-monospace,Menlo,Consolas,monospace;letter-spacing:.3em;text-align:center}
+form{display:flex;flex-direction:column;gap:14px}
+.btn{appearance:none;border:0;border-radius:12px;padding:13px 18px;font:inherit;font-weight:700;cursor:pointer;background:var(--green);color:#0b0d10;text-align:center;text-decoration:none;display:block}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.ghost:hover{border-color:var(--dim)}
+.err{color:var(--danger);font-size:.9rem}
+.badge{display:inline-block;align-self:flex-start;border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:.8rem;color:var(--dim)}
+.badge.ok{color:var(--green);border-color:var(--green)}
+.badge.warn{color:var(--warn);border-color:var(--warn)}
+.big{font-size:1.1rem;font-weight:700;word-break:break-all}
+.spin{width:28px;height:28px;border-radius:50%;border:3px solid var(--line);border-top-color:var(--green);animation:s 1s linear infinite;align-self:center}
+@keyframes s{to{transform:rotate(360deg)}}
+.row{display:flex;gap:10px}.row>*{flex:1}
+small{color:var(--dim)}
+details{width:min(420px,100%);color:var(--dim);font-size:.8rem}
+details summary{cursor:pointer;padding:4px 0}
+details pre{background:#0b0d10;border:1px solid var(--line);border-radius:10px;padding:10px;max-height:220px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:8px 0;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+#account{max-width:1100px;width:100%}#lib-search{flex:1;min-width:0}#lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:12px 0}
+.game{border-radius:8px;overflow:hidden;background:#1b1b1b;font-size:13px}.game img{width:100%;aspect-ratio:3/4;object-fit:cover;display:block;background:#222}.game div{padding:6px 8px}.game small{display:block;opacity:.6}
+
+body{background:radial-gradient(900px 500px at 15% -10%,rgba(118,185,0,.16),transparent 60%),radial-gradient(800px 500px at 100% 0,rgba(118,185,0,.07),transparent 55%),var(--bg)}
+.card{background:rgba(20,24,29,.82);backdrop-filter:blur(14px);box-shadow:0 20px 60px rgba(0,0,0,.45);border-radius:20px}
+.card h1{font-size:1.6rem;font-weight:800}
+.btn{transition:transform .12s,filter .12s}.btn:hover:not(:disabled){filter:brightness(1.1);transform:translateY(-1px)}
+body.app{display:block;padding:0}body.app main{width:100%}
+#account{max-width:none;width:100%;min-height:100vh;border:0;border-radius:0;padding:0 clamp(14px,3vw,40px) 40px;background:none;backdrop-filter:none;box-shadow:none;gap:0}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:20px;padding:14px 0;margin:0 calc(-1*clamp(14px,3vw,40px));padding-inline:clamp(14px,3vw,40px);background:linear-gradient(#0b0d10 60%,rgba(11,13,16,0));}
+.logo{font-weight:800;font-size:1.15rem;letter-spacing:.02em;display:flex;align-items:center;gap:10px;white-space:nowrap}.logo b{color:var(--green)}
+.logo i{width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#9be000,#4d7a00);box-shadow:0 0 18px rgba(118,185,0,.55)}
+.searchbox{flex:1;max-width:520px;margin:0 auto;position:relative;color:var(--dim)}
+.searchbox svg{position:absolute;left:14px;top:50%;translate:0 -50%;pointer-events:none}
+.searchbox input{padding:11px 16px 11px 42px;border-radius:999px;background:#12161b}
+.acct{position:relative}.avatar{width:38px;height:38px;border-radius:50%;border:2px solid var(--green);background:#1b2a0b;color:var(--green);font:800 15px system-ui;cursor:pointer}
+.menu{position:absolute;right:0;top:48px;width:290px;background:#14181d;border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px;box-shadow:0 18px 50px rgba(0,0,0,.6)}
+.menu[hidden]{display:none}.menu .big{font-size:.95rem}
+.hero{position:relative;height:clamp(180px,30vw,320px);border-radius:18px;overflow:hidden;margin:6px 0 22px;display:flex;align-items:flex-end;border:1px solid var(--line)}
+.hero[hidden]{display:none}
+.hero-bg{position:absolute;inset:0;background:#12161b center/cover no-repeat;transform:scale(1.02);animation:fade .6s}
+.hero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(11,13,16,.92) 0%,rgba(11,13,16,.35) 55%,transparent),linear-gradient(0deg,rgba(11,13,16,.8),transparent 60%)}
+.hero-in{position:relative;z-index:1;padding:clamp(16px,3vw,32px);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.hero-in small{color:var(--green);font-weight:800;letter-spacing:.16em}.hero-in h2{font-size:clamp(1.4rem,3.5vw,2.4rem);line-height:1.1;max-width:20ch}
+.pill{border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:3px 12px;font-size:.78rem;color:var(--ink);background:rgba(0,0,0,.35)}
+.bar{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px}.bar h3{font-size:1.1rem}#lib-count{color:var(--dim);font-size:.85rem}
+#lib-status{margin:0 0 8px;font-size:.9rem;min-height:1px}
+#lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(180px,22vw,260px),1fr));gap:16px;margin:0}
+.game{position:relative;border-radius:12px;overflow:hidden;background:#12161b;border:1px solid var(--line);aspect-ratio:16/10;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;animation:fade .35s both}
+.game:hover,.game:focus-visible{transform:translateY(-4px) scale(1.02);border-color:var(--green);box-shadow:0 14px 34px rgba(0,0,0,.55),0 0 0 1px var(--green);outline:none;z-index:2}
+.game img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
+.game:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.1) 55%,transparent)}
+.game .meta{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:10px 12px;font-size:.88rem;font-weight:700;line-height:1.25;display:flex;flex-direction:column;gap:3px}
+.game .meta span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.game .meta small{font-weight:600;font-size:.72rem;color:#c3ccd4}
+.game .tag{position:absolute;top:8px;left:8px;z-index:1;font-size:.65rem;font-weight:800;letter-spacing:.06em;background:rgba(0,0,0,.65);border:1px solid rgba(255,255,255,.18);border-radius:6px;padding:2px 7px;text-transform:uppercase}
+.game .play{position:absolute;right:10px;top:50%;z-index:1;width:42px;height:42px;border-radius:50%;background:var(--green);color:#0b0d10;display:grid;place-items:center;opacity:0;translate:0 -50%;transition:opacity .18s}.game:hover .play{opacity:1}
+.game.sk{pointer-events:none;background:linear-gradient(100deg,#12161b 30%,#1b2128 50%,#12161b 70%) 0 0/200% 100%;animation:sh 1.2s linear infinite}.game.sk:after{display:none}
+@keyframes sh{to{background-position:-200% 0}}@keyframes fade{from{opacity:0}to{opacity:1}}
+#lib-more{margin:20px auto 0;width:200px}#lib-sentinel{height:1px}
+@media(max-width:640px){.logo{font-size:0}.logo i{font-size:1rem}.top{gap:12px}}
+@media (prefers-reduced-motion:reduce){.game,.hero-bg,.game.sk{animation:none}.game{transition:none}}
+#player{position:fixed;inset:0;z-index:100;background:#000;display:flex;align-items:center;justify-content:center}#player[hidden]{display:none}
+#pv{width:100%;height:100%;object-fit:contain;background:#000;outline:none}
+#pad{position:absolute;inset:0;z-index:5;background:#000;display:flex;align-items:center;justify-content:center}#pad[hidden]{display:none}#padv{width:100%;height:100%;object-fit:contain}#padinfo{position:absolute;top:14px;left:14px;background:rgba(0,0,0,.65);padding:6px 12px;border-radius:999px;font-size:.85rem;color:#e8eef3}#pstatus{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;font-weight:700;font-size:1.2rem;padding:24px;pointer-events:none;text-shadow:0 2px 12px #000;background:radial-gradient(500px 300px at 50% 50%,rgba(118,185,0,.18),transparent 70%)}#pstatus:empty{display:none}
+.pbar{display:none}
+#ptools{position:absolute;left:0;right:0;bottom:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:28px max(16px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:linear-gradient(to top,rgba(0,0,0,.72),transparent);transition:opacity .25s ease,transform .25s ease;font-family:inherit}
+#ptools.idle{opacity:0;transform:translateY(8px);pointer-events:none}
+#ptools .sf-group{display:flex;align-items:center;gap:8px;min-width:0}#ptools .sf-mid{flex:1;justify-content:center}
+#ptools .sf-title{font-size:.8rem;font-weight:700;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ptools .sf-chip,#ptools .sf-btn{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:8px;font:inherit;font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:rgba(255,255,255,.7);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:color .2s,background .2s,border-color .2s,opacity .2s,transform .15s}
+#ptools .sf-btn{cursor:pointer}#ptools .sf-btn:hover:not(:disabled),#ptools .sf-btn:focus-visible{color:#fff;background:rgba(255,255,255,.16);outline:none}#ptools .sf-btn:active:not(:disabled){transform:scale(.95)}
+#ptools .sf-icon{padding:0 9px}#ptools .sf-chip.warn{color:rgba(251,191,36,.95)}#ptools .sf-chip.good{color:rgba(52,211,153,.95)}
+#ptools .sf-chip.danger,#ptools .sf-btn.danger{color:rgba(255,150,150,.95);background:rgba(255,80,80,.12);border-color:rgba(255,90,90,.28)}
+#ptools .sf-btn.on{color:#fff;background:rgba(52,211,153,.22);border-color:rgba(52,211,153,.45)}#ptools .sf-btn:disabled,#ptools .sf-off{opacity:.35;filter:grayscale(1);cursor:default;pointer-events:none}
+@media (max-width:640px){#ptools .sf-label,#ptools .sf-title{display:none}#ptools .sf-btn,#ptools .sf-chip{padding:0 9px}#ptools .sf-stats{display:none}}
+#player{outline:0}
+body.app details,#player~details{position:fixed;right:12px;bottom:12px;z-index:200;width:min(620px,94vw);background:rgba(11,13,16,.94);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+details summary{font-weight:700}details .dbgbtn{margin:6px 0;padding:6px 12px;font-size:.8rem}
+.gear{width:38px;height:38px;border-radius:50%;border:1px solid var(--line);background:#12161b;color:var(--ink);cursor:pointer;display:grid;place-items:center;transition:border-color .15s,transform .3s}.gear:hover{border-color:var(--green);transform:rotate(60deg)}
+.top .gear{margin-left:auto}.top .searchbox{margin:0 auto}
+#settings{position:fixed;inset:0;z-index:150;background:rgba(0,0,0,.6);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;padding:12px;opacity:1;visibility:visible;transition:opacity .24s ease,visibility 0s}
+#settings[hidden]{display:flex;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .2s ease,visibility 0s linear .2s}
+#settings .panel{width:min(440px,100%);max-height:calc(100vh - 24px);overflow:auto;background:#14181d;border:1px solid var(--line);border-radius:16px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;box-shadow:0 30px 80px rgba(0,0,0,.6);transform:none;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
+#settings[hidden] .panel{transform:translateY(14px) scale(.97);transition:transform .2s ease}
+#settings .shead{display:flex;align-items:center;justify-content:space-between}#settings h2{margin:0;font-size:1.05rem}
+#settings .sx{appearance:none;border:0;background:transparent;color:var(--dim);font-size:1.5rem;line-height:1;cursor:pointer;padding:2px 6px;border-radius:8px}#settings .sx:hover{color:var(--ink)}
+#settings .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#settings .srow{display:flex;gap:8px;align-items:flex-end}#settings .srow label{flex:1;min-width:0}
+#settings .btn.sm{padding:9px 14px;font-size:.85rem}
+#settings input{width:100%;box-sizing:border-box;background:#0b0d10;border:1px solid var(--line);border-radius:10px;padding:9px 12px;color:var(--ink);font:inherit;font-size:.85rem;outline:none}#settings input:focus{border-color:var(--green)}
+#settings select{padding:9px 10px;font-size:.85rem;border-radius:10px}
+#settings small{color:var(--dim);font-size:.75rem;line-height:1.35}
+#settings .sdl{display:flex;flex-direction:column;gap:6px;padding-top:10px;border-top:1px solid var(--line)}
+#settings .foot{display:flex;gap:8px}#settings .foot .btn{flex:1;padding:10px 14px}
+@media (prefers-reduced-motion:reduce){#settings,#settings .panel{transition:none!important}}
+#settings label{display:flex;flex-direction:column;gap:4px;font-size:.78rem;color:var(--dim);font-weight:700}
+select{width:100%;background:#0b0d10;border:1px solid var(--line);border-radius:12px;padding:12px 14px;color:var(--ink);font:inherit;outline:none}select:focus{border-color:var(--green)}
+
+#pad.stealth{inset:auto;left:0;bottom:0;width:2px;height:2px;opacity:0;pointer-events:none;overflow:hidden;z-index:-1}#pad.stealth #padinfo{display:none}
+/* ---- embedded in kstuff: inherit its theme (--bg/--text/--nav/--font are synced from the parent), no background ---- */
+body.embed{--e-text:var(--text,#fff);--e-bg:var(--bg,#000);--e-dim:color-mix(in srgb,var(--e-text) 62%,transparent);--e-line:color-mix(in srgb,var(--e-text) 18%,transparent);
+background:transparent!important;color:var(--e-text);font-family:var(--font,"Comfortaa",system-ui,sans-serif)!important;font-weight:600;min-height:100vh;padding:16px;gap:1.1rem;overflow:hidden}
+body.embed *{font-family:inherit!important}
+body.embed main{width:min(380px,100%)}
+body.embed #boot,body.embed #account,body.embed #log,body.embed details{display:none!important}
+body.embed .emb-brand{display:flex;flex-direction:column;align-items:center;gap:1.1rem;margin-bottom:.4rem}
+body.embed .ld-logo{width:5.5rem;height:5.5rem;overflow:visible;color:var(--e-text);filter:drop-shadow(0 0 8px color-mix(in srgb,var(--e-text) 50%,transparent))}
+body.embed .ld-arms{opacity:.8;transform-origin:50px 50px;stroke-dasharray:1;animation:ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both,ld-spin 14s linear 1.2s infinite}
+body.embed .ld-core{transform-origin:50px 50px;animation:ld-pulse 2.8s ease-in-out infinite}
+body.embed .ld-word{font-size:1.15rem;font-weight:900;letter-spacing:.06em}
+@keyframes ld-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes ld-spin{to{transform:rotate(360deg)}}@keyframes ld-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+body.embed .card{background:transparent;border:0;box-shadow:none;backdrop-filter:none;padding:0;align-items:stretch;text-align:center;gap:.9rem}
+body.embed .card h1{font-size:1rem;font-weight:900;letter-spacing:.06em}
+body.embed .card h1 b{color:inherit}
+body.embed p,body.embed small{color:var(--e-dim);font-size:.8rem}
+body.embed .err{color:#ff6b6b}
+body.embed input,body.embed select{background:transparent;color:var(--e-text);border:1px solid var(--e-line);border-radius:12px;text-align:center}
+body.embed input:focus,body.embed select:focus{border-color:var(--e-text)}
+body.embed input::placeholder{color:var(--e-dim)}
+body.embed .btn{background:var(--e-text);color:var(--e-bg);border-radius:12px;font-weight:800}
+body.embed .btn.ghost{background:transparent;color:var(--e-text);border:1px solid var(--e-line)}
+body.embed .btn.ghost:hover{border-color:var(--e-text)}
+body.embed .spin{border-color:var(--e-line);border-top-color:var(--e-text)}
+body.embed #player{background:transparent}
+body.embed #player.live{background:#000}
+body.embed #player:not(.live) #pv,body.embed #pstatus{visibility:hidden}
+body.embed #settings{background:rgba(0,0,0,.45);backdrop-filter:none}
+body.embed #settings .panel{background:var(--nav,var(--e-bg));border:1px solid var(--e-line);color:var(--e-text);box-shadow:none}
+body.embed #settings label{color:var(--e-dim)}
+</style>
+</head>
+<body>
+<main>
+<section class="card active" id="boot"><div class="spin"></div><p id="boot-status" style="text-align:center">Loading…</p></section>
+<section class="card" id="email-card">
+<h1>Singularity<b>NOW</b></h1>
+<p>Sign in to your existing GeForce NOW account. NVIDIA emails you a sign-in link, and everything goes through the browser proxy.</p>
+<p class="err" id="email-error" hidden></p>
+<form id="email-form">
+<input id="email" type="email" inputmode="email" autocomplete="email" placeholder="NVIDIA account email" required>
+<button class="btn" id="send" type="submit">Continue</button>
+</form>
+<button class="btn ghost" id="to-signup" type="button">Create account</button>
+<small>New here? You enter your own details and confirm your own email. Nothing is filled in for you.</small>
+</section>
+<section class="card" id="signup-card" style="max-height:calc(100vh - 24px);overflow-y:auto">
+<h1>Create account</h1>
+<p>Enter your own details for a new NVIDIA account and solve the human check yourself. NVIDIA then emails you to confirm the address, and you confirm it yourself.</p>
+<p class="err" id="signup-error" hidden></p>
+<form id="signup-form">
+<input id="su-email" type="email" inputmode="email" autocomplete="email" placeholder="Email" required>
+<input id="su-name" type="text" autocomplete="nickname" placeholder="Display name" minlength="3" maxlength="32" required>
+<input id="su-pw" type="password" autocomplete="new-password" placeholder="Password" minlength="8" required>
+<input id="su-pw2" type="password" autocomplete="new-password" placeholder="Confirm password" minlength="8" required>
+<input id="su-dob" type="date" autocomplete="bday" aria-label="Date of birth" required>
+<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;text-align:left"><input id="su-terms" type="checkbox" style="width:auto;margin-top:3px" required><span>I agree to NVIDIA's terms and privacy policy.</span></label>
+<button class="btn ghost" id="su-cap-btn" type="button">Restart the human check</button>
+<div id="su-capframe" hidden style="width:100%;flex:none"></div>
+<small id="su-cap-state"></small>
+<button class="btn" id="su-submit" type="submit">Create account</button>
+</form>
+<button class="btn ghost" id="su-open" type="button">Sign up on NVIDIA's page instead</button>
+<button class="btn ghost" id="su-back" type="button">Back to sign in</button>
+</section>
+<section class="card" id="wait-card">
+<h1 id="wait-title">Working…</h1>
+<p id="wait-desc"></p>
+<div class="spin"></div>
+<button class="btn ghost" id="cancel" type="button">Cancel</button>
+</section>
+<section class="card" id="code-card">
+<h1 id="code-title">Enter your code</h1>
+<p id="code-desc"></p>
+<p class="err" id="code-error" hidden></p>
+<form id="code-form">
+<input class="otp" id="code" type="text" inputmode="numeric" autocomplete="one-time-code" placeholder="••••••" required>
+<button class="btn" id="verify" type="submit">Verify</button>
+</form>
+<button class="btn ghost" id="back" type="button">Cancel</button>
+</section>
+<section class="card" id="password-card">
+<h1>Enter your password</h1>
+<p id="pw-desc"></p>
+<p class="err" id="pw-error" hidden></p>
+<form id="pw-form">
+<input id="pw" type="password" autocomplete="current-password" placeholder="NVIDIA account password" required>
+<button class="btn" id="pw-submit" type="submit">Sign in</button>
+</form>
+<button class="btn ghost" id="pw-cancel" type="button">Cancel</button>
+</section>
+<section class="card" id="account">
+<header class="top">
+<div class="logo"><i></i>Singularity<b>NOW</b></div>
+<div class="searchbox"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="lib-search" type="search" placeholder="Search games" autocomplete="off"></div>
+<button class="gear" id="gear-btn" type="button" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+<div class="acct"><button class="avatar" id="acct-btn" type="button" aria-label="Account"></button>
+<div class="menu" id="acct-menu" hidden><div class="big" id="acct-email"></div><p id="acct-name"></p><span class="badge" id="acct-verified"></span><small id="acct-exp"></small>
+<button class="btn ghost" id="copy-token">Copy access token</button><button class="btn ghost" id="signout">Sign out</button></div></div>
+</header>
+<section class="hero" id="hero" hidden><div class="hero-bg" id="hero-bg"></div><div class="hero-in"><small>FEATURED</small><h2 id="hero-title"></h2><span class="pill" id="hero-meta"></span></div></section>
+<div class="bar"><h3 id="lib-title">All games</h3><span id="lib-count"></span></div>
+<p id="lib-status"></p>
+<div id="lib-grid"></div>
+<div id="lib-sentinel"></div>
+<button class="btn ghost" id="lib-more" hidden>Load more</button>
+</section>
+</main>
+<details>
+<summary>Debug log</summary>
+<pre id="log"></pre>
+<button class="btn ghost" id="copy-log" type="button">Copy log</button>
+</details>
+<div id="settings" hidden><div class="panel"><div class="shead"><h2>Settings</h2><button class="sx" id="set-close" type="button" aria-label="Close">×</button></div>
+<div class="sgrid"><label>Resolution<select id="set-res"><option value="auto">Auto (screen size, up to 1080p)</option><option value="1280x720">1280 × 720</option><option value="1920x1080">1920 × 1080</option><option value="2560x1440">2560 × 1440</option><option value="3840x2160">3840 × 2160</option></select></label><label>Frame rate<select id="set-fps"><option value="30">30 FPS</option><option value="60">60 FPS</option><option value="120">120 FPS</option></select></label><label>Video codec<select id="set-codec"><option value="h264">H.264 (lowest delay)</option><option value="auto">Auto</option><option value="h265">H.265</option><option value="av1">AV1</option></select></label><label>Max bitrate<select id="set-kbps"><option value="0">Server default</option><option value="10000">10 Mbps</option><option value="15000">15 Mbps</option><option value="25000">25 Mbps</option><option value="40000">40 Mbps</option></select></label></div>
+<div class="srow"><label>Server<select id="set-zone"><option value="">Auto (shortest queue)</option></select></label><button class="btn ghost sm" id="set-refresh" type="button" title="Refresh queues" aria-label="Refresh queues">↻</button></div>
+<input id="set-zone-custom" placeholder="Or type a zone ID, e.g. NP-AMS-08" autocomplete="off">
+<small id="set-note">Lower queue number means a shorter wait. Some servers may not be available on your plan.</small>
+<div class="sdl"><button class="btn ghost sm" id="set-dl" type="button">Download full catalog.json</button><small id="set-dl-note">Your whole signed-in GeForce NOW library, ready for the games page.</small></div>
+<div class="foot"><button class="btn ghost" id="set-reset" type="button">Reset</button><button class="btn" id="set-save" type="button">Save</button></div></div></div>
+<div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><div id="ptools" class="idle" role="toolbar" aria-label="Game controls"><div class="sf-group"><button class="sf-btn" id="pstop" type="button" title="Leave game (keeps the session running)" aria-label="Leave game"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M8 1L3 6l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sf-label">Exit</span></button></div><div class="sf-group sf-mid"><span class="sf-title" id="ptitle"></span></div><div class="sf-group"><div class="sf-chip sf-stats" id="pfps"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="0.5" y="7" width="2.4" height="4" rx="0.6" fill="currentColor"/><rect x="4.3" y="4" width="2.4" height="7" rx="0.6" fill="currentColor"/><rect x="8.1" y="1" width="2.4" height="10" rx="0.6" fill="currentColor"/></svg><span id="pfpst">-- FPS</span></div><button class="sf-btn sf-icon" id="pmic" type="button" title="Microphone off" aria-label="Toggle microphone" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v4"/></svg></button><button class="sf-btn" id="pfs" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 4V1h3M8 1h3v3M1 8v3h3M11 8v3H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="sf-label">Fullscreen</span></button><button class="sf-btn sf-icon" id="pset" type="button" title="Settings" aria-label="Settings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button class="sf-btn danger" id="pend" type="button" title="End the session">End</button></div></div></div>
+<script type="module">
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
+
+const findHub = () => {
+  for (const w of [window, window.parent, window.top]) {
+    try { if (w && w.kNetDirect && typeof w.kNetDirect.fetch === "function") return w.kNetDirect; } catch {}
+  }
+  return null;
+};
+
+let ready = null, state = null, rotating = null;
+function getProxy({ log = () => {}, say = () => {} } = {}) {
+  return (ready ||= (async () => {
+    say("Connecting to net hub…");
+    stepText("Connecting to the proxy…");
+    let hub = findHub();
+    const hubStart = Date.now();
+    while (!hub && Date.now() - hubStart < 120000) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
+    if (!hub) throw new Error("Net hub unavailable. Open this page from the main site.");
+    const wisp = String(await withTimeout(hub.ready(), 60000, "net hub"));
+    const lc = await hub.libcurl();
+    state = { hub, wisp, libcurl: { fetch: (url, init) => hub.fetch(url, init), WebSocket: lc.WebSocket } };
+    log("[proxy] net hub wisp", wisp);
+    return state;
+  })().catch((e) => { ready = null; throw e; }));
+}
+async function rotateProxy(log = () => {}, say = () => {}) {
+  if (!state) return getProxy({ log, say });
+  if (rotating) return rotating;
+  rotating = (async () => {
+    log("[proxy] asking net hub to switch wisp");
+    const next = await state.hub.rotate(state.wisp, false);
+    if (next) state.wisp = String(next);
+    return state;
+  })().finally(() => { rotating = null; });
+  return rotating;
+}
+window.__getProxy = getProxy;
+window.__rotateProxy = rotateProxy;
+
+const STARFLEET = "https://login.nvidia.com";
+const STATIC_LOGIN = "https://static-login.nvidia.com";
+const ACCOUNTS = "https://accounts.nvgs.nvidia.com";
+const LOGIN_HOST = "login.nvgs.nvidia.com";
+const LOGIN_ORIGIN = "https://" + LOGIN_HOST;
+const JARVIS_METRICS = "5ZjiARedWmKOoXlrQRFkblcGoDlJGPOT0oHz4C03hOS72FpYLX0LRmdNk8GbhBIJ";
+const CLIENT_ID = "ZU7sPN-miLujMD95LfOQ453IB0AtjM8sMyvgJ9wCXEQ";
+const REDIRECT = "http://localhost:2259";
+const SCOPE = "openid consent email tk_client age";
+const DEVICE_ID = "gfnclient";
+const STORE = "singularitynow.session";
+const PAGE_HEADERS = { Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" };
+const TOKEN_HEADERS = {
+  "Content-Type": "application/x-www-form-urlencoded; charset=utf-8",
+  Accept: "application/json, text/plain, */*",
+  Origin: "https://nvfile",
+  Referer: "https://nvfile/",
+};
+const EP = {
+  check: "/api/1/frontend/oauth/account/check",
+  next: "/api/1/frontend/oauth/user/next",
+  factors: "/api/1/frontend/oauth/auth/factor/challenge/factors",
+  init: "/api/1/frontend/oauth/auth/factor/challenge/initialize",
+  verify: "/api/1/frontend/oauth/auth/factor/challenge/verify",
+  poll: "/api/1/frontend/oauth/user/email/auth/poll",
+  consent: "/api/1/frontend/oauth/user/consent",
+  password: "/api/1/frontend/oauth/user/login/password",
+  register: "/api/1/frontend/oauth/user/register",
+  validator: "/api/1/validator/register",
+  verifyPoll: "/api/1/frontend/oauth/user/email/verification/poll",
+  skipFactorSetup: "/api/1/frontend/oauth/auth/factor/setup/skip",
+  skipPasskeySetup: "/api/1/frontend/oauth/passkey/setup/skip",
+};
+
+const $ = (id) => document.getElementById(id);
+const EMBED = !!window.__NOW_EMBED;
+const toParent = (type, d) => { if (!EMBED) return; try { parent.postMessage({ type: "gfn:" + type, ...(d || {}) }, "*"); } catch {} };
+const progOf = (t) => { t = String(t || ""); if (!t) return 1; if (/^Starting/.test(t)) return 0.06; if (/Requesting/.test(t)) return 0.2; if (/Ending your old/.test(t)) return 0.25; const q = /position (\d+)/.exec(t); if (q) return 0.3 + 0.45 * (1 - Math.min(Number(q[1]), 100) / 100); if (/Setting up/.test(t)) return 0.78; if (/Connecting to your rig/.test(t)) return 0.92; return null; };
+let pendingGame = null, launchGen = 0, activeStop = null;
+let warm = null;
+const WARM_TTL = 240000;
+const screens = ["boot", "email-card", "signup-card", "wait-card", "code-card", "password-card", "account"];
+const LOGIN_CARDS = ["email-card", "signup-card", "wait-card", "code-card", "password-card"];
+const show = (name) => { screens.forEach((s) => $(s).classList.toggle("active", s === name)); document.body.classList.toggle("app", name === "account" && !EMBED); if (EMBED) toParent("view", { ui: LOGIN_CARDS.includes(name) }); if (name === "email-card" || name === "signup-card") warmFlow(); };
+const say = (t) => { $("boot-status").textContent = t; if (EMBED) toParent("status", { text: t }); };
+const form = (o) => new URLSearchParams(o).toString();
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const setWait = (title, desc) => { $("wait-title").textContent = title; $("wait-desc").textContent = desc || ""; show("wait-card"); };
+const stepText = (t) => { if ($("wait-card").classList.contains("active")) $("wait-desc").textContent = t; };
+
+const JARVIS_DEVICE = (() => {
+  let d = store.get("WB_DEVID");
+  if (typeof d !== "string" || !d) {
+    d = crypto.randomUUID();
+    store.set("WB_DEVID", d);
+  }
+  return d;
+})();
+
+const maskText = (s) => String(s)
+  .replace(/eyJ[\w-]+\.[\w-]+\.[\w-]+/g, "<jwt>")
+  .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, "<email>")
+  .replace(/("(?:code|validation|otp|device_code|access_token|refresh_token|id_token|client_token|key)"\s*:\s*")[^"]*(")/g, "$1<hidden>$2")
+  .replace(/((?:code|code_verifier|validation|key)=)[^&\s"]+/g, "$1<hidden>");
+const logLines = [];
+function log(...a) {
+  const line = maskText(a.map((x) => (typeof x === "string" ? x : (() => { try { return JSON.stringify(x); } catch { return String(x); } })())).join(" "));
+  logLines.push(line);
+  if (logLines.length > 400) logLines.shift();
+  $("log").textContent = logLines.join("\n");
+  $("log").scrollTop = $("log").scrollHeight;
+  console.log(line);
+}
+
+const loadStore = () => { try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch { return null; } };
+const CRED_KEY = "singularitynow.cred";
+const loadCred = () => { try { const c = JSON.parse(localStorage.getItem(CRED_KEY) || "null"); return c && c.email && c.pw ? c : null; } catch { return null; } };
+const saveCred = (email, pw) => { try { localStorage.setItem(CRED_KEY, JSON.stringify({ email, pw })); } catch {} };
+const clearCred = () => { try { localStorage.removeItem(CRED_KEY); } catch {} };
+const saveStore = (v) => { try { v ? localStorage.setItem(STORE, JSON.stringify(v)) : localStorage.removeItem(STORE); } catch {} };
+
+const jwt = (t) => {
+  try {
+    const p = t.split(".")[1].replace(/-/g, "+").replace(/_/g, "/");
+    return JSON.parse(decodeURIComponent(atob(p).split("").map((c) => "%" + c.charCodeAt(0).toString(16).padStart(2, "0")).join("")));
+  } catch { return {}; }
+};
+
+const b64u = (buf) => btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const rand = (n) => b64u(crypto.getRandomValues(new Uint8Array(n)));
+const challengeOf = async (v) => b64u(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(v)));
+
+const jar = [];
+function cookieHeader(url) {
+  const host = new URL(url).hostname;
+  return jar.filter((c) => host === c.domain || host.endsWith("." + c.domain)).map((c) => c.name + "=" + c.value).join("; ");
+}
+function storeCookies(url, r) {
+  const host = new URL(url).hostname;
+  const raw = [];
+  if (Array.isArray(r.raw_headers)) {
+    for (const [k, v] of r.raw_headers) if (/^set-cookie$/i.test(k)) raw.push(v);
+  } else if (r.headers && typeof r.headers.get === "function") {
+    const v = r.headers.get("set-cookie");
+    if (v) raw.push(...v.split(/,(?=\s*[^;,=\s]+=)/));
+  }
+  for (const line of raw) {
+    const parts = line.split(";").map((p) => p.trim());
+    const eq = parts[0].indexOf("=");
+    if (eq < 1) continue;
+    const name = parts[0].slice(0, eq), value = parts[0].slice(eq + 1);
+    let domain = host;
+    let expired = false;
+    for (const p of parts.slice(1)) {
+      const [k, v = ""] = p.split("=");
+      if (/^domain$/i.test(k)) domain = v.replace(/^\./, "").toLowerCase();
+      if (/^max-age$/i.test(k) && Number(v) <= 0) expired = true;
+    }
+    const i = jar.findIndex((c) => c.name === name && c.domain === domain);
+    if (i >= 0) jar.splice(i, 1);
+    if (!expired && value) jar.push({ name, value, domain });
+  }
+}
+
+async function httpOnce(url, { method = "GET", headers = {}, body, follow = true, stopAt, timeout = 25000 } = {}) {
+  const { libcurl } = await window.__getProxy({ log, say });
+  const chain = [];
+  let cur = url, m = method, b = body, h0 = { ...headers };
+  for (let i = 0; i < 12; i++) {
+    const h = { ...h0 };
+    const ck = cookieHeader(cur);
+    if (ck) h.Cookie = ck;
+    const init = { method: m, headers: h, redirect: "manual" };
+    if (b !== undefined) init.body = b;
+    const r = await withTimeout(libcurl.fetch(cur, init), timeout, "Request");
+    storeCookies(cur, r);
+    const text = await withTimeout(r.text(), timeout, "Response");
+    const loc = r.headers.get("location");
+    const abs = loc ? new URL(loc, cur).href : null;
+    chain.push(r.status + " " + new URL(cur).host + new URL(cur).pathname);
+    if (follow && r.status >= 300 && r.status < 400 && abs) {
+      if (stopAt && stopAt(abs)) return { status: r.status, url: cur, text, location: abs, chain };
+      cur = abs;
+      if (r.status === 303 || ((r.status === 301 || r.status === 302) && m === "POST")) {
+        m = "GET";
+        b = undefined;
+        delete h0["Content-Type"];
+      }
+      continue;
+    }
+    return { status: r.status, url: cur, text, location: abs, chain };
+  }
+  throw new Error("Too many redirects");
+}
+
+async function http(url, opts = {}) {
+  try { return await httpOnce(url, opts); }
+  catch (e) {
+    const m = String((e && e.message) || e), safe = /^(GET|HEAD|DELETE)$/i.test(opts.method || "GET") || /error code (6|7|35)\b/.test(m);
+    if (opts.noRetry || !safe || !/error code (6|7|28|35|52|55|56)\b|timed out|websocket|wisp/i.test(m)) throw e;
+    log("[proxy] request failed (" + m + "), switching proxy and retrying once");
+    await rotateProxy(log, say);
+    return httpOnce(url, opts);
+  }
+}
+
+let flow = null;
+let run = 0;
+let codeWaiter = null;
+
+const cancelled = () => Object.assign(new Error("cancelled"), { cancelled: true });
+const alive = (mine) => { if (mine !== run) throw cancelled(); };
+
+async function makeFlow() {
+  jar.length = 0;
+  stepText("Opening NVIDIA's sign-in…");
+  const verifier = rand(48);
+  const challenge = await challengeOf(verifier);
+  const authUrl = STARFLEET + "/authorize?" + form({
+    response_type: "code",
+    device_id: DEVICE_ID,
+    scope: SCOPE,
+    client_id: CLIENT_ID,
+    redirect_uri: REDIRECT,
+    ui_locales: "en_US",
+    nonce: rand(16),
+    prompt: "select_account",
+    code_challenge: challenge,
+    code_challenge_method: "S256",
+  });
+  log("[auth] authorize");
+  const a = await http(authUrl, { headers: PAGE_HEADERS });
+  log("[auth] chain", a.chain.join(" > "));
+  const page = new URL(a.url);
+  const state = page.searchParams.get("state");
+  const idp = (page.searchParams.get("idp_ids") || "").split(/\s+/).filter(Boolean)[0];
+  if (!state || !idp) throw new Error("NVIDIA did not return a sign-in provider (status " + a.status + ")");
+  const p = await http(STARFLEET + "/callback/provider", {
+    method: "POST",
+    headers: { ...PAGE_HEADERS, "Content-Type": "application/x-www-form-urlencoded", Origin: STATIC_LOGIN, Referer: a.url },
+    body: form({ state, idp_id: idp }),
+    stopAt: (next) => new URL(next).hostname === LOGIN_HOST,
+  });
+  log("[auth] provider chain", p.chain.join(" > "));
+  const key = p.location ? new URL(p.location).searchParams.get("key") : null;
+  if (!key) throw new Error("NVIDIA did not start a login session (status " + p.status + ")");
+  return { verifier, key, email: "", at: Date.now() };
+}
+
+function warmFlow() {
+  if (flow) return;
+  if (warm) {
+    const age = Date.now() - warm.at;
+    if (!warm.done || (warm.failed ? age < 15000 : age < WARM_TTL)) return;
+  }
+  const entry = { at: Date.now(), done: false, failed: false, p: null };
+  entry.p = makeFlow().then(
+    (f) => { entry.done = true; entry.at = Date.now(); return f; },
+    (e) => { entry.done = true; entry.failed = true; entry.at = Date.now(); log("[auth] warm-up failed", (e && e.message) || e); return null; }
+  );
+  warm = entry;
+}
+
+async function beginFlow(maxAge) {
+  flow = null;
+  const entry = warm;
+  warm = null;
+  let made = null, reused = false;
+  if (maxAge > 0 && entry && (!entry.done || (!entry.failed && Date.now() - entry.at < maxAge))) {
+    if (!entry.done) stepText("Opening NVIDIA's sign-in…");
+    made = await entry.p;
+    reused = !!made;
+  }
+  if (!made) made = await makeFlow();
+  flow = made;
+  return reused;
+}
+
+async function api(path, body, method = "POST", quiet = false, extra = null) {
+  if (!flow || !flow.key) throw new Error("No active sign-in session");
+  const headers = {
+    Accept: "application/json, text/plain, */*",
+    Authorization: "Bearer " + flow.key,
+    "x-metrics": JARVIS_METRICS,
+    Origin: LOGIN_ORIGIN,
+    Referer: LOGIN_ORIGIN + "/",
+  };
+  if (extra) Object.assign(headers, extra);
+  const init = { method, headers, follow: false };
+  if (method === "POST") {
+    headers["Content-Type"] = "application/json";
+    init.body = JSON.stringify(body || {});
+  }
+  const r = await http(ACCOUNTS + path, init);
+  let json = {};
+  try { json = JSON.parse(r.text); } catch {}
+  if (json && typeof json.key === "string") flow.key = json.key;
+  const ok = r.status >= 200 && r.status < 300;
+  if (!(quiet && r.status === 202)) log("[api]", method, path, r.status, r.text.slice(0, 400));
+  return { status: r.status, ok, json, text: r.text };
+}
+
+const apiError = (r) => {
+  const j = r.json || {};
+  const msg = j.message || j.error_description || j.errorMessage || j.error || (j.errors && JSON.stringify(j.errors));
+  return new Error(msg ? String(msg) : "NVIDIA returned " + r.status);
+};
+
+function askCode(title, desc, err) {
+  $("code-title").textContent = title;
+  $("code-desc").textContent = desc;
+  $("code-error").textContent = err || "";
+  $("code-error").hidden = !err;
+  $("code").value = "";
+  show("code-card");
+  $("code").focus();
+  return new Promise((resolve, reject) => { codeWaiter = { resolve, reject }; });
+}
+
+function askPassword(err) {
+  $("pw-desc").textContent = "Signing in as " + flow.email + ".";
+  $("pw-error").textContent = err || "";
+  $("pw-error").hidden = !err;
+  $("pw").value = "";
+  show("password-card");
+  $("pw").focus();
+  return new Promise((resolve, reject) => { codeWaiter = { resolve, reject }; });
+}
+
+async function passwordStage(mine) {
+  let err = "";
+  for (let i = 0; i < 3; i++) {
+    const cred = loadCred();
+    const auto = i === 0 && cred && flow && cred.email.toLowerCase() === String(flow.email || "").toLowerCase();
+    const password = auto ? cred.pw : await askPassword(err);
+    alive(mine);
+    setWait("Signing in…", "");
+    const r = await api(EP.password, { password, rememberLogin: false, deviceId: JARVIS_DEVICE });
+    if (r.ok) { saveCred(flow.email, password); return; }
+    if (auto) clearCred();
+    err = apiError(r).message;
+  }
+  throw new Error("Too many wrong passwords.");
+}
+
+let capToken = null, capAt = 0;
+function setCapState(t) { $("su-cap-state").textContent = t; }
+function loadCaptcha() {}
+function resetCaptcha() { capToken = null; setCapState("Solve the human check again before retrying."); }
+let capFrame = null, capPoll = 0;
+function captchaUrl() {
+  const base = /^https?:/.test(location.href) ? location.href : "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/now/";
+  return new URL("captcha.html", base).href;
+}
+function openCaptchaPopup() {
+  const w = window.open(captchaUrl(), "now-captcha", "width=420,height=560");
+  setCapState(w ? "Waiting for you to solve it…" : "Your browser blocked the popup. Allow popups for this site and try again.");
+}
+async function openCaptcha() {
+  const box = $("su-capframe"), id = ++capPoll;
+  try {
+    const hub = findHub();
+    if (!hub) throw new Error("net hub unavailable");
+    setCapState("Loading the human check through the proxy. The first load can take a minute or so, then it is cached.");
+    await hub.ready();
+    const sg = await hub.sandstone();
+    if (!capFrame) {
+      capFrame = new sg.controller.ProxyFrame();
+      capFrame.iframe.style.cssText = "width:100%;height:min(440px,52vh);border:0;border-radius:12px;background:#0b0d10;flex:none";
+    }
+    box.hidden = false;
+    box.append(capFrame.iframe);
+    await capFrame.navigate_to(captchaUrl());
+    setCapState("Solve the human check above. It may stay blank for a moment while it loads.");
+    for (let t = 0; t < 180 && id === capPoll; t++) {
+      await sleep(1000);
+      let r = "";
+      try { r = await capFrame.eval_js("window.__capToken||''"); } catch {}
+      r = typeof r === "string" ? r : (r && (r.result || r.value)) || "";
+      if (r) { capToken = r; capAt = Date.now(); box.hidden = true; setCapState("Human check solved. Now press Create account."); return; }
+    }
+    if (id === capPoll) setCapState("The human check timed out. Press the button to try again.");
+  } catch (e) {
+    log("[auth] proxied captcha failed, using popup", (e && e.message) || e);
+    box.hidden = true;
+    openCaptchaPopup();
+  }
+}
+
+window.addEventListener("message", (ev) => {
+  if (ev.origin !== location.origin || !ev.data || ev.data.type !== "now-captcha" || !ev.data.token) return;
+  capToken = ev.data.token;
+  setCapState("Human check solved. Now press Create account.");
+});
+
+async function registerStage() {
+  const u = flow.signup;
+  flow.signup = null; // one attempt only; the user re-enters on failure
+  setWait("Creating your account…", "");
+  const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false, deviceId: JARVIS_DEVICE, authFactorType: "WebAuthn" };
+  const mine = run;
+  await sleep(Math.max(0, 2500 - (Date.now() - (flow.at || 0))));
+  const k0 = flow.key;
+  const nm = await api("/api/1/search/user?q=" + encodeURIComponent(JSON.stringify({ displayName: u.displayName })), null, "GET", true);
+  flow.key = k0;
+  if (nm.status === 200) throw new Error("That display name is already taken. Choose another one.");
+  const k = flow.key;
+  const vc = await api(EP.validator, null, "GET", true, { "Content-Type": "application/json" });
+  flow.key = k; // the validator reply must not replace the session key
+  if (vc.status === 204 || vc.status === 404) {
+    delete body.validation; // NVIDIA asked for no captcha on register
+    log("[auth] no captcha required");
+  } else if (vc.ok && vc.json && (vc.json.validation || vc.json.key)) {
+    const c = vc.json.validation || vc.json;
+    if (c.type && c.type !== "CaptchaHCaptcha") throw new Error("NVIDIA wants a different human check (" + c.type + ") that this client can't show yet.");
+    body.validation = { key: c.key, type: c.type, captchaMode: c.captchaMode, response: u.captcha };
+    log("[auth] validator", String(c.type), String(c.captchaMode), String(c.key).slice(0, 12), "token", String(u.captcha).length);
+  } else {
+    const ve = apiError(vc);
+    ve.message += " [validator " + vc.status + "] " + vc.text.slice(0, 300);
+    throw ve;
+  }
+  let r = await api(EP.register, body);
+  for (let i = 0; i < 5 && !r.ok && /EARLY_REQUEST/.test(r.text); i++) {
+    await sleep(3000 + i * 2000);
+    alive(mine);
+    r = await api(EP.register, body);
+  }
+  for (let i = 0; i < 3 && !r.ok && /SCHEMA_VIOLATION/.test(r.text); i++) {
+    // drop any field NVIDIA says it does not accept, then try again
+    const det = (r.json && (r.json.details || (r.json.error && r.json.error.details))) || [];
+    const bad = det.map((d) => String(d.field || "").split(".")[0]).filter((f) => f in body && f !== "email" && f !== "password" && f !== "displayName" && f !== "validation");
+    if (!bad.length) break;
+    log("[auth] register dropping", bad.join(","));
+    bad.forEach((f) => delete body[f]);
+    r = await api(EP.register, body);
+  }
+  if (!r.ok) {
+    const e = apiError(r);
+    const det = (r.json && (r.json.details || (r.json.error && r.json.error.details))) || [];
+    e.message += " [register " + r.status + "] " + (det.length ? det.map((d) => d.field + ": " + d.reason).join("; ") : r.text.slice(0, 400));
+    throw e;
+  }
+  log("[auth] account registered");
+}
+
+async function verifyEmailStage(mine) {
+  setWait("Verify your email", "NVIDIA sent a message to " + flow.email + ". Open it and confirm the address yourself. This page continues once you have.");
+  const until = Date.now() + 15 * 60000;
+  while (Date.now() < until) {
+    await sleep(3000);
+    alive(mine);
+    const r = await api(EP.verifyPoll, null, "GET", true);
+    if (r.status === 200) return;
+    if (r.status === 400) throw new Error("The email verification was declined or expired.");
+  }
+  throw new Error("Timed out waiting for you to verify your email.");
+}
+
+async function selectFactor() {
+  const r = await api(EP.factors, null, "GET");
+  if (!r.ok) throw apiError(r);
+  const list = Array.isArray(r.json) ? r.json : r.json.factors || r.json.values || [];
+  const pick = list.find((f) => /email/i.test(f.type)) || list[0];
+  if (!pick) throw new Error("NVIDIA offered no sign-in method for this account.");
+  log("[auth] factors", list.map((f) => f.type).join(","), "using", pick.type);
+  const id = pick.descriptors && pick.descriptors.length ? pick.descriptors[0].id : null;
+  const init = await api(EP.init, { type: pick.type, id });
+  if (!init.ok) throw apiError(init);
+}
+
+async function waitForEmail(mine) {
+  setWait("Check your email", "NVIDIA sent a sign-in message to " + flow.email + ". Open the link in it and this page continues by itself.");
+  const until = Date.now() + 10 * 60000;
+  while (Date.now() < until) {
+    await sleep(3000);
+    alive(mine);
+    const r = await api(EP.poll, null, "GET", true);
+    if (r.status === 200) return;
+    if (r.status === 400) throw new Error("The email sign-in was declined or expired.");
+  }
+  throw new Error("Timed out waiting for the email sign-in.");
+}
+
+async function totpChallenge(mine) {
+  let err = "";
+  for (let i = 0; i < 3; i++) {
+    const code = await askCode("Enter your code", "Enter the code from your authenticator app.", err);
+    alive(mine);
+    setWait("Verifying…");
+    const v = await api(EP.verify, { otp: code });
+    if (v.ok) return;
+    err = apiError(v).message;
+  }
+  throw new Error("Too many wrong codes.");
+}
+
+async function finishStage(page) {
+  const url = page.externalUrl || ACCOUNTS + EP.next + "?key=" + encodeURIComponent(flow.key) + "&state=finish";
+  const r = await http(url, { headers: { ...PAGE_HEADERS, Referer: LOGIN_ORIGIN + "/" }, stopAt: (next) => next.startsWith(REDIRECT) });
+  log("[auth] finish chain", r.chain.join(" > "));
+  if (r.location && r.location.startsWith(REDIRECT)) return r.location;
+  throw new Error("NVIDIA did not complete the sign-in (status " + r.status + ")");
+}
+
+async function drive(mine) {
+  let last = "", repeats = 0;
+  for (let i = 0; i < 30; i++) {
+    alive(mine);
+    const n = await api(EP.next, {});
+    if (!n.ok) throw apiError(n);
+    const page = n.json.page || "";
+    log("[auth] stage", page, JSON.stringify(n.json.values || {}).slice(0, 200));
+    repeats = page === last ? repeats + 1 : 0;
+    last = page;
+    if (repeats >= 2) throw new Error("NVIDIA kept returning the " + page + " step. Open the debug log.");
+    if (page === "Finish" || page === "BackToClient") return finishStage(n.json);
+    if (page === "NFactorSetupSelect" || page === "PasskeyPromptSetup") {
+      const k = await api(page === "NFactorSetupSelect" ? EP.skipFactorSetup : EP.skipPasskeySetup, {});
+      if (!k.ok) throw apiError(k);
+      log("[auth] skipped optional security setup");
+      continue;
+    }
+    if (page === "EnterPassword") { await passwordStage(mine); continue; }
+    if (page === "NFactorChallengeSelect") { setWait("Contacting NVIDIA…", ""); await selectFactor(); continue; }
+    if (page === "NFactorEmailAuthWait") { await waitForEmail(mine); continue; }
+    if (page === "NFactorTOTPChallenge") { await totpChallenge(mine); continue; }
+    if (page === "Consent") {
+      if (!confirm("NVIDIA asks you to approve this app for your account. Approve?")) throw new Error("Approval was declined.");
+      const c = await api(EP.consent, {});
+      if (!c.ok) throw apiError(c);
+      continue;
+    }
+    if (page === "CreateAccount" || page === "ThirdPartyAccountCreate") {
+      if (!flow.signup) throw new Error("No NVIDIA account exists for that email. Use Create account to make one.");
+      await registerStage();
+      continue;
+    }
+    if (/verif/i.test(page)) { await verifyEmailStage(mine); continue; }
+    if (page === "Captcha") throw new Error("NVIDIA wants a captcha for this sign-in, which this client can't show yet.");
+    if (page === "LogIn" || page === "AccountCheck") {
+      const err = n.json.values && n.json.values.jarvis_error;
+      throw new Error(err ? "NVIDIA said: " + (err.error || JSON.stringify(err)) : "NVIDIA sent you back to the sign-in step.");
+    }
+    throw new Error("NVIDIA asked for a step this client does not handle yet: " + (page || "unknown") + ". Open the debug log.");
+  }
+  throw new Error("Sign-in took too many steps.");
+}
+
+async function claimTokens(landed) {
+  if (!landed.startsWith(REDIRECT)) throw new Error("NVIDIA did not hand back an authorization code");
+  const code = new URL(landed).searchParams.get("code");
+  if (!code) throw new Error("NVIDIA did not hand back an authorization code");
+  const t = await http(STARFLEET + "/token", {
+    method: "POST",
+    headers: TOKEN_HEADERS,
+    body: form({ grant_type: "authorization_code", code, redirect_uri: REDIRECT, code_verifier: flow.verifier, client_id: CLIENT_ID, device_id: DEVICE_ID }),
+    follow: false,
+  });
+  let json = {};
+  try { json = JSON.parse(t.text); } catch {}
+  log("[auth] token", t.status);
+  if (t.status < 200 || t.status >= 300 || !json.access_token) throw new Error(json.error_description || json.error || "Token exchange failed (" + t.status + ")");
+  return json;
+}
+
+async function userinfo(token) {
+  const r = await http(STARFLEET + "/userinfo", { headers: { Authorization: "Bearer " + token, Accept: "application/json" }, follow: false });
+  try { return JSON.parse(r.text); } catch { return {}; }
+}
+
+async function firstStep() {
+  if (flow.signup) {
+    await registerStage();
+    return;
+  }
+  stepText("Checking your account…");
+  const first = await api(EP.check, { email: flow.email, rememberLogin: false, deviceId: JARVIS_DEVICE });
+  if (!first.ok) throw apiError(first);
+}
+
+async function startLogin(email, signup) {
+  const mine = ++run;
+  const reused = await beginFlow(signup ? 90000 : WARM_TTL);
+  alive(mine);
+  flow.email = email;
+  flow.signup = signup || null;
+  if (reused && !signup) {
+    try {
+      await firstStep();
+    } catch (e) {
+      if (e && e.cancelled) throw e;
+      log("[auth] early session was rejected, opening a fresh one");
+      await beginFlow(0);
+      alive(mine);
+      flow.email = email;
+      flow.signup = null;
+      await firstStep();
+    }
+  } else {
+    await firstStep();
+  }
+  const landed = await drive(mine);
+  alive(mine);
+  return claimTokens(landed);
+}
+
+function setError(id, t) {
+  const e = $(id);
+  e.textContent = t || "";
+  e.hidden = !t;
+}
+
+async function onEmail(ev) {
+  ev.preventDefault();
+  setError("email-error", "");
+  const email = $("email").value.trim();
+  setWait("Contacting NVIDIA…", "");
+  try {
+    const tokens = await startLogin(email);
+    await finish(tokens);
+    flow = null;
+  } catch (e) {
+    if (e && e.cancelled) return;
+    log("[auth] failed", (e && e.message) || e);
+    flow = null;
+    setError("email-error", e && e.message ? e.message : String(e));
+    show("email-card");
+  }
+}
+
+async function onSignup(ev) {
+  ev.preventDefault();
+  setError("signup-error", "");
+  const email = $("su-email").value.trim(), pw = $("su-pw").value;
+  if (pw !== $("su-pw2").value) { setError("signup-error", "The passwords do not match."); return; }
+  if (!$("su-terms").checked) { setError("signup-error", "Please accept the terms to continue."); return; }
+  if (capToken && Date.now() - capAt > 100000) { capToken = null; } // hCaptcha results expire after about two minutes
+  if (!capToken) { setError("signup-error", "Solve the human check first (it expires after about two minutes, so redo it if it has been a while)."); return; }
+  const signup = { displayName: $("su-name").value.trim(), password: pw, birthdate: $("su-dob").value, captcha: capToken };
+  capToken = null;
+  setWait("Contacting NVIDIA…", "");
+  try {
+    const tokens = await startLogin(email, signup);
+    await finish(tokens);
+    flow = null;
+  } catch (e) {
+    if (e && e.cancelled) return;
+    log("[auth] sign-up failed", (e && e.message) || e);
+    flow = null;
+    resetCaptcha();
+    setError("signup-error", e && e.message ? e.message : String(e));
+    show("signup-card");
+  }
+}
+
+async function autoLogin() {
+  const cred = loadCred();
+  if (!cred || flow) return false;
+  setError("email-error", "");
+  setWait("Signing in…", "");
+  try {
+    const tokens = await startLogin(cred.email);
+    await finish(tokens);
+    flow = null;
+    return true;
+  } catch (e) {
+    flow = null;
+    if (e && e.cancelled) return false;
+    log("[auth] auto sign-in failed", (e && e.message) || e);
+    $("email").value = cred.email;
+    setError("email-error", e && e.message ? e.message : String(e));
+    show("email-card");
+    return false;
+  }
+}
+
+function onCode(ev) {
+  ev.preventDefault();
+  if (!codeWaiter) return;
+  const w = codeWaiter;
+  codeWaiter = null;
+  w.resolve($("code").value.trim());
+}
+
+function cancelLogin() {
+  run++;
+  if (codeWaiter) {
+    codeWaiter.reject(cancelled());
+    codeWaiter = null;
+  }
+  flow = null;
+  setError("email-error", "");
+  show("email-card");
+}
+
+async function finish(tokens) {
+  let user = {};
+  try { user = await userinfo(tokens.access_token); } catch {}
+  const claims = tokens.id_token ? jwt(tokens.id_token) : {};
+  const session = {
+    at: Date.now(),
+    tokens,
+    user: {
+      sub: user.sub || claims.sub || "",
+      email: user.email || claims.email || (flow && flow.email) || "",
+      email_verified: user.email_verified ?? claims.email_verified ?? null,
+      name: user.preferred_username || user.name || claims.preferred_username || claims.name || "",
+    },
+  };
+  saveStore(session);
+  render(session);
+}
+
+
+const LCARS = "https://apps.gxn.nvidia.com/graphql";
+const LCARS_ID = "ec7e38d4-03af-4b58-b131-cfb0495903ab";
+const GRID = "https://prod.cloudmatchbeta.nvidiagrid.net";
+const PUBLIC_LIST = "https://static.nvidiagrid.net/supported-public-games-list/locales/gfnpc-en-US.json";
+const HASH = { search: "ea1b5e417c95ceb5c7d6a65aa4613a417ed80b1a8d6a8c26b6953846da1fc513", plain: "5ae1cfe2e04debdcd81279b5559313abab7d9cfa3ac9d9c048e969b3d445dcb9" };
+const APPS_FIELDS = "numberReturned numberSupported pageInfo{hasNextPage endCursor totalCount} items{id title images{TV_BANNER HERO_IMAGE} variants{id appStore supportedControls gfn{status library{status selected playStatus}}} gfn{playabilityState minimumMembershipTierLabel}}";
+const QUERY = (search) => "query GetSearchFilterResults($vpcId:String!,$locale:String!,$sortString:String!,$fetchCount:Int!,$cursor:String!," + (search ? "$searchString:String!," : "") + "$filters:AppFilterFields!){apps(vpcId:$vpcId,language:$locale,orderBy:$sortString,first:$fetchCount,after:$cursor," + (search ? "searchQuery:$searchString," : "") + "filters:$filters){" + APPS_FIELDS + "}}";
+const gfnHeaders = (token) => ({
+  Accept: "application/json, text/plain, */*",
+  Origin: "https://play.geforcenow.com",
+  Referer: "https://play.geforcenow.com/",
+  "NV-Client-ID": LCARS_ID,
+  "NV-Client-Type": "BROWSER",
+  "NV-Client-Version": "2.0.90.126",
+  "NV-Client-Streamer": "WEBRTC",
+  "NV-Device-OS": "WINDOWS",
+  "NV-Device-Type": "DESKTOP",
+  "NV-Device-Make": "UNKNOWN",
+  "NV-Device-Model": "UNKNOWN",
+  "NV-Browser-Type": "CHROME",
+  "NV-GXT-Device-Id": DEVICE_ID,
+  Authorization: "GFNJWT " + token,
+});
+const lib = { tokens: [], vpc: null, cursor: "", more: false, q: "", seq: 0, authed: true, pub: null, items: [] };
+
+const CT_HEADERS = [
+  { Accept: "application/json" },
+  { Accept: "application/json", Origin: "https://nvfile", Referer: "https://nvfile/" },
+  { Accept: "application/json", Origin: "https://play.geforcenow.com", Referer: "https://play.geforcenow.com/" },
+];
+const looksJson = (t) => /^\s*[\[{]/.test(t || "");
+
+// Exchange a stored client_token for fresh access/id tokens (same grant the web client uses in fetchSession).
+async function refreshSession(session) {
+  const t = session.tokens || {};
+  const ct = t.client_token, sub = session.user && session.user.sub;
+  if (!ct || !sub) return null;
+  try {
+    const r = await http(STARFLEET + "/token", { method: "POST", headers: TOKEN_HEADERS, body: form({ grant_type: "urn:ietf:params:oauth:grant-type:client_token", client_token: ct, client_id: CLIENT_ID, sub }), follow: false });
+    log("[lib] token refresh", r.status);
+    if (!looksJson(r.text)) { log("[lib] token refresh gave a non-JSON reply", String(r.text).slice(0, 80).replace(/\s+/g, " ")); return null; }
+    const j = JSON.parse(r.text);
+    if (!j.access_token) return null;
+    session.tokens = { ...t, ...j }; session.at = Date.now();
+    saveStore(session);
+    return session;
+  } catch (e) { log("[lib] token refresh failed", e.message || e); return null; }
+}
+
+async function fetchClientToken(access) {
+  for (const h of CT_HEADERS) {
+    try {
+      const r = await http(STARFLEET + "/client_token", { headers: { ...h, Authorization: "Bearer " + access }, follow: false });
+      if (looksJson(r.text)) {
+        const j = JSON.parse(r.text);
+        log("[lib] client_token", r.status);
+        if (j.client_token) return j.client_token;
+      } else log("[lib] client_token non-JSON", r.status, String(r.text || "").slice(0, 80).replace(/\s+/g, " "));
+    } catch (e) { log("[lib] client_token failed", e.message || e); }
+  }
+  return null;
+}
+
+async function gfnTokens(session) {
+  if (lib.tokens.length) return lib.tokens;
+  const t = session.tokens || {};
+  // Refresh first when the saved access token has (nearly) expired.
+  const left = t.expires_in && session.at ? session.at + t.expires_in * 1000 - Date.now() : Infinity;
+  if (left < 120000) { const s2 = await refreshSession(session); if (s2) session = s2; }
+  let tk = session.tokens || t, out = [];
+  let ct = await fetchClientToken(tk.access_token);
+  if (!ct) { const s2 = await refreshSession(session); if (s2) { session = s2; tk = s2.tokens; ct = await fetchClientToken(tk.access_token); } }
+  if (ct) { out.push(ct); if (ct !== tk.client_token) { session.tokens = { ...tk, client_token: ct }; saveStore(session); } }
+  else if (tk.client_token) out.push(tk.client_token);
+  if (tk.id_token) out.push(tk.id_token);
+  if (tk.access_token) out.push(tk.access_token);
+  return (lib.tokens = out);
+}
+
+async function gfnJson(url, init, session) {
+  let last = "no token";
+  for (const tok of await gfnTokens(session)) {
+    const r = await http(url, { ...init, headers: { ...gfnHeaders(tok), ...(init.headers || {}) }, follow: false });
+    let j = null;
+    try { j = JSON.parse(r.text); } catch {}
+    if (r.status >= 200 && r.status < 300 && j && !(j.errors && !j.data)) { lib.tokens = [tok, ...lib.tokens.filter((x) => x !== tok)]; return j; }
+    last = r.status + " " + r.text.slice(0, 200);
+    log("[lib]", url.split("?")[0], last);
+  }
+  throw new Error("GeForce NOW rejected the request (" + last + ")");
+}
+
+async function findVpc(session) {
+  if (lib.vpc) return lib.vpc;
+  try {
+    const j = await gfnJson(GRID + "/v2/serverInfo", { method: "GET" }, session);
+    lib.vpc = (j.requestStatus && j.requestStatus.serverId) || null;
+  } catch (e) { log("[lib] serverInfo failed", e.message); }
+  if (!lib.vpc) lib.vpc = "NP-AMS-08";
+  log("[lib] vpc", lib.vpc);
+  return lib.vpc;
+}
+
+async function appsRaw(session, search, cursor, count) {
+  const vpcId = await findVpc(session);
+  const vars = { vpcId, locale: "en_US", sortString: search ? "relevance" : "a_to_z", fetchCount: count || 60, cursor, filters: {} };
+  if (search) vars.searchString = search;
+  const key = search ? "search" : "plain";
+  const huId = "";
+  const qs = form({ requestType: search ? "appsWithSearch" : "appsWithoutSearch", extensions: JSON.stringify({ persistedQuery: { sha256Hash: HASH[key] } }), huId, variables: JSON.stringify(vars) });
+  let j;
+  try { j = await gfnJson(LCARS + "?" + qs, { method: "GET" }, session); }
+  catch (e) {
+    log("[lib] persisted query failed, sending full query");
+    j = await gfnJson(LCARS, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ query: QUERY(!!search), variables: vars }) }, session);
+  }
+  const a = j.data && j.data.apps;
+  if (!a) throw new Error("GeForce NOW returned no game list");
+  return a;
+}
+async function fetchApps(session, search, cursor) {
+  const a = await appsRaw(session, search, cursor, 60);
+  return {
+    items: (a.items || []).map((g) => ({ id: g.id, title: g.title, img: g.images && (g.images.TV_BANNER || g.images.HERO_IMAGE), hero: g.images && (g.images.HERO_IMAGE || g.images.TV_BANNER), playable: g.gfn && g.gfn.playabilityState, vid: (() => { const vs = g.variants || [], v = vs.find((x) => x.gfn && x.gfn.library && x.gfn.library.selected) || vs[0]; return v && /^\d+$/.test(String(v.id)) ? v.id : null; })(), tier: g.gfn && g.gfn.minimumMembershipTierLabel, store: (g.variants || []).map((v) => v.appStore).filter(Boolean)[0] })),
+    next: a.pageInfo && a.pageInfo.hasNextPage ? a.pageInfo.endCursor : "",
+    total: a.pageInfo && a.pageInfo.totalCount,
+  };
+}
+
+async function publicApps(q) {
+  if (!lib.pub) {
+    const r = await http(PUBLIC_LIST, { headers: { Accept: "application/json" }, follow: true });
+    if (!/^\s*[\[{]/.test(r.text || "")) throw new Error("public catalog blocked (" + r.status + ")");
+    const j = JSON.parse(r.text);
+    lib.pub = (Array.isArray(j) ? j : j.games || []).map((g) => ({ id: g.id, title: g.title, img: g.images && (g.images.TV_BANNER || g.images.HERO_IMAGE) || g.image, store: g.store }));
+    log("[lib] public catalog", lib.pub.length);
+  }
+  const n = q.toLowerCase();
+  return lib.pub.filter((g) => g.title && g.title.toLowerCase().includes(n));
+}
+
+function drawGames(items, append) {
+  const grid = $("lib-grid");
+  if (!append) grid.textContent = "";
+  grid.querySelectorAll(".sk").forEach((e) => e.remove());
+  const frag = document.createDocumentFragment();
+  items.forEach((g, n) => {
+    const d = document.createElement("div");
+    d.className = "game";
+    d.tabIndex = 0;
+    d.onclick = () => launch(g);
+    d.onkeydown = (ev) => { if (ev.key === "Enter") launch(g); };
+    d.style.animationDelay = Math.min(n, 20) * 18 + "ms";
+    if (g.img) { const i = document.createElement("img"); i.loading = "lazy"; i.referrerPolicy = "no-referrer"; i.alt = ""; i.src = g.img; i.onerror = () => i.remove(); d.appendChild(i); }
+    if (g.store) { const t = document.createElement("span"); t.className = "tag"; t.textContent = g.store; d.appendChild(t); }
+    d.insertAdjacentHTML("beforeend", '<div class="play"><svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M8 5v14l11-7z"/></svg></div>');
+    const m = document.createElement("div");
+    m.className = "meta";
+    const t = document.createElement("span");
+    t.textContent = g.title || "Untitled";
+    m.appendChild(t);
+    if (g.tier) { const sm = document.createElement("small"); sm.textContent = g.tier; m.appendChild(sm); }
+    d.appendChild(m);
+    frag.appendChild(d);
+  });
+  grid.appendChild(frag);
+}
+
+function drawHero(g) {
+  const h = $("hero");
+  if (!g || !(g.hero || g.img)) { h.hidden = true; return; }
+  $("hero-bg").style.backgroundImage = "url(" + JSON.stringify(g.hero || g.img) + ")";
+  $("hero-title").textContent = g.title || "";
+  $("hero-meta").textContent = [g.store, g.tier, "Cloud gaming"].filter(Boolean).join(" · ");
+  h.hidden = false;
+}
+
+function skeletons(n) {
+  const grid = $("lib-grid");
+  for (let i = 0; i < n; i++) { const d = document.createElement("div"); d.className = "game sk"; grid.appendChild(d); }
+}
+
+async function loadLibrary(session, append) {
+  const my = ++lib.seq, q = lib.q;
+  $("lib-status").textContent = "";
+  $("lib-more").hidden = true;
+  lib.busy = true;
+  if (!append) $("lib-grid").textContent = "";
+  skeletons(append ? 6 : 12);
+  try {
+    let res;
+    if (lib.authed) {
+      try { res = await fetchApps(session, q, append ? lib.cursor : ""); }
+      catch (e) { log("[lib] account catalog failed", e.message); lib.authed = false; }
+    }
+    if (!lib.authed) {
+      const all = await publicApps(q);
+      res = { items: all.slice(0, 300), next: "", total: all.length };
+      $("lib-status").dataset.note = "Showing the public GeForce NOW catalog";
+    }
+    if (my !== lib.seq) return;
+    lib.cursor = res.next;
+    drawGames(res.items, append);
+    if (!append) { drawHero(q ? null : res.items.find((g) => g.hero)); $("lib-title").textContent = q ? "Results for “" + q + "”" : "All games"; }
+    $("lib-count").textContent = (res.total != null ? res.total : $("lib-grid").children.length) + " games";
+    $("lib-more").hidden = !res.next;
+    $("lib-status").textContent = $("lib-status").dataset.note || "";
+    lib.busy = false;
+    if (!$("lib-grid").children.length) $("lib-status").textContent = q ? "No games match “" + q + "”." : "No games found.";
+  } catch (e) {
+    if (my !== lib.seq) return;
+    lib.busy = false;
+    $("lib-grid").querySelectorAll(".sk").forEach((x) => x.remove());
+    log("[lib] failed", e.message || e);
+    $("lib-status").textContent = "Couldn’t load games: " + (e.message || e) + " (see debug log)";
+  }
+}
+
+
+
+const SET_KEY = "singularitynow.settings";
+const DEFAULTS = { res: "auto", fps: "60", zone: "", codec: "h264", kbps: "25000" };
+const loadSettings = () => { try { return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(SET_KEY) || "{}") }; } catch { return { ...DEFAULTS }; } };
+const saveSettings = (v) => { try { localStorage.setItem(SET_KEY, JSON.stringify(v)); } catch {} };
+const QUEUE_API = "https://api.printedwaste.com/gfn/queue/";
+let zonesLoaded = false;
+
+async function loadZones(force) {
+  const sel = $("set-zone"), note = $("set-note"), keep = sel.value || loadSettings().zone;
+  if (zonesLoaded && !force) return;
+  note.textContent = "Loading live queue times…";
+  try {
+    const r = await http(QUEUE_API, { headers: { Accept: "application/json" }, follow: true });
+    const j = JSON.parse(r.text), data = j.data || j;
+    const rows = Object.entries(data).map(([id, v]) => {
+      const o = v && typeof v === "object" ? v : {};
+      const q = Number(o.QueuePosition ?? o.queuePosition ?? o.queue ?? o.position);
+      return { id, q: Number.isFinite(q) ? q : null, region: o.Region || o.region || "" };
+    }).filter((x) => /^NP-[A-Za-z0-9-]+$/i.test(x.id));
+    if (!rows.length) throw new Error("empty");
+    rows.sort((a, b) => (a.q ?? 1e9) - (b.q ?? 1e9));
+    sel.textContent = "";
+    sel.add(new Option("Auto (shortest queue)", ""));
+    for (const x of rows) sel.add(new Option(x.id + (x.region ? " · " + x.region : "") + (x.q != null ? " · queue " + x.q : ""), x.id));
+    zonesLoaded = true;
+    note.textContent = rows.length + " servers. Lower queue number means a shorter wait. Some servers may not be available on your plan.";
+  } catch (e) {
+    log("[settings] queue list failed", e.message || e);
+    note.textContent = "Couldn’t load live queue times. You can still type a zone ID below.";
+  }
+  if (keep && ![...sel.options].some((o) => o.value === keep)) sel.add(new Option(keep, keep));
+  sel.value = keep || "";
+}
+function openSettings() {
+  const c = loadSettings();
+  $("set-res").value = c.res; $("set-fps").value = c.fps; $("set-codec").value = c.codec; $("set-kbps").value = c.kbps; $("set-zone-custom").value = "";
+  $("set-zone").value = c.zone;
+  if (c.zone && ![...$("set-zone").options].some((o) => o.value === c.zone)) $("set-zone").add(new Option(c.zone, c.zone)), $("set-zone").value = c.zone;
+  $("settings").hidden = false;
+  loadZones(false);
+}
+// Pages through the signed-in account's full catalog and saves it as catalog.json (same shape the games page reads).
+let dlBusy = false;
+async function downloadFullCatalog() {
+  if (dlBusy) return;
+  const btn = $("set-dl"), note = $("set-dl-note");
+  const session = loadStore();
+  if (!session) { note.textContent = "Sign in to GeForce NOW first, then try again."; return; }
+  dlBusy = true; btn.disabled = true;
+  try {
+    const rows = [], seen = new Set();
+    let cursor = "", pages = 0, total = 0;
+    do {
+      note.textContent = "Fetching your catalog… " + rows.length + (total ? " / " + total : "");
+      const a = await appsRaw(session, "", cursor, 60);
+      total = (a.pageInfo && a.pageInfo.totalCount) || total;
+      for (const g of a.items || []) {
+        if (!g || !g.id || !g.title || seen.has(String(g.id))) continue;
+        seen.add(String(g.id));
+        const v = (g.variants || []).find((x) => x && x.appStore) || {};
+        const n = Number(g.id);
+        rows.push([Number.isFinite(n) ? n : String(g.id), String(g.title).trim(), String(v.appStore || ""), "", (g.images && (g.images.TV_BANNER || g.images.HERO_IMAGE)) || ""]);
+      }
+      cursor = a.pageInfo && a.pageInfo.hasNextPage ? a.pageInfo.endCursor : "";
+      pages++;
+      await sleep(150);
+    } while (cursor && pages < 150);
+    if (!rows.length) throw new Error("GeForce NOW returned no games");
+    rows.sort((x, y) => x[1].localeCompare(y[1], "en", { sensitivity: "base" }));
+    const blob = new Blob([JSON.stringify({ v: 1, at: new Date().toISOString(), count: rows.length, authed: true, games: rows })], { type: "application/json" });
+    const url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = "catalog.json"; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    if (EMBED) toParent("catalog", { games: rows });
+    note.textContent = "Downloaded catalog.json with " + rows.length + " games.";
+    log("[catalog] downloaded full list", rows.length);
+  } catch (e) {
+    log("[catalog] download failed", (e && e.message) || e);
+    note.textContent = "Couldn’t build the catalog: " + ((e && e.message) || e);
+  } finally { dlBusy = false; btn.disabled = false; }
+}
+$("set-dl").addEventListener("click", downloadFullCatalog);
+$("gear-btn").addEventListener("click", openSettings);
+$("set-refresh").addEventListener("click", () => loadZones(true));
+$("set-reset").addEventListener("click", () => { saveSettings({ ...DEFAULTS }); $("settings").hidden = true; });
+$("set-save").addEventListener("click", () => {
+  const custom = $("set-zone-custom").value.trim().toUpperCase();
+  saveSettings({ res: $("set-res").value, fps: $("set-fps").value, codec: $("set-codec").value, kbps: $("set-kbps").value, zone: /^[A-Z]{2,4}-[A-Z0-9-]+$/.test(custom) ? custom : $("set-zone").value });
+  $("settings").hidden = true;
+});
+$("settings").addEventListener("click", (e) => { if (e.target.id === "settings") $("settings").hidden = true; });
+$("set-close").addEventListener("click", () => { $("settings").hidden = true; });
+
+let adStop = null;
+function playAd(ad, ev) {
+  const box = $("pad"), v = $("padv"), info = $("padinfo");
+  const files = (ad.adMediaFiles || []).filter((f) => f && f.mediaFileUrl);
+  const src = (files.find((f) => /\.mp4(\?|$)/i.test(f.mediaFileUrl)) || files[0] || {}).mediaFileUrl || ad.adUrl;
+  if (!src) return ev("error", { reason: "NO_AD_MEDIA" });
+  let started = false, ended = false;
+  const done = (name, d) => { if (ended) return; ended = true; v.pause(); v.removeAttribute("src"); v.load(); box.hidden = true; box.classList.remove("stealth"); adStop = null; ev(name, d); };
+  adStop = () => done("error", { reason: "USER_CANCELED_WATCHING_ADS" });
+  box.hidden = false; box.classList.add("stealth"); // the ad still plays (needed for validation) but is never shown: no screen takeover, no text
+  v.onplaying = () => { if (!started) { started = true; ev("start"); } else ev("resume"); };
+  v.onpause = () => { if (started && !ended && !v.ended) ev("pause"); };
+  v.ontimeupdate = () => { info.textContent = "Ad · " + Math.max(0, Math.ceil((v.duration || ad.adLengthInSeconds || 0) - v.currentTime)) + "s — your game starts after this"; };
+  v.onended = () => done("finish");
+  v.onerror = () => done("error", { reason: "AD_PLAYBACK_ERROR" });
+  v.src = src; v.muted = true;
+  v.play().catch(() => { v.muted = true; v.play().catch(() => done("error", { reason: "AUTOPLAY_BLOCKED" })); });
+  setTimeout(() => { if (!started && !ended) done("error", { reason: "AD_LOAD_TIMEOUT" }); }, 20000);
+}
+async function rankedZones() {
+  try {
+    const r = await http(QUEUE_API, { headers: { Accept: "application/json" }, follow: true });
+    const j = JSON.parse(r.text), data = j.data || j;
+    return Object.entries(data).map(([id, v]) => { const o = v && typeof v === "object" ? v : {}; const q = Number(o.QueuePosition ?? o.queuePosition ?? o.queue ?? o.position); return { id, q: Number.isFinite(q) ? q : 1e9 }; })
+      .filter((x) => /^NP-[A-Za-z0-9-]+$/i.test(x.id)).sort((a, b) => a.q - b.q);
+  } catch { return []; }
+}
+const ZBAD_KEY = "singularitynow.badzones", ZBAD_TTL = 30 * 60 * 1000;
+const loadZBad = () => { try { const o = JSON.parse(localStorage.getItem(ZBAD_KEY) || "{}"), n = Date.now(); for (const k in o) if (n - o[k] > ZBAD_TTL) delete o[k]; return o; } catch { return {}; } };
+const saveZBad = (o) => { try { localStorage.setItem(ZBAD_KEY, JSON.stringify(o)); } catch {} };
+// every zone once, random order; zones that failed recently go last so repeated launches don't hit the same dead ones first
+function orderZones(ids, bad, rnd) {
+  const sh = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor((rnd || Math.random)() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const u = [...new Set(ids)];
+  return [...sh(u.filter((i) => !bad[i])), ...sh(u.filter((i) => bad[i]))];
+}
+let current = null;
+// The public NVIDIA list leaves some titles out (e.g. Teardown). While signed in and idle, page through the full catalog
+// and hand it to kstuff, which adds the titles its games grid is missing. Runs at most every 12 hours.
+const FULL_KEY = "kstuff_gfn_full_at";
+let catSyncing = false;
+async function syncCatalog(force) {
+  if (!EMBED || catSyncing || current) return;
+  const session = loadStore();
+  if (!session) return;
+  try { if (!force && Date.now() - Number(localStorage.getItem(FULL_KEY) || 0) < 12 * 3600 * 1000) return; } catch {}
+  catSyncing = true;
+  const gen = launchGen;
+  try {
+    const rows = [];
+    let cursor = "", pages = 0;
+    do {
+      if (current || gen !== launchGen) throw new Error("a game is starting");
+      const a = await appsRaw(session, "", cursor, 60);
+      for (const g of a.items || []) {
+        if (!g || !g.id || !g.title) continue;
+        const v = (g.variants || []).find((x) => x && x.appStore) || {};
+        rows.push([String(g.id), String(g.title), String(v.appStore || ""), "", (g.images && (g.images.TV_BANNER || g.images.HERO_IMAGE)) || ""]);
+      }
+      cursor = a.pageInfo && a.pageInfo.hasNextPage ? a.pageInfo.endCursor : "";
+      pages++;
+      await sleep(150);
+    } while (cursor && pages < 150);
+    if (rows.length) { toParent("catalog", { games: rows }); try { localStorage.setItem(FULL_KEY, String(Date.now())); } catch {} }
+    log("[catalog] full list", rows.length);
+  } catch (e) { log("[catalog] sync stopped", (e && e.message) || e); }
+  finally { catSyncing = false; }
+}
+async function resolveVid(session, g) {
+  if (g.vid || !EMBED) return g;
+  try {
+    const r = await Promise.race([fetchApps(session, g.title, ""), new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 8000))]);
+    const nt = (t) => String(t || "").toLowerCase().replace(/[®™©]/g, "").replace(/[^a-z0-9]+/g, "");
+    const m = r.items.find((x) => String(x.id) === String(g.id)) || r.items.find((x) => nt(x.title) === nt(g.title)) || r.items.find((x) => nt(x.title).startsWith(nt(g.title)));
+    if (m && m.vid) { log("[stream] variant", m.vid, "for", g.title); return { ...g, vid: m.vid, id: m.id }; }
+  } catch (e) { log("[stream] variant lookup skipped", (e && e.message) || e); }
+  return g;
+}
+async function launch(g) {
+  if (current) return;
+  const session = loadStore();
+  if (!session) { if (EMBED) { pendingGame = g; if (loadCred()) autoLogin(); else show("email-card"); } return; }
+  const gen = ++launchGen;
+  const pl = $("player"), pv = $("pv");
+  pl.hidden = false; pl.classList.remove("live");
+  let lastP = 0;
+  const st = (t) => {
+    $("pstatus").textContent = t || "";
+    if (!EMBED || gen !== launchGen) return;
+    if (!t) { pl.classList.add("live"); toParent("live"); focusPlayer(); pokeBar(); return; }
+    const p = progOf(t); if (p != null) lastP = Math.max(lastP, p);
+    toParent("status", { text: t, p: lastP });
+  };
+  $("ptitle").textContent = g.title || ""; paintMic(false); $("pfpst").textContent = "-- FPS"; $("pfps").className = "sf-chip sf-stats";
+  st("Starting " + (g.title || "game") + "…");
+  try {
+    const tokens = await gfnTokens(session);
+    if (!tokens.length) throw new Error("No GeForce NOW token available");
+    const token = tokens[0];
+    g = await resolveVid(session, g);
+    if (!/^\d+$/.test(String(g.vid || g.id))) throw new Error("Couldn’t find “" + (g.title || "that game") + "” on GeForce NOW");
+    if (gen !== launchGen) return;
+    const cfg = loadSettings();
+    let w, h;
+    if (cfg.res === "auto") { const lo = Math.min(screen.width, screen.height) * (devicePixelRatio || 1), hi = Math.max(screen.width, screen.height) * (devicePixelRatio || 1); w = Math.min(1920, hi | 0) || 1920; h = Math.min(1080, lo | 0) || 1080; }
+    else [w, h] = cfg.res.split("x").map(Number);
+    const { startStream } = await import((window.__NOW_BASE || "./") + "stream.js");
+    const mk = (vpc, strict) => startStream({
+      appId: g.vid || g.id, vpcId: vpc, strict, deviceId: JARVIS_DEVICE, video: pv, log, status: st,
+      onStats: paintFps, playAd, stopAd: () => adStop && adStop(), registerStop: (s) => { activeStop = s; },
+      inputOpen,
+      headers: () => gfnHeaders(token), http, getLibcurl: async () => (await window.__getProxy({ log, say })).libcurl,
+      width: w, height: h, fps: Number(cfg.fps) || 60, codec: cfg.codec, maxKbps: Number(cfg.kbps) || 0,
+    });
+    // candidate order: chosen server (retried), then lowest-queue servers, then nearest
+    const home = await findVpc(session);
+    const cands = [];
+    if (cfg.zone) cands.push({ id: cfg.zone, tries: 3 });
+    const ranked = await rankedZones();
+    const badMap = loadZBad();
+    const qOf = Object.fromEntries(ranked.map((z) => [z.id, z.q]));
+    for (const id of orderZones([...ranked.map((z) => z.id), home], badMap)) if (!cands.some((c) => c.id === id)) cands.push({ id, tries: 1, q: qOf[id] });
+    log("[stream] trying up to", cands.length, "servers");
+    const authErr = /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH/i;
+    let lastErr, got = null, n = 0;
+    outer: for (const c of cands) {
+      n++;
+      for (let t = 0; t < c.tries; t++) {
+        if (gen !== launchGen) return;
+        log("[stream] server", c.id, "(" + n + "/" + cands.length + (c.id === cfg.zone ? ", chosen, try " + (t + 1) : c.q != null && c.q < 1e9 ? ", queue " + c.q : "") + ")", "res", cfg.res, "fps", cfg.fps);
+        try { got = await mk(c.id, true); const bm = loadZBad(); delete bm[c.id]; saveZBad(bm); break outer; }
+        catch (err) {
+          lastErr = err;
+          if (gen !== launchGen) return;
+          const em = String((err && err.message) || err);
+          if (authErr.test(em)) throw err;
+          const bm = loadZBad(); bm[c.id] = Date.now(); saveZBad(bm);
+          log("[stream]", c.id, "failed:", em);
+          st("Server " + c.id + " didn’t work, trying another (" + n + "/" + cands.length + ")…");
+          await new Promise((r) => setTimeout(r, 800));
+        }
+      }
+    }
+    if (!got) throw lastErr || new Error("No server reachable");
+    if (gen !== launchGen) { try { await got.stop(); } catch {} return; }
+    current = got;
+  } catch (e) {
+    if (gen !== launchGen) return;
+    const msg = String((e && e.message) || e);
+    log("[stream] launch failed", msg);
+    if (EMBED && /\b401\b|unauthori[sz]ed|token (has )?expired|INVALID_AUTH/i.test(msg) && Date.now() - (session.at || 0) > 180000) {
+      saveStore(null); pendingGame = g; pl.hidden = true; if (loadCred()) { toParent("status", { text: "Signing you in again…" }); autoLogin(); return; } toParent("status", { text: "Your GeForce NOW sign-in expired. Please sign in again." }); show("email-card"); return;
+    }
+    st("Couldn’t start the game: " + msg + (/code 60|certificate/i.test(msg) ? " — that server isn’t reachable here; pick an NP- server in Settings." : ""));
+    current = { stop: async () => {} };
+    if (EMBED) { pl.hidden = true; toParent("failed", { text: "Couldn’t start the game: " + msg }); current = null; return; }
+    setTimeout(() => { if (current && $("pstatus").textContent.startsWith("Couldn")) closePlayer(); }, 6000);
+  }
+}
+async function closePlayer(reason) {
+  launchGen++;
+  const c = current, s = activeStop;
+  current = null; activeStop = null;
+  $("player").hidden = true; $("player").classList.remove("live");
+  $("pstatus").textContent = "";
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  try { if (adStop) adStop(); } catch {}
+  const keep = { keep: reason === "user" || reason === "cancel" };
+  if (c) await c.stop(keep); else if (s) { try { await s(keep); } catch {} }
+  toParent("closed", { reason: typeof reason === "string" ? reason : "user" });
+  setTimeout(() => syncCatalog(false), 8000);
+}
+
+const MIC_ON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>', MIC_OFF = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v4"/></svg>';
+let barTimer = 0;
+function pokeBar() { const b = $("ptools"); b.classList.remove("idle"); clearTimeout(barTimer); barTimer = setTimeout(() => { if (!b.matches(":hover") && !b.contains(document.activeElement)) b.classList.add("idle"); }, 2800); }
+for (const t of ["pointermove", "pointerdown", "touchstart"]) $("player").addEventListener(t, pokeBar, { passive: true });
+$("ptools").addEventListener("pointerenter", () => { clearTimeout(barTimer); $("ptools").classList.remove("idle"); });
+$("ptools").addEventListener("pointerleave", pokeBar);
+function paintMic(on, err) {
+  const b = $("pmic"); b.classList.toggle("on", !!on); b.setAttribute("aria-pressed", on ? "true" : "false");
+  b.innerHTML = on ? MIC_ON : MIC_OFF; b.title = err || (on ? "Microphone on" : "Microphone off");
+}
+function paintFps(d) {
+  const f = Math.round(d && d.fps || 0), c = $("pfps"); $("pfpst").textContent = f + " FPS";
+  c.classList.toggle("good", f >= 50); c.classList.toggle("warn", f >= 25 && f < 50); c.classList.toggle("danger", f < 25);
+}
+$("pmic").addEventListener("click", async () => {
+  const c = current;
+  if (!c || !c.setMic) return;
+  try { paintMic(await c.setMic(!c.micOn())); }
+  catch (e) { const m = (e && e.message) || String(e); log("[mic] failed", m); paintMic(false, m); const ps = $("pstatus"); ps.textContent = m; setTimeout(() => { if (ps.textContent === m) ps.textContent = ""; }, 4000); }
+  $("pmic").blur(); focusPlayer();
+});
+$("pstop").addEventListener("click", () => closePlayer("user"));
+$("pend").addEventListener("click", () => closePlayer("end"));
+const isLive = () => !$("player").hidden && $("player").classList.contains("live");
+const focusPlayer = () => { try { window.focus(); $("player").focus({ preventScroll: true }); } catch {} };
+const inputOpen = () => isLive() && $("settings").hidden;
+$("pset").addEventListener("click", () => openSettings());
+$("player").addEventListener("pointerdown", () => { if (inputOpen()) focusPlayer(); });
+document.addEventListener("fullscreenchange", () => {
+  try { if (document.fullscreenElement) navigator.keyboard?.lock?.(["Escape", "Tab", "AltLeft", "AltRight", "MetaLeft", "MetaRight"]).catch(() => {}); else navigator.keyboard?.unlock?.(); } catch {}
+  focusPlayer();
+});
+$("pfs").addEventListener("click", () => { const p = $("player"); (document.fullscreenElement ? document.exitFullscreen() : p.requestFullscreen()).catch(() => {}); });
+
+{ const d = $("log").closest("details"), b = document.createElement("button"); b.className = "btn ghost dbgbtn"; b.type = "button"; b.textContent = "Copy log"; b.onclick = () => copy(logLines.join("\n"), b); d.insertBefore(b, $("log")); const sw = document.createElement("button"); sw.className = "btn ghost dbgbtn"; sw.type = "button"; sw.textContent = "Switch proxy"; sw.onclick = async () => { sw.disabled = true; try { await rotateProxy(log, say); } catch (e) { log("[proxy] switch failed", e.message || e); } sw.disabled = false; }; d.insertBefore(sw, $("log")); d.querySelector("summary").textContent = "Debug log"; }
+let libTimer = 0;
+const libSession = () => loadStore();
+$("lib-search").addEventListener("input", () => {
+  clearTimeout(libTimer);
+  libTimer = setTimeout(() => { lib.q = $("lib-search").value.trim(); lib.cursor = ""; const s = libSession(); if (s) loadLibrary(s, false); }, 400);
+});
+new IntersectionObserver((e) => { if (e[0].isIntersecting && lib.cursor && !lib.busy) { const s = libSession(); if (s) loadLibrary(s, true); } }, { rootMargin: "600px" }).observe($("lib-sentinel"));
+$("acct-btn").addEventListener("click", (ev) => { ev.stopPropagation(); $("acct-menu").hidden = !$("acct-menu").hidden; });
+document.addEventListener("click", (ev) => { if (!ev.target.closest(".acct")) $("acct-menu").hidden = true; });
+$("lib-more").addEventListener("click", () => { const s = libSession(); if (s) loadLibrary(s, true); });
+
+function render(session) {
+  if (!session) { show("email-card"); return; }
+  if (EMBED) {
+    show("boot"); toParent("signedin", { email: (session.user && session.user.email) || "" });
+    if (pendingGame) { const g = pendingGame; pendingGame = null; launch(g); }
+    return;
+  }
+  const u = session.user || {};
+  $("acct-email").textContent = u.email || "(no email returned)";
+  $("acct-name").textContent = u.name || u.sub || "";
+  const v = $("acct-verified");
+  v.textContent = u.email_verified === true ? "Email verified" : u.email_verified === false ? "Email not verified" : "Verification status unknown";
+  v.className = "badge " + (u.email_verified === true ? "ok" : u.email_verified === false ? "warn" : "");
+  const exp = session.tokens.expires_in ? new Date(session.at + session.tokens.expires_in * 1000) : null;
+  $("acct-exp").textContent = exp ? "Access token valid until " + exp.toLocaleString() : "";
+  $("acct-btn").textContent = ((u.name || u.email || "?")[0] || "?").toUpperCase();
+  show("account");
+  lib.tokens = []; lib.cursor = ""; lib.authed = true; lib.q = $("lib-search").value.trim();
+  loadLibrary(session, false);
+}
+
+function signOut() {
+  run++;
+  flow = null;
+  saveStore(null);
+  clearCred();
+  setError("email-error", "");
+  if (EMBED) { $("settings").hidden = true; toParent("signedout"); return; }
+  show("email-card");
+}
+
+async function copy(text, btn) {
+  try { await navigator.clipboard.writeText(text); const o = btn.textContent; btn.textContent = "Copied"; setTimeout(() => (btn.textContent = o), 1200); } catch {}
+}
+
+$("email-form").addEventListener("submit", onEmail);
+$("signup-form").addEventListener("submit", onSignup);
+$("su-cap-btn").addEventListener("click", openCaptcha);
+$("to-signup").addEventListener("click", () => { $("su-email").value = $("email").value; setError("signup-error", ""); show("signup-card"); if (!capToken) openCaptcha(); });
+$("su-open").addEventListener("click", () => window.open("https://login.nvidia.com/signup", "_blank", "noopener"));
+$("su-back").addEventListener("click", () => show("email-card"));
+$("code-form").addEventListener("submit", onCode);
+$("pw-form").addEventListener("submit", (ev) => {
+  ev.preventDefault();
+  if (!codeWaiter) return;
+  const w = codeWaiter;
+  codeWaiter = null;
+  w.resolve($("pw").value);
+});
+$("pw-cancel").addEventListener("click", cancelLogin);
+$("cancel").addEventListener("click", cancelLogin);
+$("back").addEventListener("click", cancelLogin);
+$("signout").addEventListener("click", signOut);
+$("copy-token").addEventListener("click", (e) => { const s = loadStore(); if (s) copy(s.tokens.access_token, e.currentTarget); });
+$("copy-log").addEventListener("click", (e) => copy(logLines.join("\n"), e.currentTarget));
+
+if (EMBED) {
+  document.body.classList.add("embed");
+  const brand = document.createElement("div");
+  brand.className = "emb-brand";
+  brand.innerHTML = '<svg class="ld-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><g id="emb-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10"><path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/><path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/></g></defs><g class="ld-arms" stroke="currentColor"><use href="#emb-arm"/><use href="#emb-arm" transform="rotate(120 50 50)"/><use href="#emb-arm" transform="rotate(240 50 50)"/></g><g class="ld-core" fill="currentColor"><path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/></g></svg><div class="ld-word">Singularity</div>';
+  document.querySelector("main").before(brand);
+  $("email-card").querySelector("h1").textContent = "Sign in to GeForce NOW";
+  $("email-card").querySelector("p").textContent = "Use your NVIDIA account email. NVIDIA will send you a verification link or code.";
+  const so = document.createElement("button");
+  so.className = "btn ghost"; so.type = "button"; so.id = "set-signout"; so.textContent = "Sign out";
+  so.onclick = signOut;
+  $("set-reset").before(so);
+  const syncTheme = () => { try {
+    const cs = parent.getComputedStyle(parent.document.body), d = document.documentElement.style, g = (n) => (cs.getPropertyValue(n) || "").trim();
+    const m = { "--bg": g("--bg-color") || g("--background"), "--text": g("--text-color") || cs.color, "--nav": g("--nav-bg"), "--font": g("--font") };
+    for (const k in m) m[k] ? d.setProperty(k, m[k]) : d.removeProperty(k);
+  } catch {} };
+  syncTheme();
+  new MutationObserver(() => toParent("view", { ui: !$("settings").hidden || LOGIN_CARDS.some((c) => $(c).classList.contains("active")) })).observe($("settings"), { attributes: true, attributeFilter: ["hidden"] });
+  window.addEventListener("message", (e) => {
+    if (e.source !== parent) return;
+    const d = e.data;
+    if (d === "theme-updated") return syncTheme();
+    if (!d || typeof d !== "object") return;
+    if (d.type === "gfn:launch" && d.game) { syncTheme(); if (current) return; const s = loadStore(); if (!s) { pendingGame = d.game; if (loadCred()) autoLogin(); else show("email-card"); } else launch(d.game); }
+    else if (d.type === "gfn:stop") { pendingGame = null; if (LOGIN_CARDS.some((c) => $(c).classList.contains("active"))) cancelLogin(); $("settings").hidden = true; closePlayer("cancel"); show("boot"); toParent("view", { ui: false }); }
+    else if (d.type === "gfn:settings") { syncTheme(); openSettings(); }
+    else if (d.type === "gfn:sync") syncCatalog(false);
+  });
+  show("boot");
+  toParent("ready", { signedIn: !!loadStore() });
+} else {
+  const existing = loadStore();
+  if (existing) render(existing);
+  else if (loadCred()) autoLogin();
+  else show("email-card");
+}
+window.__getProxy({ log, say }).then(() => { if (!loadStore()) warmFlow(); }).catch((e) => log("[proxy] failed", (e && e.message) || e));
+</script>
+</body>
+</html>

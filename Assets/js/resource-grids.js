@@ -1,0 +1,878 @@
+export function init(K) {
+  const grids = {
+    readingcorner: { data: [], pool: [], gridEl: K.$('readingcorner-grid'), pageEl: K.$('readingcorner-pagination'), category: "All", search: "", page: 1, id: 'readingcorner', renderId: 0, sig: '', filterCache: null, pageKey: '' },
+    sciencequiz: { data: [], pool: [], gridEl: K.$('sciencequiz-grid'), pageEl: K.$('sciencequiz-pagination'), category: "All", search: "", page: 1, id: 'sciencequiz', renderId: 0, sig: '', filterCache: null, pageKey: '' }
+  };
+  K.grids = grids;
+  K.lastGridRefresh = {};
+
+  const REFRESH_TTL = 60000;
+  const FIRST_PAINT_IMAGES = 24;
+
+  const hashSig = str => {
+    let h = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return (h >>> 0).toString(36) + ':' + str.length;
+  };
+
+  const resourceIframeFor = (pageId, create = false) => K.$(`${pageId}-resource-iframe`) || (create && K.ensureFrame ? K.ensureFrame(`${pageId}-resource-iframe`) : null);
+  K.resourceIframeFor = resourceIframeFor;
+
+  const showResourceGrid = (pageId, show) => {
+    const grid = grids[pageId];
+    const section = K.$(pageId);
+    const filterBar = section?.querySelector('.filter-bar');
+    if (filterBar) filterBar.style.display = show ? '' : 'none';
+    if (grid?.gridEl) grid.gridEl.style.display = show ? '' : 'none';
+    if (grid?.pageEl) grid.pageEl.style.display = show ? '' : 'none';
+  };
+  K.showResourceGrid = showResourceGrid;
+
+  const releaseImage = img => {
+    if (!img) return;
+    clearTimeout(img._stall);
+    img._pt = (img._pt || 0) + 1;
+    img.onload = img.onerror = null;
+    img.removeAttribute('src');
+    img.style.display = 'none';
+    delete img.dataset.src;
+    img.classList.remove('loaded');
+    img.parentElement?.classList.remove('img-loading', 'img-failed', 'img-none');
+  };
+
+  const IMAGE_STALL_MS = 15000;
+
+  // Game art from these hosts (Steam / NVIDIA CDNs) is often blocked on school networks, so it is fetched through the
+  // site's own proxy (window.kNetDirect, the libcurl/wisp hub) and shown from a blob URL. A few at a time, results cached.
+  const PROXY_IMG = /^https?:\/\/(?:[^/]*\.)?(?:steamstatic\.com|steamcdn-a\.akamaihd\.net|nvidiagrid\.net|nvidia\.com)\//i;
+  const imgCache = new Map();
+  const IMG_CACHE_MAX = 600, IMG_SLOTS = 3;
+  const imgWaiters = [];
+  let imgBusy = 0;
+  const imgSlot = async () => { if (imgBusy >= IMG_SLOTS) await new Promise(r => imgWaiters.push(r)); imgBusy++; };
+  const imgFree = () => { imgBusy--; const w = imgWaiters.shift(); if (w) w(); };
+  const proxiedImage = url => {
+    if (imgCache.has(url)) return imgCache.get(url);
+    const job = (async () => {
+      await imgSlot();
+      try {
+        const res = await Promise.race([
+          window.kNetDirect.fetch(url, { headers: { Accept: 'image/avif,image/webp,image/*,*/*;q=0.8' } }),
+          new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 12000))
+        ]);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        const buf = await res.arrayBuffer();
+        if (buf.byteLength < 64) throw new Error('empty image');
+        const type = (res.headers.get && res.headers.get('content-type')) || '';
+        return URL.createObjectURL(new Blob([buf], { type: /^image\//i.test(type) ? type : 'image/jpeg' }));
+      } finally { imgFree(); }
+    })();
+    imgCache.set(url, job);
+    job.catch(() => imgCache.delete(url));
+    if (imgCache.size > IMG_CACHE_MAX) {
+      const old = imgCache.keys().next().value;
+      const oldJob = imgCache.get(old);
+      imgCache.delete(old);
+      oldJob.then(u => URL.revokeObjectURL(u), () => {});
+    }
+    return job;
+  };
+
+  const armImage = (p, url, alts) => {
+    const card = p.el;
+    card.classList.remove('img-failed', 'img-none');
+    card.classList.add('img-loading');
+    p.img.classList.remove('loaded');
+    clearTimeout(p.img._stall);
+    const fail = () => {
+      clearTimeout(p.img._stall);
+      clearTimeout(p.img._fb);
+      p.img.onload = p.img.onerror = null;
+      card.classList.remove('img-loading');
+      card.classList.add('img-failed');
+      p.img.classList.remove('loaded');
+      p.img.style.display = 'none';
+    };
+    const setSrc = u => {
+      const my = p.img._pt = (p.img._pt || 0) + 1;
+      clearTimeout(p.img._fb);
+      p.img._proxyUrl = window.kNetDirect && PROXY_IMG.test(u) ? u : null;
+      p.img.src = u;
+      if (p.img._proxyUrl) p.img._fb = setTimeout(() => { if (p.img._pt === my && p.img._proxyUrl === u && p.img.onerror) p.img.onerror(); }, 5000);
+    };
+    const next = () => {
+      if (alts.length) { setSrc(alts.shift()); return true; }
+      return false;
+    };
+    p.img.onload = () => {
+      // a 1px or empty image is a blank tile, treat it like a failed one
+      if (p.img.naturalWidth < 8 || p.img.naturalHeight < 8) { if (!next()) fail(); return; }
+      clearTimeout(p.img._stall);
+      clearTimeout(p.img._fb);
+      p.img.onload = p.img.onerror = null;
+      card.classList.remove('img-loading');
+      p.img.classList.add('loaded');
+    };
+    p.img.onerror = () => {
+      const u = p.img._proxyUrl;
+      clearTimeout(p.img._fb);
+      if (u && window.kNetDirect) {
+        p.img._proxyUrl = null;
+        const my = p.img._pt;
+        proxiedImage(u).then(
+          blobUrl => { if (p.img._pt === my) p.img.src = blobUrl; },
+          () => { if (p.img._pt === my && !next()) fail(); }
+        );
+        return;
+      }
+      if (!next()) fail();
+    };
+    // a request that never answers should not leave the card shimmering forever
+    p.img._stall = setTimeout(() => { if (card.classList.contains('img-loading')) fail(); }, PROXY_IMG.test(url) ? 45000 : IMAGE_STALL_MS);
+    setSrc(url);
+  };
+
+  function clearGridPool(type) {
+    const grid = grids[type];
+    if (!grid) return;
+    grid.pool.forEach(p => releaseImage(p.img));
+  }
+  K.clearGridPool = clearGridPool;
+
+  function resetResourceView(pageId) {
+    const ifr = resourceIframeFor(pageId);
+    if (ifr) { ifr.style.display = 'none'; ifr.removeAttribute('srcdoc'); ifr.src = 'about:blank'; }
+    K.resourceOpenFor[pageId] = null;
+    showResourceGrid(pageId, true);
+    K.setCursorSuppressed?.(false);
+  }
+  K.resetResourceView = resetResourceView;
+
+  const closeResourceInline = pageId => {
+    const ifr = resourceIframeFor(pageId);
+    if (ifr?.__resourceLoadHandler) { ifr.removeEventListener('load', ifr.__resourceLoadHandler); ifr.__resourceLoadHandler = null; }
+    resetResourceView(pageId);
+    if (grids[pageId]) { buildPool(pageId); renderGrid(pageId, false); }
+  };
+  K.closeResourceInline = closeResourceInline;
+
+  const launchInline = async (ifr, url, stale, onLoad) => {
+    const res = await fetch(url);
+    let text = await res.text();
+    if (stale()) return;
+    if (K.isSeraphUrl && K.isSeraphUrl(url)) text = K.cleanSeraphHtml(text);
+
+    const doc = ifr.contentDocument;
+    if (!doc) throw new Error('iframe document unavailable');
+
+    ifr.removeEventListener('load', onLoad);
+    ifr.__resourceLoadHandler = null;
+
+    const base = String(url).replace(/[^\/]*$/, '');
+    const html = /<base\s/i.test(text) ? text : (/<head[^>]*>/i.test(text) ? text.replace(/<head([^>]*)>/i, `<head$1><base href="${base}">`) : `<base href="${base}">` + text);
+
+    doc.open();
+    doc.write(html);
+    doc.close();
+
+    if (!stale()) K.toggleLoader(false);
+  };
+
+  const openResource = async (item, opts = {}) => {
+    if (!item) return;
+    if (item.cloudId) return K.openCloudGame?.(item); // Cloud games open inside SingularityCloud, not in this grid's frame
+    if (item.gfnId) return K.openGfnGame?.(item); // GeForce NOW games stream through the SingularityNOW client
+    K.hideGfn?.(); // any other title: make sure no GeForce NOW loader or frame is left over the grid
+    const pageId = opts.pageId || document.querySelector('.page.active')?.id;
+    if (!pageId || !grids[pageId]) return;
+    const ifr = resourceIframeFor(pageId, true);
+    if (!ifr) return;
+
+    K.tooltipEl.style.display = 'none';
+
+    const token = K.resourceTokens[pageId] = (K.resourceTokens[pageId] || 0) + 1;
+    const stale = () => K.resourceTokens[pageId] !== token;
+
+    K.resourceOpenFor[pageId] = item;
+
+    const plainAddr = K.pageAddress(pageId);
+    const addr = plainAddr + '/' + K.slugifyTitle(item.title);
+
+    if (!opts.isHistory) {
+      if (K.history[K.historyIndex] !== plainAddr && K.history[K.historyIndex] !== addr) {
+        K.history = K.history.slice(0, K.historyIndex + 1);
+        K.history.push(plainAddr);
+        K.historyIndex++;
+      }
+      if (K.history[K.historyIndex] !== addr) {
+        K.history = K.history.slice(0, K.historyIndex + 1);
+        K.history.push(addr);
+        K.historyIndex++;
+      }
+    }
+
+    K.setAddress(addr);
+    K.updateBrowserNav();
+
+    K.toggleLoader(true);
+    showResourceGrid(pageId, false);
+
+    if (ifr.__resourceLoadHandler) { ifr.removeEventListener('load', ifr.__resourceLoadHandler); ifr.__resourceLoadHandler = null; }
+    ifr.style.display = 'block';
+    ifr.removeAttribute('srcdoc'); ifr.src = 'about:blank';
+
+    const onLoad = () => {
+      ifr.removeEventListener('load', onLoad);
+      if (ifr.__resourceLoadHandler === onLoad) ifr.__resourceLoadHandler = null;
+      if (!stale()) K.toggleLoader(false);
+    };
+    ifr.__resourceLoadHandler = onLoad;
+    ifr.addEventListener('load', onLoad);
+
+    if (!item.url) {
+      ifr.removeEventListener('load', onLoad);
+      ifr.__resourceLoadHandler = null;
+      K.toggleLoader(false);
+      return;
+    }
+
+    let targetUrl = item.url.trim();
+    if (stale()) return;
+
+    if (K.MIRROR_PH.test(targetUrl)) {
+      await K.embedInFrame(ifr, targetUrl);
+      return;
+    }
+
+    const isRelativeUrl = !targetUrl.startsWith('http');
+    const isHtmlRepo = isRelativeUrl || K.urlHasKeyword(targetUrl, K.HTML_REPO_KEYWORDS);
+    const useLaunch = isHtmlRepo || K.urlHasKeyword(targetUrl, K.LAUNCH_KEYWORDS);
+
+    if (useLaunch) {
+      let launchTarget = targetUrl;
+      if (isHtmlRepo) {
+        const cleanPath = targetUrl.replace(/\$?\{HTML_URL\}\/?/gi, '').replace(/^https?:\/\/[^\/]+\/(?:gh\/)?freebuisness\/html(?:@|\/)?(?:main\/)?/gi, '').replace(/^https?:\/\/[^\/]+\/freebuisness\/html\//gi, '').replace(/^\/+/, '');
+        const htmlSha = await K.getLatestSha(false, 'freebuisness/html');
+        if (stale()) return;
+        launchTarget = `https://cdn.jsdelivr.net/gh/freebuisness/html@${htmlSha || 'main'}/${cleanPath}`;
+      } else {
+        launchTarget = await K.pinUrl(targetUrl);
+      }
+      if (stale()) return;
+      try {
+        try {
+          await launchInline(ifr, launchTarget, stale, onLoad);
+        } catch (err) {
+          if (stale() || launchTarget === targetUrl) throw err;
+          await launchInline(ifr, targetUrl, stale, onLoad);
+        }
+      } catch {
+        if (stale()) return;
+        ifr.src = `https://cdn.jsdelivr.net/gh/deltamath1/deltamath@main/l.svg?url=${launchTarget}`;
+      }
+    } else {
+      const isProxyUrl = targetUrl.includes('rtischeduler/ixl') || item.category === 'Apps' || (!targetUrl.includes('raw.githubusercontent.com') && !targetUrl.includes('cdn.jsdelivr.net'));
+      if (isProxyUrl) {
+        ifr.src = targetUrl;
+      } else {
+        const pinned = await K.pinUrl(targetUrl);
+        if (stale()) return;
+        const tries = pinned !== targetUrl ? [pinned, targetUrl] : [targetUrl];
+        let pageHtml = null;
+        for (const u of tries) {
+          try {
+            const res = await fetch(u, { cache: u === targetUrl ? 'no-store' : 'default' });
+            if (stale()) return;
+            if (res.ok) { pageHtml = await res.text(); break; }
+          } catch {
+            if (stale()) return;
+          }
+        }
+        if (pageHtml !== null) ifr.srcdoc = pageHtml;
+        else ifr.src = targetUrl;
+      }
+    }
+  };
+  K.openResource = openResource;
+
+  const cardTemplate = document.createElement('div');
+  cardTemplate.className = 'round-btn';
+  const STAR_SVG = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.9L12 16.9 6.8 19.7l1-5.9L3.5 9.7l5.9-.8z" stroke-width="1.8" stroke-linejoin="round"/></svg>';
+  cardTemplate.innerHTML = `<div class="ph-art" aria-hidden="true"><span></span></div><img alt="" style="display:none;"><div class="category-label"></div><div class="overlay"><h3></h3><p></p></div><button type="button" class="fav-btn" aria-label="Add to favorites" aria-pressed="false">${STAR_SVG}</button>`;
+
+  const setFavState = (card, on, animate) => {
+    const btn = card.querySelector('.fav-btn');
+    card.classList.toggle('is-fav', on);
+    if (btn) {
+      btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+      btn.setAttribute('aria-label', on ? 'Remove from favorites' : 'Add to favorites');
+      if (animate) { btn.classList.remove('pop'); void btn.offsetWidth; btn.classList.add('pop'); }
+    }
+  };
+
+  const syncFavStars = () => {
+    Object.keys(grids).forEach(type => {
+      const grid = grids[type];
+      if (!grid.paginatedData) return;
+      grid.pool.forEach((p, i) => {
+        const item = grid.paginatedData[i];
+        if (item && p.el.style.display !== 'none') {
+          const on = !!K.favorites?.has(type, item.title);
+          if (p.el.classList.contains('is-fav') !== on) setFavState(p.el, on, false);
+        }
+      });
+    });
+  };
+  K.favorites?.onChange(syncFavStars);
+
+  const buildPool = type => {
+    const grid = grids[type];
+    if (!grid.gridEl) return;
+    const needed = K.ITEMS_PER_PAGE;
+    if (grid.pool.length !== needed) {
+      grid.pool.forEach(p => releaseImage(p.img));
+      grid.gridEl.textContent = '';
+      grid.pool = [];
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < needed; i++) {
+        const card = cardTemplate.cloneNode(true);
+        card.dataset.index = i;
+        grid.pool.push({ el: card, img: card.querySelector('img'), t: card.querySelector('h3'), d: card.querySelector('p'), c: card.querySelector('.category-label'), ph: card.querySelector('.ph-art span'), f: card.querySelector('.fav-btn') });
+        frag.appendChild(card);
+      }
+      grid.gridEl.appendChild(frag);
+      grid.pageKey = '';
+    }
+    grid.gridEl.onclick = e => {
+      const c = e.target.closest('.round-btn');
+      if (!c || c.style.display === 'none') return;
+      const item = grid.paginatedData?.[c.dataset.index];
+      if (e.target.closest('.fav-btn')) {
+        e.stopPropagation();
+        if (item && K.favorites) setFavState(c, K.favorites.toggle(type, item), true);
+        return;
+      }
+      openResource(item, { pageId: type });
+    };
+  };
+  K.buildPool = buildPool;
+
+  const gridImageStyle = document.createElement('style');
+  gridImageStyle.textContent = `
+    .round-btn{position:relative;overflow:hidden;aspect-ratio:1/1;contain:layout paint style;}
+    .round-btn>img{position:absolute;inset:0;display:block;width:100%;height:100%;max-width:100%;max-height:100%;object-fit:cover!important;object-position:center;}
+    .round-btn>img[src=""]{display:none!important;}
+  `;
+  document.head.appendChild(gridImageStyle);
+
+  const getFiltered = grid => {
+    const favV = K.favorites ? K.favorites.version : 0;
+    const key = grid.category + '\u0000' + grid.search + '\u0000' + favV;
+    const cache = grid.filterCache;
+    if (cache && cache.data === grid.data && cache.key === key) return cache.list;
+    const search = grid.search;
+    const cat = grid.category;
+    const list = (grid.data || []).filter(i =>
+      (cat === 'All' || i.category === cat) &&
+      (!search || (i._lt ?? (i.title || '').toLowerCase()).includes(search))
+    );
+    let ordered = list;
+    if (K.favorites) {
+      const favs = [], rest = [];
+      for (let i = 0; i < list.length; i++) (K.favorites.has(grid.id, list[i].title) ? favs : rest).push(list[i]);
+      if (favs.length) ordered = favs.concat(rest);
+    }
+    grid.filterCache = { data: grid.data, key, list: ordered };
+    return ordered;
+  };
+
+  const renderGrid = (type, preload = false, mode = 'loading') => {
+    const grid = grids[type];
+    if (!grid?.gridEl) return;
+
+    grid.renderId = (grid.renderId || 0) + 1;
+    const myRenderId = grid.renderId;
+
+    K.toggleLoader(true, mode);
+
+    const filtered = getFiltered(grid);
+    const totalPages = Math.max(1, Math.ceil(filtered.length / K.ITEMS_PER_PAGE));
+    if (grid.page > totalPages) grid.page = 1;
+    const start = (grid.page - 1) * K.ITEMS_PER_PAGE;
+    grid.paginatedData = filtered.slice(start, start + K.ITEMS_PER_PAGE);
+
+    const pool = grid.pool;
+    const paginated = grid.paginatedData;
+    const len = pool.length;
+
+    for (let idx = 0; idx < len; idx++) {
+      const p = pool[idx];
+      const item = paginated[idx];
+
+      if (!item) {
+        if (p.el.style.display !== 'none') p.el.style.display = 'none';
+        if (p.img.dataset.src !== undefined || p.img.getAttribute('src')) releaseImage(p.img);
+        if (p.c?.textContent) p.c.textContent = '';
+        if (p.el.dataset.tooltip !== undefined) delete p.el.dataset.tooltip;
+        continue;
+      }
+
+      if (p.el.style.display !== 'block') p.el.style.display = 'block';
+      if (p.t.textContent !== item.title) {
+        p.t.textContent = item.title;
+        let h = 0;
+        const title = String(item.title || '');
+        for (let i = 0; i < title.length; i++) h = (h * 31 + title.charCodeAt(i)) % 360;
+        p.el.style.setProperty('--ph-h', String(h));
+        if (p.ph) p.ph.textContent = (title.match(/[\p{L}\p{N}]/u) || ['?'])[0].toUpperCase();
+      }
+
+      const desc = item.description || '';
+      if (p.d.textContent !== desc) p.d.textContent = desc;
+
+      const cat = item.category || 'All';
+      if (p.c && p.c.textContent !== cat) p.c.textContent = cat;
+
+      if (p.el.dataset.tooltip !== item.title) p.el.dataset.tooltip = item.title;
+
+      const isFav = !!K.favorites?.has(type, item.title);
+      if (p.el.classList.contains('is-fav') !== isFav) setFavState(p.el, isFav, false);
+
+      const wanted = item.image || '';
+
+      if (p.img.dataset.src !== wanted) {
+        p.img.onload = p.img.onerror = null;
+        if (p.img.getAttribute('src')) p.img.removeAttribute('src');
+        p.img.dataset.src = wanted;
+
+        if (wanted) {
+          p.img.style.display = 'block';
+          p.img.loading = idx < FIRST_PAINT_IMAGES ? 'eager' : 'lazy';
+          p.img.fetchPriority = idx < FIRST_PAINT_IMAGES ? 'auto' : 'low';
+          p.img.decoding = 'async';
+          armImage(p, wanted, (item.imageAlts || []).slice());
+        } else {
+          p.img.style.display = 'none';
+          p.el.classList.remove('img-loading', 'img-failed');
+          p.el.classList.add('img-none');
+        }
+      } else if (wanted && p.img.style.display !== 'block') {
+        p.img.style.display = 'block';
+      }
+    }
+
+    if (grid.pageEl) {
+      const pageKey = `${grid.page}/${totalPages}`;
+      if (grid.pageKey !== pageKey) {
+        grid.pageKey = pageKey;
+        const prevDis = grid.page === 1 ? ' style="opacity:0.4;cursor:not-allowed;"' : '';
+        const nextDis = grid.page === totalPages ? ' style="opacity:0.4;cursor:not-allowed;"' : '';
+        grid.pageEl.innerHTML =
+          `<button class="page-btn" data-action="prev"${prevDis}><i class="ph ph-caret-left"></i></button>` +
+          `<span style="font-weight:700;font-size:1.1rem;min-width:80px;text-align:center;user-select:none;">${grid.page} / ${totalPages}</span>` +
+          `<button class="page-btn" data-action="next"${nextDis}><i class="ph ph-caret-right"></i></button>`;
+      }
+      if (!grid.pageEl.dataset.bound) {
+        grid.pageEl.dataset.bound = 'true';
+        grid.pageEl.onclick = e => {
+          const btn = e.target.closest('.page-btn');
+          if (!btn) return;
+          const tp = Math.max(1, Math.ceil(getFiltered(grid).length / K.ITEMS_PER_PAGE));
+          const act = btn.dataset.action;
+          if (act === 'prev' && grid.page > 1) { grid.page--; renderGrid(type, true); }
+          else if (act === 'next' && grid.page < tp) { grid.page++; renderGrid(type, true); }
+        };
+      }
+    }
+
+    const animKey = `${grid.page}|${grid.category}|${grid.search}|${grid.sig}|${paginated.length}|${paginated[0]?.title || ''}|${paginated[paginated.length - 1]?.title || ''}`;
+    if (grid.animKey !== animKey) {
+      grid.animKey = animKey;
+      if (!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+        const shown = [];
+        for (let i = 0; i < pool.length; i++) {
+          const el = pool[i].el;
+          if (el.style.display === 'none') continue;
+          el.style.setProperty('--i', Math.min(i, 24));
+          el.classList.remove('card-in');
+          shown.push(el);
+        }
+        if (shown.length) {
+          void shown[0].offsetWidth;
+          for (let i = 0; i < shown.length; i++) shown[i].classList.add('card-in');
+        }
+      }
+    }
+
+    if (grid.renderId === myRenderId) {
+      requestAnimationFrame(() => {
+        if (grid.renderId === myRenderId) K.toggleLoader(false);
+      });
+    }
+  };
+  K.renderGrid = renderGrid;
+
+  Object.keys(grids).forEach(type => {
+    let timer;
+    K.$(`${type}-search`)?.addEventListener('input', e => {
+      const clr = K.$(`${type}-search-clear`);
+      if (clr) clr.style.display = e.target.value ? 'block' : 'none';
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        grids[type].search = e.target.value.toLowerCase().trim();
+        grids[type].page = 1;
+        renderGrid(type, true);
+      }, 120);
+    });
+    K.$(`${type}-search-clear`)?.addEventListener('click', () => {
+      K.$(`${type}-search`).value = '';
+      K.$(`${type}-search-clear`).style.display = 'none';
+      grids[type].search = '';
+      grids[type].page = 1;
+      renderGrid(type, true);
+    });
+  });
+
+  document.addEventListener('keydown', e => {
+    if (['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement?.tagName)) return;
+    const activePage = document.querySelector('.page.active');
+    if (!activePage) return;
+    const type = activePage.id;
+    if (!grids[type] || K.resourceOpenFor[type]) return;
+    const grid = grids[type];
+    const totalPages = Math.max(1, Math.ceil(getFiltered(grid).length / K.ITEMS_PER_PAGE));
+    if (e.key === 'ArrowLeft' && grid.page > 1) { e.preventDefault(); grid.page--; renderGrid(type, true); }
+    else if (e.key === 'ArrowRight' && grid.page < totalPages) { e.preventDefault(); grid.page++; renderGrid(type, true); }
+  });
+
+  K.fetchWithProxy('Assets/json/categories.json').then(c => {
+    const setC = (id, opts, type) => {
+      const s = K.$(id);
+      if (!s) return;
+      s.innerHTML = (opts || []).map(o => `<option value="${o}">${o}</option>`).join('');
+      K.applyCustomDropdown(s);
+      s.addEventListener('change', e => { grids[type].category = e.target.value; grids[type].page = 1; renderGrid(type, true); });
+    };
+    setC('readingcorner-category-select', c.Games, 'readingcorner');
+    setC('sciencequiz-category-select', c.Apps, 'sciencequiz');
+  }).catch(err => console.error('categories.json failed', err));
+
+  const appB = (s, isPage = false) => {
+    if (typeof s !== 'string') return s;
+    if (K.MIRROR_PH.test(s)) return isPage ? s : '';
+    return s.replace(/([^:]\/)\/+/g, '$1').replace(/^http:\/\//i, 'https://');
+  };
+  K.appB = appB;
+
+  const collator = new Intl.Collator(undefined, { sensitivity: 'base' });
+  const proc = arr => (Array.isArray(arr) ? arr : []).map(i => {
+    let p = { ...i };
+    p.url = appB(p.url, true);
+    p.image = appB(p.image);
+    p._lt = (p.title || '').toLowerCase();
+    return p;
+  }).sort((a, b) => collator.compare(a.title || '', b.title || ''));
+  K.proc = proc;
+
+  const rData = async (t, p, resetPage = true, mode = 'updating', silent = false) => {
+    try {
+      const n = await K.fetchWithProxy(p).catch(err => { console.error('rData fetch failed', p, err); return null; });
+      if (!Array.isArray(n)) { if (!silent) K.toggleLoader(false); return false; }
+      if (grids[t].sig && n === grids[t].lastRaw) { if (!silent) K.toggleLoader(false); return false; }
+      const sig = hashSig(JSON.stringify(n));
+      grids[t].lastRaw = n;
+      if (sig === grids[t].sig) { if (!silent) K.toggleLoader(false); return false; }
+      if (t === 'sciencequiz') K.rawSciencequizData = n;
+      const processed = proc(n);
+      K.toggleLoader(true, mode);
+      grids[t].sig = sig;
+      grids[t].data = processed;
+      if (resetPage) grids[t].page = 1;
+      renderGrid(t, true, mode);
+      return true;
+    } catch (err) {
+      console.error('rData failed', t, p, err);
+      if (!silent) K.toggleLoader(false);
+      return false;
+    }
+  };
+  K.rData = rData;
+
+  const NUM_WORDS = { zero: '0', one: '1', two: '2', three: '3', four: '4', five: '5', six: '6', seven: '7', eight: '8', nine: '9', ten: '10' };
+  const normName = t => {
+    const base = (t || '').toLowerCase().replace(/\s*[(\[][^)\]]*[)\]]\s*$/, '').replace(/['']/g, '').replace(/\b(zero|one|two|three|four|five|six|seven|eight|nine|ten)\b/g, m => NUM_WORDS[m]);
+    const stripped = base.replace(/\b(unblocked|online|games?|the|free)\b/g, '').replace(/[^a-z0-9]+/g, '');
+    return stripped || base.replace(/[^a-z0-9]+/g, '');
+  };
+
+  let edPrev = new Int32Array(64), edCur = new Int32Array(64);
+  const editDistance = (a, b, max) => {
+    const al = a.length, bl = b.length;
+    if (Math.abs(al - bl) > max) return max + 1;
+    if (edPrev.length < bl + 1) {
+      edPrev = new Int32Array(bl + 1);
+      edCur = new Int32Array(bl + 1);
+    }
+    let prev = edPrev, cur = edCur;
+    for (let j = 0; j <= bl; j++) prev[j] = j;
+    for (let i = 1; i <= al; i++) {
+      cur[0] = i;
+      let rowMin = i;
+      const ac = a.charCodeAt(i - 1);
+      for (let j = 1; j <= bl; j++) {
+        let v = prev[j] + 1;
+        const ins = cur[j - 1] + 1;
+        if (ins < v) v = ins;
+        const sub = prev[j - 1] + (ac === b.charCodeAt(j - 1) ? 0 : 1);
+        if (sub < v) v = sub;
+        cur[j] = v;
+        if (v < rowMin) rowMin = v;
+      }
+      if (rowMin > max) return max + 1;
+      const tmp = prev; prev = cur; cur = tmp;
+    }
+    return prev[bl];
+  };
+
+  const fillMissingImages = rows => {
+    const donors = new Map();
+    rows.forEach(r => {
+      if (!r.image) return;
+      const n = normName(r.title);
+      if (!n) return;
+      const existing = donors.get(n);
+      if (!existing || (!r.imageAlts && existing.imageAlts)) donors.set(n, r);
+    });
+    const buckets = new Map();
+    donors.forEach((row, n) => {
+      if (!buckets.has(n[0])) buckets.set(n[0], []);
+      buckets.get(n[0]).push([n, row, n.replace(/\D/g, '')]);
+    });
+    rows.forEach(r => {
+      if (r.image || r.imageToken) return;
+      const n = normName(r.title);
+      if (!n) return;
+      let hit = donors.get(n);
+      if (!hit && n.length >= 6) {
+        const max = n.length >= 12 ? 2 : 1;
+        const digits = n.replace(/\D/g, '');
+        let best = max + 1;
+        const bucket = buckets.get(n[0]) || [];
+        for (let k = 0; k < bucket.length; k++) {
+          const entry = bucket[k];
+          const m = entry[0];
+          if (Math.abs(m.length - n.length) > max || entry[2] !== digits) continue;
+          const d = editDistance(n, m, max);
+          if (d < best) { best = d; hit = entry[1]; }
+        }
+      }
+      if (hit) {
+        r.image = hit.image;
+        if (hit.imageAlts) r.imageAlts = hit.imageAlts.slice();
+      }
+    });
+  };
+
+  const fetchReadingCornerRaw = async (prevSig = '') => {
+    const coverBase = 'https://cdn.jsdelivr.net/gh/freebuisness/covers@main';
+    const htmlBase = 'https://cdn.jsdelivr.net/gh/freebuisness/html@main';
+    const manualRes = await K.fetchWithProxy('Assets/json/g.json').catch(() => null);
+    const manualList = Array.isArray(manualRes) ? manualRes : [];
+
+    const [zones, extras] = await Promise.all([
+      K.fetchRepoFile('freebuisness/assets', 'zones.json', true, 12000)
+        .then(text => {
+          if (K._zonesRows && text === K._zonesText) return K._zonesRows;
+          const json = JSON.parse(text);
+          if (!Array.isArray(json)) throw new Error('zones.json is not an array');
+          K._zonesText = text;
+          K._zonesSig = hashSig(text);
+          return (K._zonesRows = json.map(z => ({ source: 'gn-math', name: z.name, url: z.url, cover: z.cover })));
+        })
+        .catch(e => { console.error('fetchReadingCornerRaw zones failed', e); return []; }),
+      K.fetchExtraGames ? K.fetchExtraGames().catch(e => { console.error('extra game sources failed', e); return []; }) : []
+    ]);
+
+    let sig = '';
+    try {
+      if (manualList !== K._manualRef) { K._manualRef = manualList; K._manualSig = hashSig(JSON.stringify(manualList)); }
+      let ex = extras.length;
+      for (let i = 0; i < extras.length; i++) { const x = extras[i]; ex = (ex * 31 + (x.name || '').length * 7 + (x.url || '').length) | 0; }
+      sig = hashSig(`${K._manualSig}|${K._zonesSig || ''}|${ex}`);
+    } catch {}
+    if (prevSig && sig === prevSig) return { unchanged: true, sig };
+
+    const manualMap = new Map();
+    manualList.forEach(item => { if (item?.title) manualMap.set(item.title.toLowerCase().trim(), item); });
+
+    const entries = [...zones, ...extras];
+    if (entries.length) {
+      const mappedData = [];
+      const used = new Set();
+      entries.forEach(item => {
+        const baseName = item.name || '';
+        const key = baseName.toLowerCase().trim();
+        const manualMatch = manualMap.get(key);
+        let finalUrl = item.url, finalCover = item.cover, finalCategory = 'All';
+        if (manualMatch) {
+          if (manualMatch.url) finalUrl = manualMatch.url;
+          if (manualMatch.category) finalCategory = manualMatch.category;
+          if (manualMatch.image || manualMatch.img) finalCover = manualMatch.image || manualMatch.img;
+          used.add(key);
+        }
+        if (baseName.includes('[!]')) return;
+        if (item.source === 'gfn') {
+          const art = Array.isArray(item.cover) ? item.cover : [item.cover];
+          const row = { title: `${baseName} (GFN)`, image: art[0] || '', url: '', category: 'GeForce NOW', description: item.store || '', gfnId: item.gfnId, gfnName: baseName };
+          if (art.length > 1) row.imageAlts = art.slice(1);
+          mappedData.push(row);
+          return;
+        }
+        if (item.source === 'cloud') {
+          const art = Array.isArray(item.cover) ? item.cover : [item.cover];
+          const cloudRow = { title: `${baseName} (Cloud)`, image: art[0] || '', url: '', category: 'Cloud', description: '', cloudId: item.cloudId, cloudName: baseName };
+          if (art.length > 1) cloudRow.imageAlts = art.slice(1);
+          mappedData.push(cloudRow);
+          return;
+        }
+        const covers = Array.isArray(finalCover) ? finalCover : [finalCover];
+        const row = {
+          title: item.suffix ? `${baseName} (${item.suffix})` : baseName,
+          image: (covers[0] || '').replace('{COVER_URL}', coverBase + '/'),
+          url: (finalUrl || '').replace('{HTML_URL}', htmlBase + '/'),
+          category: finalCategory,
+          description: ''
+        };
+        if (covers.length > 1) row.imageAlts = covers.slice(1);
+        if (item.imageToken && !manualMatch?.image && !manualMatch?.img) row.imageToken = item.imageToken;
+        mappedData.push(row);
+      });
+      manualMap.forEach((manualItem, key) => {
+        if (used.has(key) || !manualItem.title || manualItem.title.includes('[!]')) return;
+        mappedData.push({
+          title: manualItem.title,
+          image: manualItem.image || manualItem.img || '',
+          url: manualItem.url || '',
+          category: manualItem.category || 'Manual',
+          description: ''
+        });
+      });
+      fillMissingImages(mappedData);
+      return { data: mappedData, sig };
+    }
+
+    const fallbackMapped = [];
+    manualList.forEach(item => {
+      if (!item?.title || item.title.includes('[!]')) return;
+      fallbackMapped.push({ ...item, image: item.image || item.img || '', category: item.category || 'All' });
+    });
+    return { data: fallbackMapped, sig };
+  };
+  K.fetchReadingCornerRaw = fetchReadingCornerRaw;
+
+  const refreshReadingCorner = async (resetPage = true, mode = 'updating', silent = false) => {
+    try {
+      const result = await fetchReadingCornerRaw(grids.readingcorner.sig);
+      if (result?.unchanged || !result?.data?.length) { if (!silent) K.toggleLoader(false); return false; }
+      K.rawReadingCornerData = result.data;
+      const processed = proc(result.data);
+      K.toggleLoader(true, mode);
+      grids.readingcorner.sig = result.sig || '';
+      grids.readingcorner.data = processed;
+      if (resetPage) grids.readingcorner.page = 1;
+      renderGrid('readingcorner', true, mode);
+      return true;
+    } catch (err) {
+      console.error('refreshReadingCorner failed', err);
+      if (!silent) K.toggleLoader(false);
+      return false;
+    }
+  };
+  K.refreshReadingCorner = refreshReadingCorner;
+
+  const runWhenIdle = fn => new Promise(resolve => {
+    const run = () => { Promise.resolve().then(fn).then(resolve, () => resolve(false)); };
+    if (window.requestIdleCallback) window.requestIdleCallback(run, { timeout: 2000 });
+    else setTimeout(run, 250);
+  });
+
+  K.refreshGridSource = (tId, silent = true) => {
+    if (K.resourceOpenFor[tId]) return Promise.resolve(false);
+    if (tId !== 'readingcorner' && tId !== 'sciencequiz') return Promise.resolve(false);
+    if (silent && Date.now() - (K.lastGridRefresh[tId] || 0) < REFRESH_TTL) return Promise.resolve(false);
+    K.lastGridRefresh[tId] = Date.now();
+    return runWhenIdle(() => tId === 'readingcorner'
+      ? refreshReadingCorner(false, 'updating', silent)
+      : rData('sciencequiz', 'Assets/json/a.json', false, 'updating', silent));
+  };
+
+  const hardRefreshGrid = async type => {
+    const grid = grids[type];
+    if (!grid || K.resourceOpenFor[type] || grid.refreshing) return false;
+    grid.refreshing = true;
+    K.liveForce = true;
+    K.toggleLoader(true, 'updating');
+    try {
+      grid.sig = '';
+      grid.lastRaw = null;
+      clearGridPool(type);
+      if (type === 'readingcorner') await refreshReadingCorner(true, 'updating');
+      else await rData('sciencequiz', 'Assets/json/a.json', true, 'updating');
+      renderGrid(type, true);
+    } finally {
+      K.liveForce = false;
+      grid.refreshing = false;
+      K.lastGridRefresh[type] = Date.now();
+      K.toggleLoader(false);
+    }
+    return true;
+  };
+  K.hardRefreshGrid = hardRefreshGrid;
+  K.$('readingcorner-refresh-btn')?.addEventListener('click', () => hardRefreshGrid('readingcorner'));
+  K.$('sciencequiz-refresh-btn')?.addEventListener('click', () => hardRefreshGrid('sciencequiz'));
+
+  window.addEventListener('kstuff:live-json', e => {
+    const p = e.detail && e.detail.path;
+    const type = p === 'Assets/json/g.json' ? 'readingcorner' : p === 'Assets/json/a.json' ? 'sciencequiz' : '';
+    if (!type) return;
+    K.lastGridRefresh[type] = 0;
+    if (document.querySelector('.page.active')?.id !== type || K.resourceOpenFor[type]) return;
+    if (type === 'readingcorner') refreshReadingCorner(false, 'updating', true);
+    else rData('sciencequiz', 'Assets/json/a.json', false, 'updating', true);
+  });
+
+  K.rawReadingCornerData = [];
+  K.rawSciencequizData = [];
+
+  K.initPromise = Promise.all([
+    fetchReadingCornerRaw().catch(error => { console.error('Reading Corner initialization failed:', error); return { data: [], sig: '' }; }),
+    K.fetchWithProxy('Assets/json/a.json').catch(error => { console.error('Science Quiz initialization failed:', error); return []; }),
+    K.fetchWisps()
+  ]).then(async ([readingResult, scienceData]) => {
+    K.rawReadingCornerData = readingResult?.data || [];
+    K.rawSciencequizData = Array.isArray(scienceData) ? scienceData : [];
+
+    grids.readingcorner.data = proc(K.rawReadingCornerData);
+    grids.readingcorner.sig = readingResult?.sig || '';
+    grids.sciencequiz.data = proc(K.rawSciencequizData);
+    try { grids.sciencequiz.sig = hashSig(JSON.stringify(K.rawSciencequizData)); } catch { grids.sciencequiz.sig = ''; }
+    grids.sciencequiz.lastRaw = K.rawSciencequizData;
+
+    const now = Date.now();
+    K.lastGridRefresh.readingcorner = now;
+    K.lastGridRefresh.sciencequiz = now;
+
+    Object.keys(grids).forEach(type => { if (grids[type].gridEl && !grids[type].pool.length) buildPool(type); });
+
+    const activePage = document.querySelector('.page.active');
+    if (activePage && grids[activePage.id]) renderGrid(activePage.id, false, 'loading');
+
+    K.toggleLoader(false);
+  }).catch(error => {
+    console.error('init failed:', error);
+    K.toggleLoader(false);
+  });
+}

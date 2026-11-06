@@ -1,0 +1,101 @@
+#screen-select { flex-direction: column; }
+.top-bar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px max(24px, env(safe-area-inset-right)) 16px max(24px, env(safe-area-inset-left));
+  border-bottom: 1px solid var(--line);
+}
+.brand { display: flex; align-items: center; gap: 10px; }
+.brand .ld-word { font-size: 1.05rem; }
+
+.select-main { max-width: 1040px; width: 100%; margin: 0 auto; padding: 64px 28px 80px; }
+.select-main h1 { font-size: clamp(1.6rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -0.01em; line-height: 1.15; }
+.hero-sub { color: var(--dim); margin: 14px 0 56px; font-size: 1rem; }
+.section-header { display: flex; align-items: baseline; justify-content: space-between; padding-bottom: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--line); }
+.section-header h2 { font-size: .9rem; font-weight: 700; color: var(--dim); }
+.slot-badge { font-size: .8rem; color: var(--dim); }
+.slot-badge span { color: var(--ink); font-weight: 800; }
+
+.game-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.game-card {
+  text-align: left; cursor: pointer; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 14px; padding: 22px 20px 18px;
+  transition: border-color .2s, background .2s, transform .2s;
+}
+.game-card:hover { border-color: var(--line-hi); background: color-mix(in srgb, var(--ink) 11%, transparent); transform: translateY(-2px); }
+.card-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; border: 1px solid var(--line-hi); margin-bottom: 16px; }
+.game-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+.pkg-name { font-size: .72rem; color: var(--faint); word-break: break-all; }
+.play-tag { margin-top: 16px; font-size: .8rem; font-weight: 700; opacity: 0; transition: opacity .2s; }
+.game-card:hover .play-tag, .game-card:focus-visible .play-tag { opacity: 1; }
+
+.astra-note { color: var(--dim); font-size: .85rem; margin-bottom: 14px; }
+.astra-note[hidden] { display: none; }
+.game-card.has-art, .game-card.locked { padding: 0 0 14px; overflow: hidden; }
+.game-card.has-art .pkg-name, .game-card.has-art .play-tag { padding: 0 16px; }
+.game-card.has-art .play-tag { margin-top: 8px; }
+.game-card.locked { cursor: not-allowed; opacity: .5; filter: grayscale(1); }
+.game-card.locked:hover { border-color: var(--line); background: var(--surface); transform: none; }
+.game-card.has-art h3, .game-card.locked h3 { padding: 0 16px; margin-top: 12px; font-size: .9rem; }
+.card-art {
+  aspect-ratio: 16 / 9; display: grid; place-items: center; font-size: 1.6rem; font-weight: 800; color: var(--faint);
+  background: var(--surface) center / cover no-repeat; border-bottom: 1px solid var(--line);
+}
+.card-art.has-img { color: transparent; }
+.soon-tag { margin: 6px 16px 0; font-size: .72rem; font-weight: 700; color: var(--faint); letter-spacing: .04em; text-transform: uppercase; }
+
+#screen-game, #screen-astra { align-items: center; justify-content: center; overflow: hidden; height: 100dvh; }
+
+.game-viewport { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; }
+#game-canvas, .game-viewport video { width: 100%; height: 100%; object-fit: contain; display: block; touch-action: none; }
+
+.stream-footer {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 28px max(16px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  background: linear-gradient(to top, rgba(0, 0, 0, .72), transparent);
+  transition: opacity .25s ease, transform .25s ease;
+}
+.stream-footer.idle { opacity: 0; transform: translateY(8px); pointer-events: none; }
+.sf-group { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sf-mid { flex: 1; justify-content: center; }
+.sf-title { font-size: .8rem; font-weight: 700; color: rgba(255, 255, 255, .6); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sf-chip, .sf-btn {
+  display: inline-flex; align-items: center; gap: 7px; height: 30px; padding: 0 12px; border-radius: 8px;
+  font-size: .75rem; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: rgba(255, 255, 255, .7); background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .11);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: color .2s, background .2s, border-color .2s, opacity .2s, transform .15s;
+}
+.sf-btn { cursor: pointer; }
+.sf-btn:hover:not(:disabled), .sf-btn:focus-visible { color: #fff; background: rgba(255, 255, 255, .16); }
+.sf-btn:active:not(:disabled) { transform: scale(.95); }
+.sf-icon { padding: 0 9px; }
+.sf-chip.warn { color: rgba(251, 191, 36, .95); }
+.sf-chip.danger { color: rgba(255, 150, 150, .95); background: rgba(255, 80, 80, .12); border-color: rgba(255, 90, 90, .28); }
+.sf-chip.good { color: rgba(52, 211, 153, .95); }
+.sf-off { opacity: .35; filter: grayscale(1); cursor: default; pointer-events: none; }
+
+@media (max-width: 640px) {
+  .sf-label, .sf-title { display: none; }
+  .sf-btn, .sf-chip { padding: 0 9px; }
+  .sf-stats { display: none; }
+}
+
+.toast {
+  position: fixed; left: 50%; bottom: 28px; z-index: 200; transform: translate(-50%, 20px);
+  background: var(--nav, color-mix(in srgb, #000 70%, transparent)); color: var(--ink);
+  border: 1px solid var(--line-hi); padding: 12px 18px; border-radius: 12px; font-size: .85rem; max-width: 88vw;
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+}
+.toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+@media (max-width: 640px) {
+  .select-main { padding: 44px 20px 56px; }
+  .hero-sub { margin-bottom: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: .01ms !important; }
+}
+
+#astra-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; touch-action: none; }

@@ -1,0 +1,11 @@
+HTTP/2 403 
+server: AmazonS3
+x-amz-request-id: G94THKCDK7KT0VTW
+x-amz-id-2: r7FmNcIznPAA10twBbbBV7BzPZd8chXQa+606TQWwvwKH2mW08EoYayNRfoYyY5UuM5wajk4ByrVAx8SbeklQBtmxqC+HxoQ
+content-type: application/xml
+content-length: 263
+date: Wed, 28 Oct 2026 19:22:40 GMT
+access-control-allow-origin: *
+cross-origin-resource-policy: cross-origin
+timing-allow-origin: *
+

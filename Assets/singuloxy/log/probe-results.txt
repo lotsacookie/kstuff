@@ -1,0 +1,27 @@
+plain => 403 263
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>G94MSXJADGM3NH5K</RequestId><HostId>aEC4kdZVsvOL69+5FLp7YLCfdAJwDyNjOJfR1fZD2FBQ4JjKfgl7xpfOpGjf4J8biotD+7f1i/zMqOM9YP+f+Y4vdPHJ4w/K</HostId></Error>
+range => 403 243
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>G94R29XWA76DKJ56</RequestId><HostId>+SuKp6KAXtAATqS706bm8AKbW09mhv1k4aaoJy9EpEOlGzLfV74h3f043u0J+FwIKSURMN2xSjU=</HostId></Error>
+roblox-origin => 403 243
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>G94H7VTQKPS8FD03</RequestId><HostId>3v54rxpOi55XZFeXLMgmWq1U8l56c2y7RfTnvbJV/cKyYSLzBHANbjjQ7762rtKKgSHJvZbQJ9I=</HostId></Error>
+roblox-origin-range => 403 243
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>G94GGMVPH5BVB56C</RequestId><HostId>tsYiM+6zAupkJizbSzPc9IQ6EGDsJ9ewDwZSBzRWKXoPelFvqOsACibnCbF6cF6EloowC7vehJk=</HostId></Error>
+foreign-origin => 403 243
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>G94MZ3YMDWQJWX71</RequestId><HostId>vhaFYoTf6/0D280C1rzCxu9DGnk2amGa483E2KsyjH1+GthkorY/PYQIi1bUUPKQ/vEnWm1FvqI=</HostId></Error>
+foreign-origin-range => 403 243
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>N14WNRYKSSVQDEB7</RequestId><HostId>STFRbX6vDAhiPgRAOH1+3KXkh7KwKCiQxlNXjfa3QoRVzQWoAk+YA4eKHH3g442GsDmbhdpeg3g=</HostId></Error>
+play-origin => 403 243
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>N14M4F0BBJGRVF3R</RequestId><HostId>ToFqvWmCP0EbZUl+VUgNU/+O4A2RAoC7Gjk3IGFEWPoLyBCkYm8RwPXWeG/lTOZY5yy/3U0u9SI=</HostId></Error>
+play-origin-range => 403 243
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>N14JHJP32MJBQRF7</RequestId><HostId>e4RpBJnTe/7aviybvxB1D2/sF2TWyqwOJ0hP7QdTlfDX2uB7yeruW0pwxElTv0F/W57fmiG5wWM=</HostId></Error>
+browser-ua => 403 243
+<?xml version="1.0" encoding="UTF-8"?>
+<Error><Code>AccessDenied</Code><Message>Access Denied</Message><RequestId>N14R4G201SEK33V7</RequestId><HostId>VEG98SJh4rfawJV48EyasL16puZ381k81p6mxJlOP2faMWxr/E/jwrbpFLVItHQHtoaEs4Feou0=</HostId></Error>
