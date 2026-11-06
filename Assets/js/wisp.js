@@ -675,6 +675,11 @@ export function init(K) {
     markBad
   };
 
-  K.resolveWlsp();
+  // wisp.js is now a data provider for net-hub only. It no longer runs its own
+  // picker on load (no wave pings / speed tests / backup selection). K.resolveWlsp,
+  // K.wisp.get and K.revalidateWisp stay available for on-demand use.
+  // These two just populate the lists the hub reads in tiers(); both are cached
+  // and do no server probing.
+  K.syncWispServers().catch(() => {});
   K.fetchWisps();
 }
