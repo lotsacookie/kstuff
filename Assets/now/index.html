@@ -159,7 +159,23 @@ body.embed #settings label{color:var(--e-dim)}
 <input id="email" type="email" inputmode="email" autocomplete="email" placeholder="NVIDIA account email" required>
 <button class="btn" id="send" type="submit">Continue</button>
 </form>
-<small>Sign-in only. This client never creates accounts.</small>
+<button class="btn ghost" id="to-signup" type="button">Create account</button>
+<small>New here? You enter your own details and confirm your own email. Nothing is filled in for you.</small>
+</section>
+<section class="card" id="signup-card">
+<h1>Create account</h1>
+<p>Enter your own details for a new NVIDIA account. NVIDIA will email you to confirm the address, and you confirm it yourself.</p>
+<p class="err" id="signup-error" hidden></p>
+<form id="signup-form">
+<input id="su-email" type="email" inputmode="email" autocomplete="email" placeholder="Email" required>
+<input id="su-name" type="text" autocomplete="nickname" placeholder="Display name" minlength="3" maxlength="32" required>
+<input id="su-pw" type="password" autocomplete="new-password" placeholder="Password" minlength="8" required>
+<input id="su-pw2" type="password" autocomplete="new-password" placeholder="Confirm password" minlength="8" required>
+<input id="su-dob" type="date" autocomplete="bday" aria-label="Date of birth" required>
+<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;text-align:left"><input id="su-terms" type="checkbox" style="width:auto;margin-top:3px" required><span>I agree to NVIDIA's terms and privacy policy.</span></label>
+<button class="btn" id="su-submit" type="submit">Create account</button>
+</form>
+<button class="btn ghost" id="su-back" type="button">Back to sign in</button>
 </section>
 <section class="card" id="wait-card">
 <h1 id="wait-title">Working…</h1>
@@ -288,6 +304,8 @@ const EP = {
   poll: "/api/1/frontend/oauth/user/email/auth/poll",
   consent: "/api/1/frontend/oauth/user/consent",
   password: "/api/1/frontend/oauth/user/login/password",
+  register: "/api/1/frontend/oauth/user/register",
+  verifyPoll: "/api/1/frontend/oauth/user/email/verification/poll",
   skipFactorSetup: "/api/1/frontend/oauth/auth/factor/setup/skip",
   skipPasskeySetup: "/api/1/frontend/oauth/passkey/setup/skip",
 };
@@ -297,8 +315,8 @@ const EMBED = !!window.__NOW_EMBED;
 const toParent = (type, d) => { if (!EMBED) return; try { parent.postMessage({ type: "gfn:" + type, ...(d || {}) }, "*"); } catch {} };
 const progOf = (t) => { t = String(t || ""); if (!t) return 1; if (/^Starting/.test(t)) return 0.06; if (/Requesting/.test(t)) return 0.2; if (/Ending your old/.test(t)) return 0.25; const q = /position (\d+)/.exec(t); if (q) return 0.3 + 0.45 * (1 - Math.min(Number(q[1]), 100) / 100); if (/Setting up/.test(t)) return 0.78; if (/Connecting to your rig/.test(t)) return 0.92; return null; };
 let pendingGame = null, launchGen = 0, activeStop = null;
-const screens = ["boot", "email-card", "wait-card", "code-card", "password-card", "account"];
-const LOGIN_CARDS = ["email-card", "wait-card", "code-card", "password-card"];
+const screens = ["boot", "email-card", "signup-card", "wait-card", "code-card", "password-card", "account"];
+const LOGIN_CARDS = ["email-card", "signup-card", "wait-card", "code-card", "password-card"];
 const show = (name) => { screens.forEach((s) => $(s).classList.toggle("active", s === name)); document.body.classList.toggle("app", name === "account" && !EMBED); if (EMBED) toParent("view", { ui: LOGIN_CARDS.includes(name) }); };
 const say = (t) => { $("boot-status").textContent = t; if (EMBED) toParent("status", { text: t }); };
 const form = (o) => new URLSearchParams(o).toString();
@@ -530,6 +548,29 @@ async function passwordStage(mine) {
   throw new Error("Too many wrong passwords.");
 }
 
+async function registerStage() {
+  const u = flow.signup;
+  flow.signup = null; // one attempt only; the user re-enters on failure
+  setWait("Creating your account…", "");
+  const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false };
+  const r = await api(EP.register, body);
+  if (!r.ok) throw apiError(r);
+  log("[auth] account registered");
+}
+
+async function verifyEmailStage(mine) {
+  setWait("Verify your email", "NVIDIA sent a message to " + flow.email + ". Open it and confirm the address yourself. This page continues once you have.");
+  const until = Date.now() + 15 * 60000;
+  while (Date.now() < until) {
+    await sleep(3000);
+    alive(mine);
+    const r = await api(EP.verifyPoll, null, "GET", true);
+    if (r.status === 200) return;
+    if (r.status === 400) throw new Error("The email verification was declined or expired.");
+  }
+  throw new Error("Timed out waiting for you to verify your email.");
+}
+
 async function selectFactor() {
   const r = await api(EP.factors, null, "GET");
   if (!r.ok) throw apiError(r);
@@ -604,7 +645,12 @@ async function drive(mine) {
       if (!c.ok) throw apiError(c);
       continue;
     }
-    if (page === "CreateAccount" || page === "ThirdPartyAccountCreate") throw new Error("No NVIDIA account exists for that email. This client only signs in to existing accounts.");
+    if (page === "CreateAccount" || page === "ThirdPartyAccountCreate") {
+      if (!flow.signup) throw new Error("No NVIDIA account exists for that email. Use Create account to make one.");
+      await registerStage();
+      continue;
+    }
+    if (/verif/i.test(page)) { await verifyEmailStage(mine); continue; }
     if (page === "Captcha") throw new Error("NVIDIA wants a captcha for this sign-in, which this client can't show yet.");
     if (page === "LogIn" || page === "AccountCheck") {
       const err = n.json.values && n.json.values.jarvis_error;
@@ -637,11 +683,12 @@ async function userinfo(token) {
   try { return JSON.parse(r.text); } catch { return {}; }
 }
 
-async function startLogin(email) {
+async function startLogin(email, signup) {
   const mine = ++run;
   await beginFlow();
   alive(mine);
   flow.email = email;
+  flow.signup = signup || null;
   const first = await api(EP.check, { email, rememberLogin: false, deviceId: JARVIS_DEVICE });
   if (!first.ok) throw apiError(first);
   const landed = await drive(mine);
@@ -670,6 +717,27 @@ async function onEmail(ev) {
     flow = null;
     setError("email-error", e && e.message ? e.message : String(e));
     show("email-card");
+  }
+}
+
+async function onSignup(ev) {
+  ev.preventDefault();
+  setError("signup-error", "");
+  const email = $("su-email").value.trim(), pw = $("su-pw").value;
+  if (pw !== $("su-pw2").value) { setError("signup-error", "The passwords do not match."); return; }
+  if (!$("su-terms").checked) { setError("signup-error", "Please accept the terms to continue."); return; }
+  const signup = { displayName: $("su-name").value.trim(), password: pw, birthdate: $("su-dob").value };
+  setWait("Contacting NVIDIA…", "");
+  try {
+    const tokens = await startLogin(email, signup);
+    await finish(tokens);
+    flow = null;
+  } catch (e) {
+    if (e && e.cancelled) return;
+    log("[auth] sign-up failed", (e && e.message) || e);
+    flow = null;
+    setError("signup-error", e && e.message ? e.message : String(e));
+    show("signup-card");
   }
 }
 
@@ -1300,6 +1368,9 @@ async function copy(text, btn) {
 }
 
 $("email-form").addEventListener("submit", onEmail);
+$("signup-form").addEventListener("submit", onSignup);
+$("to-signup").addEventListener("click", () => { $("su-email").value = $("email").value; setError("signup-error", ""); show("signup-card"); });
+$("su-back").addEventListener("click", () => show("email-card"));
 $("code-form").addEventListener("submit", onCode);
 $("pw-form").addEventListener("submit", (ev) => {
   ev.preventDefault();
