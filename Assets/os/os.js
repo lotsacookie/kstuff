@@ -10,7 +10,7 @@
     await sleep(900);bar.classList.add('in');status.classList.add('in');
     for(const [name,url] of assets){
       status.textContent='Loading '+name.toLowerCase();
-      try{await fetch(url,{cache:'force-cache'}).then(r=>r.blob())}catch(_){}
+      try{await (window.__osGet?window.__osGet(url):fetch(url)).then(r=>r.blob())}catch(_){}
       tick('Loaded '+name.toLowerCase());await sleep(250);
     }
     status.textContent='Preparing fonts';
@@ -32,7 +32,7 @@
   document.addEventListener('click',()=>{qs.classList.remove('open');tray.classList.remove('open')});
   $('power').addEventListener('click',()=>{
     const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;background:#000;opacity:0;transition:opacity .7s;z-index:99';document.body.appendChild(f);
-    void f.offsetWidth;f.style.opacity=1;setTimeout(()=>location.assign('../../'),750);
+    void f.offsetWidth;f.style.opacity=1;setTimeout(()=>{window.__sgReloading=true;location.reload()},750);
   });
   boot();
 })();

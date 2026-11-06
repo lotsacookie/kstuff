@@ -447,6 +447,30 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fsEl()&&root.class
 })();
     </script>
 <style id="os-fade-css">#os-fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:2147483647;transition:opacity .7s ease}#os-fade.on{opacity:1;pointer-events:all}</style>
-<script>(()=>{document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#os-mode-btn');if(!b)return;e.preventDefault();e.stopPropagation();if(window.__osLaunching)return;window.__osLaunching=true;const f=document.createElement('div');f.id='os-fade';document.documentElement.appendChild(f);void f.offsetWidth;f.classList.add('on');setTimeout(()=>{window.__sgReloading=true;window.removeEventListener&&0;location.assign('Assets/os/index.html')},800)},true)})();</script>
+<script id="os-mode-loader">(()=>{
+const R='lotsacookie/kstuff',B='Assets/os/';
+const srcs=f=>[`https://cdn.jsdelivr.net/gh/${R}@main/${B}${f}?i_=${Date.now()}`,`https://api.github.com/repos/${R}/contents/${B}${f}?ref=main`,B+f];
+const get=async f=>{for(const u of srcs(f)){try{const r=await fetch(u,u.includes('api.github.com')?{headers:{Accept:'application/vnd.github.raw'}}:{});if(r.ok)return r}catch(_){}}throw new Error('os asset failed: '+f)};
+window.__osGet=get;
+const enter=async()=>{
+  const [idx,css,js,wp]=await Promise.all(['index.html','os.css','os.js','wallpaper.svg'].map(f=>get(f).then(r=>r.text())));
+  const wall=URL.createObjectURL(new Blob([wp],{type:'image/svg+xml'}));
+  const doc=new DOMParser().parseFromString(idx,'text/html');
+  doc.querySelectorAll('script,link').forEach(n=>n.remove());
+  // swap the whole DOM while the black overlay hides it; keep url untouched
+  const de=document.documentElement;de.style.background='#000';de.removeAttribute('class');
+  [...document.head.children].forEach(n=>{if(!/viewport/.test(n.getAttribute('name')||''))n.remove()});
+  document.title='Singularity OS';
+  const st=document.createElement('style');st.textContent=css.replace(/url\(\s*['"]?wallpaper\.svg['"]?\s*\)/g,`url(${wall})`);document.head.appendChild(st);
+  document.body.removeAttribute('style');document.body.className='';document.body.innerHTML=doc.body.innerHTML;
+  const s=document.createElement('script');s.textContent=js;document.body.appendChild(s);
+  requestAnimationFrame(()=>{const f=document.getElementById('os-fade');if(f)f.remove()}); // both sides are black: seamless
+};
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#os-mode-btn');if(!b)return;e.preventDefault();e.stopPropagation();if(window.__osLaunching)return;window.__osLaunching=true;
+  const f=document.createElement('div');f.id='os-fade';document.documentElement.appendChild(f);void f.offsetWidth;f.classList.add('on');
+  const wait=new Promise(r=>setTimeout(r,800));
+  Promise.all([wait,Promise.all(['index.html','os.css','os.js','wallpaper.svg'].map(get))]).then(enter).catch(err=>{console.error(err);window.__osLaunching=false;f.classList.remove('on');setTimeout(()=>f.remove(),800)});
+},true);
+})();</script>
 </body>
 </html>
