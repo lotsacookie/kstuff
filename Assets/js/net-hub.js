@@ -158,7 +158,7 @@ export function init(K) {
       const t0 = Date.now();
       try {
         const res = await Promise.race([
-          sandstone.libcurl.fetch(CHECK_URLS[i], { method: 'GET', redirect: 'manual' }).then(async r => { await r.arrayBuffer(); return r; }),
+          lcFetch(CHECK_URLS[i], { method: 'GET', redirect: 'manual' }).then(async r => { await r.arrayBuffer(); return r; }),
           delay(limit).then(() => { throw new Error('timeout ' + limit + 'ms'); })
         ]);
         ok = true;
@@ -341,6 +341,15 @@ export function init(K) {
     return import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   }
 
+  function lcFetch(url, opts) {
+    let via = sandstone.libcurl;
+    try {
+      const sess = sandstone.network && sandstone.network.session;
+      if (sess && typeof sess.fetch === 'function') via = sess;
+    } catch {}
+    return via.fetch(url, Object.assign({ credentials: 'omit' }, opts));
+  }
+
   function applyWisp(url) {
     current = url;
     sandstone.network.set_websocket(url);
@@ -359,6 +368,7 @@ export function init(K) {
       applyWisp(url);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready) throw new Error('libcurl did not load');
+      for (let i = 0; i < 50 && !(sg.network && sg.network.session); i++) await delay(100);
       const mainFirst = preferMain().catch(() => false);
       setTimeout(() => {
         (async () => {
@@ -460,7 +470,7 @@ export function init(K) {
     const run = async () => {
       inflight++;
       try {
-        const res = await sg.libcurl.fetch(url, opts);
+        const res = await lcFetch(url, opts);
         lastDone = Date.now();
         return res;
       } finally { inflight--; }
