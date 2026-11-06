@@ -162,13 +162,10 @@ body.embed #settings label{color:var(--e-dim)}
 <button class="btn ghost" id="to-signup" type="button">Create account</button>
 <small>New here? You enter your own details and confirm your own email. Nothing is filled in for you.</small>
 </section>
-<section class="card" id="signup-card">
+<section class="card" id="signup-card" style="max-height:calc(100vh - 24px);overflow-y:auto">
 <h1>Create account</h1>
 <p>Enter your own details for a new NVIDIA account and solve the human check yourself. NVIDIA then emails you to confirm the address, and you confirm it yourself.</p>
 <p class="err" id="signup-error" hidden></p>
-<button class="btn" id="su-proxy" type="button">Sign up here (NVIDIA's page, proxied)</button>
-<div id="su-frame" hidden style="width:100%"></div>
-<small>Or enter the details below and solve the check in a popup.</small>
 <form id="signup-form">
 <input id="su-email" type="email" inputmode="email" autocomplete="email" placeholder="Email" required>
 <input id="su-name" type="text" autocomplete="nickname" placeholder="Display name" minlength="3" maxlength="32" required>
@@ -176,8 +173,8 @@ body.embed #settings label{color:var(--e-dim)}
 <input id="su-pw2" type="password" autocomplete="new-password" placeholder="Confirm password" minlength="8" required>
 <input id="su-dob" type="date" autocomplete="bday" aria-label="Date of birth" required>
 <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;text-align:left"><input id="su-terms" type="checkbox" style="width:auto;margin-top:3px" required><span>I agree to NVIDIA's terms and privacy policy.</span></label>
-<button class="btn ghost" id="su-cap-btn" type="button">Solve the human check</button>
-<div id="su-capframe" hidden style="width:100%"></div>
+<button class="btn ghost" id="su-cap-btn" type="button">Restart the human check</button>
+<div id="su-capframe" hidden style="width:100%;flex:none"></div>
 <small id="su-cap-state"></small>
 <button class="btn" id="su-submit" type="submit">Create account</button>
 </form>
@@ -556,7 +553,7 @@ async function passwordStage(mine) {
   throw new Error("Too many wrong passwords.");
 }
 
-let capToken = null;
+let capToken = null, capAt = 0;
 function setCapState(t) { $("su-cap-state").textContent = t; }
 function loadCaptcha() {}
 function resetCaptcha() { capToken = null; setCapState("Solve the human check again before retrying."); }
@@ -574,23 +571,23 @@ async function openCaptcha() {
   try {
     const hub = findHub();
     if (!hub) throw new Error("net hub unavailable");
-    setCapState("Loading the human check through the proxy…");
+    setCapState("Loading the human check through the proxy. The first load can take a minute or so, then it is cached.");
     await hub.ready();
     const sg = await hub.sandstone();
     if (!capFrame) {
       capFrame = new sg.controller.ProxyFrame();
-      capFrame.iframe.style.cssText = "width:100%;height:540px;border:0;border-radius:12px;background:#0b0d10";
+      capFrame.iframe.style.cssText = "width:100%;height:min(440px,52vh);border:0;border-radius:12px;background:#0b0d10;flex:none";
     }
     box.hidden = false;
     box.append(capFrame.iframe);
     await capFrame.navigate_to(captchaUrl());
-    setCapState("Solve the human check above.");
+    setCapState("Solve the human check above. It may stay blank for a moment while it loads.");
     for (let t = 0; t < 180 && id === capPoll; t++) {
       await sleep(1000);
       let r = "";
       try { r = await capFrame.eval_js("window.__capToken||''"); } catch {}
       r = typeof r === "string" ? r : (r && (r.result || r.value)) || "";
-      if (r) { capToken = r; box.hidden = true; setCapState("Human check solved. Now press Create account."); return; }
+      if (r) { capToken = r; capAt = Date.now(); box.hidden = true; setCapState("Human check solved. Now press Create account."); return; }
     }
     if (id === capPoll) setCapState("The human check timed out. Press the button to try again.");
   } catch (e) {
@@ -605,30 +602,6 @@ window.addEventListener("message", (ev) => {
   capToken = ev.data.token;
   setCapState("Human check solved. Now press Create account.");
 });
-
-let pframe = null;
-async function openProxySignup() {
-  setError("signup-error", "");
-  const box = $("su-frame");
-  try {
-    const hub = findHub();
-    if (!hub) throw new Error("Net hub unavailable. Open this page from the main site.");
-    box.hidden = false;
-    box.textContent = "Loading NVIDIA's sign-up through the proxy…";
-    await hub.ready();
-    const sg = await hub.sandstone();
-    if (!pframe) {
-      pframe = new sg.controller.ProxyFrame();
-      pframe.iframe.style.cssText = "width:100%;height:600px;border:0;border-radius:12px;background:#fff";
-    }
-    box.textContent = "";
-    box.append(pframe.iframe);
-    await pframe.navigate_to("https://login.nvidia.com/signup");
-  } catch (e) {
-    log("[auth] proxy sign-up failed", (e && e.message) || e);
-    setError("signup-error", "Could not open the proxied sign-up: " + ((e && e.message) || e));
-  }
-}
 
 async function registerStage() {
   const u = flow.signup;
@@ -840,7 +813,8 @@ async function onSignup(ev) {
   const email = $("su-email").value.trim(), pw = $("su-pw").value;
   if (pw !== $("su-pw2").value) { setError("signup-error", "The passwords do not match."); return; }
   if (!$("su-terms").checked) { setError("signup-error", "Please accept the terms to continue."); return; }
-  if (!capToken) { setError("signup-error", "Please complete the captcha first."); return; }
+  if (capToken && Date.now() - capAt > 100000) { capToken = null; } // hCaptcha results expire after about two minutes
+  if (!capToken) { setError("signup-error", "Solve the human check first (it expires after about two minutes, so redo it if it has been a while)."); return; }
   const signup = { displayName: $("su-name").value.trim(), password: pw, birthdate: $("su-dob").value, captcha: capToken };
   capToken = null;
   setWait("Contacting NVIDIA…", "");
@@ -1487,8 +1461,7 @@ async function copy(text, btn) {
 $("email-form").addEventListener("submit", onEmail);
 $("signup-form").addEventListener("submit", onSignup);
 $("su-cap-btn").addEventListener("click", openCaptcha);
-$("su-proxy").addEventListener("click", openProxySignup);
-$("to-signup").addEventListener("click", () => { $("su-email").value = $("email").value; setError("signup-error", ""); show("signup-card"); loadCaptcha(); });
+$("to-signup").addEventListener("click", () => { $("su-email").value = $("email").value; setError("signup-error", ""); show("signup-card"); if (!capToken) openCaptcha(); });
 $("su-open").addEventListener("click", () => window.open("https://login.nvidia.com/signup", "_blank", "noopener"));
 $("su-back").addEventListener("click", () => show("email-card"));
 $("code-form").addEventListener("submit", onCode);
