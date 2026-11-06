@@ -166,6 +166,9 @@ body.embed #settings label{color:var(--e-dim)}
 <h1>Create account</h1>
 <p>Enter your own details for a new NVIDIA account and solve the human check yourself. NVIDIA then emails you to confirm the address, and you confirm it yourself.</p>
 <p class="err" id="signup-error" hidden></p>
+<button class="btn" id="su-proxy" type="button">Sign up here (NVIDIA's page, proxied)</button>
+<div id="su-frame" hidden style="width:100%"></div>
+<small>Or enter the details below and solve the check in a popup.</small>
 <form id="signup-form">
 <input id="su-email" type="email" inputmode="email" autocomplete="email" placeholder="Email" required>
 <input id="su-name" type="text" autocomplete="nickname" placeholder="Display name" minlength="3" maxlength="32" required>
@@ -566,6 +569,30 @@ window.addEventListener("message", (ev) => {
   capToken = ev.data.token;
   setCapState("Human check solved. Now press Create account.");
 });
+
+let pframe = null;
+async function openProxySignup() {
+  setError("signup-error", "");
+  const box = $("su-frame");
+  try {
+    const hub = findHub();
+    if (!hub) throw new Error("Net hub unavailable. Open this page from the main site.");
+    box.hidden = false;
+    box.textContent = "Loading NVIDIA's sign-up through the proxy…";
+    await hub.ready();
+    const sg = await hub.sandstone();
+    if (!pframe) {
+      pframe = new sg.controller.ProxyFrame();
+      pframe.iframe.style.cssText = "width:100%;height:600px;border:0;border-radius:12px;background:#fff";
+    }
+    box.textContent = "";
+    box.append(pframe.iframe);
+    await pframe.navigate_to("https://login.nvidia.com/signup");
+  } catch (e) {
+    log("[auth] proxy sign-up failed", (e && e.message) || e);
+    setError("signup-error", "Could not open the proxied sign-up: " + ((e && e.message) || e));
+  }
+}
 
 async function registerStage() {
   const u = flow.signup;
@@ -1424,6 +1451,7 @@ async function copy(text, btn) {
 $("email-form").addEventListener("submit", onEmail);
 $("signup-form").addEventListener("submit", onSignup);
 $("su-cap-btn").addEventListener("click", openCaptcha);
+$("su-proxy").addEventListener("click", openProxySignup);
 $("to-signup").addEventListener("click", () => { $("su-email").value = $("email").value; setError("signup-error", ""); show("signup-card"); loadCaptcha(); });
 $("su-open").addEventListener("click", () => window.open("https://login.nvidia.com/signup", "_blank", "noopener"));
 $("su-back").addEventListener("click", () => show("email-card"));
