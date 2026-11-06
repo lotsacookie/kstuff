@@ -359,6 +359,7 @@ export function init(K) {
     sandstone.network.set_websocket(url);
     try { sandstone.network.set_wisp_pool([url]); } catch {}
     window.kNetWisp = url;
+    updateWispUi();
   }
 
   function boot() {
@@ -537,6 +538,44 @@ export function init(K) {
     try { return [...document.querySelectorAll('iframe')].some(f => f.contentWindow === src && f.hasAttribute('srcdoc') && !f.__proxied); }
     catch { return false; }
   };
+
+  const hostOf = u => { try { return new URL(u).host; } catch { return String(u || ''); } };
+  const updateWispUi = () => {
+    const cur = document.getElementById('proxy-wisp-current');
+    if (cur) cur.textContent = current ? 'Current: ' + hostOf(current) : 'Not connected yet';
+  };
+  const bindSwitch = () => {
+    const btn = document.getElementById('switch-wisp-btn');
+    if (!btn || btn.dataset.bound) return;
+    btn.dataset.bound = '1';
+    btn.addEventListener('click', async () => {
+      if (btn.disabled) return;
+      const st = document.getElementById('proxy-wisp-status');
+      const label = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Switching...';
+      if (st) st.textContent = 'Testing other wisps, this can take a little while.';
+      const from = current;
+      try {
+        await rotate(from, false);
+        if (st) {
+          if (current && current !== from) st.textContent = 'Switched to ' + hostOf(current) + (verified ? '' : ' (not verified yet)');
+          else st.textContent = 'No other wisp could be reached, staying on ' + hostOf(current);
+        }
+      } catch {
+        if (st) st.textContent = 'Switch failed, try again.';
+      }
+      btn.disabled = false;
+      btn.innerHTML = label;
+      updateWispUi();
+    });
+  };
+  const bindUi = () => { bindSwitch(); updateWispUi(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindUi);
+  else bindUi();
+  document.addEventListener('click', e => {
+    if (e.target && e.target.closest && e.target.closest('.settings-tab')) bindUi();
+  });
 
   setTimeout(() => { boot().catch(() => {}); }, 1500);
 

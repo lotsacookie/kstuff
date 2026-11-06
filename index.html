@@ -320,7 +320,13 @@ async function legacy(){
                                 <div class="setting-group"><label for="search-engine-select"><i class="ph ph-magnifying-glass"></i> Search Engine</label><select id="search-engine-select"><option value="duckduckgo" selected>DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option><option value="startpage">Startpage</option><option value="ecosia">Ecosia</option><option value="yahoo">Yahoo</option></select></div>
                                 <div class="setting-group full"><label><i class="ph ph-link"></i> Example URL</label><div id="search-engine-example" class="search-engine-example"></div></div>
                             </div>
-                            <div class="settings-panel" id="settings-panel-proxy" role="tabpanel">Coming Soon</div>
+                            <div class="settings-panel settings-grid" id="settings-panel-proxy" role="tabpanel">
+                                <div class="setting-group full"><label><i class="ph ph-plugs-connected"></i> Wisp Server</label>
+                                    <p id="proxy-wisp-current" style="margin:0 0 12px;opacity:.8;font-weight:600;word-break:break-all;">Not connected yet</p>
+                                    <button type="button" id="switch-wisp-btn" class="modal-primary-btn"><i class="ph ph-arrows-clockwise"></i> Switch wisp</button>
+                                    <p id="proxy-wisp-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
+                                </div>
+                            </div>
                             <div class="settings-panel" id="settings-panel-data" role="tabpanel">Coming Soon</div>
                             <div class="settings-panel" id="settings-panel-about" role="tabpanel">
                                 <div class="setting-group"><label><i class="ph ph-compass"></i> Tutorial</label>
