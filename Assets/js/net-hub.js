@@ -19,8 +19,8 @@ export function init(K) {
   const VERIFY_BAD_TTL = 60000;
   const COOLDOWN = 45000;
   const VERIFY_EVERY = 3;
-  const VERIFY_MS = 12000;
-  const MAIN_VERIFY_MS = 10000;
+  const VERIFY_MS = 22000;
+  const MAIN_VERIFY_MS = 16000;
   const MAIN_TRIALS = 2;
   const MAIN_RETRY_MIN = 60000;
   const MAIN_RETRY_MAX = 1200000;
@@ -152,7 +152,7 @@ export function init(K) {
       okUrl = url; okAt = Date.now(); verified = true; retryStep = 0; clearBad(url);
       return true;
     }
-    const budgets = [0.6, 0.2, 0.2];
+    const budgets = [0.7, 0.15, 0.15];
     const why_list = [];
     for (let i = 0; i < CHECK_URLS.length && !ok; i++) {
       const left = ms - (Date.now() - started);
