@@ -31,7 +31,7 @@ export function init(K) {
   const RETRY_STEPS = [3000, 6000, 12000, 24000, 30000];
   const STRIKE_BASE = 30000;
   const STRIKE_MAX = 1800000;
-  const CHECK_URLS = ['https://login.nvidia.com/.well-known/openid-configuration', 'https://www.gstatic.com/generate_204', 'https://api.deezer.com/infos', 'https://www.cloudflare.com/cdn-cgi/trace'];
+  const CHECK_URLS = ['https://deepai.org/favicon.ico', 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json', 'https://login.nvidia.com/.well-known/openid-configuration', 'https://www.gstatic.com/generate_204', 'https://api.deezer.com/infos', 'https://www.cloudflare.com/cdn-cgi/trace'];
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
     const t = String(entry || '').trim();
@@ -148,6 +148,10 @@ export function init(K) {
     }
     const started = Date.now();
     let ok = false, why = '';
+    if (!trial && Date.now() - lastDone < OK_WINDOW) {
+      okUrl = url; okAt = Date.now(); verified = true; retryStep = 0; clearBad(url);
+      return true;
+    }
     const budgets = [0.6, 0.2, 0.2];
     const why_list = [];
     for (let i = 0; i < CHECK_URLS.length && !ok; i++) {
@@ -400,6 +404,7 @@ export function init(K) {
         if (Date.now() - lastRotateAt < COOLDOWN) return current;
         if (Date.now() < rotateHoldUntil) return current;
         if (okUrl === current && Date.now() - okAt < OK_WINDOW) return current;
+        if (Date.now() - lastDone < OK_WINDOW) return current;
         if (await verify(current)) { writeGood(current); return current; }
         await delay(800);
         if (await verify(current)) { writeGood(current); return current; }
