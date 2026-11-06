@@ -23,6 +23,12 @@ export function init(K) {
   const BOOT_PROBE_MS = 3000;
   const STRIKE_BASE = 30000;
   const STRIKE_MAX = 1800000;
+  const EPOXY_POOL = 3;
+  const TTFB_MS = 15000;
+  const BODY_IDLE_MS = 15000;
+  const IDLE_RECYCLE_MS = 40000;
+  const MAX_TRIES = 3;
+  const CONN_ERR = /hyper|connect|closed|reset|wisp|websocket|eof|broken|channel|stalled/i;
   const EPOXY_URLS = [
     'https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-tls@2.1.19-1/full/epoxy-bundled.js',
     'https://fastly.jsdelivr.net/npm/@mercuryworkshop/epoxy-tls@2.1.19-1/full/epoxy-bundled.js'
@@ -124,8 +130,6 @@ export function init(K) {
     });
   }
 
-  // Checks are serialized: a check may temporarily point the shared libcurl at a candidate wisp, so two of
-  // them running at once used to swap the wisp out from under each other (false timeouts on every wisp).
   function verify(url, ms) {
     const run = vchain.then(() => verifyNow(url, ms || VERIFY_MS));
     vchain = run.catch(() => {});
@@ -134,7 +138,9 @@ export function init(K) {
 
   async function verifyNow(url, ms) {
     const prev = current;
-    const trial = url !== current;
+    const other = url !== current;
+    const trial = other && !useEpoxy();
+    const viaWisp = other && useEpoxy() ? url : undefined;
     let release = null, mine = null;
     if (trial) {
       mine = new Promise(r => { release = r; });
@@ -143,7 +149,7 @@ export function init(K) {
     }
     const started = Date.now();
     let ok = false, why = '';
-    if (!trial && Date.now() - lastDone < OK_WINDOW) {
+    if (!other && Date.now() - lastDone < OK_WINDOW) {
       okUrl = url; okAt = Date.now(); verified = true; clearBad(url);
       return true;
     }
@@ -159,7 +165,7 @@ export function init(K) {
       const t0 = Date.now();
       try {
         const res = await Promise.race([
-          lcFetch(CHECK_URLS[i], { method: 'GET', redirect }).then(async r => { await r.arrayBuffer(); return r; }),
+          lcFetch(CHECK_URLS[i], { method: 'GET', redirect, wisp: viaWisp }).then(async r => { await r.arrayBuffer(); return r; }),
           delay(limit).then(() => { throw new Error('timeout ' + limit + 'ms'); })
         ]);
         ok = true;
@@ -176,11 +182,8 @@ export function init(K) {
       verified = true;
     } else {
       if (url === prev) verified = false;
-      if (trial) {
-        // Drop the half-open connection to the failed candidate so a later try starts clean, then go back.
-        resetConnection(url, true);
-        if (prev && current === url) applyWisp(prev);
-      }
+      if (other) resetConnection(url, true);
+      if (trial && prev && current === url) applyWisp(prev);
     }
     if (trial) {
       if (trialP === mine) trialP = null;
@@ -370,7 +373,8 @@ export function init(K) {
     return sbImport(raw);
   }
 
-  const epoxyClients = new Map();
+  const epoxyPools = new Map();
+  const slotOf = new WeakMap();
   let epoxyLoad = null;
 
   function loadEpoxy() {
@@ -390,31 +394,76 @@ export function init(K) {
     return epoxyLoad;
   }
 
-  function epoxyFor(url) {
-    let c = epoxyClients.get(url);
-    if (!c) {
-      c = loadEpoxy().then(async m => {
-        const o = new m.EpoxyClientOptions();
-        o.user_agent = navigator.userAgent;
-        return await new m.EpoxyClient(url, o);
-      });
-      c.catch(() => { if (epoxyClients.get(url) === c) epoxyClients.delete(url); });
-      epoxyClients.set(url, c);
-    }
-    return c;
+  const freeClient = (p, again) => {
+    p.then(client => {
+      try { client.free && client.free(); }
+      catch { if (again) setTimeout(() => freeClient(p, false), 10000); }
+    }, () => {});
+  };
+
+  function newSlot(wisp) {
+    const slot = { busy: 0, dead: false, last: Date.now() };
+    slot.p = loadEpoxy().then(async m => {
+      const o = new m.EpoxyClientOptions();
+      o.user_agent = navigator.userAgent;
+      return await new m.EpoxyClient(wisp, o);
+    });
+    slot.p.catch(() => { slot.dead = true; removeSlot(wisp, slot); });
+    return slot;
+  }
+
+  function removeSlot(wisp, slot) {
+    const pool = epoxyPools.get(wisp);
+    if (!pool) return;
+    const i = pool.indexOf(slot);
+    if (i >= 0) pool.splice(i, 1);
+  }
+
+  function dropSlot(wisp, slot) {
+    if (slot.dead) return;
+    slot.dead = true;
+    removeSlot(wisp, slot);
+    freeClient(slot.p, true);
+  }
+
+  function dropSlotOf(res) {
+    const info = slotOf.get(res);
+    if (info) dropSlot(info.wisp, info.slot);
   }
 
   function dropEpoxy(url) {
-    const c = epoxyClients.get(url);
-    if (!c) return false;
-    epoxyClients.delete(url);
-    c.then(client => { try { client.free && client.free(); } catch {} }, () => {});
+    const pool = epoxyPools.get(url);
+    epoxyPools.delete(url);
+    if (!pool || !pool.length) return false;
+    pool.forEach(slot => { slot.dead = true; freeClient(slot.p, true); });
     return true;
   }
 
+  function pickSlot(wisp) {
+    let pool = epoxyPools.get(wisp);
+    if (!pool) { pool = []; epoxyPools.set(wisp, pool); }
+    const now = Date.now();
+    pool.slice().forEach(s => { if (!s.busy && now - s.last > IDLE_RECYCLE_MS) dropSlot(wisp, s); });
+    let best = null;
+    pool.forEach(s => { if (!s.dead && (!best || s.busy < best.busy)) best = s; });
+    if (!best || (best.busy > 0 && pool.length < EPOXY_POOL)) {
+      best = newSlot(wisp);
+      pool.push(best);
+    }
+    return best;
+  }
+
+  const abortError = () => new DOMException('The operation was aborted.', 'AbortError');
+
   async function epoxyFetch(url, init) {
-    let c;
-    try { c = await epoxyFor(current); } catch (e) {
+    const wisp = (init && init.wisp) || current;
+    const method = String((init && init.method) || 'GET').toUpperCase();
+    const idem = method === 'GET' || method === 'HEAD';
+    const sig = init && init.signal;
+    if (sig && sig.aborted) throw abortError();
+    const slot = pickSlot(wisp);
+    let client;
+    try { client = await slot.p; } catch (e) {
       if (e && typeof e === 'object') e.epoxy_unavailable = true;
       throw e;
     }
@@ -422,15 +471,54 @@ export function init(K) {
     const h = init && init.headers;
     if (h) o.headers = h instanceof Headers ? Object.fromEntries(h.entries()) : Array.isArray(h) ? Object.fromEntries(h) : Object.assign({}, h);
     if (init && init.body != null) o.body = init.body;
-    const p = c.fetch(String(url), o);
-    const sig = init && init.signal;
-    if (!sig) return p;
-    return new Promise((res, rej) => {
-      const abort = () => rej(new DOMException('The operation was aborted.', 'AbortError'));
-      if (sig.aborted) { abort(); return; }
-      sig.addEventListener('abort', abort, { once: true });
-      p.then(res, rej);
+    slot.busy++;
+    slot.last = Date.now();
+    let timer = null, onAbort = null;
+    const guard = new Promise((_, rej) => {
+      if (idem) timer = setTimeout(() => rej(new Error('epoxy request stalled ' + TTFB_MS + 'ms')), TTFB_MS);
+      if (sig) {
+        onAbort = () => rej(abortError());
+        sig.addEventListener('abort', onAbort, { once: true });
+      }
     });
+    const p = client.fetch(String(url), o);
+    p.catch(() => {});
+    try {
+      const res = await Promise.race([p, guard]);
+      slotOf.set(res, { wisp, slot });
+      return res;
+    } catch (e) {
+      if (!(sig && sig.aborted) && CONN_ERR.test(String((e && e.message) || e))) dropSlot(wisp, slot);
+      throw e;
+    } finally {
+      slot.busy--;
+      slot.last = Date.now();
+      clearTimeout(timer);
+      if (sig && onAbort) sig.removeEventListener('abort', onAbort);
+    }
+  }
+
+  async function readBody(res, signal) {
+    if (!res.body || !res.body.getReader) return res.arrayBuffer();
+    const reader = res.body.getReader();
+    const chunks = [];
+    let total = 0;
+    const stop = () => { try { reader.cancel().catch(() => {}); } catch {} };
+    for (;;) {
+      if (signal && signal.aborted) { stop(); throw abortError(); }
+      let timer;
+      const step = await Promise.race([
+        reader.read(),
+        new Promise((_, rej) => { timer = setTimeout(() => rej(new Error('body stalled ' + BODY_IDLE_MS + 'ms')), BODY_IDLE_MS); })
+      ]).catch(e => { stop(); throw e; }).finally(() => clearTimeout(timer));
+      if (step.done) break;
+      chunks.push(step.value);
+      total += step.value.byteLength;
+    }
+    const out = new Uint8Array(total);
+    let at = 0;
+    chunks.forEach(c => { out.set(c, at); at += c.byteLength; });
+    return out.buffer;
   }
 
   function lcFetch(url, opts) {
@@ -451,6 +539,12 @@ export function init(K) {
     sandstone.network.set_websocket(url);
     try { sandstone.network.set_wisp_pool([url]); } catch {}
     syncSandstoneTransport();
+    if (useEpoxy()) {
+      epoxyPools.forEach((pool, k) => {
+        if (k !== url) setTimeout(() => { if (k !== current) dropEpoxy(k); }, 20000);
+      });
+      try { pickSlot(url); } catch {}
+    }
     window.kNetWisp = url;
     updateWispUi();
   }
@@ -506,8 +600,6 @@ export function init(K) {
         rotateStreak = 0;
         rotateHoldUntil = 0;
       } else {
-        // Nothing verified. Back off instead of re-running the whole search (and re-pointing the shared wisp)
-        // every few seconds; it is usually the check or the network failing, not every wisp at once.
         verified = false;
         rotateStreak++;
         rotateHoldUntil = Date.now() + Math.min(HOLD_BASE * Math.pow(2, rotateStreak - 1), HOLD_MAX);
@@ -566,22 +658,24 @@ export function init(K) {
         return res;
       } finally { inflight--; }
     };
+    const m = String(init.method || 'GET').toUpperCase();
+    const idem = m === 'GET' || m === 'HEAD';
+    let last = null;
     try {
-      return await run();
-    } catch (err) {
-      if (aborted()) throw err;
-      const m = String(init.method || 'GET').toUpperCase();
-      const retryable = m === 'GET' || m === 'HEAD' || /http\/2|framing|stream error/i.test(String((err && err.message) || err));
-      if (!retryable) {
-        noteFail();
-        throw err;
+      for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+        try {
+          return await run();
+        } catch (err) {
+          last = err;
+          if (aborted()) throw err;
+          const retryable = idem || /http\/2|framing|stream error/i.test(String((err && err.message) || err));
+          if (!retryable || attempt === MAX_TRIES - 1) break;
+          await delay(120 * (attempt + 1));
+          if (aborted()) throw err;
+        }
       }
-      try {
-        return await run();
-      } catch (err2) {
-        if (!aborted()) noteFail();
-        throw err2;
-      }
+      noteFail();
+      throw last;
     } finally { clearTimeout(timer); }
   }
 
@@ -617,8 +711,6 @@ export function init(K) {
     fetch: (url, init) => core(String(url), Object.assign({ redirect: 'follow' }, init || {})),
     ready: () => boot().then(() => current),
     rotate: (bad, soft) => rotate(bad ? toWss(bad) : null, !!soft),
-    // The hub's single Singuloxy instance. Everything that needs sandstone (ProxyFrame, network) or libcurl
-    // (WebSocket) borrows it from here instead of loading and configuring its own copy.
     sandstone: () => boot(),
     libcurl: () => boot().then(sg => sg.libcurl),
     websocket: async (url, protocols) => {
@@ -651,17 +743,31 @@ export function init(K) {
   }
 
   async function handleFetch(d, reply) {
+    const m = String((d.init && d.init.method) || 'GET').toUpperCase();
+    const attempts = m === 'GET' || m === 'HEAD' ? 2 : 1;
+    let failure = null;
     try {
-      const res = await doFetch(d);
-      const headers = [];
-      try { res.headers.forEach((v, k) => headers.push([k, v])); } catch {}
-      try {
-        if (!headers.some(h => h[0].toLowerCase() === 'set-cookie')) cookieLines(res).forEach(c => headers.push(['set-cookie', c]));
-      } catch {}
-      const buf = NO_BODY.has(res.status) ? null : await res.arrayBuffer();
-      reply({ type: 'kstuff-net:res', id: d.id, ok: true, status: res.status, statusText: res.statusText || '', url: res.url || d.url, headers, body: buf }, buf ? [buf] : []);
-    } catch (e) {
-      reply({ type: 'kstuff-net:res', id: d.id, ok: false, error: String((e && e.message) || e) });
+      for (let i = 0; i < attempts; i++) {
+        let res = null;
+        try {
+          res = await doFetch(d);
+          const headers = [];
+          try { res.headers.forEach((v, k) => headers.push([k, v])); } catch {}
+          try {
+            if (!headers.some(h => h[0].toLowerCase() === 'set-cookie')) cookieLines(res).forEach(c => headers.push(['set-cookie', c]));
+          } catch {}
+          const ctl = live.get(d.key);
+          const buf = NO_BODY.has(res.status) ? null : await readBody(res, ctl && ctl.signal);
+          reply({ type: 'kstuff-net:res', id: d.id, ok: true, status: res.status, statusText: res.statusText || '', url: res.url || d.url, headers, body: buf }, buf ? [buf] : []);
+          return;
+        } catch (e) {
+          failure = e;
+          if (res) dropSlotOf(res);
+          const ctl = live.get(d.key);
+          if (ctl && ctl.signal.aborted) break;
+        }
+      }
+      reply({ type: 'kstuff-net:res', id: d.id, ok: false, error: String((failure && failure.message) || failure) });
     } finally { live.delete(d.key); owners.delete(d.key); }
   }
 
