@@ -4,7 +4,9 @@ import { iframes } from "./controller.mjs";
 import { rpc_handlers } from "../rpc.mjs";
 import { libcurl } from "libcurl.js/bundled";
 import { load_jar, create_jar_saver } from "./jar_store.mjs";
+import { route_session, set_transport_fetch, transport_active } from "./epoxy_transport.mjs";
 
+export { set_transport_fetch, transport_active };
 export const ws_connections = {};
 export let session = null;
 
@@ -739,11 +741,11 @@ function make_session() {
     document.addEventListener("visibilitychange", () => {
       if (document.visibilityState === "hidden") save_jar();
     });
-    return created;
+    return route_session(created);
   }
   catch (e) {
     quiet_warn("sandstone host: cookie-enabled session failed, using a plain session:", error_message(e));
-    return new libcurl.HTTPSession();
+    return route_session(new libcurl.HTTPSession());
   }
 }
 
@@ -1412,6 +1414,7 @@ function create_bulk(jar) {
   try {
     let created = new libcurl.HTTPSession(jar ? {enable_cookies: true, cookie_jar: jar} : {enable_cookies: true});
     created.set_connections(BULK_MAX_TOTAL, BULK_CACHE_SIZE, BULK_PER_HOST);
+    route_session(created);
     return {session: created, jar: jar, users: 0, retired: false};
   }
   catch (e) {

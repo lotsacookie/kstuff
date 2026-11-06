@@ -318,7 +318,11 @@ export function init(K) {
   }
 
   async function epoxyFetch(url, init) {
-    const c = await epoxyFor(current);
+    let c;
+    try { c = await epoxyFor(current); } catch (e) {
+      if (e && typeof e === 'object') e.epoxy_unavailable = true;
+      throw e;
+    }
     const o = { method: (init && init.method) || 'GET', redirect: (init && init.redirect) || 'follow' };
     const h = init && init.headers;
     if (h) o.headers = h instanceof Headers ? Object.fromEntries(h.entries()) : Array.isArray(h) ? Object.fromEntries(h) : Object.assign({}, h);
@@ -339,10 +343,19 @@ export function init(K) {
     return sandstone.libcurl.fetch(url, opts);
   }
 
+  function syncSandstoneTransport() {
+    try {
+      const net = sandstone && sandstone.network;
+      if (!net || typeof net.set_transport_fetch !== 'function') return;
+      net.set_transport_fetch(useEpoxy() ? (url, init) => core(String(url), init || {}) : null);
+    } catch {}
+  }
+
   function applyWisp(url) {
     current = url;
     sandstone.network.set_websocket(url);
     try { sandstone.network.set_wisp_pool([url]); } catch {}
+    syncSandstoneTransport();
     window.kNetWisp = url;
     updateWispUi();
   }
@@ -490,6 +503,7 @@ export function init(K) {
     transportMode = mode;
     window.kTransportMode = mode;
     try { localStorage.setItem(TRANSPORT_KEY, mode); } catch {}
+    syncSandstoneTransport();
     updateTransportUi();
     if (!changed) return mode;
     verified = false;
@@ -571,7 +585,7 @@ export function init(K) {
     if (sel && sel.value !== transportMode) sel.value = transportMode;
     const st = document.getElementById('proxy-transport-status');
     if (st) st.textContent = transportMode === 'epoxy'
-      ? 'Every proxied request uses epoxy. The in-page browser engine and websockets stay on libcurl.'
+      ? 'Every proxied request, including the in-page browser engine, uses epoxy. Websockets stay on libcurl.'
       : 'Every proxied request uses libcurl.';
   };
   const bindSwitch = () => {
