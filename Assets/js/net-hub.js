@@ -147,18 +147,27 @@ export function init(K) {
       applyWisp(url);
     }
     const started = Date.now();
-    const ctl = new AbortController();
     let ok = false, why = '';
-    try {
-      await Promise.any(CHECK_URLS.map(t => Promise.race([
-        sandstone.libcurl.fetch(t, { method: 'GET', redirect: 'manual', signal: ctl.signal }).then(async r => { await r.arrayBuffer(); return r; }),
-        delay(ms).then(() => { throw new Error('timeout'); })
-      ])));
-      ok = true;
-    } catch (e) {
-      why = e && e.errors ? e.errors.map(x => (x && x.message) || String(x)).join(' | ') : String((e && e.message) || e);
+    const budgets = [0.6, 0.2, 0.2];
+    const why_list = [];
+    for (let i = 0; i < CHECK_URLS.length && !ok; i++) {
+      const left = ms - (Date.now() - started);
+      if (left < 1500) break;
+      const slice = i < budgets.length ? Math.max(ms * budgets[i], 2500) : 2500;
+      const limit = Math.min(left, slice);
+      const t0 = Date.now();
+      try {
+        const res = await Promise.race([
+          sandstone.libcurl.fetch(CHECK_URLS[i], { method: 'GET', redirect: 'manual' }).then(async r => { await r.arrayBuffer(); return r; }),
+          delay(limit).then(() => { throw new Error('timeout ' + limit + 'ms'); })
+        ]);
+        ok = true;
+        why_list.push(CHECK_URLS[i] + ' -> ' + res.status + ' ' + (Date.now() - t0) + 'ms');
+      } catch (e) {
+        why_list.push(CHECK_URLS[i] + ' -> ' + String((e && e.message) || e));
+      }
     }
-    try { ctl.abort(); } catch {}
+    why = why_list.join(' | ');
     if (ok) {
       okUrl = url;
       okAt = Date.now();
@@ -177,7 +186,7 @@ export function init(K) {
       if (trialP === mine) trialP = null;
       release && release();
     }
-    console.log('[net-hub] verify', url, ok, ok ? '' : why, trial ? '(trial)' : '', Date.now() - started + 'ms');
+    console.log('[net-hub] verify', url, ok, why, trial ? '(trial)' : '', Date.now() - started + 'ms');
     return ok;
   }
 
