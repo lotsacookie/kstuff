@@ -25,5 +25,14 @@
   clock();setInterval(clock,10000);
   $('launcher').addEventListener('click',e=>{e.stopPropagation();$('launcher-panel').classList.toggle('open')});
   document.addEventListener('click',e=>{if(!e.target.closest('#launcher-panel'))$('launcher-panel').classList.remove('open')});
+  const qs=$('qs'),tray=$('tray');
+  const upd=()=>{$('date').textContent=new Date().toLocaleDateString([],{weekday:'short',month:'short',day:'numeric'})};upd();
+  tray.addEventListener('click',e=>{e.stopPropagation();$('launcher-panel').classList.remove('open');qs.classList.toggle('open');tray.classList.toggle('open',qs.classList.contains('open'))});
+  qs.addEventListener('click',e=>{e.stopPropagation();const t=e.target.closest('.tile');if(t)t.classList.toggle('on')});
+  document.addEventListener('click',()=>{qs.classList.remove('open');tray.classList.remove('open')});
+  $('power').addEventListener('click',()=>{
+    const f=document.createElement('div');f.style.cssText='position:fixed;inset:0;background:#000;opacity:0;transition:opacity .7s;z-index:99';document.body.appendChild(f);
+    void f.offsetWidth;f.style.opacity=1;setTimeout(()=>location.assign('../../'),750);
+  });
   boot();
 })();

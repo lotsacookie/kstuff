@@ -25,7 +25,14 @@
 <div id="desktop" aria-hidden="true">
   <div id="launcher-panel"><div class="search"><span class="g">&#9906;</span><input placeholder="Search your device, apps, and more" disabled></div><div class="empty">No apps yet</div></div>
   <div id="shelf"><button id="launcher" aria-label="Launcher"><span></span></button></div>
-  <div id="tray"><span id="net" title="Wi-Fi">&#9650;</span><span id="bat" title="Battery">&#9646;</span><span id="clock"></span></div>
+  <div id="qs" role="dialog" aria-label="Quick settings">
+  <div class="qs-top"><span class="qs-user">Singularity</span><span class="sp"></span><button class="qs-ic" id="lock" title="Lock">&#128274;</button><button class="qs-ic" id="power" title="Power: back to Singularity">&#9211;</button></div>
+  <div class="qs-grid"><div class="tile on"><b>Network</b><small>Connected</small></div><div class="tile on"><b>Bluetooth</b><small>On</small></div><div class="tile"><b>Do not disturb</b><small>Off</small></div><div class="tile"><b>Night Light</b><small>Off</small></div></div>
+  <div class="slider"><span>&#9728;</span><input type="range" min="10" max="100" value="80"></div>
+  <div class="slider"><span>&#9835;</span><input type="range" min="0" max="100" value="60"></div>
+  <div class="qs-foot"><span id="date"></span><span>&#9646; 100%</span></div>
+</div>
+<div id="tray"><span id="net" title="Wi-Fi">&#9650;</span><span id="bat" title="Battery">&#9646;</span><span id="clock"></span></div>
 </div>
 <script src="os.js"></script>
 </body></html>

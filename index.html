@@ -446,6 +446,7 @@ document.addEventListener('webkitfullscreenchange',sync);
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!fsEl()&&root.classList.contains('sg-fit'))setFit(false)});
 })();
     </script>
-<script src="Assets/js/os-mode.js"></script>
+<style id="os-fade-css">#os-fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;z-index:2147483647;transition:opacity .7s ease}#os-fade.on{opacity:1;pointer-events:all}</style>
+<script>(()=>{document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#os-mode-btn');if(!b)return;e.preventDefault();e.stopPropagation();if(window.__osLaunching)return;window.__osLaunching=true;const f=document.createElement('div');f.id='os-fade';document.documentElement.appendChild(f);void f.offsetWidth;f.classList.add('on');setTimeout(()=>{window.__sgReloading=true;window.removeEventListener&&0;location.assign('Assets/os/index.html')},800)},true)})();</script>
 </body>
 </html>
