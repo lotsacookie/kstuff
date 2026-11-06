@@ -19,6 +19,15 @@ export function init(K) {
   const VERIFY_BAD_TTL = 60000;
   const COOLDOWN = 45000;
   const VERIFY_EVERY = 3;
+  const VERIFY_MS = 12000;
+  const MAIN_VERIFY_MS = 6000;
+  const MAIN_TRIALS = 2;
+  const MAIN_RETRY_MIN = 60000;
+  const MAIN_RETRY_MAX = 1200000;
+  const HOLD_BASE = 60000;
+  const HOLD_MAX = 600000;
+  const WS_BUSY_MAX = 1800000;
+  const STALL_MS = 45000;
   const RETRY_STEPS = [3000, 6000, 12000, 24000, 30000];
   const STRIKE_BASE = 30000;
   const STRIKE_MAX = 1800000;
@@ -33,6 +42,15 @@ export function init(K) {
   const NO_BODY = new Set([101, 204, 205, 304]);
 
   let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, watching = false, okUrl = null, okAt = 0, inflight = 0, verified = false, retryTimer = null, retryStep = 0, watchTick = 0;
+  let lastDone = Date.now(), vchain = Promise.resolve(), trialP = null, mainCancel = false, mainFails = 0, nextMainTry = 0, rotateStreak = 0, rotateHoldUntil = 0;
+  const sockets = new Map();
+  const busySockets = () => {
+    const now = Date.now();
+    for (const [ws, at] of sockets) {
+      if (ws.readyState === 2 || ws.readyState === 3 || now - at > WS_BUSY_MAX) sockets.delete(ws);
+    }
+    return sockets.size;
+  };
 
   const readJson = key => {
     try { return JSON.parse(localStorage.getItem(key)); } catch { return null; }
@@ -109,15 +127,30 @@ export function init(K) {
     });
   }
 
-  async function verify(url) {
+  // Checks are serialized: a check may temporarily point the shared libcurl at a candidate wisp, so two of
+  // them running at once used to swap the wisp out from under each other (false timeouts on every wisp).
+  function verify(url, ms) {
+    const run = vchain.then(() => verifyNow(url, ms || VERIFY_MS));
+    vchain = run.catch(() => {});
+    return run;
+  }
+
+  async function verifyNow(url, ms) {
     const prev = current;
-    if (url !== current) applyWisp(url);
+    const trial = url !== current;
+    let release = null, mine = null;
+    if (trial) {
+      mine = new Promise(r => { release = r; });
+      trialP = mine;
+      applyWisp(url);
+    }
+    const started = Date.now();
     const ctl = new AbortController();
     let ok = false, why = '';
     try {
       await Promise.any(CHECK_URLS.map(t => Promise.race([
         sandstone.libcurl.fetch(t, { method: 'GET', signal: ctl.signal }).then(async r => { await r.arrayBuffer(); return r; }),
-        delay(10000).then(() => { throw new Error('timeout'); })
+        delay(ms).then(() => { throw new Error('timeout'); })
       ])));
       ok = true;
     } catch (e) {
@@ -132,18 +165,26 @@ export function init(K) {
       retryStep = 0;
     } else {
       if (url === prev) verified = false;
-      if (prev && prev !== url && current === url) applyWisp(prev);
+      if (trial) {
+        // Drop the half-open connection to the failed candidate so a later try starts clean, then go back.
+        resetConnection(url, true);
+        if (prev && current === url) applyWisp(prev);
+      }
     }
-    console.log('[net-hub] verify', url, ok, ok ? '' : why);
+    if (trial) {
+      if (trialP === mine) trialP = null;
+      release && release();
+    }
+    console.log('[net-hub] verify', url, ok, ok ? '' : why, trial ? '(trial)' : '', Date.now() - started + 'ms');
     return ok;
   }
 
-  function resetConnection(url) {
+  function resetConnection(url, force) {
     try {
       const connections = (sandstone.libcurl.wisp && sandstone.libcurl.wisp.wisp_connections) || {};
       const connection = connections[url];
       if (!connection) return false;
-      if (Object.keys(connection.active_streams || {}).length) return false;
+      if (!force && Object.keys(connection.active_streams || {}).length) return false;
       try { connection.close && connection.close(); } catch {}
       delete connections[url];
       console.log('[net-hub] reset stalled connection', url);
@@ -208,29 +249,43 @@ export function init(K) {
     return null;
   }
 
-  let lastMainTry = 0, mainBusy = null;
+  const idle = () => !inflight && !live.size && !busySockets();
+  let mainBusy = null;
+  // Tries to move back onto a main (primary) wisp. It only runs while nothing is using the network, tries at most
+  // MAIN_TRIALS candidates per run, strikes the ones that fail, and backs off between runs. It used to re-test every
+  // pingable primary every minute, leaving the shared wisp pointed at an unverified candidate most of the time.
   async function preferMain() {
     if (mainBusy) return mainBusy;
     mainBusy = (async () => {
-      lastMainTry = Date.now();
+      mainCancel = false;
       const primary = tiers()[0];
-      if (!primary.length || primary.includes(current)) return false;
-      const prev = current;
-      for (let i = 0; i < primary.length; i += 8) {
-        const wave = primary.slice(i, i + 8);
+      if (!primary.length || primary.includes(current)) {
+        nextMainTry = Date.now() + MAIN_RETRY_MIN;
+        return false;
+      }
+      const pool = primary.filter(u => !isBad(u));
+      let trials = 0;
+      for (let i = 0; i < pool.length && trials < MAIN_TRIALS; i += 8) {
+        const wave = pool.slice(i, i + 8);
         const pings = await Promise.all(wave.map(u => probe(u, 3000)));
         const alive = [];
         wave.forEach((u, j) => { if (pings[j] !== null) alive.push({ u, ping: pings[j] }); });
         alive.sort((x, y) => x.ping - y.ping);
-        for (const row of alive.slice(0, 3)) {
-          if (await verify(row.u)) {
+        for (const row of alive) {
+          if (trials >= MAIN_TRIALS || mainCancel || rotating || !idle()) break;
+          trials++;
+          if (await verify(row.u, MAIN_VERIFY_MS)) {
             writeGood(row.u);
+            mainFails = 0;
             console.log('[net-hub] main wisp back, using', row.u);
             return true;
           }
+          markBad(row.u);
         }
+        if (mainCancel || rotating || !idle()) break;
       }
-      if (prev && current !== prev) applyWisp(prev);
+      if (trials) mainFails++;
+      nextMainTry = Date.now() + Math.min(MAIN_RETRY_MIN * Math.pow(2, Math.max(mainFails - 1, 0)), MAIN_RETRY_MAX);
       return false;
     })().finally(() => { mainBusy = null; });
     return mainBusy;
@@ -244,17 +299,22 @@ export function init(K) {
 
   let fails = 0;
   async function watch() {
-    if (current && !tiers()[0].includes(current) && Date.now() - lastMainTry > 60000 && !rotating && !mainBusy) preferMain().catch(() => {});
-    if (!current || document.hidden || rotating || live.size || inflight) return;
+    if (current && !tiers()[0].includes(current) && Date.now() >= nextMainTry && !rotating && !mainBusy && !document.hidden && idle()) preferMain().catch(() => {});
+    // Pending requests only count as "busy" while requests are actually completing. If nothing has finished for
+    // STALL_MS the wisp is probably stuck, and checking it is exactly what is needed (hung requests used to
+    // keep the watchdog off forever).
+    const pending = inflight > 0 || live.size > 0;
+    const stalled = pending && Date.now() - Math.max(lastDone, okAt) >= STALL_MS;
+    if (!current || document.hidden || rotating || mainBusy || (pending && !stalled) || busySockets()) return;
     let healthy = (await probe(current, 4000)) !== null;
     watchTick++;
-    if (healthy && (!verified || watchTick % VERIFY_EVERY === 0)) healthy = await verify(current);
+    if (healthy && (stalled || !verified || watchTick % VERIFY_EVERY === 0)) healthy = await verify(current);
     if (!healthy) fails++;
     else {
       fails = 0;
       writeGood(current);
     }
-    if (fails >= (verified ? WATCH_FAILS : 1)) {
+    if (fails >= (stalled ? 2 : (verified ? WATCH_FAILS : 1))) {
       fails = 0;
       rotate(current, true);
     }
@@ -310,9 +370,11 @@ export function init(K) {
     if (rotating) return rotating;
     rotating = (async () => {
       await boot();
+      mainCancel = true;
       if (auto && current) {
         if (bad && bad !== current) return current;
         if (Date.now() - lastRotateAt < COOLDOWN) return current;
+        if (Date.now() < rotateHoldUntil) return current;
         if (okUrl === current && Date.now() - okAt < OK_WINDOW) return current;
         if (await verify(current)) { writeGood(current); return current; }
         await delay(800);
@@ -328,9 +390,16 @@ export function init(K) {
       const flat = tiers().flat();
       const next = hit || flat.find(u => u !== from && !isBad(u)) || flat.find(u => u !== from) || flat[0] || FALLBACK;
       if (next && next !== current) applyWisp(next);
-      if (hit) writeGood(current);
-      else {
+      if (hit) {
+        writeGood(current);
+        rotateStreak = 0;
+        rotateHoldUntil = 0;
+      } else {
+        // Nothing verified. Back off instead of re-running the whole search (and re-pointing the shared wisp)
+        // every few seconds; it is usually the check or the network failing, not every wisp at once.
         verified = false;
+        rotateStreak++;
+        rotateHoldUntil = Date.now() + Math.min(HOLD_BASE * Math.pow(2, rotateStreak - 1), HOLD_MAX);
         scheduleRetry();
       }
       lastRotateAt = Date.now();
@@ -342,7 +411,7 @@ export function init(K) {
 
   function scheduleRetry() {
     if (retryTimer || verified) return;
-    const wait = RETRY_STEPS[Math.min(retryStep, RETRY_STEPS.length - 1)];
+    const wait = Math.max(RETRY_STEPS[Math.min(retryStep, RETRY_STEPS.length - 1)], rotateHoldUntil - Date.now());
     retryStep++;
     retryTimer = setTimeout(async () => {
       retryTimer = null;
@@ -363,7 +432,8 @@ export function init(K) {
 
   async function core(url, init) {
     const sg = await boot();
-    if (rotating) await Promise.race([rotating.catch(() => {}), delay(ROTATE_WAIT)]);
+    const gate = rotating || trialP;
+    if (gate) await Promise.race([gate.catch(() => {}), delay(ROTATE_WAIT)]);
     const outer = init.signal;
     const hard = new AbortController();
     let hardHit = false;
@@ -375,7 +445,11 @@ export function init(K) {
     const opts = Object.assign({}, init, { signal: hard.signal });
     const run = async () => {
       inflight++;
-      try { return await sg.libcurl.fetch(url, opts); } finally { inflight--; }
+      try {
+        const res = await sg.libcurl.fetch(url, opts);
+        lastDone = Date.now();
+        return res;
+      } finally { inflight--; }
     };
     try {
       return await run();
@@ -404,7 +478,13 @@ export function init(K) {
     // (WebSocket) borrows it from here instead of loading and configuring its own copy.
     sandstone: () => boot(),
     libcurl: () => boot().then(sg => sg.libcurl),
-    websocket: async (url, protocols) => { const sg = await boot(); return new sg.libcurl.WebSocket(url, protocols); },
+    websocket: async (url, protocols) => {
+      const sg = await boot();
+      const ws = new sg.libcurl.WebSocket(url, protocols);
+      sockets.set(ws, Date.now());
+      try { ws.addEventListener('close', () => sockets.delete(ws)); } catch {}
+      return ws;
+    },
     wisp: () => current
   };
 
