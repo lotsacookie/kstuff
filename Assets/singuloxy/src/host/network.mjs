@@ -121,7 +121,11 @@ let last_shrink_log = 0;
 const request_queue = [];
 
 let wisp_pool = [];
+const SESSION_WAIT_MS = 15000;
 let ws_url = null;
+let libcurl_loaded = false;
+let session_started = false;
+let session_wait_timer = null;
 let bulk = null;
 let jar_checked = 0;
 let balanced_installed = false;
@@ -362,7 +366,11 @@ try {
   const original_set_websocket = libcurl.set_websocket.bind(libcurl);
   libcurl.set_websocket = (url) => {
     ws_url = url;
-    return original_set_websocket(url);
+    let result = original_set_websocket(url);
+    // The session needs the wisp url, so with epoxy as the transport it is created here,
+    // once the hub has set the websocket, rather than on libcurl's load event.
+    if (libcurl_loaded) start_session();
+    return result;
   };
 }
 catch (e) {
@@ -2428,8 +2436,21 @@ export function clean_ws_connections(id_to_clean) {
   }
 }
 
-libcurl.events.addEventListener("libcurl_load", () => {
-  console.log(`libcurl.js v${libcurl.version.lib} loaded`);
+function start_session() {
+  if (session_started) return;
+  session_started = true;
+  clearTimeout(session_wait_timer);
   session = make_session();
   session_ready_resolve();
+}
+
+libcurl.events.addEventListener("libcurl_load", () => {
+  console.log(`libcurl.js v${libcurl.version.lib} loaded`);
+  libcurl_loaded = true;
+  if (ws_url) {
+    start_session();
+    return;
+  }
+  // Wait for set_websocket (epoxy hosts set it after libcurl loads); don't hang forever if it never comes.
+  session_wait_timer = setTimeout(start_session, SESSION_WAIT_MS);
 });
