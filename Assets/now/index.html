@@ -309,7 +309,7 @@ const EP = {
   consent: "/api/1/frontend/oauth/user/consent",
   password: "/api/1/frontend/oauth/user/login/password",
   register: "/api/1/frontend/oauth/user/register",
-  validator: "/api/1/frontend/oauth/validator",
+  validator: "/api/1/validator/register",
   verifyPoll: "/api/1/frontend/oauth/user/email/verification/poll",
   skipFactorSetup: "/api/1/frontend/oauth/auth/factor/setup/skip",
   skipPasskeySetup: "/api/1/frontend/oauth/passkey/setup/skip",
@@ -614,11 +614,19 @@ async function registerStage() {
   const k = flow.key;
   const vc = await api(EP.validator, null, "GET", true, { "Content-Type": "application/json" });
   flow.key = k; // the validator reply must not replace the session key
-  let c = {};
-  if (vc.ok) c = (vc.json && vc.json.validation) || vc.json || {};
-  else log("[auth] validator lookup failed, guessing", vc.status, vc.text.slice(0, 200));
-  body.validation = { key: c.key, type: c.type || "CaptchaHCaptcha", captchaMode: c.captchaMode || "Invisible", response: u.captcha };
-  log("[auth] validator", String(c.type), String(c.captchaMode), String(c.key).slice(0, 12), "token", String(u.captcha).length);
+  if (vc.status === 204 || vc.status === 404) {
+    delete body.validation; // NVIDIA asked for no captcha on register
+    log("[auth] no captcha required");
+  } else if (vc.ok && vc.json && (vc.json.validation || vc.json.key)) {
+    const c = vc.json.validation || vc.json;
+    if (c.type && c.type !== "CaptchaHCaptcha") throw new Error("NVIDIA wants a different human check (" + c.type + ") that this client can't show yet.");
+    body.validation = { key: c.key, type: c.type, captchaMode: c.captchaMode, response: u.captcha };
+    log("[auth] validator", String(c.type), String(c.captchaMode), String(c.key).slice(0, 12), "token", String(u.captcha).length);
+  } else {
+    const ve = apiError(vc);
+    ve.message += " [validator " + vc.status + "] " + vc.text.slice(0, 300);
+    throw ve;
+  }
   let r = await api(EP.register, body);
   for (let i = 0; i < 5 && !r.ok && /EARLY_REQUEST/.test(r.text); i++) {
     await sleep(3000 + i * 2000);
