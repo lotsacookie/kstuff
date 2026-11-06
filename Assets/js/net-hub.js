@@ -7,6 +7,7 @@ export function init(K) {
   const FALLBACK = 'wss://api.personalloanonline.net/ws/';
   const LAST_KEY = 'WLAST2';
   const BAD_KEY = 'WBAD2';
+  const TRANSPORT_KEY = 'kTransport';
   const LAST_TTL = 21600000;
   const BAD_TTL = 21600000;
   const SOFT_TTL = 600000;
@@ -35,8 +36,6 @@ export function init(K) {
     'https://cdn.jsdelivr.net/npm/@mercuryworkshop/epoxy-tls@2.1.19-1/full/epoxy-bundled.js',
     'https://fastly.jsdelivr.net/npm/@mercuryworkshop/epoxy-tls@2.1.19-1/full/epoxy-bundled.js'
   ];
-  const EPOXY_VERIFY_MS = 12000;
-  const EPOXY_STICKY = 600000;
   const CHECK_URLS = ['https://deepai.org/favicon.ico', 'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/json/wss.json', 'https://login.nvidia.com/.well-known/openid-configuration', 'https://www.gstatic.com/generate_204', 'https://api.deezer.com/infos', 'https://www.cloudflare.com/cdn-cgi/trace'];
   const delay = ms => new Promise(r => setTimeout(r, ms));
   const toWss = entry => {
@@ -64,6 +63,13 @@ export function init(K) {
   const writeJson = (key, value) => {
     try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
   };
+
+  const readTransport = () => {
+    try { return localStorage.getItem(TRANSPORT_KEY) === 'epoxy' ? 'epoxy' : 'libcurl'; } catch { return 'libcurl'; }
+  };
+  let transportMode = readTransport();
+  const useEpoxy = () => transportMode === 'epoxy';
+  window.kTransportMode = transportMode;
 
   try { localStorage.removeItem('WBAD'); localStorage.removeItem('WBAD2'); } catch {}
   let badMem = {};
@@ -160,6 +166,8 @@ export function init(K) {
     }
     const budgets = [0.7, 0.15, 0.15];
     const why_list = [];
+    const label = useEpoxy() ? 'epoxy ' : '';
+    const redirect = useEpoxy() ? 'follow' : 'manual';
     for (let i = 0; i < CHECK_URLS.length && !ok; i++) {
       const left = ms - (Date.now() - started);
       if (left < 1500) break;
@@ -168,29 +176,13 @@ export function init(K) {
       const t0 = Date.now();
       try {
         const res = await Promise.race([
-          lcFetch(CHECK_URLS[i], { method: 'GET', redirect: 'manual' }).then(async r => { await r.arrayBuffer(); return r; }),
+          lcFetch(CHECK_URLS[i], { method: 'GET', redirect }).then(async r => { await r.arrayBuffer(); return r; }),
           delay(limit).then(() => { throw new Error('timeout ' + limit + 'ms'); })
         ]);
         ok = true;
-        why_list.push(CHECK_URLS[i] + ' -> ' + res.status + ' ' + (Date.now() - t0) + 'ms');
+        why_list.push(label + CHECK_URLS[i] + ' -> ' + res.status + ' ' + (Date.now() - t0) + 'ms');
       } catch (e) {
-        why_list.push(CHECK_URLS[i] + ' -> ' + String((e && e.message) || e));
-      }
-    }
-    if (ok) epoxyUntil.delete(url);
-    if (!ok) {
-      const t0 = Date.now();
-      try {
-        const lim = Math.max(Math.min(EPOXY_VERIFY_MS, ms - (Date.now() - started)), 8000);
-        const r = await Promise.race([
-          epoxyFetch(CHECK_URLS[0], { method: 'GET' }).then(async x => { await x.arrayBuffer(); return x; }),
-          delay(lim).then(() => { throw new Error('timeout ' + lim + 'ms'); })
-        ]);
-        ok = true;
-        epoxyUntil.set(url, Date.now() + EPOXY_STICKY);
-        why_list.push('epoxy ' + CHECK_URLS[0] + ' -> ' + r.status + ' ' + (Date.now() - t0) + 'ms');
-      } catch (e) {
-        why_list.push('epoxy -> ' + String((e && e.message) || e));
+        why_list.push(label + CHECK_URLS[i] + ' -> ' + String((e && e.message) || e));
       }
     }
     why = why_list.join(' | ');
@@ -217,6 +209,12 @@ export function init(K) {
   }
 
   function resetConnection(url, force) {
+    if (useEpoxy()) {
+      if (!force && inflight) return false;
+      const dropped = dropEpoxy(url);
+      if (dropped) console.log('[net-hub] reset stalled connection', url);
+      return dropped;
+    }
     try {
       const connections = (sandstone.libcurl.wisp && sandstone.libcurl.wisp.wisp_connections) || {};
       const connection = connections[url];
@@ -367,10 +365,8 @@ export function init(K) {
     return import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
   }
 
-  const epoxyUntil = new Map();
   const epoxyClients = new Map();
   let epoxyLoad = null;
-  const isEpoxy = u => !!u && (epoxyUntil.get(u) || 0) > Date.now();
 
   function loadEpoxy() {
     if (epoxyLoad) return epoxyLoad;
@@ -403,6 +399,14 @@ export function init(K) {
     return c;
   }
 
+  function dropEpoxy(url) {
+    const c = epoxyClients.get(url);
+    if (!c) return false;
+    epoxyClients.delete(url);
+    c.then(client => { try { client.free && client.free(); } catch {} }, () => {});
+    return true;
+  }
+
   async function epoxyFetch(url, init) {
     const c = await epoxyFor(current);
     const o = { method: (init && init.method) || 'GET', redirect: (init && init.redirect) || 'follow' };
@@ -421,7 +425,7 @@ export function init(K) {
   }
 
   function lcFetch(url, opts) {
-    if (isEpoxy(current)) return epoxyFetch(url, opts);
+    if (useEpoxy()) return epoxyFetch(url, opts);
     let via = sandstone.libcurl;
     try {
       const sess = sandstone.network && sandstone.network.session;
@@ -448,7 +452,7 @@ export function init(K) {
       url = url || freshGood() || toWss(window.wlspServer) || tiers().flat()[0] || FALLBACK;
       applyWisp(url);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
-      if (!sg.libcurl.ready) throw new Error('libcurl did not load');
+      if (!sg.libcurl.ready && !useEpoxy()) throw new Error('libcurl did not load');
       for (let i = 0; i < 50 && !(sg.network && sg.network.session); i++) await delay(100);
       const mainFirst = preferMain().catch(() => false);
       setTimeout(() => {
@@ -463,7 +467,7 @@ export function init(K) {
           }
         })().catch(() => {});
       }, 1500);
-      console.log('[net-hub] ready via', current);
+      console.log('[net-hub] ready via', current, 'transport', transportMode);
       if (!watching) { watching = true; setInterval(watch, WATCH_MS); }
       return sg;
     })().catch(e => { bootP = null; sandstone = null; throw e; });
@@ -562,17 +566,6 @@ export function init(K) {
     } catch (err) {
       if (hardHit || hard.signal.aborted || (outer && outer.aborted)) throw err;
       const m = String(init.method || 'GET').toUpperCase();
-      if (isEpoxy(current)) epoxyUntil.delete(current);
-      else if (m === 'GET' || m === 'HEAD') {
-        inflight++;
-        try {
-          const res = await epoxyFetch(url, opts);
-          lastDone = Date.now();
-          epoxyUntil.set(current, Date.now() + EPOXY_STICKY);
-          console.log('[net-hub] epoxy fallback active for', current);
-          return res;
-        } catch {} finally { inflight--; }
-      }
       if (/http\/2|framing|stream error/i.test(String((err && err.message) || err))) return await run();
       await recover();
       if (m !== 'GET' && m !== 'HEAD') throw err;
@@ -586,6 +579,26 @@ export function init(K) {
     owners.set(d.key, d.owner || null);
     return core(d.url, Object.assign({ redirect: 'follow' }, d.init || {}, { signal: ctl.signal }));
   }
+
+  function setTransport(next) {
+    const mode = next === 'epoxy' ? 'epoxy' : 'libcurl';
+    const changed = mode !== transportMode;
+    transportMode = mode;
+    window.kTransportMode = mode;
+    try { localStorage.setItem(TRANSPORT_KEY, mode); } catch {}
+    updateTransportUi();
+    if (!changed) return mode;
+    verified = false;
+    okUrl = null;
+    okAt = 0;
+    lastDone = 0;
+    retryStep = 0;
+    console.log('[net-hub] transport set to', mode);
+    if (sandstone && current) verify(current).then(ok => { if (ok) writeGood(current); else scheduleRetry(); }).catch(() => {});
+    return mode;
+  }
+  K.setTransport = setTransport;
+  K.getTransport = () => transportMode;
 
   window.kNetDirect = {
     fetch: (url, init) => core(String(url), Object.assign({ redirect: 'follow' }, init || {})),
@@ -603,7 +616,8 @@ export function init(K) {
       return ws;
     },
     wisp: () => current,
-    transport: () => (isEpoxy(current) ? 'epoxy' : 'libcurl')
+    transport: () => transportMode,
+    setTransport
   };
 
   async function handleFetch(d, reply) {
@@ -632,6 +646,14 @@ export function init(K) {
     const cur = document.getElementById('proxy-wisp-current');
     if (cur) cur.textContent = current ? 'Current: ' + hostOf(current) : 'Not connected yet';
   };
+  const updateTransportUi = () => {
+    const sel = document.getElementById('proxy-transport-select');
+    if (sel && sel.value !== transportMode) sel.value = transportMode;
+    const st = document.getElementById('proxy-transport-status');
+    if (st) st.textContent = transportMode === 'epoxy'
+      ? 'Every proxied request uses epoxy. The in-page browser engine and websockets stay on libcurl.'
+      : 'Every proxied request uses libcurl.';
+  };
   const bindSwitch = () => {
     const btn = document.getElementById('switch-wisp-btn');
     if (!btn || btn.dataset.bound) return;
@@ -658,11 +680,23 @@ export function init(K) {
       updateWispUi();
     });
   };
-  const bindUi = () => { bindSwitch(); updateWispUi(); };
+  const bindTransport = () => {
+    const sel = document.getElementById('proxy-transport-select');
+    if (!sel) return;
+    sel.value = transportMode;
+    updateTransportUi();
+    if (sel.dataset.bound) return;
+    sel.dataset.bound = '1';
+    sel.addEventListener('change', () => { setTransport(sel.value); });
+  };
+  const bindUi = () => { bindSwitch(); bindTransport(); updateWispUi(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindUi);
   else bindUi();
   document.addEventListener('click', e => {
     if (e.target && e.target.closest && e.target.closest('.settings-tab')) bindUi();
+  });
+  window.addEventListener('storage', e => {
+    if (e.key === TRANSPORT_KEY) setTransport(e.newValue);
   });
 
   setTimeout(() => { boot().catch(() => {}); }, 1500);

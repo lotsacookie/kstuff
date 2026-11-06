@@ -326,6 +326,10 @@ async function legacy(){
                                     <button type="button" id="switch-wisp-btn" class="modal-primary-btn"><i class="ph ph-arrows-clockwise"></i> Switch wisp</button>
                                     <p id="proxy-wisp-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
                                 </div>
+                                <div class="setting-group full"><label for="proxy-transport-select"><i class="ph ph-swap"></i> Transport</label>
+                                    <select id="proxy-transport-select"><option value="libcurl" selected>libcurl</option><option value="epoxy">epoxy</option></select>
+                                    <p id="proxy-transport-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
+                                </div>
                             </div>
                             <div class="settings-panel" id="settings-panel-data" role="tabpanel">Coming Soon</div>
                             <div class="settings-panel" id="settings-panel-about" role="tabpanel">
