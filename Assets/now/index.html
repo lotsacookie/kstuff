@@ -242,8 +242,6 @@ const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
-// Network goes through the site's net hub (Assets/js/net-hub.js -> window.kNetDirect): one shared
-// sandstone/libcurl instance with wisp selection, health checks and rotation. This page keeps no proxy of its own.
 const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
 
 const findHub = () => {
@@ -257,8 +255,10 @@ let ready = null, state = null, rotating = null;
 function getProxy({ log = () => {}, say = () => {} } = {}) {
   return (ready ||= (async () => {
     say("Connecting to net hub…");
+    stepText("Connecting to the proxy…");
     let hub = findHub();
-    for (let i = 0; !hub && i < 100; i++) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
+    const hubStart = Date.now();
+    while (!hub && Date.now() - hubStart < 120000) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
     if (!hub) throw new Error("Net hub unavailable. Open this page from the main site.");
     const wisp = String(await withTimeout(hub.ready(), 60000, "net hub"));
     const lc = await hub.libcurl();
@@ -320,13 +320,16 @@ const EMBED = !!window.__NOW_EMBED;
 const toParent = (type, d) => { if (!EMBED) return; try { parent.postMessage({ type: "gfn:" + type, ...(d || {}) }, "*"); } catch {} };
 const progOf = (t) => { t = String(t || ""); if (!t) return 1; if (/^Starting/.test(t)) return 0.06; if (/Requesting/.test(t)) return 0.2; if (/Ending your old/.test(t)) return 0.25; const q = /position (\d+)/.exec(t); if (q) return 0.3 + 0.45 * (1 - Math.min(Number(q[1]), 100) / 100); if (/Setting up/.test(t)) return 0.78; if (/Connecting to your rig/.test(t)) return 0.92; return null; };
 let pendingGame = null, launchGen = 0, activeStop = null;
+let warm = null;
+const WARM_TTL = 240000;
 const screens = ["boot", "email-card", "signup-card", "wait-card", "code-card", "password-card", "account"];
 const LOGIN_CARDS = ["email-card", "signup-card", "wait-card", "code-card", "password-card"];
-const show = (name) => { screens.forEach((s) => $(s).classList.toggle("active", s === name)); document.body.classList.toggle("app", name === "account" && !EMBED); if (EMBED) toParent("view", { ui: LOGIN_CARDS.includes(name) }); };
+const show = (name) => { screens.forEach((s) => $(s).classList.toggle("active", s === name)); document.body.classList.toggle("app", name === "account" && !EMBED); if (EMBED) toParent("view", { ui: LOGIN_CARDS.includes(name) }); if (name === "email-card" || name === "signup-card") warmFlow(); };
 const say = (t) => { $("boot-status").textContent = t; if (EMBED) toParent("status", { text: t }); };
 const form = (o) => new URLSearchParams(o).toString();
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const setWait = (title, desc) => { $("wait-title").textContent = title; $("wait-desc").textContent = desc || ""; show("wait-card"); };
+const stepText = (t) => { if ($("wait-card").classList.contains("active")) $("wait-desc").textContent = t; };
 
 const JARVIS_DEVICE = (() => {
   let d = store.get("WB_DEVID");
@@ -451,9 +454,9 @@ let codeWaiter = null;
 const cancelled = () => Object.assign(new Error("cancelled"), { cancelled: true });
 const alive = (mine) => { if (mine !== run) throw cancelled(); };
 
-async function beginFlow() {
+async function makeFlow() {
   jar.length = 0;
-  flow = null;
+  stepText("Opening NVIDIA's sign-in…");
   const verifier = rand(48);
   const challenge = await challengeOf(verifier);
   const authUrl = STARFLEET + "/authorize?" + form({
@@ -484,7 +487,36 @@ async function beginFlow() {
   log("[auth] provider chain", p.chain.join(" > "));
   const key = p.location ? new URL(p.location).searchParams.get("key") : null;
   if (!key) throw new Error("NVIDIA did not start a login session (status " + p.status + ")");
-  flow = { verifier, key, email: "" };
+  return { verifier, key, email: "", at: Date.now() };
+}
+
+function warmFlow() {
+  if (flow) return;
+  if (warm) {
+    const age = Date.now() - warm.at;
+    if (!warm.done || (warm.failed ? age < 15000 : age < WARM_TTL)) return;
+  }
+  const entry = { at: Date.now(), done: false, failed: false, p: null };
+  entry.p = makeFlow().then(
+    (f) => { entry.done = true; entry.at = Date.now(); return f; },
+    (e) => { entry.done = true; entry.failed = true; entry.at = Date.now(); log("[auth] warm-up failed", (e && e.message) || e); return null; }
+  );
+  warm = entry;
+}
+
+async function beginFlow(maxAge) {
+  flow = null;
+  const entry = warm;
+  warm = null;
+  let made = null, reused = false;
+  if (maxAge > 0 && entry && (!entry.done || (!entry.failed && Date.now() - entry.at < maxAge))) {
+    if (!entry.done) stepText("Opening NVIDIA's sign-in…");
+    made = await entry.p;
+    reused = !!made;
+  }
+  if (!made) made = await makeFlow();
+  flow = made;
+  return reused;
 }
 
 async function api(path, body, method = "POST", quiet = false, extra = null) {
@@ -610,7 +642,7 @@ async function registerStage() {
   setWait("Creating your account…", "");
   const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false, deviceId: JARVIS_DEVICE, authFactorType: "WebAuthn" };
   const mine = run;
-  await sleep(2500); // NVIDIA rejects a register that arrives right after the session starts
+  await sleep(Math.max(0, 2500 - (Date.now() - (flow.at || 0))));
   const k0 = flow.key;
   const nm = await api("/api/1/search/user?q=" + encodeURIComponent(JSON.stringify({ displayName: u.displayName })), null, "GET", true);
   flow.key = k0;
@@ -780,18 +812,36 @@ async function userinfo(token) {
   try { return JSON.parse(r.text); } catch { return {}; }
 }
 
+async function firstStep() {
+  if (flow.signup) {
+    await registerStage();
+    return;
+  }
+  stepText("Checking your account…");
+  const first = await api(EP.check, { email: flow.email, rememberLogin: false, deviceId: JARVIS_DEVICE });
+  if (!first.ok) throw apiError(first);
+}
+
 async function startLogin(email, signup) {
   const mine = ++run;
-  await beginFlow();
+  const reused = await beginFlow(signup ? 90000 : WARM_TTL);
   alive(mine);
   flow.email = email;
   flow.signup = signup || null;
-  if (flow.signup) {
-    // Like NVIDIA's own page, sign-up goes straight to register on a fresh session; account/check only knows existing accounts.
-    await registerStage();
+  if (reused && !signup) {
+    try {
+      await firstStep();
+    } catch (e) {
+      if (e && e.cancelled) throw e;
+      log("[auth] early session was rejected, opening a fresh one");
+      await beginFlow(0);
+      alive(mine);
+      flow.email = email;
+      flow.signup = null;
+      await firstStep();
+    }
   } else {
-    const first = await api(EP.check, { email, rememberLogin: false, deviceId: JARVIS_DEVICE });
-    if (!first.ok) throw apiError(first);
+    await firstStep();
   }
   const landed = await drive(mine);
   alive(mine);
@@ -1531,7 +1581,7 @@ if (EMBED) {
   else if (loadCred()) autoLogin();
   else show("email-card");
 }
-window.__getProxy({ log, say }).catch((e) => log("[proxy] failed", (e && e.message) || e));
+window.__getProxy({ log, say }).then(() => { if (!loadStore()) warmFlow(); }).catch((e) => log("[proxy] failed", (e && e.message) || e));
 </script>
 </body>
 </html>

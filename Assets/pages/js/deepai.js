@@ -374,11 +374,9 @@
   }
 
   async function createProxy(exclude) {
-    let up = !!(window.kNet && await window.kNet.available());
-    if (!up) {
-      await delay(1500);
-      up = !!(window.kNet && await window.kNet.available());
-    }
+    const net = window.kNet;
+    let up = false;
+    if (net) up = typeof net.waitAvailable === "function" ? await net.waitAvailable(45000) : await net.available();
     if (!up) throw new Error("Net hub unavailable");
     if (exclude && exclude.length) await window.kNet.rotate(undefined, true);
     await window.kNet.ready();
@@ -954,6 +952,7 @@
     } catch (error) {
       failure = error;
       models = null;
+      state.skip.push(proxy.wisp);
     }
     if (models) state.hub = true;
     if (!models) throw failure || new Error("no models");
@@ -976,7 +975,7 @@
     if (state.booting) return state.booting;
     state.booting = attemptBoot().catch(error => {
       state.booting = null;
-      console.warn("[deepai] boot failed", error);
+      console.log("[deepai] boot attempt did not finish:", error && error.message ? error.message : error);
       throw error;
     });
     return state.booting;
@@ -995,14 +994,18 @@
       }
     }
     say("");
+    console.warn("[deepai] could not boot after retries");
     throw new Error("Could not reach DeepAI through the proxy. Try again in a moment.");
   }
 
   async function connect(attempt) {
+    if (state.client) return;
     try {
       await boot();
     } catch (error) {
+      if (state.client) return;
       if (attempt >= 4) {
+        console.warn("[deepai] could not boot after retries", error && error.message ? error.message : error);
         say("DeepAI unavailable. Send a message to retry.");
         return;
       }

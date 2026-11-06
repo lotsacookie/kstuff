@@ -10,8 +10,6 @@
         statusEl.classList.add('hidden');
     };
 
-    // Singuloxy/sandstone and the wisp/libcurl layer belong to the site's net hub (Assets/js/net-hub.js,
-    // window.kNetDirect). This embed loads nothing of its own and picks no wisp: it borrows the hub's instance.
     const findHub = () => {
         for (const w of [window.parent, window.top, window]) {
             try { if (w && w.kNetDirect && typeof w.kNetDirect.sandstone === "function") return w.kNetDirect; } catch (e) {}
@@ -20,10 +18,12 @@
     };
 
     setStatus("Connecting to net hub...");
+    const waitStart = Date.now();
     let hub = findHub();
-    for (let i = 0; !hub && i < 100; i++) {
+    while (!hub && Date.now() - waitStart < 120000) {
         await new Promise((r) => setTimeout(r, 100));
         hub = findHub();
+        if (!hub && Date.now() - waitStart > 4000) setStatus("Net hub is still starting...");
     }
     if (!hub) {
         setStatus("Net hub unavailable.\nOpen this from the main site so it can provide the proxy.");
@@ -32,12 +32,23 @@
     }
 
     let sandstone;
-    try {
-        sandstone = await hub.sandstone();
-        await hub.ready();
-    } catch (err) {
-        setStatus("Net hub failed to start.\n" + (err && err.message ? err.message : err));
-        console.error("EasyGame: net hub failed:", err);
+    let bootError = null;
+    for (let attempt = 0; attempt < 3 && !sandstone; attempt++) {
+        try {
+            const sg = await hub.sandstone();
+            await hub.ready();
+            sandstone = sg;
+        } catch (err) {
+            bootError = err;
+            if (attempt < 2) {
+                setStatus("Net hub is still starting...");
+                await new Promise((r) => setTimeout(r, 1500));
+            }
+        }
+    }
+    if (!sandstone) {
+        setStatus("Net hub failed to start.\n" + (bootError && bootError.message ? bootError.message : bootError));
+        console.error("EasyGame: net hub failed:", bootError);
         return;
     }
     console.log("EasyGame: net hub wisp", hub.wisp());

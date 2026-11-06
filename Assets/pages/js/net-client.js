@@ -1,14 +1,19 @@
-// net-client: talk to the main app's net-hub (one shared wisp/libcurl) via postMessage.
-// kNet.fetch(url, init) -> Promise<Response>; kNet.available() -> Promise<boolean>; kNet.rotate()
 (function () {
   if (window.kNet) return;
   var parent = null;
   try { parent = window.parent && window.parent !== window ? window.parent : null; } catch (e) {}
   var seq = 0, pending = {}, availP = null;
   var direct = null;
-  try { direct = parent && parent.kNetDirect && typeof parent.kNetDirect.fetch === 'function' ? parent.kNetDirect : null; } catch (e) {}
   var NOBODY = { 101: 1, 204: 1, 205: 1, 304: 1 };
   var ctls = new Set(), pendingFetch = {};
+
+  function getDirect() {
+    if (direct) return direct;
+    try {
+      if (parent && parent.kNetDirect && typeof parent.kNetDirect.fetch === 'function') direct = parent.kNetDirect;
+    } catch (e) {}
+    return direct;
+  }
 
   window.addEventListener('pagehide', function () {
     ctls.forEach(function (c) { try { c.abort(); } catch (e) {} });
@@ -25,7 +30,7 @@
     var o = {};
     Object.keys(init).forEach(function (k) { o[k] = init[k]; });
     o.signal = ctl.signal;
-    return direct.fetch(url, o);
+    return getDirect().fetch(url, o);
   }
 
   window.addEventListener('message', function (e) {
@@ -50,9 +55,34 @@
   }
 
   function available() {
+    if (getDirect()) return Promise.resolve(true);
     if (!parent) return Promise.resolve(false);
-    if (!availP) availP = call({ type: 'kstuff-net:hello' }, null, 2500).then(function () { return true; }, function () { availP = null; return false; });
+    if (!availP) {
+      availP = new Promise(function (resolve) {
+        var done = false;
+        var poll = setInterval(function () { if (getDirect()) finish(true); }, 100);
+        function finish(ok) {
+          if (done) return;
+          done = true;
+          clearInterval(poll);
+          if (!ok) availP = null;
+          resolve(ok);
+        }
+        call({ type: 'kstuff-net:hello' }, null, 2500).then(function () { finish(true); }, function () { finish(false); });
+      });
+    }
     return availP;
+  }
+
+  function waitAvailable(ms) {
+    var end = Date.now() + (ms || 0);
+    function step() {
+      return available().then(function (ok) {
+        if (ok || Date.now() >= end) return ok;
+        return new Promise(function (r) { setTimeout(r, 250); }).then(step);
+      });
+    }
+    return step();
   }
 
   async function toPayload(url, init) {
@@ -110,9 +140,18 @@
   }
 
   window.kNet = {
-    available: direct ? function () { return Promise.resolve(true); } : available,
-    fetch: direct ? directFetch : fetchViaHub,
-    rotate: direct ? function (bad, soft) { return Promise.resolve(direct.rotate(bad, soft)).catch(function () {}); } : function (bad, soft) { return call({ type: 'kstuff-net:rotate', bad: bad, soft: !!soft }, null, 20000).catch(function () {}); },
-    ready: direct ? function () { return direct.ready().then(function (w) { return { wisp: w }; }); } : function () { return call({ type: 'kstuff-net:ready' }, null, 40000); }
+    available: available,
+    waitAvailable: waitAvailable,
+    fetch: function (url, init) { return getDirect() ? directFetch(url, init) : fetchViaHub(url, init); },
+    rotate: function (bad, soft) {
+      var d = getDirect();
+      if (d) return Promise.resolve(d.rotate(bad, soft)).catch(function () {});
+      return call({ type: 'kstuff-net:rotate', bad: bad, soft: !!soft }, null, 20000).catch(function () {});
+    },
+    ready: function () {
+      var d = getDirect();
+      if (d) return d.ready().then(function (w) { return { wisp: w }; });
+      return call({ type: 'kstuff-net:ready' }, null, 40000);
+    }
   };
 })();
