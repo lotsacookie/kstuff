@@ -43,7 +43,7 @@ export function init(K) {
   };
   const NO_BODY = new Set([101, 204, 205, 304]);
 
-  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, okUrl = null, okAt = 0, inflight = 0, verified = false;
+  let lastRotateAt = 0, bootP = null, sandstone = null, current = null, rotating = null, okUrl = null, okAt = 0, inflight = 0, verified = false, linkUp = false;
   let aliveFallback = null, lastDone = Date.now(), vchain = Promise.resolve(), trialP = null, rotateStreak = 0, rotateHoldUntil = 0, failStreak = 0, lastSaved = 0;
 
   const readJson = key => {
@@ -222,8 +222,10 @@ export function init(K) {
       lastPing[url] = okAt - started;
       clearBad(url);
       verified = true;
+      if (!other) setLink(true);
     } else {
       if (url === prev) verified = false;
+      if (!other) setLink(false);
       if (other) resetConnection(url, true);
       if (trial && prev && current === url) applyWisp(prev);
     }
@@ -602,22 +604,25 @@ export function init(K) {
       const sg = await loadSandstone();
       sandstone = sg;
       let url = null;
+      let probed = false;
       const mainsNow = tiers()[0];
       const known = goodCandidates(new Set()).slice(0, GOOD_TRY);
       if (known.length) {
         const bp = await Promise.all(known.map(u => probe(u, BOOT_PROBE_MS, !mainsNow.includes(u))));
         known.forEach((u, i) => { if (bp[i] === null) markBad(u); });
         const at = bp.findIndex(p => p !== null);
-        if (at >= 0) { url = known[at]; lastPing[url] = bp[at]; }
+        if (at >= 0) { url = known[at]; lastPing[url] = bp[at]; probed = true; }
       }
       if (!url && window.kWispP && window.kWispP.then) await Promise.race([window.kWispP.catch(() => {}), delay(6000)]);
       url = url || toWss(window.wlspServer) || tiers().flat()[0] || FALLBACK;
       applyWisp(url);
+      setLink(probed);
       for (let i = 0; i < 300 && !sg.libcurl.ready; i++) await delay(100);
       if (!sg.libcurl.ready && !useEpoxy()) throw new Error('libcurl did not load');
       console.log('[net-hub] ready via', current, 'transport', transportMode);
+      setTimeout(linkMonitor, 1000);
       return sg;
-    })().catch(e => { bootP = null; sandstone = null; throw e; });
+    })().catch(e => { bootP = null; sandstone = null; setLink(false); throw e; });
     return bootP;
   }
   K.netHubBoot = boot;
@@ -648,10 +653,12 @@ export function init(K) {
       if (next && next !== current) applyWisp(next);
       if (hit) {
         writeGood(current);
+        setLink(true);
         rotateStreak = 0;
         rotateHoldUntil = 0;
       } else {
         verified = false;
+        setLink(false);
         rotateStreak++;
         rotateHoldUntil = Date.now() + Math.min(HOLD_BASE * Math.pow(2, rotateStreak - 1), HOLD_MAX);
       }
@@ -673,6 +680,7 @@ export function init(K) {
   const noteOk = () => {
     lastDone = Date.now();
     failStreak = 0;
+    if (current) setLink(true);
     if (current && lastDone - lastSaved > GOOD_SAVE_EVERY) {
       lastSaved = lastDone;
       writeGood(current);
@@ -681,6 +689,7 @@ export function init(K) {
 
   const noteFail = () => {
     failStreak++;
+    if (failStreak >= 2) setLink(false);
     if (failStreak >= FAIL_ROTATE && !rotating) {
       failStreak = 0;
       rotate(current, true).catch(() => {});
@@ -751,6 +760,7 @@ export function init(K) {
     okAt = 0;
     lastDone = 0;
     failStreak = 0;
+    setLink(false);
     console.log('[net-hub] transport set to', mode);
     if (sandstone && current) verify(current).then(ok => { if (ok) writeGood(current); }).catch(() => {});
     return mode;
@@ -832,6 +842,32 @@ export function init(K) {
     const cur = document.getElementById('proxy-wisp-current');
     if (cur) cur.textContent = current ? 'Current: ' + hostOf(current) : 'Not connected yet';
   };
+  const updateConnUi = () => {
+    const box = document.getElementById('conn-indicator');
+    if (!box) return;
+    const on = linkUp && !!current;
+    const state = on ? 'on' : 'off';
+    if (box.dataset.state === state) return;
+    box.dataset.state = state;
+    const icon = document.getElementById('conn-icon');
+    const text = document.getElementById('conn-text');
+    if (icon) icon.className = 'ph ' + (on ? 'ph-plugs-connected' : 'ph-plugs');
+    if (text) text.textContent = on ? 'Connected' : 'Not connected';
+  };
+  function setLink(value) {
+    linkUp = !!value;
+    updateConnUi();
+  }
+  async function linkMonitor() {
+    if (document.hidden || !sandstone || !current || rotating || trialP) return;
+    if (navigator.onLine === false) { setLink(false); return; }
+    if (linkUp && Date.now() - lastDone < 30000) return;
+    try { await verify(current); } catch { setLink(false); }
+  }
+  setInterval(linkMonitor, 30000);
+  window.addEventListener('online', () => setTimeout(linkMonitor, 500));
+  window.addEventListener('offline', () => setLink(false));
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) linkMonitor(); });
   const updateTransportUi = () => {
     const sel = document.getElementById('proxy-transport-select');
     if (sel && sel.value !== transportMode) sel.value = transportMode;
@@ -875,7 +911,7 @@ export function init(K) {
     sel.dataset.bound = '1';
     sel.addEventListener('change', () => { setTransport(sel.value); });
   };
-  const bindUi = () => { bindSwitch(); bindTransport(); updateWispUi(); };
+  const bindUi = () => { bindSwitch(); bindTransport(); updateWispUi(); updateConnUi(); };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bindUi);
   else bindUi();
   document.addEventListener('click', e => {

@@ -181,6 +181,19 @@ body.size-large.text-hide {
     font-size: 0.95rem;
 }
 
+.conn-item i,
+.conn-item span {
+    transition: color 0.2s ease;
+}
+
+.conn-item[data-state="on"] i {
+    color: #34d399;
+}
+
+.conn-item[data-state="off"] i {
+    color: #f87171;
+}
+
 .clock-item {
     font-family: 'Orbitron', monospace, sans-serif !important;
     letter-spacing: 0.5px;
