@@ -459,15 +459,14 @@ const sync=()=>{const b=document.getElementById('os-mode-btn');if(b)b.hidden=!al
 const st=document.createElement('style');st.textContent='#os-mode-btn[hidden]{display:none!important}';document.head.appendChild(st);
 sync();setInterval(sync,1500);window.addEventListener('storage',sync);window.addEventListener('load',sync);
 const enter=async()=>{
-  const [idx,css,js,wp]=await Promise.all(['index.html','os.css','os.js','wallpaper.svg'].map(f=>get(f).then(r=>r.text())));
-  const wall=URL.createObjectURL(new Blob([wp],{type:'image/svg+xml'}));
+  const [idx,css,js]=await Promise.all(['index.html','os.css','os.js'].map(f=>get(f).then(r=>r.text())));
   const doc=new DOMParser().parseFromString(idx,'text/html');
   doc.querySelectorAll('script,link').forEach(n=>n.remove());
   // swap the whole DOM while the black overlay hides it; keep url untouched
   const de=document.documentElement;de.style.background='#000';de.removeAttribute('class');
   [...document.head.children].forEach(n=>{if(!/viewport/.test(n.getAttribute('name')||''))n.remove()});
   document.title='Singularity OS';
-  const st=document.createElement('style');st.textContent=css.replace(/url\(\s*['"]?wallpaper\.svg['"]?\s*\)/g,`url(${wall})`);document.head.appendChild(st);
+  const st=document.createElement('style');st.textContent=css;document.head.appendChild(st);
   document.body.removeAttribute('style');document.body.className='';document.body.innerHTML=doc.body.innerHTML;
   const s=document.createElement('script');s.textContent=js;document.body.appendChild(s);
   requestAnimationFrame(()=>{const f=document.getElementById('os-fade');if(f)f.remove()}); // both sides are black: seamless
@@ -475,7 +474,7 @@ const enter=async()=>{
 document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('#os-mode-btn');if(!b)return;e.preventDefault();e.stopPropagation();if(!allowed()||window.__osLaunching)return;window.__osLaunching=true;
   const f=document.createElement('div');f.id='os-fade';document.documentElement.appendChild(f);void f.offsetWidth;f.classList.add('on');
   const wait=new Promise(r=>setTimeout(r,800));
-  Promise.all([wait,Promise.all(['index.html','os.css','os.js','wallpaper.svg'].map(get))]).then(enter).catch(err=>{console.error(err);window.__osLaunching=false;f.classList.remove('on');setTimeout(()=>f.remove(),800)});
+  Promise.all([wait,Promise.all(['index.html','os.css','os.js'].map(get))]).then(enter).catch(err=>{console.error(err);window.__osLaunching=false;f.classList.remove('on');setTimeout(()=>f.remove(),800)});
 },true);
 })();</script>
 </body>

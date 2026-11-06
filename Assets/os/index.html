@@ -23,16 +23,32 @@
   <div class="status" id="status">Starting up</div>
 </div>
 <div id="desktop" aria-hidden="true">
-  <div id="launcher-panel"><div class="search"><span class="g">&#9906;</span><input placeholder="Search your device, apps, and more" disabled></div><div class="empty">No apps yet</div></div>
-  <div id="shelf"><button id="launcher" aria-label="Launcher"><span></span></button></div>
+  <div id="windows"></div>
+  <div id="launcher-panel" role="dialog" aria-label="Launcher">
+    <div class="search"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M15.5 14h-.8l-.3-.3A6.5 6.5 0 1 0 14 15.5l.3.3v.8l5 5 1.5-1.5-5-5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg><input id="lsearch" placeholder="Search your device, apps, and more" autocomplete="off"></div>
+    <div class="lhead">Apps</div>
+    <div id="lgrid"></div>
+  </div>
   <div id="qs" role="dialog" aria-label="Quick settings">
-  <div class="qs-top"><span class="qs-user">Singularity</span><span class="sp"></span><button class="qs-ic" id="lock" title="Lock">&#128274;</button><button class="qs-ic" id="power" title="Power: back to Singularity">&#9211;</button></div>
-  <div class="qs-grid"><div class="tile on"><b>Network</b><small>Connected</small></div><div class="tile on"><b>Bluetooth</b><small>On</small></div><div class="tile"><b>Do not disturb</b><small>Off</small></div><div class="tile"><b>Night Light</b><small>Off</small></div></div>
-  <div class="slider"><span>&#9728;</span><input type="range" min="10" max="100" value="80"></div>
-  <div class="slider"><span>&#9835;</span><input type="range" min="0" max="100" value="60"></div>
-  <div class="qs-foot"><span id="date"></span><span>&#9646; 100%</span></div>
-</div>
-<div id="tray"><span id="net" title="Wi-Fi">&#9650;</span><span id="bat" title="Battery">&#9646;</span><span id="clock"></span></div>
+    <div class="qs-top"><button class="pill" id="signout">Sign out</button><span class="sp"></span><button class="qs-ic" id="lock" title="Lock"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M18 8h-1V6a5 5 0 0 0-10 0v2H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10a2 2 0 0 0-2-2zM9 6a3 3 0 0 1 6 0v2H9V6z"/></svg></button><button class="qs-ic" id="power" title="Power: back to Singularity"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M11 3h2v10h-2zM17.8 5.8l-1.4 1.4A6 6 0 1 1 7.6 7.2L6.2 5.8a8 8 0 1 0 11.6 0z"/></svg></button></div>
+    <div class="qs-grid">
+      <div class="tile on" data-k="net"><span class="ti"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 21 .6 8.3a16 16 0 0 1 22.8 0L12 21z"/></svg></span><span class="tt"><b>Network</b><small>Connected</small></span></div>
+      <div class="tile on" data-k="bt"><span class="ti"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="m17.7 7.7-4.7-4.7h-1v7.6L7.4 6 6 7.4 10.6 12 6 16.6 7.4 18l4.6-4.6V21h1l4.7-4.7-3.6-4.3 3.6-4.3zM13 7.8l1.9 1.9L13 11.6V7.8zm1.9 8.4L13 18.1v-3.8l1.9 1.9z"/></svg></span><span class="tt"><b>Bluetooth</b><small>On</small></span></div>
+      <div class="tile" data-k="dnd"><span class="ti"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5a6 6 0 0 0-5-5.9V4a1 1 0 0 0-2 0v1.1A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2z"/></svg></span><span class="tt"><b>Do not disturb</b><small>Off</small></span></div>
+      <div class="tile" data-k="night"><span class="ti"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12.3 3A9 9 0 1 0 21 14.3 7 7 0 0 1 12.3 3z"/></svg></span><span class="tt"><b>Night Light</b><small>Off</small></span></div>
+    </div>
+    <div class="slider"><span class="sic"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM2 13h2v-2H2v2zm18 0h2v-2h-2v2zM11 2v2h2V2h-2zm0 18v2h2v-2h-2zM5.6 7 4.2 5.6 5.6 4.2 7 5.6 5.6 7zm12.8 12.4-1.4-1.4 1.4-1.4 1.4 1.4-1.4 1.4zM7 18.4l-1.4 1.4-1.4-1.4L5.6 17 7 18.4zM18.4 7 17 5.6l1.4-1.4 1.4 1.4L18.4 7z"/></svg></span><input type="range" id="bright" min="20" max="100" value="100"></div>
+    <div class="slider"><span class="sic"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg></span><input type="range" id="vol" min="0" max="100" value="60"></div>
+    <div class="qs-foot"><span id="date"></span><span id="batt"></span></div>
+  </div>
+  <div id="shelf">
+    <button id="launcher" aria-label="Launcher"><span></span></button>
+    <div id="apps"></div>
+    <span class="sp"></span>
+    <div id="tray"><svg id="net" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 21 .6 8.3a16 16 0 0 1 22.8 0L12 21z"/></svg><svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 4h-2V2h-4v2H8a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V5a1 1 0 0 0-1-1z"/></svg><span id="clock"></span></div>
+  </div>
+  <div id="night"></div><div id="dim"></div>
+  <div id="lockscreen"><div class="lk"><div class="lk-time" id="lk-time"></div><div class="lk-avatar" id="lk-av"></div><div class="lk-name" id="lk-name"></div><button class="pill big" id="unlock">Unlock</button></div></div>
 </div>
 <script src="os.js"></script>
 </body></html>
