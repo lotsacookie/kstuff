@@ -269,10 +269,105 @@ export function init(K) {
     return null;
   }
 
+  const SB_REPO = 'lotsacookie/kstuff';
+  const SB_PATH = 'Assets/build/' + DIST;
+  const SB_PIN_KEY = 'kSandstonePin';
+  const SB_CACHE = 'kstuff-sandstone-v1';
+  const SB_FRESH_MS = 600000;
+  const SB_SHA = /^[0-9a-f]{40}$/;
+
+  async function sbFetch(url, ms, init) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(), ms);
+    try {
+      const res = await fetch(url, Object.assign({ signal: ctl.signal }, init || {}));
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res;
+    } finally { clearTimeout(timer); }
+  }
+
+  const sbKey = sha => 'https://sandstone-cache.invalid/' + sha + '/' + DIST;
+
+  async function sbCacheGet(sha) {
+    try {
+      const cache = await caches.open(SB_CACHE);
+      const hit = await cache.match(sbKey(sha));
+      return hit ? await hit.text() : null;
+    } catch { return null; }
+  }
+
+  async function sbCachePut(sha, code) {
+    try {
+      const cache = await caches.open(SB_CACHE);
+      await cache.put(sbKey(sha), new Response(code, { headers: { 'Content-Type': 'text/javascript' } }));
+      const keep = sbKey(sha);
+      for (const req of await cache.keys()) if (req.url !== keep) await cache.delete(req);
+    } catch {}
+  }
+
+  const sbReadPin = () => {
+    const pin = readJson(SB_PIN_KEY);
+    return pin && SB_SHA.test(String(pin.sha)) ? pin : null;
+  };
+  const sbWritePin = (sha, checked) => writeJson(SB_PIN_KEY, { sha, checked });
+
+  async function sbLatestSha() {
+    const res = await sbFetch('https://api.github.com/repos/' + SB_REPO + '/commits?sha=main&per_page=1&path=' + encodeURIComponent(SB_PATH), 5000, { headers: { Accept: 'application/vnd.github+json' }, cache: 'no-store' });
+    const list = await res.json();
+    const sha = list && list[0] && list[0].sha;
+    if (!SB_SHA.test(String(sha))) throw new Error('no commit');
+    return sha;
+  }
+
+  async function sbFetchAt(sha) {
+    const sources = [
+      ['https://api.github.com/repos/' + SB_REPO + '/contents/' + SB_PATH + '?ref=' + sha, { headers: { Accept: 'application/vnd.github.raw+json' } }],
+      ['https://cdn.jsdelivr.net/gh/' + SB_REPO + '@' + sha + '/' + SB_PATH, null],
+      ['https://fastly.jsdelivr.net/gh/' + SB_REPO + '@' + sha + '/' + SB_PATH, null],
+      ['https://raw.githubusercontent.com/' + SB_REPO + '/' + sha + '/' + SB_PATH, null]
+    ];
+    for (const [url, init] of sources) {
+      try {
+        const code = await (await sbFetch(url, 30000, init)).text();
+        if (code.length > 100000 && /\bexport\b/.test(code)) return code;
+      } catch {}
+    }
+    return null;
+  }
+
+  const sbImport = code => import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
+
   async function loadSandstone() {
+    const pin = sbReadPin();
+    let code = pin ? await sbCacheGet(pin.sha) : null;
+    if (code && Date.now() - (pin.checked || 0) < SB_FRESH_MS) {
+      try { return await sbImport(code); } catch { code = null; }
+    }
+    let sha = null;
+    try { sha = await sbLatestSha(); } catch {}
+    if (sha && pin && sha === pin.sha && code) {
+      try {
+        const mod = await sbImport(code);
+        sbWritePin(sha, Date.now());
+        return mod;
+      } catch { code = null; }
+    }
+    const target = sha || (pin && !code ? pin.sha : null);
+    if (target) {
+      const fresh = await sbFetchAt(target);
+      if (fresh) {
+        try {
+          const mod = await sbImport(fresh);
+          sbCachePut(target, fresh);
+          sbWritePin(target, sha ? Date.now() : 0);
+          return mod;
+        } catch {}
+      }
+    }
+    if (code) { try { return await sbImport(code); } catch {} }
     for (const b of BASES) { try { return await import(b + DIST); } catch {} }
-    const code = await (await fetch('https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/build/' + DIST)).text();
-    return import(URL.createObjectURL(new Blob([code], { type: 'text/javascript' })));
+    const raw = await (await fetch('https://raw.githubusercontent.com/lotsacookie/kstuff/main/Assets/build/' + DIST)).text();
+    return sbImport(raw);
   }
 
   const epoxyClients = new Map();
