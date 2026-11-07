@@ -6,14 +6,23 @@
 <div id="c"></div>
 <small id="m"></small>
 <script>
-const KEY = "3443d8f6-da7a-4326-929f-4d7fc89ab0d1";
+const KEYS = { Visible: "3443d8f6-da7a-4326-929f-4d7fc89ab0d1", Invisible: "9c0371c8-26b5-4729-abdf-5c0547e6e91b" };
+const MODE = new URLSearchParams(location.search).get("mode") === "Invisible" ? "Invisible" : "Visible";
 const m = document.getElementById("m");
 function done(t) {
-  window.__capToken = t; // read by the host page when this runs inside the proxy frame
+  window.__capToken = t;
   m.textContent = "Done. You can close this window.";
   try { if (window.opener) { window.opener.postMessage({ type: "now-captcha", token: t }, location.origin); setTimeout(() => window.close(), 400); } } catch (e) {}
 }
-window.onLoad = () => hcaptcha.render("c", { sitekey: KEY, theme: "dark", callback: done, "error-callback": (e) => { m.textContent = "Captcha error: " + e; } });
+window.onLoad = () => {
+  const opts = { sitekey: KEYS[MODE], theme: "dark", callback: done, "error-callback": (e) => { m.textContent = "Captcha error: " + e; }, "expired-callback": () => { window.__capToken = ""; m.textContent = "The check expired. Reload this page to try again."; } };
+  if (MODE === "Invisible") opts.size = "invisible";
+  const id = hcaptcha.render("c", opts);
+  if (MODE === "Invisible") {
+    m.textContent = "Running the check…";
+    hcaptcha.execute(id);
+  }
+};
 const s = document.createElement("script");
 s.src = "https://hcaptcha.com/1/api.js?render=explicit&onload=onLoad"; s.async = true;
 s.onerror = () => { m.textContent = "Could not load hCaptcha in this window."; };

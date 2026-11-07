@@ -586,21 +586,54 @@ async function passwordStage(mine) {
   throw new Error("Too many wrong passwords.");
 }
 
-let capToken = null, capAt = 0;
+let capToken = null, capAt = 0, capMode = "Visible";
 function setCapState(t) { $("su-cap-state").textContent = t; }
 function loadCaptcha() {}
 function resetCaptcha() { capToken = null; setCapState("Solve the human check again before retrying."); }
 let capFrame = null, capPoll = 0;
-function captchaUrl() {
+function captchaUrl(mode) {
   const base = /^https?:/.test(location.href) ? location.href : "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/now/";
-  return new URL("captcha.html", base).href;
+  const u = new URL("captcha.html", base);
+  u.searchParams.set("mode", mode === "Invisible" ? "Invisible" : "Visible");
+  return u.href;
+}
+async function peekCaptchaMode() {
+  try {
+    if (!flow && !warm) warmFlow();
+    const f = flow || (warm ? await warm.p : null);
+    if (!f || !f.key) return "Visible";
+    await sleep(Math.max(0, 2500 - (Date.now() - (f.at || 0))));
+    const headers = {
+      Accept: "application/json, text/plain, */*",
+      Authorization: "Bearer " + f.key,
+      "x-metrics": JARVIS_METRICS,
+      "Content-Type": "application/json",
+      Origin: LOGIN_ORIGIN,
+      Referer: LOGIN_ORIGIN + "/",
+    };
+    const r = await http(ACCOUNTS + EP.validator, { method: "GET", headers, follow: false });
+    if (r.status === 204 || r.status === 404) { log("[auth] validator peek: no human check"); return "None"; }
+    let j = {};
+    try { j = JSON.parse(r.text); } catch {}
+    const c = (j && (j.validation || j)) || {};
+    const mode = c.captchaMode === "Invisible" ? "Invisible" : "Visible";
+    log("[auth] validator peek", r.status, String(c.type), mode);
+    return mode;
+  } catch (e) {
+    log("[auth] validator peek failed", (e && e.message) || e);
+    return "Visible";
+  }
 }
 function openCaptchaPopup() {
-  const w = window.open(captchaUrl(), "now-captcha", "width=420,height=560");
+  const w = window.open(captchaUrl(capMode), "now-captcha", "width=420,height=560");
   setCapState(w ? "Waiting for you to solve it…" : "Your browser blocked the popup. Allow popups for this site and try again.");
 }
 async function openCaptcha() {
   const box = $("su-capframe"), id = ++capPoll;
+  setCapState("Checking which human check NVIDIA wants…");
+  capMode = await peekCaptchaMode();
+  if (id !== capPoll) return;
+  if (capMode === "None") { capToken = "none"; capAt = Date.now(); box.hidden = true; setCapState("NVIDIA needs no human check right now. Press Create account."); return; }
   try {
     const hub = findHub();
     if (!hub) throw new Error("net hub unavailable");
@@ -613,7 +646,7 @@ async function openCaptcha() {
     }
     box.hidden = false;
     box.append(capFrame.iframe);
-    await capFrame.navigate_to(captchaUrl());
+    await capFrame.navigate_to(captchaUrl(capMode));
     setCapState("Solve the human check above. It may stay blank for a moment while it loads.");
     for (let t = 0; t < 180 && id === capPoll; t++) {
       await sleep(1000);
@@ -656,6 +689,7 @@ async function registerStage() {
   } else if (vc.ok && vc.json && (vc.json.validation || vc.json.key)) {
     const c = vc.json.validation || vc.json;
     if (c.type && c.type !== "CaptchaHCaptcha") throw new Error("NVIDIA wants a different human check (" + c.type + ") that this client can't show yet.");
+    if (u.capMode && c.captchaMode && u.capMode !== c.captchaMode) throw new Error("NVIDIA is now asking for its " + c.captchaMode + " human check, not the " + u.capMode + " one you solved. Solve the human check again and retry.");
     body.validation = { key: c.key, type: c.type, captchaMode: c.captchaMode, response: u.captcha };
     log("[auth] validator", String(c.type), String(c.captchaMode), String(c.key).slice(0, 12), "token", String(u.captcha).length);
   } else {
@@ -878,9 +912,9 @@ async function onSignup(ev) {
   const email = $("su-email").value.trim(), pw = $("su-pw").value;
   if (pw !== $("su-pw2").value) { setError("signup-error", "The passwords do not match."); return; }
   if (!$("su-terms").checked) { setError("signup-error", "Please accept the terms to continue."); return; }
-  if (capToken && Date.now() - capAt > 100000) { capToken = null; } // hCaptcha results expire after about two minutes
+  if (capToken && capMode !== "None" && Date.now() - capAt > 100000) { capToken = null; } // hCaptcha results expire after about two minutes
   if (!capToken) { setError("signup-error", "Solve the human check first (it expires after about two minutes, so redo it if it has been a while)."); return; }
-  const signup = { displayName: $("su-name").value.trim(), password: pw, birthdate: $("su-dob").value, captcha: capToken };
+  const signup = { displayName: $("su-name").value.trim(), password: pw, birthdate: $("su-dob").value, captcha: capToken, capMode };
   capToken = null;
   setWait("Contacting NVIDIA…", "");
   try {
