@@ -234,6 +234,12 @@ export function init(K) {
   };
   setTimeout(() => K.syncGfnCatalog(), 8000);
 
+  K.exitGfn = () => {
+    if (!launching && !live && !(frame && frame.classList.contains('on'))) return false;
+    end(true);
+    return true;
+  };
+
   K.hideGfn = () => {
     if (launching || live) return;
     showFrame(false);
