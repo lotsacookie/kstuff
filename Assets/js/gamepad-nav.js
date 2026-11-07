@@ -39,6 +39,22 @@ export function nextTarget(order, activeId, step) {
 
 export function init(K) {
   if (K.gamepadNav || typeof navigator.getGamepads !== 'function') return;
+  const token = {};
+  try { window.__kGpNav = token; } catch {}
+  const isCurrent = () => window.__kGpNav === token;
+  const ancestorHas = () => {
+    let w = window;
+    try {
+      while (w.parent && w.parent !== w) {
+        w = w.parent;
+        if (w.__kGpNav) return true;
+      }
+    } catch {}
+    return false;
+  };
+  let shadowed = ancestorHas();
+  let shadowTick = 0;
+  const relAt = [];
 
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -429,7 +445,18 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
   window.addEventListener('keydown', e => { if (!e.repeat) clearUi(); }, { passive: true });
 
   const poll = ts => {
+    if (!isCurrent()) {
+      if (cur) cur.classList.remove('gp-focus');
+      cur = null;
+      raf = 0;
+      return;
+    }
     raf = requestAnimationFrame(poll);
+    if ((shadowTick++ & 31) === 0) shadowed = ancestorHas();
+    if (shadowed) {
+      if (cur) { cur.classList.remove('gp-focus'); cur = null; }
+      return;
+    }
     const pads = getPads();
     if (!pads.length) return;
 
@@ -449,7 +476,8 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     }
     const prev = prevPressed;
     prevPressed = pressed;
-    const edge = i => pressed[i] && !prev[i];
+    for (let i = 0; i < pressed.length; i++) if (!pressed[i] && prev[i]) relAt[i] = ts;
+    const edge = i => pressed[i] && !prev[i] && ts - (relAt[i] === undefined ? -1e9 : relAt[i]) >= 60;
     const anyEdge = pressed.some((v, i) => v && !prev[i]);
 
     const game = gameState();
@@ -536,7 +564,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     else if (edge(9) && layer && layer.type === 'modal' && layer.el.id === 'homeworkhelper-modal') toggleSettings();
   };
 
-  const start = () => { if (!raf) raf = requestAnimationFrame(poll); };
+  const start = () => { if (isCurrent() && !raf) raf = requestAnimationFrame(poll); };
   const stop = () => {
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
