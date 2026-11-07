@@ -35,6 +35,8 @@
     var hlsPromise = null;
     var stallTimer = 0;
     var playToken = 0;
+    var hubActive = false;
+    var hubTried = {};
     var livePromise = null;
     var liveReady = false;
     var query = '';
@@ -139,6 +141,25 @@
                 s.onerror = function () { reject(new Error('hls.js failed to load')); };
                 document.head.appendChild(s);
             });
+            // If the CDN script fails, fetch hls.js through the net hub and run it from a blob.
+            hlsPromise = hlsPromise.catch(function (err) {
+                if (!window.kNet) throw err;
+                return window.kNet.waitAvailable(15000).then(function (ok) {
+                    if (!ok) throw err;
+                    return window.kNet.fetch(HLS_SRC);
+                }).then(function (res) {
+                    if (!res.ok) throw err;
+                    return res.text();
+                }).then(function (code) {
+                    return new Promise(function (resolve, reject) {
+                        var s = document.createElement('script');
+                        s.src = URL.createObjectURL(new Blob([code], { type: 'text/javascript' }));
+                        s.onload = function () { resolve(window.Hls); };
+                        s.onerror = function () { reject(err); };
+                        document.head.appendChild(s);
+                    });
+                });
+            });
             hlsPromise.catch(function () { hlsPromise = null; });
         }
         return hlsPromise;
@@ -169,6 +190,12 @@
     function failChannel(token) {
         if (token !== playToken) return;
         clearStall();
+        // Fallback: retry this same feed through the net hub before giving up on it.
+        if (current && !hubActive && window.kNet && !hubTried[streamIndex]) {
+            hubTried[streamIndex] = 1;
+            startStream(token, true);
+            return;
+        }
         if (current && streamIndex + 1 < current.streams.length) {
             streamIndex++;
             updateAltButton();
@@ -179,13 +206,14 @@
         setOverlay('This channel is not available right now. Try another one.', false, false);
     }
 
-    function startStream(existingToken) {
+    function startStream(existingToken, viaHub) {
         var token = existingToken || ++playToken;
         if (existingToken) playToken = existingToken;
         var url = current.streams[streamIndex].url;
+        hubActive = !!viaHub;
         stopStream();
-        setOverlay('Loading ' + current.name + '...', true, false);
-        stallTimer = setTimeout(function () { failChannel(token); }, STALL_MS);
+        setOverlay(viaHub ? 'Retrying ' + current.name + ' through the net hub...' : 'Loading ' + current.name + '...', true, false);
+        stallTimer = setTimeout(function () { failChannel(token); }, viaHub ? STALL_MS + 10000 : STALL_MS);
         var native = video.canPlayType(HLS_MIME);
 
         function nativePlay() {
@@ -197,7 +225,7 @@
         loadHls().then(function (Hls) {
             if (token !== playToken) return;
             if (Hls && Hls.isSupported()) {
-                hls = new Hls({ enableWorker: true, lowLatencyMode: false, manifestLoadingMaxRetry: 1, levelLoadingMaxRetry: 1, fragLoadingMaxRetry: 2 });
+                hls = new Hls({ loader: viaHub ? TV.HubLoader : Hls.DefaultConfig.loader, enableWorker: true, lowLatencyMode: false, manifestLoadingMaxRetry: 1, levelLoadingMaxRetry: 1, fragLoadingMaxRetry: 2 });
                 hls.on(Hls.Events.MANIFEST_PARSED, function () {
                     if (token !== playToken) return;
                     var p = video.play();
@@ -211,20 +239,21 @@
                 });
                 hls.loadSource(url);
                 hls.attachMedia(video);
-            } else if (native) {
+            } else if (native && !viaHub) {
                 nativePlay();
             } else {
                 failChannel(token);
             }
         }, function () {
             if (token !== playToken) return;
-            if (native) nativePlay(); else failChannel(token);
+            if (native && !viaHub) nativePlay(); else failChannel(token);
         });
     }
 
     function playChannel(channel) {
         current = channel;
         streamIndex = 0;
+        hubTried = {};
         Object.keys(cards).forEach(function (id) { cards[id].classList.remove('active'); });
         if (cards[channel.id]) cards[channel.id].classList.add('active');
         nowBox.hidden = false;
