@@ -330,6 +330,10 @@ export function init(K) {
         const top = setTimeout(() => {}, 0);
         for (let i = 0; i <= top; i++) { clearTimeout(i); clearInterval(i); }
       } catch {}
+      try {
+        const lastRaf = requestAnimationFrame(() => {});
+        for (let i = 0; i <= lastRaf; i++) cancelAnimationFrame(i);
+      } catch {}
       try { if (window.__sgLogSubs) window.__sgLogSubs.clear(); } catch {}
       ['singularity', 'kShaP', 'kWispP', 'kModulesStarted', 'kReady', 'kReadyResolve', 'kAssetsP', 'kAssetsPR', 'kHolidayLoaded'].forEach(key => {
         try { delete window[key]; } catch { try { window[key] = undefined; } catch {} }
