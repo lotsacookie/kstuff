@@ -366,29 +366,23 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     }, 350);
   };
 
-  const PAGE_SKIP = new Set(['changelog', 'homeworkhelper', 'profile']);
+  const PAGE_ORDER = ['mathworksheets', 'readingcorner', 'sciencequiz', 'gradebook', 'civics', 'lessonplanner', 'vms', 'studyhall'];
   let pageLockUntil = 0;
-  let pendingPage = { id: '', until: 0 };
+  const navBtnFor = t => $(`#teachertouchbar > .nav-btn[data-target="${t}"], .nav-menu .nav-btn[data-target="${t}"]`);
   const switchPage = step => {
     const now = performance.now();
     if (now < pageLockUntil) return;
-    const order = [];
-    const byTarget = {};
-    $$('.nav-btn[data-target]').forEach(b => {
-      const t = b.dataset.target;
-      if (!t || PAGE_SKIP.has(t) || byTarget[t]) return;
-      if (b.hidden || b.getAttribute('aria-hidden') === 'true') return;
-      byTarget[t] = b;
-      order.push(t);
+    const order = PAGE_ORDER.filter(t => {
+      if (t === 'studyhall' && !K.currentUser) return false;
+      const b = navBtnFor(t);
+      return !!b && !b.hidden && b.getAttribute('aria-hidden') !== 'true';
     });
-    const activeId = $('.page.active')?.id;
-    if (activeId === pendingPage.id) pendingPage.id = '';
-    const base = pendingPage.id && now < pendingPage.until ? pendingPage.id : activeId;
+    const activeTarget = order.find(t => navBtnFor(t).classList.contains('active'));
+    const base = activeTarget || $('.page.active')?.id;
     const target = nextTarget(order, base, step);
-    if (!target || !byTarget[target]) return;
-    pageLockUntil = now + 300;
-    pendingPage = { id: target, until: now + 1500 };
-    byTarget[target].click();
+    if (!target) return;
+    pageLockUntil = now + 350;
+    navBtnFor(target).click();
     afterPageChange();
   };
 
