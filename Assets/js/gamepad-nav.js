@@ -381,15 +381,8 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
   };
 
   const PAGE_ORDER = ['mathworksheets', 'readingcorner', 'sciencequiz', 'gradebook', 'civics', 'lessonplanner', 'vms', 'studyhall'];
-  let pageLockUntil = 0;
-  let lastSwitchAt = 0;
   const navBtnFor = t => $(`#teachertouchbar > .nav-btn[data-target="${t}"], .nav-menu .nav-btn[data-target="${t}"]`);
   const switchPage = step => {
-    const now = performance.now();
-    if (now < pageLockUntil) return;
-    const ld = $('#section-loader');
-    if (ld && !ld.classList.contains('hidden') && now < lastSwitchAt + 3000) return;
-    if (!claim('page', 600)) return;
     const order = PAGE_ORDER.filter(t => {
       if (t === 'studyhall' && !K.currentUser) return false;
       const b = navBtnFor(t);
@@ -399,19 +392,13 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     const base = activeTarget || $('.page.active')?.id;
     const target = nextTarget(order, base, step);
     if (!target) return;
-    pageLockUntil = now + 600;
-    lastSwitchAt = now;
     navBtnFor(target).click();
     afterPageChange();
   };
 
-  let stepLockUntil = 0;
   const pageStep = dir => {
-    const now = performance.now();
-    if (now < stepLockUntil) return;
     const btn = $(`.page.active .page-btn[data-action="${dir}"]`);
     if (!btn || btn.disabled) return;
-    stepLockUntil = now + 350;
     btn.click();
     afterPageChange();
   };
