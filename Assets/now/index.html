@@ -673,7 +673,7 @@ async function registerStage() {
   const u = flow.signup;
   flow.signup = null; // one attempt only; the user re-enters on failure
   setWait("Creating your account…", "");
-  const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, deviceId: JARVIS_DEVICE, authFactorType: "WebAuthn" };
+  const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, deviceId: JARVIS_DEVICE };
   const REG_HDR = { "Referrer-Id": "Profile Management Site" };
   const mine = run;
   await sleep(Math.max(0, 2500 - (Date.now() - (flow.at || 0))));
