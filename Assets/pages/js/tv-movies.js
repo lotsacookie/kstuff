@@ -57,7 +57,11 @@
         img.loading = 'lazy';
         img.referrerPolicy = 'no-referrer';
         img.onload = function () { img.classList.add('in'); };
-        img.onerror = function () { img.remove(); };
+        img.onerror = function () {
+            // Fallback only: the image did not load on its own, so pull it through the net hub.
+            img.onerror = function () { img.remove(); };
+            TV.hubImage(TV.imgFallbacks(path, size)).then(function (blobUrl) { img.src = blobUrl; }, function () { img.remove(); });
+        };
         if (cls) img.className = cls;
         img.src = src;
         holder.appendChild(img);
@@ -834,7 +838,7 @@
         tryStream(0, gen, [], resume);
     }
 
-    async function tryStream(index, gen, reasons, resume) {
+    async function tryStream(index, gen, reasons, resume, viaHub) {
         if (gen !== playGen || !player) return;
         var p = player;
         reasons = reasons || [];
@@ -853,13 +857,23 @@
         var label = streamLabel(stream, index);
         setStatus((index ? 'Trying ' : 'Loading ') + label + ' (' + (index + 1) + '/' + p.streams.length + ')...', true);
         teardownMedia();
-        var url = TV.proxyUrl(stream.url);
+        var isFile = stream.type === 'file' || /\.(mp4|m4v|webm)(\?|$)/i.test(stream.url);
+        // Normal route first. The net hub (wisp) is only a fallback for HLS streams that failed.
+        var url = viaHub ? stream.url : TV.proxyUrl(stream.url);
+        if (viaHub) setStatus('Retrying ' + label + ' through the net hub...', true);
         var started = false;
         var cur = function () { return p.video.currentTime > 1 ? p.video.currentTime : at; };
         var moveOn = function (why) {
             if (gen !== playGen || player !== p) return;
             var where = cur();
-            console.warn('[tv] ' + label + ' failed: ' + why);
+            console.warn('[tv] ' + label + (viaHub ? ' (net hub)' : '') + ' failed: ' + why);
+            if (!viaHub && !isFile && window.kNet && !(p.hubTried && p.hubTried[stream.url])) {
+                if (!p.hubTried) p.hubTried = {};
+                p.hubTried[stream.url] = 1;
+                teardownMedia();
+                tryStream(index, gen, reasons, where, true);
+                return;
+            }
             markFailed(p, stream);
             tryStream(index + 1, gen, reasons.concat([label + ': ' + why]), where);
         };
@@ -867,11 +881,11 @@
             if (gen !== playGen || player !== p) return;
             var where = cur();
             teardownMedia();
-            tryStream(index, gen, reasons, where);
+            tryStream(index, gen, reasons, where, viaHub);
         };
         try {
             p.video.preload = 'auto';
-            if (stream.type === 'file' || /\.(mp4|m4v|webm)(\?|$)/i.test(stream.url)) {
+            if (isFile) {
                 p.video.src = url;
                 await waitMedia(p.video, 25000);
                 if (gen !== playGen) return;
@@ -881,6 +895,7 @@
                 if (gen !== playGen) return;
                 if (Hls && Hls.isSupported()) {
                     var h = new Hls({
+                        loader: viaHub ? TV.HubLoader : Hls.DefaultConfig.loader,
                         autoStartLoad: false,
                         startPosition: at > 1 ? at : -1,
                         capLevelToPlayerSize: true,

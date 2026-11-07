@@ -91,7 +91,11 @@
             img.loading = 'lazy';
             img.decoding = 'async';
             img.referrerPolicy = 'no-referrer';
-            img.onerror = function () { box.textContent = initials(channel.name); };
+            img.onerror = function () {
+                // Fallback only: pull the logo through the net hub if it did not load on its own.
+                img.onerror = function () { box.textContent = initials(channel.name); };
+                TV.hubImage([channel.logo]).then(function (blobUrl) { img.src = blobUrl; }, function () { box.textContent = initials(channel.name); });
+            };
             img.src = channel.logo;
             box.appendChild(img);
         } else {
