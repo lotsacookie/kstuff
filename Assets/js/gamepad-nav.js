@@ -373,6 +373,49 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     else document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   };
 
+  const afterPageChange = () => {
+    setTimeout(() => {
+      if (topLayer()) return;
+      if (!enterZone('content')) ensureCurrent();
+    }, 350);
+  };
+
+  const PAGE_ORDER = ['mathworksheets', 'readingcorner', 'sciencequiz', 'gradebook', 'civics', 'lessonplanner', 'vms', 'studyhall'];
+  let pageLockUntil = 0;
+  let lastSwitchAt = 0;
+  const navBtnFor = t => $(`#teachertouchbar > .nav-btn[data-target="${t}"], .nav-menu .nav-btn[data-target="${t}"]`);
+  const switchPage = step => {
+    const now = performance.now();
+    if (now < pageLockUntil) return;
+    const ld = $('#section-loader');
+    if (ld && !ld.classList.contains('hidden') && now < lastSwitchAt + 3000) return;
+    if (!claim('page', 600)) return;
+    const order = PAGE_ORDER.filter(t => {
+      if (t === 'studyhall' && !K.currentUser) return false;
+      const b = navBtnFor(t);
+      return !!b && !b.hidden && b.getAttribute('aria-hidden') !== 'true';
+    });
+    const activeTarget = order.find(t => navBtnFor(t).classList.contains('active'));
+    const base = activeTarget || $('.page.active')?.id;
+    const target = nextTarget(order, base, step);
+    if (!target) return;
+    pageLockUntil = now + 600;
+    lastSwitchAt = now;
+    navBtnFor(target).click();
+    afterPageChange();
+  };
+
+  let stepLockUntil = 0;
+  const pageStep = dir => {
+    const now = performance.now();
+    if (now < stepLockUntil) return;
+    const btn = $(`.page.active .page-btn[data-action="${dir}"]`);
+    if (!btn || btn.disabled) return;
+    stepLockUntil = now + 350;
+    btn.click();
+    afterPageChange();
+  };
+
   const switchModalTab = (layer, step) => {
     const tabs = modalTabs(layer.el);
     if (!tabs.length) return;
@@ -463,7 +506,9 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     for (const p of pads) {
       for (let i = 0; i < 17 && i < p.buttons.length; i++) {
         const b = p.buttons[i];
-        if (b && (b.pressed || b.value > 0.5)) pressed[i] = true;
+        if (!b) continue;
+        if (i === 6 || i === 7) { if (b.value > (prevPressed[i] ? 0.35 : 0.6)) pressed[i] = true; }
+        else if (b.pressed || b.value > 0.5) pressed[i] = true;
       }
       const a = p.axes || [];
       if (Math.abs(a[0] || 0) > Math.abs(ax)) ax = a[0];
@@ -513,7 +558,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
       if (!cur || !cur.isConnected || !visible(cur)) ensureCurrent();
       if (!hinted) {
         hinted = true;
-        toast('A select · B back · Select swap area · Start ×3 leaves a game', 4200);
+        toast('A select · B back · Select swap area · LB/RB pages · LT/RT grid pages · Start ×3 leaves a game', 4200);
       }
       holdDir = null;
       return;
@@ -552,8 +597,10 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     }
     if (edge(2) && !layer) toggleFavorite();
     if (edge(3) && !layer) focusSearch();
-    if (edge(4) && layer && layer.type === 'modal') switchModalTab(layer, -1);
-    if (edge(5) && layer && layer.type === 'modal') switchModalTab(layer, 1);
+    if (edge(4)) { if (layer && layer.type === 'modal') switchModalTab(layer, -1); else if (!layer) switchPage(-1); }
+    if (edge(5)) { if (layer && layer.type === 'modal') switchModalTab(layer, 1); else if (!layer) switchPage(1); }
+    if (edge(6) && !layer) pageStep('prev');
+    if (edge(7) && !layer) pageStep('next');
     if (edge(8)) cycleZone();
     if (edge(9) && !layer) toggleSettings();
     else if (edge(9) && layer && layer.type === 'modal' && layer.el.id === 'homeworkhelper-modal') toggleSettings();
