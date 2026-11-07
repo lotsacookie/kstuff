@@ -72,6 +72,20 @@ export function init(K) {
   }, 1000);
   try { if (window.parent && window.parent !== window) window.parent.postMessage({ kGp: 'hello' }, '*'); } catch {}
   const relAt = [];
+  const claimRoot = (() => {
+    let w = window;
+    try { while (w.parent && w.parent !== w && w.parent.document) w = w.parent; } catch {}
+    return w;
+  })();
+  const claim = (key, gap) => {
+    try {
+      const m = claimRoot.__kGpClaim || (claimRoot.__kGpClaim = {});
+      const t = Date.now();
+      if (t - (m[key] || 0) < gap) return false;
+      m[key] = t;
+      return true;
+    } catch { return true; }
+  };
 
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
@@ -368,10 +382,14 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
 
   const PAGE_ORDER = ['mathworksheets', 'readingcorner', 'sciencequiz', 'gradebook', 'civics', 'lessonplanner', 'vms', 'studyhall'];
   let pageLockUntil = 0;
+  let lastSwitchAt = 0;
   const navBtnFor = t => $(`#teachertouchbar > .nav-btn[data-target="${t}"], .nav-menu .nav-btn[data-target="${t}"]`);
   const switchPage = step => {
     const now = performance.now();
     if (now < pageLockUntil) return;
+    const ld = $('#section-loader');
+    if (ld && !ld.classList.contains('hidden') && now < lastSwitchAt + 3000) return;
+    if (!claim('page', 700)) return;
     const order = PAGE_ORDER.filter(t => {
       if (t === 'studyhall' && !K.currentUser) return false;
       const b = navBtnFor(t);
@@ -381,7 +399,8 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     const base = activeTarget || $('.page.active')?.id;
     const target = nextTarget(order, base, step);
     if (!target) return;
-    pageLockUntil = now + 350;
+    pageLockUntil = now + 700;
+    lastSwitchAt = now;
     navBtnFor(target).click();
     afterPageChange();
   };
@@ -493,7 +512,8 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     const prev = prevPressed;
     prevPressed = pressed;
     for (let i = 0; i < pressed.length; i++) if (!pressed[i] && prev[i]) relAt[i] = ts;
-    const edge = i => pressed[i] && !prev[i] && ts - (relAt[i] === undefined ? -1e9 : relAt[i]) >= 60;
+    const E = pressed.map((v, i) => v && !prev[i] && ts - (relAt[i] === undefined ? -1e9 : relAt[i]) >= 60 && claim('b' + i, 150));
+    const edge = i => !!E[i];
     const anyEdge = pressed.some((v, i) => v && !prev[i]);
 
     const game = gameState();
