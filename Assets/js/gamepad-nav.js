@@ -395,10 +395,10 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
       if (Math.abs(a[1] || 0) > Math.abs(ay)) ay = a[1];
       if (Math.abs(a[3] || 0) > Math.abs(ry)) ry = a[3];
     }
-    const edge = i => pressed[i] && !prevPressed[i];
-    const anyEdge = pressed.some((v, i) => v && !prevPressed[i]);
     const prev = prevPressed;
     prevPressed = pressed;
+    const edge = i => pressed[i] && !prev[i];
+    const anyEdge = pressed.some((v, i) => v && !prev[i]);
 
     const game = gameState();
     if (game) {
@@ -482,7 +482,6 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     if (edge(8)) cycleZone();
     if (edge(9) && !layer) toggleSettings();
     else if (edge(9) && layer && layer.type === 'modal' && layer.el.id === 'homeworkhelper-modal') toggleSettings();
-    void prev;
   };
 
   const start = () => { if (!raf) raf = requestAnimationFrame(poll); };
