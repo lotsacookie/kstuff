@@ -73,6 +73,9 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
   let frameCount = 0;
   let hinted = false;
   const lastInZone = {};
+  let curZone = 'content';
+  let lastRect = null;
+  let emptySince = 0;
 
   const visible = el => {
     if (!el || !el.isConnected || el.disabled || el.hidden || el.getAttribute('aria-hidden') === 'true') return false;
@@ -195,6 +198,9 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     if (el && a && a !== el && a !== document.body && a.matches && a.matches('button, .nav-btn, .nav-os-btn')) a.blur();
     cur = el || null;
     if (cur) {
+      if (!topLayer()) curZone = zoneOf(cur);
+      try { const r = cur.getBoundingClientRect(); lastRect = { x: r.left + r.width / 2, y: r.top + r.height / 2 }; } catch {}
+      emptySince = 0;
       cur.classList.add('gp-focus');
       try { cur.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch {}
     }
@@ -218,6 +224,28 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
       if (items.length) { setFocus(preferred(items, name)); return; }
     }
     setFocus(null);
+  };
+
+  const recover = () => {
+    if (topLayer() || !cur) { ensureCurrent(); return; }
+    const items = zoneItems(curZone);
+    if (!items.length) {
+      const now = performance.now();
+      if (!emptySince) emptySince = now;
+      if (now - emptySince > 1500) { emptySince = 0; ensureCurrent(); }
+      return;
+    }
+    emptySince = 0;
+    let best = items[0];
+    if (lastRect) {
+      let bd = Infinity;
+      for (const e of items) {
+        const r = e.getBoundingClientRect();
+        const d = Math.hypot(r.left + r.width / 2 - lastRect.x, r.top + r.height / 2 - lastRect.y);
+        if (d < bd) { bd = d; best = e; }
+      }
+    }
+    setFocus(best);
   };
 
   const enterZone = name => {
@@ -449,7 +477,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     }
     if (!document.body.classList.contains('gp-active')) return;
 
-    if ((++frameCount & 15) === 0 && (!cur || !cur.isConnected || !visible(cur))) ensureCurrent();
+    if ((++frameCount & 15) === 0 && (!cur || !cur.isConnected || !visible(cur))) recover();
 
     let dir = null;
     if (pressed[12]) dir = 'up';
