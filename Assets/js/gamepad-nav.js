@@ -52,8 +52,25 @@ export function init(K) {
     } catch {}
     return false;
   };
-  let shadowed = ancestorHas();
+  let sameShadow = ancestorHas();
+  let ownerUntil = 0;
   let shadowTick = 0;
+  window.addEventListener('message', e => {
+    const d = e.data;
+    if (!d || typeof d !== 'object' || !isCurrent()) return;
+    if (d.kGp === 'hello' && e.source && e.source !== window) {
+      try { e.source.postMessage({ kGp: 'owner' }, '*'); } catch {}
+    } else if (d.kGp === 'owner' && e.source === window.parent) {
+      ownerUntil = performance.now() + 4000;
+    }
+  });
+  const helloTimer = setInterval(() => {
+    if (!isCurrent()) { clearInterval(helloTimer); return; }
+    if (window.parent && window.parent !== window) {
+      try { window.parent.postMessage({ kGp: 'hello' }, '*'); } catch {}
+    }
+  }, 1000);
+  try { if (window.parent && window.parent !== window) window.parent.postMessage({ kGp: 'hello' }, '*'); } catch {}
   const relAt = [];
 
   const $ = (s, r = document) => r.querySelector(s);
@@ -351,6 +368,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
 
   const PAGE_SKIP = new Set(['changelog', 'homeworkhelper', 'profile']);
   let pageLockUntil = 0;
+  let pendingPage = { id: '', until: 0 };
   const switchPage = step => {
     const now = performance.now();
     if (now < pageLockUntil) return;
@@ -363,9 +381,13 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
       byTarget[t] = b;
       order.push(t);
     });
-    const target = nextTarget(order, $('.page.active')?.id, step);
+    const activeId = $('.page.active')?.id;
+    if (activeId === pendingPage.id) pendingPage.id = '';
+    const base = pendingPage.id && now < pendingPage.until ? pendingPage.id : activeId;
+    const target = nextTarget(order, base, step);
     if (!target || !byTarget[target]) return;
     pageLockUntil = now + 300;
+    pendingPage = { id: target, until: now + 1500 };
     byTarget[target].click();
     afterPageChange();
   };
@@ -452,8 +474,8 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
       return;
     }
     raf = requestAnimationFrame(poll);
-    if ((shadowTick++ & 31) === 0) shadowed = ancestorHas();
-    if (shadowed) {
+    if ((shadowTick++ & 31) === 0) sameShadow = ancestorHas();
+    if (sameShadow || performance.now() < ownerUntil) {
       if (cur) { cur.classList.remove('gp-focus'); cur = null; }
       return;
     }
