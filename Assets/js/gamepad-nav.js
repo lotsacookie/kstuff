@@ -29,6 +29,14 @@ export function pickNeighbor(rects, from, dir) {
   return best;
 }
 
+export function nextTarget(order, activeId, step) {
+  if (!order.length) return '';
+  let i = order.indexOf(activeId);
+  if (i < 0) i = 0;
+  const n = Math.max(0, Math.min(order.length - 1, i + step));
+  return n === i ? '' : order[n];
+}
+
 export function init(K) {
   if (K.gamepadNav || typeof navigator.getGamepads !== 'function') return;
 
@@ -325,14 +333,24 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     }, 350);
   };
 
+  const PAGE_SKIP = new Set(['changelog', 'homeworkhelper', 'profile']);
+  let pageLockUntil = 0;
   const switchPage = step => {
-    const btns = $$('#teachertouchbar > .nav-btn').filter(b => visible(b) && b.dataset.target !== 'cloud');
-    if (!btns.length) return;
-    let i = btns.findIndex(b => b.classList.contains('active'));
-    if (i < 0) i = 0;
-    const n = Math.max(0, Math.min(btns.length - 1, i + step));
-    if (n === i) return;
-    btns[n].click();
+    const now = performance.now();
+    if (now < pageLockUntil) return;
+    const order = [];
+    const byTarget = {};
+    $$('.nav-btn[data-target]').forEach(b => {
+      const t = b.dataset.target;
+      if (!t || PAGE_SKIP.has(t) || byTarget[t]) return;
+      if (b.hidden || b.getAttribute('aria-hidden') === 'true') return;
+      byTarget[t] = b;
+      order.push(t);
+    });
+    const target = nextTarget(order, $('.page.active')?.id, step);
+    if (!target || !byTarget[target]) return;
+    pageLockUntil = now + 300;
+    byTarget[target].click();
     afterPageChange();
   };
 
