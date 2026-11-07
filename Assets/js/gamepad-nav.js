@@ -185,8 +185,14 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     return zoneItems(zoneOf(cur));
   };
 
+  const clearMarks = keep => {
+    $$('.gp-focus').forEach(e => { if (e !== keep) e.classList.remove('gp-focus'); });
+  };
+
   const setFocus = el => {
-    if (cur && cur !== el) cur.classList.remove('gp-focus');
+    clearMarks(el);
+    const a = document.activeElement;
+    if (el && a && a !== el && a !== document.body && a.matches && a.matches('button, .nav-btn, .nav-os-btn')) a.blur();
     cur = el || null;
     if (cur) {
       cur.classList.add('gp-focus');
@@ -405,7 +411,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
       if (!wasGame) {
         wasGame = true;
         startTimes = [];
-        if (cur) cur.classList.remove('gp-focus');
+        clearMarks();
         clearUi();
         focusGame(game);
         setTimeout(() => { const g = gameState(); if (g) focusGame(g); }, 300);
@@ -489,7 +495,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
     clearUi();
-    if (cur) cur.classList.remove('gp-focus');
+    clearMarks();
     cur = null;
     holdDir = null;
   };
