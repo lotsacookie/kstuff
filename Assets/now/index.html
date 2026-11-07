@@ -673,13 +673,22 @@ async function registerStage() {
   const u = flow.signup;
   flow.signup = null; // one attempt only; the user re-enters on failure
   setWait("Creating your account…", "");
-  const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, isMarketingEmailAllowed: false, deviceId: JARVIS_DEVICE, authFactorType: "WebAuthn" };
+  const body = { email: flow.email, displayName: u.displayName, password: u.password, birthdate: u.birthdate, deviceId: JARVIS_DEVICE, authFactorType: "WebAuthn" };
+  const REG_HDR = { "Referrer-Id": "Profile Management Site" };
   const mine = run;
   await sleep(Math.max(0, 2500 - (Date.now() - (flow.at || 0))));
   const k0 = flow.key;
   const nm = await api("/api/1/search/user?q=" + encodeURIComponent(JSON.stringify({ displayName: u.displayName })), null, "GET", true);
   flow.key = k0;
   if (nm.status === 200) throw new Error("That display name is already taken. Choose another one.");
+  const k1 = flow.key;
+  const ci = await api("/api/1/frontend/oauth/client", null, "GET", true);
+  flow.key = k1;
+  const cl = (ci.json && (ci.json.client || ci.json)) || {};
+  const pol = cl.userProfilePolicy || {};
+  if (cl.emailOptIn) body.isMarketingEmailAllowed = false;
+  if (pol.birthdate && pol.birthdate !== "Required") delete body.birthdate;
+  log("[auth] client policy", ci.status, String(pol.birthdate), String(pol.displayName), String(cl.emailOptIn));
   const k = flow.key;
   const vc = await api(EP.validator, null, "GET", true, { "Content-Type": "application/json" });
   flow.key = k; // the validator reply must not replace the session key
@@ -697,20 +706,20 @@ async function registerStage() {
     ve.message += " [validator " + vc.status + "] " + vc.text.slice(0, 300);
     throw ve;
   }
-  let r = await api(EP.register, body);
+  let r = await api(EP.register, body, "POST", false, REG_HDR);
   for (let i = 0; i < 5 && !r.ok && /EARLY_REQUEST/.test(r.text); i++) {
     await sleep(3000 + i * 2000);
     alive(mine);
-    r = await api(EP.register, body);
+    r = await api(EP.register, body, "POST", false, REG_HDR);
   }
-  for (let i = 0; i < 3 && !r.ok && /SCHEMA_VIOLATION/.test(r.text); i++) {
+  for (let i = 0; i < 3 && !r.ok && !body.validation && /SCHEMA_VIOLATION/.test(r.text); i++) {
     // drop any field NVIDIA says it does not accept, then try again
     const det = (r.json && (r.json.details || (r.json.error && r.json.error.details))) || [];
     const bad = det.map((d) => String(d.field || "").split(".")[0]).filter((f) => f in body && f !== "email" && f !== "password" && f !== "displayName" && f !== "validation");
     if (!bad.length) break;
     log("[auth] register dropping", bad.join(","));
     bad.forEach((f) => delete body[f]);
-    r = await api(EP.register, body);
+    r = await api(EP.register, body, "POST", false, REG_HDR);
   }
   if (!r.ok) {
     const e = apiError(r);
