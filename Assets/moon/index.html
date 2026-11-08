@@ -1,0 +1,576 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SingularityMoon</title>
+<style>
+:root{--bg:#0b0d17;--panel:#141830;--panel2:#1b2040;--line:#262c55;--text:#e8ebff;--mute:#8d94c4;--accent:#7c8cff;--accent2:#b69cff;--bad:#ff6b81;--ok:#5fe3a1}
+*{box-sizing:border-box}
+html,body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#1d2250 0,var(--bg) 60%) fixed;color:var(--text);font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;min-height:100%}
+header{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#0b0d17ee;backdrop-filter:blur(8px);z-index:5}
+.logo{font-weight:700;font-size:18px;letter-spacing:.3px;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sp{flex:1}
+#status{font-size:12px;color:var(--mute);max-width:40vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status.ok{color:var(--ok)}#status.err{color:var(--bad)}
+button,input{font:inherit;color:inherit}
+button{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 14px;cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.55;cursor:default}
+button.primary{background:linear-gradient(90deg,var(--accent),var(--accent2));border:0;color:#0b0d17;font-weight:600}
+input{width:100%;background:#0f1330;border:1px solid var(--line);border-radius:10px;padding:10px 12px;outline:none}
+input:focus{border-color:var(--accent)}
+main{max-width:1200px;margin:0 auto;padding:22px}
+.card{max-width:400px;margin:8vh auto 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:26px}
+.card h1{margin:0 0 4px;font-size:22px}
+.card p{margin:0 0 18px;color:var(--mute)}
+.card label{display:block;font-size:12px;color:var(--mute);margin:12px 0 5px}
+.card .row{display:flex;gap:10px;margin-top:20px}
+.card .row button{flex:1}
+.err{color:var(--bad);font-size:13px;min-height:18px;margin-top:10px}
+.hint{font-size:12px;color:var(--mute);margin-top:14px}
+.hidden{display:none!important}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+.bar input{max-width:320px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+.chip{padding:5px 11px;border-radius:99px;font-size:12px;background:var(--panel);border:1px solid var(--line);color:var(--mute);cursor:pointer}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#0b0d17;font-weight:600}
+.count{color:var(--mute);font-size:13px}
+.chk{display:flex;gap:6px;align-items:center;color:var(--mute);font-size:13px;cursor:pointer}
+.chk input{width:auto}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
+.g{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.g img{width:100%;aspect-ratio:1/1;object-fit:cover;background:#0f1330;display:block}
+.g .b{padding:9px 10px 11px}
+.g .t{font-weight:600;font-size:13px;line-height:1.25;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.g .tags{margin-top:6px;display:flex;flex-wrap:wrap;gap:4px}
+.tag{font-size:10px;padding:2px 7px;border-radius:99px;background:#232a57;color:var(--mute)}
+.tag.pc{color:#9fe0ff}.tag.hi{color:#ffd37a}.tag.off{color:var(--bad)}
+.g.off img{filter:grayscale(.9) brightness(.7)}
+.note{color:var(--mute);text-align:center;padding:40px 0}
+.me{font-size:13px;color:var(--mute)}
+select{background:#0f1330;border:1px solid var(--line);border-radius:10px;padding:8px 10px;color:var(--text);max-width:220px}
+.g button.play{margin-top:8px;width:100%;padding:6px 0;font-size:12px;background:linear-gradient(90deg,var(--accent),var(--accent2));border:0;color:#0b0d17;font-weight:600}
+#play{position:fixed;inset:0;background:#000;z-index:20;display:none;flex-direction:column}
+#play.on{display:flex}
+#play .stage{flex:1;min-height:0;position:relative}
+.pv{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;touch-action:none;background:#000;display:block}
+#play .ld{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;color:var(--text);pointer-events:none}
+#play.live .ld{display:none}
+#play .tb{display:flex;gap:8px;align-items:center;padding:8px 12px;background:#0b0d17;border-top:1px solid var(--line)}
+#cbtn{position:fixed;right:12px;bottom:12px;z-index:60;padding:7px 12px;font-size:12px;background:#0b0d17ee;border:1px solid var(--accent);border-radius:99px;color:var(--text)}
+#con{position:fixed;left:0;right:0;bottom:0;height:46vh;z-index:59;background:#07080fee;border-top:1px solid var(--accent);display:none;flex-direction:column;backdrop-filter:blur(6px)}
+#con.on{display:flex}
+#con .ch{display:flex;gap:8px;align-items:center;padding:6px 10px;border-bottom:1px solid var(--line);font-size:12px;color:var(--mute)}
+#con .ch button{padding:4px 10px;font-size:12px}
+#clog{flex:1;overflow:auto;margin:0;padding:8px 10px;font:11px/1.45 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-all;color:#cfd4ff;user-select:text;-webkit-user-select:text}
+#clog .w{color:#ffd37a}#clog .e{color:var(--bad)}
+
+body.embed header,body.embed main,body.embed #cbtn,body.embed #con{display:none!important}
+body.embed.need-ui main{display:block!important}
+body.embed #guest{display:none}
+#play .stage{background:#000}
+#mt-handle{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:4;background:var(--nav-bg,rgba(20,24,48,.82));color:var(--text-color,var(--text));border:1px solid var(--line);border-top:none;border-radius:0 0 14px 14px;padding:2px 16px;cursor:pointer;opacity:.7;line-height:0}
+#mt-handle:hover:not(:disabled){opacity:1}
+#mt-tools{position:absolute;top:10px;left:50%;transform:translate(-50%,-160%);display:flex;gap:8px;align-items:center;padding:.5rem .7rem;background:var(--nav-bg,rgba(20,24,48,.82));color:var(--text-color,var(--text));border:1px solid var(--line);border-radius:24px;box-shadow:0 8px 24px rgba(0,0,0,.28);transition:transform .25s ease;z-index:5;max-width:96vw;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+#mt-tools.open{transform:translate(-50%,0)}
+#mt-tools .mt-title{font-weight:800;font-size:.85rem;max-width:22vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px}
+#mt-tools button{padding:6px 10px;display:inline-flex;align-items:center;justify-content:center;border-radius:12px;line-height:0}
+#mt-tools button.stop{border-color:#ff6b6b;color:#ff6b6b}
+#ptools{position:absolute;left:0;right:0;bottom:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:28px max(16px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left));background:linear-gradient(to top,rgba(0,0,0,.72),transparent);transition:opacity .25s ease,transform .25s ease;font-family:inherit}
+#ptools.idle{opacity:0;transform:translateY(8px);pointer-events:none}
+#ptools .sf-group{display:flex;align-items:center;gap:8px;min-width:0}#ptools .sf-mid{flex:1;justify-content:center}
+#ptools .sf-title{font-size:.8rem;font-weight:700;color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#ptools .sf-chip,#ptools .sf-btn{display:inline-flex;align-items:center;gap:7px;height:30px;padding:0 12px;border-radius:8px;font:inherit;font-size:.75rem;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;color:rgba(255,255,255,.7);background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.11);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:color .2s,background .2s,transform .12s}
+#ptools .sf-chip{max-width:34vw;overflow:hidden;text-overflow:ellipsis}
+#ptools .sf-btn{cursor:pointer}#ptools .sf-btn:hover:not(:disabled),#ptools .sf-btn:focus-visible{color:#fff;background:rgba(255,255,255,.16);outline:none}#ptools .sf-btn:active:not(:disabled){transform:scale(.95)}
+#ptools .sf-icon{padding:0 9px}
+#ptools .sf-btn.danger{color:rgba(255,150,150,.95);background:rgba(255,80,80,.12);border-color:rgba(255,90,90,.28)}
+@media (max-width:640px){#ptools .sf-label,#ptools .sf-title{display:none}#ptools .sf-btn,#ptools .sf-chip{padding:0 9px}#mt-tools .mt-title{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">SingularityMoon</span>
+  <span class="sp"></span>
+  <span id="status">Idle</span>
+  <span id="me" class="me hidden"></span>
+  <button id="out" class="hidden">Sign out</button>
+</header>
+<main>
+  <section id="auth" class="card">
+    <h1>Sign in</h1>
+    <p>Use your CloudMoon email and password. Requests go through the browser proxy.</p>
+    <form id="form" autocomplete="on">
+      <label for="email">Email</label>
+      <input id="email" type="email" autocomplete="username" required>
+      <label for="pw">Password</label>
+      <input id="pw" type="password" autocomplete="current-password" required>
+      <div class="err" id="autherr"></div>
+      <div class="row">
+        <button class="primary" id="go" type="submit">Sign in</button>
+        <button id="guest" type="button">Browse as guest</button>
+      </div>
+    </form>
+    <div class="hint">Google / Apple sign-in isn’t supported here. If you only use those, set a password in your CloudMoon account first. Signing in doesn’t start anything — pick a game and press Play to launch a session.</div>
+  </section>
+
+  <section id="lib" class="hidden">
+    <div class="bar">
+      <input id="q" type="search" placeholder="Search games…">
+      <select id="srv" class="hidden" title="Server"></select>
+      <label class="chk"><input id="playable" type="checkbox"> Playable only</label>
+      <span class="sp"></span>
+      <span class="count" id="count"></span>
+      <button id="reload">Reload</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div id="grid"></div>
+    <div class="note hidden" id="note"></div>
+  </section>
+</main>
+
+<div id="play"><div class="stage"><div class="ld"><div><div id="pst">Starting…</div><div id="pdbg" style="font:11px monospace;color:var(--mute);margin-top:14px;white-space:pre-wrap;word-break:break-all;max-width:90vw"></div></div></div></div>
+  <button id="mt-handle" type="button" aria-label="Show controls"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
+  <div id="mt-tools"><span class="mt-title" id="mt-title"></span>
+<button id="pback" type="button" title="Android back" aria-label="Android back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+<button id="prest" type="button" title="Restart game" aria-label="Restart game"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
+<button id="pfs2" type="button" title="Fullscreen" aria-label="Fullscreen"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M4 15v5h5M20 15v5h-5"/></svg></button>
+<button id="pstop" class="stop" type="button" title="Stop" aria-label="Stop"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="2"/></svg></button></div>
+  <div id="ptools" class="idle" role="toolbar" aria-label="Game controls"><div class="sf-group"><button class="sf-btn" id="pexit" type="button" title="Leave game" aria-label="Leave game"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M8 1L3 6l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sf-label">Exit</span></button></div><div class="sf-group sf-mid"><span class="sf-title" id="ptitle"></span></div><div class="sf-group"><div class="sf-chip" id="pstat"></div><button class="sf-btn" id="pfs" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 4V1h3M8 1h3v3M1 8v3h3M11 8v3H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="sf-label">Fullscreen</span></button><button class="sf-btn danger" id="pend" type="button" title="End the session">End</button></div></div></div>
+
+<button id="cbtn" type="button">Console</button>
+<div id="con"><div class="ch"><strong>Console</strong><span id="ccount"></span><span class="sp"></span><button id="ccopy" type="button">Copy</button><button id="cclear" type="button">Clear</button><button id="cclose" type="button">Close</button></div><pre id="clog"></pre></div>
+
+<script>
+/* on-screen console: captures console.*, errors and rejections so they can be copied */
+(() => {
+  const MAX = 800, lines = [];
+  const fmt = (v) => {
+    if (v instanceof Error) return v.stack || v.message;
+    if (typeof v === "string") return v;
+    try { return JSON.stringify(v, (k, x) => (/token|password|authorization/i.test(k) ? "***" : x)); } catch { return String(v); }
+  };
+  const el = () => document.getElementById("clog");
+  const push = (lvl, args) => {
+    const t = new Date().toISOString().slice(11, 23);
+    const text = t + " [" + lvl + "] " + args.map(fmt).join(" ").replace(/ghp_[A-Za-z0-9]+/g, "***");
+    lines.push({ lvl, text }); if (lines.length > MAX) lines.shift();
+    const c = el(); if (!c) return;
+    const d = document.createElement("div"); if (lvl === "error") d.className = "e"; else if (lvl === "warn") d.className = "w";
+    d.textContent = text; c.append(d);
+    while (c.childNodes.length > MAX) c.firstChild.remove();
+    const n = document.getElementById("ccount"); if (n) n.textContent = lines.length + " lines";
+    if (document.getElementById("con").classList.contains("on")) c.scrollTop = c.scrollHeight;
+  };
+  for (const l of ["log", "info", "warn", "error", "debug"]) {
+    const o = console[l].bind(console);
+    console[l] = (...a) => { try { push(l === "info" || l === "debug" ? "log" : l, a); } catch {} o(...a); };
+  }
+  addEventListener("error", (e) => push("error", ["window.onerror:", e.message, (e.filename || "") + ":" + (e.lineno || "")]));
+  addEventListener("unhandledrejection", (e) => push("error", ["unhandledrejection:", e.reason]));
+  window.__consoleText = () => lines.map((x) => x.text).join("\n");
+  const copy = async () => {
+    const text = window.__consoleText(); const b = document.getElementById("ccopy");
+    let ok = false;
+    try { await navigator.clipboard.writeText(text); ok = true; } catch {}
+    if (!ok) {
+      const ta = document.createElement("textarea"); ta.value = text; ta.style.cssText = "position:fixed;opacity:0;top:0";
+      document.body.append(ta); ta.select();
+      try { ok = document.execCommand("copy"); } catch {}
+      ta.remove();
+    }
+    b.textContent = ok ? "Copied!" : "Copy failed"; setTimeout(() => (b.textContent = "Copy"), 1500);
+  };
+  addEventListener("DOMContentLoaded", () => {
+    const con = document.getElementById("con"), c = el();
+    for (const x of lines) { const d = document.createElement("div"); if (x.lvl === "error") d.className = "e"; else if (x.lvl === "warn") d.className = "w"; d.textContent = x.text; c.append(d); }
+    document.getElementById("ccount").textContent = lines.length + " lines";
+    document.getElementById("cbtn").onclick = () => { con.classList.toggle("on"); c.scrollTop = c.scrollHeight; };
+    document.getElementById("cclose").onclick = () => con.classList.remove("on");
+    document.getElementById("cclear").onclick = () => { lines.length = 0; c.textContent = ""; document.getElementById("ccount").textContent = "0 lines"; };
+    document.getElementById("ccopy").onclick = copy;
+  });
+})();
+</script>
+<script type="module" src="./proxy.js"></script>
+<script type="module">
+import { Player } from "./player.js";
+const API_HOSTS = ["https://api.prod.cloudmoonapp.com", "https://api.cloudmoon.cloudbatata.com", "https://api.prod.geometry.today"];
+const EMBED = !!window.__MOON_EMBED;
+const up = (m) => { if (EMBED) { try { parent.postMessage(m, "*"); } catch {} } };
+if (EMBED) {
+  document.body.classList.add("embed");
+  try {
+    const cs = getComputedStyle(parent.document.documentElement);
+    for (const v of ["--nav-bg", "--text-color"]) { const x = cs.getPropertyValue(v).trim(); if (x) document.documentElement.style.setProperty(v, x); }
+  } catch {}
+}
+let pendingGame = null, libBusy = false, prog = 0;
+const SESSION = "singularitymoon.session";
+const CREDS = "singularitymoon.creds";
+const $ = (id) => document.getElementById(id);
+const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+  del(k) { try { localStorage.removeItem(k); } catch {} },
+};
+
+function say(t, cls = "") { const s = $("status"); s.textContent = t; s.className = cls; }
+const log = (...a) => console.log(...a);
+
+let session = store.get(SESSION); // { userId, token }
+let apiHost = null;
+let all = [];
+let catNames = {};
+let activeCat = "all";
+
+function deviceId() {
+  let d = null;
+  try { d = localStorage.getItem("device_id"); } catch {}
+  if (!d) {
+    d = crypto.randomUUID ? crypto.randomUUID() : "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => { const r = Math.random() * 16 | 0; return (c === "x" ? r : (r & 3) | 8).toString(16); });
+    try { localStorage.setItem("device_id", d); } catch {}
+  }
+  return d;
+}
+
+async function api(path, { method = "GET", body } = {}, retried = false) {
+  let lastErr = new Error("No API host reachable");
+  for (let round = 0; round < 2; round++) {
+    const { libcurl } = await window.__getProxy({ log, say });
+    const hosts = apiHost ? [apiHost, ...API_HOSTS.filter((h) => h !== apiHost)] : API_HOSTS;
+    for (const h of hosts) {
+      const u = new URL(h + path);
+      u.searchParams.set("device_type", "web");
+      u.searchParams.set("query_uuid", crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+      u.searchParams.set("site", "cm");
+      u.searchParams.set("device_id", deviceId());
+      const headers = { "Content-Type": "application/json", "X-User-Language": "en", "X-User-Locale": "US" };
+      headers["Origin"] = "https://web.cloudmoonapp.com"; headers["Referer"] = "https://web.cloudmoonapp.com/";   // the real site's requests come from this origin
+      if (session && session.token) headers["X-User-Token"] = session.token;
+      const init = { method, headers };
+      if (body !== undefined) init.body = JSON.stringify(body);
+      try {
+        const r = await withTimeout(libcurl.fetch(u.href, init), 20000, "Request");
+        if (r.status >= 500) { lastErr = new Error("Server error " + r.status); continue; }
+        const text = await withTimeout(r.text(), 20000, "Response");
+        let j;
+        try { j = JSON.parse(text); } catch { lastErr = new Error("Unexpected response (" + r.status + ")"); continue; }
+        apiHost = h;
+        console.log("[api] " + method + " " + path + " @" + new URL(h).host + " → HTTP " + r.status + " " + text.slice(0, 400));
+        if (String(j.code) === "40001") {
+          if (!retried && !path.startsWith("/login") && await relogin()) return await api(path, { method, body }, true);
+          signOut(true); throw new Error("Session expired — sign in again");
+        }
+        return j;
+      } catch (e) {
+        if (e && /expired/.test(e.message)) throw e;
+        console.warn("[api] " + method + " " + path + " @" + new URL(h).host + " failed: " + (e && e.message || e));
+        lastErr = e;
+      }
+    }
+    if (round === 0) { try { await window.__rotateProxy(log, say); } catch {} }
+  }
+  throw lastErr;
+}
+
+/* ---------- auth ---------- */
+async function relogin() {
+  const c = store.get(CREDS);
+  if (!c || !c.email || !c.password) return false;
+  try {
+    const j = await api("/login/pwd", { method: "POST", body: { email: c.email, password: c.password } });
+    if (j.code === 0 && j.data && j.data.token) {
+      session = { userId: j.data.user_id, token: j.data.token };
+      store.set(SESSION, session);
+      return true;
+    }
+    store.del(CREDS);
+  } catch (e) { console.warn("auto sign-in failed", e); }
+  return false;
+}
+function showAuth() {
+  $("auth").classList.remove("hidden");
+  $("lib").classList.add("hidden");
+  $("me").classList.add("hidden");
+  $("out").classList.add("hidden");
+}
+function showLib() {
+  $("auth").classList.add("hidden");
+  $("lib").classList.remove("hidden");
+  $("out").classList.remove("hidden");
+  $("out").textContent = session && session.token ? "Sign out" : "Back";
+}
+function signOut(silent) {
+  session = null; store.del(SESSION); all = [];
+  if (!silent) store.del(CREDS);
+  $("grid").textContent = "";
+  showAuth();
+  if (!silent) say("Signed out");
+}
+
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const err = $("autherr"); err.textContent = "";
+  const btns = [$("go"), $("guest")]; btns.forEach((b) => b.disabled = true);
+  try {
+    say("Signing in…");
+    const email = $("email").value.trim(), password = $("pw").value;
+    const j = await api("/login/pwd", { method: "POST", body: { email, password } });
+    if (j.code === 0 && j.data && j.data.token) {
+      session = { userId: j.data.user_id, token: j.data.token };
+      store.set(SESSION, session);
+      store.set(CREDS, { email, password });
+      $("pw").value = "";
+      const lib = openLibrary();
+      if (EMBED && pendingGame) await embedStart(); else await lib;
+    } else {
+      err.textContent = j.message || ("Sign in failed (code " + j.code + ")");
+      say("Sign in failed", "err");
+    }
+  } catch (e) {
+    err.textContent = e.message || String(e);
+    say("Error: " + (e.message || e), "err");
+  } finally { btns.forEach((b) => b.disabled = false); }
+});
+$("guest").addEventListener("click", async () => { session = null; await openLibrary(); });
+$("out").addEventListener("click", () => signOut());
+$("reload").addEventListener("click", () => loadLibrary());
+
+/* ---------- library ---------- */
+async function openLibrary() {
+  showLib();
+  await Promise.all([loadMe(), loadServers(), loadLibrary()]);
+}
+async function loadMe() {
+  const me = $("me");
+  if (!(session && session.token)) { me.classList.add("hidden"); return; }
+  try {
+    const j = await api("/user/info");
+    if (j.code === 0 && j.data) {
+      me.textContent = j.data.name || j.data.email || "Signed in";
+      me.classList.remove("hidden");
+    }
+  } catch (e) { console.warn("user/info failed", e); }
+}
+async function loadLibrary() {
+  if (libBusy) return;
+  libBusy = true;
+  const note = $("note"); note.classList.add("hidden");
+  $("grid").textContent = "";
+  $("count").textContent = "";
+  say("Loading game library…");
+  try {
+    const path = session && session.token ? "/game/list?select_server=" + (localStorage.getItem("selectedServer") || 0) : "/game/guest_list";
+    const [j, c] = await Promise.all([api(path), api("/game/category").catch(() => null)]);
+    if (c && c.code === 0 && c.data && Array.isArray(c.data.list)) {
+      catNames = {};
+      for (const x of c.data.list) if (x && x.key) catNames[x.key] = x.name || x.title || x.label || x.key;
+    }
+    if (j.code !== 0 || !j.data || !Array.isArray(j.data.list)) throw new Error(j.message || "Could not load the game list");
+    all = j.data.list.map((g) => ({
+      id: g.package_name,
+      title: g.title || g.package_name || "Untitled",
+      icon: g.icon_url,
+      status: g.status,
+      high: !!g.is_high,
+      pc: !!g.is_pc,
+      released: g.released_at || "",
+      raw: g,
+      cats: (g.categories || []).map((x) => typeof x === "string" ? x : (x && (x.key || x.name)) || "").filter(Boolean),
+    })).sort((a, b) => a.title.localeCompare(b.title));
+    activeCat = "all";
+    renderChips();
+    render();
+    say(all.length + " games loaded", "ok");
+    up({ type: "moon:catalog", games: all.map((g) => [g.id, g.title, g.icon]) });
+  } catch (e) {
+    note.textContent = e.message || String(e);
+    note.classList.remove("hidden");
+    say("Error: " + (e.message || e), "err");
+  } finally { libBusy = false; }
+}
+function renderChips() {
+  const counts = {};
+  for (const g of all) for (const k of g.cats) counts[k] = (counts[k] || 0) + 1;
+  const keys = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+  const box = $("chips"); box.textContent = "";
+  const mk = (key, label) => {
+    const b = document.createElement("span");
+    b.className = "chip" + (activeCat === key ? " on" : "");
+    b.textContent = label;
+    b.onclick = () => { activeCat = key; renderChips(); render(); };
+    box.append(b);
+  };
+  mk("all", "All (" + all.length + ")");
+  for (const k of keys) mk(k, (catNames[k] || k) + " (" + counts[k] + ")");
+}
+function render() {
+  const q = $("q").value.trim().toLowerCase();
+  const only = $("playable").checked;
+  const list = all.filter((g) => (!q || g.title.toLowerCase().includes(q)) && (activeCat === "all" || g.cats.includes(activeCat)) && (!only || g.status === 1));
+  const grid = $("grid"); grid.textContent = "";
+  const frag = document.createDocumentFragment();
+  for (const g of list) {
+    const d = document.createElement("div");
+    d.className = "g" + (g.status === 1 ? "" : " off");
+    const im = document.createElement("img");
+    im.loading = "lazy"; im.referrerPolicy = "no-referrer"; im.alt = "";
+    if (typeof g.icon === "string" && /^https:\/\//.test(g.icon)) im.src = g.icon;
+    const b = document.createElement("div"); b.className = "b";
+    const t = document.createElement("div"); t.className = "t"; t.textContent = g.title; t.title = g.title;
+    const tags = document.createElement("div"); tags.className = "tags";
+    const tag = (txt, cls) => { const s = document.createElement("span"); s.className = "tag " + cls; s.textContent = txt; tags.append(s); };
+    if (g.pc) tag("PC", "pc");
+    if (g.high) tag("High-end", "hi");
+    if (g.status !== 1) tag(g.status === 4 ? "Maintenance" : "Unavailable", "off");
+    b.append(t, tags);
+    if (g.status === 1 && session && session.token) {
+      const pb = document.createElement("button"); pb.className = "play"; pb.textContent = "Play";
+      pb.onclick = () => launch(g);
+      b.append(pb);
+    }
+    d.append(im, b);
+    frag.append(d);
+  }
+  grid.append(frag);
+  $("count").textContent = list.length + " of " + all.length;
+  const note = $("note");
+  if (!list.length && all.length) { note.textContent = "No games match."; note.classList.remove("hidden"); } else note.classList.add("hidden");
+}
+$("q").addEventListener("input", render);
+$("playable").addEventListener("change", render);
+
+/* ---------- servers + player ---------- */
+async function loadServers() {
+  const sel = $("srv");
+  if (!(session && session.token)) { sel.classList.add("hidden"); return; }
+  try {
+    const j = await api("/game/server_list");
+    const list = j.code === 0 && j.data && Array.isArray(j.data.list) ? j.data.list : [];
+    if (!list.length) { sel.classList.add("hidden"); return; }
+    sel.textContent = "";
+    const saved = localStorage.getItem("selectedServer");
+    for (const x of list) {
+      const o = document.createElement("option");
+      o.value = String(x.id);
+      const label = x.name || x.title || x.region || x.city || x.country || x.label || x.location || ("Server " + x.id);
+      o.textContent = String(label) + (x.ping ? " · " + x.ping + "ms" : "");
+      sel.append(o);
+    }
+    sel.value = list.some((x) => String(x.id) === saved) ? saved : String(list[0].id);
+    try { localStorage.setItem("selectedServer", sel.value); } catch {}
+    sel.classList.remove("hidden");
+  } catch (e) { console.warn("server_list failed", e); }
+}
+$("srv").addEventListener("change", () => { try { localStorage.setItem("selectedServer", $("srv").value); } catch {} });
+
+let player = null;
+function failLaunch(t) { say(t, "err"); up({ type: "moon:failed", text: t }); }
+const setExit = (t) => { const l = $("pexit").querySelector(".sf-label"); if (l) l.textContent = t; };
+const getLibcurl = () => window.__getProxy({ log, say }).then((s) => s.libcurl);
+async function launch(g) {
+  if (player) return;
+  if (!(session && session.token)) { failLaunch("Sign in to play"); return; }
+  const serverId = parseInt($("srv").value || localStorage.getItem("selectedServer") || "0", 10);
+  if (!serverId) { failLaunch("Pick a server first"); return; }
+  const box = $("play");
+  box.classList.add("on"); box.classList.remove("live");
+  $("pst").textContent = "Starting " + g.title + "…"; $("pstat").textContent = ""; $("pdbg").textContent = ""; setExit("Exit");
+  $("ptitle").textContent = $("mt-title").textContent = g.title; prog = 0; wake();
+  let androidId = null;
+  try {
+    const p = await api("/phone/list");
+    androidId = p.code === 0 && p.data && p.data.list && p.data.list[0] && p.data.list[0].android_id;
+    try { console.log("[launch] phone entry: " + JSON.stringify(p.data.list[0]).slice(0, 900)); } catch {}
+  } catch (e) { console.warn(e); }
+  if (!androidId) { box.classList.remove("on"); failLaunch("No cloud phone found on this account"); return; }
+  try { const { raw } = g; console.log("[launch] game entry: " + JSON.stringify(raw).slice(0, 900)); } catch {}
+  console.log("[launch] game=" + g.id + " androidId=" + androidId + " serverId=" + serverId);
+  player = new Player({
+    api, getLibcurl, game: g.id, androidId, serverId, mount: box,
+    onStatus: (t, cls) => { prog = Math.min(prog + 0.07, 0.92); up({ type: "moon:status", text: t, p: prog }); $("pst").textContent = t; $("pstat").textContent = t; $("pstat").style.color = cls === "err" ? "var(--bad)" : cls === "ok" ? "var(--ok)" : ""; },
+    onDebug: (t) => { $("pdbg").textContent = t; },
+    onEnd: (reason) => {
+      player = null;
+      const v = box.querySelector("video"); if (v) v.remove();
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      say(reason || "Session ended", reason ? "err" : "");
+      if (reason) { box.classList.remove("live"); $("pst").textContent = reason; setExit("Close"); }
+      else box.classList.remove("on", "live");
+      if (EMBED) { box.classList.remove("on", "live"); up(reason ? { type: "moon:failed", text: reason } : { type: "moon:closed" }); }
+    },
+  });
+  player.start();
+}
+$("pexit").addEventListener("click", () => { if (player) player.stop(); else $("play").classList.remove("on", "live"); });
+$("pback").addEventListener("click", () => player && player.back());
+$("prest").addEventListener("click", () => player && player.restartGame());
+const toggleFs = () => { const b = $("play"); document.fullscreenElement ? document.exitFullscreen() : b.requestFullscreen && b.requestFullscreen().catch(() => {}); };
+$("pfs").addEventListener("click", toggleFs);
+$("pfs2").addEventListener("click", toggleFs);
+$("pend").addEventListener("click", () => $("pexit").click());
+$("pstop").addEventListener("click", () => $("pexit").click());
+
+let idleT, penT;
+function wake() {
+  $("ptools").classList.remove("idle"); clearTimeout(idleT);
+  idleT = setTimeout(() => $("ptools").classList.add("idle"), 3000);
+}
+function openPill(keep) {
+  $("mt-tools").classList.add("open"); clearTimeout(penT);
+  penT = setTimeout(() => $("mt-tools").classList.remove("open"), keep ? 6000 : 3500);
+}
+$("play").addEventListener("mousemove", (e) => { wake(); if (e.clientY < 14) openPill(false); });
+$("play").addEventListener("touchstart", wake, { passive: true });
+$("mt-tools").addEventListener("mouseenter", () => clearTimeout(penT));
+$("mt-handle").addEventListener("click", () => openPill(true));
+new MutationObserver(() => {
+  const on = $("play").classList.contains("live");
+  if (on) { up({ type: "moon:live" }); wake(); openPill(false); } else $("ptools").classList.remove("idle");
+}).observe($("play"), { attributes: true, attributeFilter: ["class"] });
+
+async function embedStart() {
+  const g = pendingGame;
+  if (!g) return;
+  if (!(session && session.token)) {
+    document.body.classList.add("need-ui"); showAuth(); up({ type: "moon:view", ui: true }); return;
+  }
+  document.body.classList.remove("need-ui");
+  up({ type: "moon:view", ui: false });
+  pendingGame = null;
+  await loadServers();
+  await launch({ id: g.id, title: g.title, raw: {} });
+}
+if (EMBED) {
+  addEventListener("message", async (e) => {
+    if (e.source !== parent) return;
+    const d = e.data;
+    if (!d || typeof d !== "object" || typeof d.type !== "string" || !d.type.startsWith("moon:")) return;
+    if (d.type === "moon:launch" && d.game && d.game.id) {
+      pendingGame = { id: String(d.game.id), title: String(d.game.title || d.game.id) };
+      try { await embedStart(); } catch (err) { failLaunch((err && err.message) || String(err)); }
+    } else if (d.type === "moon:stop") {
+      pendingGame = null; document.body.classList.remove("need-ui");
+      if (player) player.stop(); else $("play").classList.remove("on", "live");
+    } else if (d.type === "moon:sync") {
+      if (!all.length) loadLibrary();
+    }
+  });
+}
+
+/* ---------- boot ---------- */
+(async () => {
+  // warm the proxy right away so sign-in is quick
+  window.__getProxy({ log, say }).then(() => say("Proxy ready", "ok")).catch((e) => say("Proxy error: " + (e.message || e), "err"));
+  const saved = store.get(CREDS);
+  if (saved && saved.email) $("email").value = saved.email;
+  if (!(session && session.token) && saved) { say("Signing in…"); await relogin(); }
+  if (session && session.token) { try { await openLibrary(); } catch (e) { console.warn(e); } }
+})();
+up({ type: "moon:ready" });
+</script>
+</body>
+</html>

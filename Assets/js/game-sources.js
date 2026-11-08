@@ -342,12 +342,29 @@ export function init(K) {
     return add.length ? items.concat(gfnItems(add)) : items;
   }
 
+  const MOON_STORE = 'kstuff_moon_catalog_v1';
+  const MOON_ID_OK = /^[\w.-]{1,120}$/;
+  const readMoon = () => { try { const c = JSON.parse(localStorage.getItem(MOON_STORE) || 'null'); return c && Array.isArray(c.games) ? c : null; } catch { return null; } };
+  K.mergeMoonGames = rows => {
+    const games = (Array.isArray(rows) ? rows : []).filter(r => Array.isArray(r) && MOON_ID_OK.test(String(r[0] || '')) && r[1]).slice(0, 4000).map(r => [String(r[0]), String(r[1]), /^https:\/\//.test(String(r[2] || '')) ? String(r[2]) : '']);
+    if (!games.length) return 0;
+    const prev = readMoon();
+    const had = new Set((prev ? prev.games : []).map(r => r[0]));
+    try { localStorage.setItem(MOON_STORE, JSON.stringify({ at: Date.now(), games })); } catch {}
+    return games.filter(r => !had.has(r[0])).length;
+  };
+  async function fetchMoon() {
+    const c = readMoon();
+    return (c ? c.games : []).map(r => ({ source: 'moon', moonId: r[0], name: r[1], cover: [r[2], K.gameFallbackIcon(r[1])].filter(Boolean) }));
+  }
+
   K.fetchExtraGames = async () => {
     const lists = await Promise.all([
       source('seraph', fetchSeraph),
       source('storage', fetchStorageGames),
       source('cloud', fetchCloud),
-      source('gfn', fetchGfn)
+      source('gfn', fetchGfn),
+      source('moon', fetchMoon)
     ]);
     return lists.flat();
   };
