@@ -16,7 +16,10 @@ const ERR = {
 };
 
 // Android key codes for typing mode and mapped keys.
-const AK = { Enter: 66, Backspace: 67, Space: 62, Tab: 61, Escape: 111, ArrowUp: 19, ArrowDown: 20, ArrowLeft: 21, ArrowRight: 22, ShiftLeft: 59, ShiftRight: 60, ControlLeft: 113, ControlRight: 114, AltLeft: 57, AltRight: 58 };
+const AK = { Enter: 66, NumpadEnter: 66, Backspace: 67, Delete: 112, Space: 62, Tab: 61, Escape: 111, ArrowUp: 19, ArrowDown: 20, ArrowLeft: 21, ArrowRight: 22, Home: 122, End: 123, PageUp: 92, PageDown: 93, Insert: 124, CapsLock: 115, ShiftLeft: 59, ShiftRight: 60, ControlLeft: 113, ControlRight: 114, AltLeft: 57, AltRight: 58, Comma: 55, Period: 56, Slash: 76, Semicolon: 74, Quote: 75, Minus: 69, Equal: 70, BracketLeft: 71, BracketRight: 72, Backslash: 73, Backquote: 68 };
+for (let n = 0; n < 26; n++) AK["Key" + String.fromCharCode(65 + n)] = 29 + n;
+for (let n = 0; n < 10; n++) { AK["Digit" + n] = 7 + n; AK["Numpad" + n] = 144 + n; }
+const SCREEN_W = 1920, SCREEN_H = 1080;
 for (let i = 0; i < 26; i++) AK["Key" + String.fromCharCode(65 + i)] = 29 + i;
 for (let i = 0; i < 10; i++) AK["Digit" + i] = 7 + i;
 
@@ -93,7 +96,7 @@ const addRrtr = (sdp) => sdp.replace(/(m=video.*\r\n)/, "$1a=rtcp-xr:rrtr\r\n").
 export class Player {
   constructor({ api, getLibcurl, game, androidId, serverId, mount, onStatus, onEnd, onDebug }) {
     Object.assign(this, { api, getLibcurl, game, androidId, serverId, mount, onStatus, onEnd, onDebug });
-    this.stopped = false; this.rot = 0; this.typing = false; this.cfg = null;
+    this.stopped = false; this.rot = 0; this.typing = true; this.cfg = null;
     this.keys = new Map(); this.touchN = 20; this.pending = null; this.pcands = [];
     this.stream = new MediaStream();
   }
@@ -124,7 +127,7 @@ export class Player {
       try {
         console.log("[player] POST /phone/connect game=" + this.game + " server_id=" + this.serverId + " android_id=" + this.androidId);
         j = await this.api("/phone/connect", { method: "POST", body: {
-          android_id: this.androidId, game_name: this.game, screen_res: "720x1280", server_id: this.serverId,
+          android_id: this.androidId, game_name: this.game, screen_res: SCREEN_W + "x" + SCREEN_H, server_id: this.serverId,
           params: JSON.stringify({ language: "en", locale: (navigator.language.split("-")[1] || "").toLowerCase() }), ad_unblock: true } });
       } catch (e) {
         if (!queued) throw e;               // like the site: ignore hiccups while waiting in the queue
@@ -200,7 +203,7 @@ export class Player {
       this.mount.classList.add("live");
       this.say("Streaming", "ok");
     } else if (type === "keyboard") {
-      this.typing = val.startsWith("show");
+      this.typing = true;
     } else if (type === "kickout") {
       this.stop(true, "You were disconnected from the session");
     }
@@ -270,7 +273,7 @@ export class Player {
     this.mount.querySelector(".stage").append(v);
     const on = (t, fn, o) => { v.addEventListener(t, fn, o); };
     v.addEventListener("contextmenu", (e) => e.preventDefault());
-    on("pointerdown", (e) => { e.preventDefault(); try { v.setPointerCapture(e.pointerId); } catch {} this._ptr(e, "start"); });
+    on("pointerdown", (e) => { e.preventDefault(); try { window.focus(); if (document.activeElement && document.activeElement !== document.body) document.activeElement.blur(); } catch {} try { v.setPointerCapture(e.pointerId); } catch {} this._ptr(e, "start"); });
     on("pointermove", (e) => { e.preventDefault(); this._ptr(e, "move"); });
     on("pointerup", (e) => { e.preventDefault(); this._ptr(e, "end"); });
     on("pointercancel", (e) => { e.preventDefault(); this._ptr(e, "end"); });
@@ -282,10 +285,10 @@ export class Player {
   send(m) { if (this.dc && this.dc.readyState === "open") try { this.dc.send(m); } catch {} }
   _pt(e) {
     const v = this.video, r = v.getBoundingClientRect();
-    const vw = v.videoWidth || (this.rot === 1 ? 1280 : 720), vh = v.videoHeight || (this.rot === 1 ? 720 : 1280);
+    const vw = v.videoWidth || SCREEN_W, vh = v.videoHeight || SCREEN_H;
     const sc = Math.min(r.width / vw, r.height / vh), cw = vw * sc, ch = vh * sc;
     const ox = r.left + (r.width - cw) / 2, oy = r.top + (r.height - ch) / 2;
-    const W = this.rot === 1 ? 1280 : 720, H = this.rot === 1 ? 720 : 1280;
+    const land = vw >= vh, W = land ? SCREEN_W : SCREEN_H, H = land ? SCREEN_H : SCREEN_W;
     return { x: Math.round(clamp((e.clientX - ox) / cw, 0, 1) * W), y: Math.round(clamp((e.clientY - oy) / ch, 0, 1) * H) };
   }
   _ptr(e, phase) {
