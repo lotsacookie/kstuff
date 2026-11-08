@@ -343,9 +343,8 @@ export function init(K) {
   }
 
   const MOON_STORE = 'kstuff_moon_catalog_v2';
-  const MOON_APP_CAT = /\b(apps?|tools?|utilit(y|ies)|social|communication|messaging|chat|music|audio|video|streaming|productivity|browser|shopping|finance|news)\b/i;
-  const MOON_APP_NAME = /discord|spotify|netflix|youtube|tiktok|instagram|whatsapp|telegram|twitch|snapchat|facebook|messenger|reddit|chrome|firefox|tinder|pinterest|twitter|\bx\b|disney|hulu|prime video|soundcloud|deezer|capcut|canva|gmail|maps|office|word|excel|zoom|skype|signal|duolingo|kindle|vlc|mx player|file manager|launcher/i;
-  const moonIsApp = r => (Array.isArray(r[3]) && r[3].some(c => MOON_APP_CAT.test(String(c)))) || MOON_APP_NAME.test(r[1]);
+  const MOON_APP_CAT = /^\s*apps?\s*$/i;
+  const moonIsApp = r => Array.isArray(r[3]) && r[3].some(c => MOON_APP_CAT.test(String(c)));
   const MOON_ID_OK = /^[\w.-]{1,120}$/;
   const readMoon = () => { try { const c = JSON.parse(localStorage.getItem(MOON_STORE) || 'null'); return c && Array.isArray(c.games) ? c : null; } catch { return null; } };
   K.mergeMoonGames = rows => {
