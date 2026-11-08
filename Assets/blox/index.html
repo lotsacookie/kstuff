@@ -233,6 +233,49 @@
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
 
+  // UDP probe: QUIC/WebTransport can only be tunnelled if the wisp server allows UDP streams. This opens its own wisp (v1) connection
+  // to the hub's current wisp, opens a UDP stream to a public DNS server and checks for an answer. Run it from the console with
+  // `await wbUdpProbe()` (optionally wbUdpProbe(wispUrl, "8.8.8.8", 53)). It also runs once automatically when the game connection fails.
+  async function udpProbe(wispUrl, host, port, timeoutMs) {
+    host = host || "1.1.1.1"; port = port || 53; timeoutMs = timeoutMs || 8000;
+    const P = (m) => console.warn("[webblox] udp probe: " + m);
+    if (!wispUrl) { const h = findHub(); wispUrl = h && h.wisp && h.wisp(); }
+    if (!wispUrl) { P("no wisp url available"); return { ok: false, reason: "no-wisp" }; }
+    const t0 = performance.now();
+    return await new Promise((resolve) => {
+      let done = false, ws = null, opened = false;
+      const enc = new TextEncoder();
+      const finish = (r) => { if (done) return; done = true; clearTimeout(timer); try { ws && ws.close(); } catch {} r.ms = Math.round(performance.now() - t0); P(JSON.stringify(r)); resolve(r); };
+      const timer = setTimeout(() => finish({ ok: false, reason: opened ? "no-reply (UDP blocked or filtered by the wisp)" : "ws-timeout", wisp: wispUrl }), timeoutMs);
+      const frame = (type, id, payload) => { const b = new Uint8Array(5 + payload.length); b[0] = type; new DataView(b.buffer).setUint32(1, id, true); b.set(payload, 5); return b; };
+      const dns = () => { // DNS A query for example.com, id 0xbeef
+        const name = "example.com".split(".").flatMap((l) => [l.length, ...enc.encode(l)]);
+        return new Uint8Array([0xbe, 0xef, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, ...name, 0, 0, 1, 0, 1]);
+      };
+      const connect = () => {
+        const h = enc.encode(host), pl = new Uint8Array(3 + h.length);
+        pl[0] = 2; new DataView(pl.buffer).setUint16(1, port, true); pl.set(h, 3); // stream type 2 = UDP
+        ws.send(frame(0x01, 1, pl));
+        ws.send(frame(0x02, 1, dns()));
+      };
+      try { ws = new WebSocket(wispUrl); ws.binaryType = "arraybuffer"; } catch (e) { return finish({ ok: false, reason: "ws-error: " + e.message }); }
+      let sent = false;
+      ws.onopen = () => { opened = true; P("connected to " + wispUrl); };
+      ws.onerror = () => finish({ ok: false, reason: "ws-error", wisp: wispUrl });
+      ws.onclose = () => finish({ ok: false, reason: opened ? "wisp closed the connection" : "ws-closed", wisp: wispUrl });
+      ws.onmessage = (ev) => {
+        const d = new Uint8Array(ev.data); if (d.length < 5) return;
+        const type = d[0], id = new DataView(d.buffer).getUint32(1, true);
+        if (type === 0x05) return; // v2 INFO, ignore and stay on v1
+        if (type === 0x03 && id === 0 && !sent) { sent = true; connect(); return; }
+        if (type === 0x02 && id === 1) { const r = d.subarray(5); const ok = r.length >= 12 && r[0] === 0xbe && r[1] === 0xef; return finish({ ok, reason: ok ? "udp works" : "unexpected reply", bytes: r.length, wisp: wispUrl, target: host + ":" + port }); }
+        if (type === 0x04 && id === 1) return finish({ ok: false, reason: "wisp refused the UDP stream (close code 0x" + (d[5] || 0).toString(16) + ")", wisp: wispUrl, target: host + ":" + port });
+      };
+      setTimeout(() => { if (!sent && opened) { sent = true; connect(); } }, 1500); // v1 servers that skip the initial CONTINUE
+    });
+  }
+  window.wbUdpProbe = udpProbe;
+
   const findHub = () => {
     for (const w of [window, window.parent, window.top]) {
       try { if (w && w.kNetDirect && typeof w.kNetDirect.sandstone === "function") return w.kNetDirect; } catch {}
@@ -504,6 +547,7 @@
       if (!wtReported) {
         wtReported = true;
         warn("game connection failed: the browser's WebTransport handshake to the game server failed (" + wtFail + "); not relaunching");
+        udpProbe().then((r) => { if (r && r.ok) warn("the wisp allows UDP, so a QUIC tunnel is possible"); else warn("the wisp does not carry UDP (" + (r && r.reason) + "); a QUIC tunnel needs a UDP-capable wisp or a relay"); }).catch(() => {});
         post("blox:failed", { text: "WebBlox: the browser couldn’t open a WebTransport (QUIC/UDP) connection to the Roblox game server. This network or browser may be blocking UDP." });
       }
       return true;
