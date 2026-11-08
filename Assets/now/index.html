@@ -96,6 +96,8 @@ body.app{display:block;padding:0}body.app main{width:100%}
 #ptools .sf-mid{display:none}
 #phandle{position:absolute;top:0;left:50%;transform:translateX(-50%);z-index:29;background:var(--nav-bg,rgba(20,24,48,.82));color:var(--text-color,#fff);border:1px solid var(--line,rgba(255,255,255,.18));border-top:none;border-radius:0 0 14px 14px;padding:2px 16px;cursor:pointer;opacity:.7;line-height:0}
 #phandle:hover{opacity:1}
+#pstatsbox{position:absolute;left:12px;top:12px;z-index:28;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.6);border:1px solid rgba(255,255,255,.15);color:#fff;font:600 .72rem/1.5 ui-monospace,Menlo,Consolas,monospace;white-space:pre;pointer-events:none}#pstatsbox[hidden]{display:none}#ptools #prec.on{color:rgba(255,120,120,1);background:rgba(255,80,80,.2);border-color:rgba(255,90,90,.45)}
+#pkbd{position:absolute;left:50%;bottom:12px;transform:translateX(-50%);z-index:31;width:max-content;max-width:calc(100% - 16px);padding:8px;border-radius:14px;background:var(--nav-bg,rgba(20,24,48,.9));border:1px solid var(--line,rgba(255,255,255,.18));display:flex;flex-direction:column;gap:4px;user-select:none;-webkit-user-select:none;touch-action:manipulation}#pkbd[hidden]{display:none}#pkbd .kr{display:flex;gap:4px;justify-content:center}#pkbd button{min-width:28px;height:30px;padding:0 6px;flex:1 1 0;border-radius:7px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.08);color:rgba(255,255,255,.88);font-family:inherit;font-weight:700;font-size:.72rem;cursor:pointer;white-space:nowrap}#pkbd button:hover{background:rgba(255,255,255,.18)}#pkbd button:active{transform:scale(.94)}#pkbd button.on{background:rgba(52,211,153,.28);border-color:rgba(52,211,153,.55);color:#fff}#pkbd .w2{flex:2 1 0}#pkbd .w4{flex:5 1 0}#pkbd .w3{flex:3 1 0}#pkbd .sp{flex:0 0 10px;visibility:hidden}@media (max-width:640px){#pkbd{padding:5px;gap:3px}#pkbd .kr{gap:3px}#pkbd button{min-width:0;height:34px;padding:0 2px;font-size:.66rem}}
 @media (max-width:640px){#ptools .sf-label,#ptools .sf-title{display:none}#ptools .sf-btn,#ptools .sf-chip{padding:0 9px}#ptools .sf-stats{display:none}}
 #player{outline:0}
 body.app details,#player~details{position:fixed;right:12px;bottom:12px;z-index:200;width:min(620px,94vw);background:rgba(11,13,16,.94);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
@@ -241,7 +243,7 @@ body.embed #settings label{color:var(--e-dim)}
 <small id="set-note">Lower queue number means a shorter wait. Some servers may not be available on your plan.</small>
 <div class="sdl"><button class="btn ghost sm" id="set-dl" type="button">Download full catalog.json</button><small id="set-dl-note">Your whole signed-in GeForce NOW library, ready for the games page.</small></div>
 <div class="foot"><button class="btn ghost" id="set-reset" type="button">Reset</button><button class="btn" id="set-save" type="button">Save</button></div></div></div>
-<div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><button id="phandle" type="button" aria-label="Show controls"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div id="ptools" class="idle" role="toolbar" aria-label="Game controls"><div class="sf-group"><button class="sf-btn" id="pstop" type="button" title="Leave game (keeps the session running)" aria-label="Leave game"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M8 1L3 6l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sf-label">Exit</span></button></div><div class="sf-group sf-mid"><span class="sf-title" id="ptitle"></span></div><div class="sf-group"><div class="sf-chip sf-stats" id="pfps"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="0.5" y="7" width="2.4" height="4" rx="0.6" fill="currentColor"/><rect x="4.3" y="4" width="2.4" height="7" rx="0.6" fill="currentColor"/><rect x="8.1" y="1" width="2.4" height="10" rx="0.6" fill="currentColor"/></svg><span id="pfpst">-- FPS</span></div><button class="sf-btn sf-icon" id="pmic" type="button" title="Microphone off" aria-label="Toggle microphone" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v4"/></svg></button><button class="sf-btn" id="pfs" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 4V1h3M8 1h3v3M1 8v3h3M11 8v3H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="sf-label">Fullscreen</span></button><button class="sf-btn sf-icon" id="pset" type="button" title="Settings" aria-label="Settings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button class="sf-btn danger" id="pend" type="button" title="End the session">End</button></div></div></div>
+<div id="player" hidden tabindex="-1"><video id="pv" autoplay playsinline muted></video><div id="pad" hidden><video id="padv" playsinline></video><div id="padinfo">Ad</div></div><div id="pstatus"></div><div id="pstatsbox" hidden></div><div id="pkbd" hidden></div><button id="phandle" type="button" aria-label="Show controls"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div id="ptools" class="idle" role="toolbar" aria-label="Game controls"><div class="sf-group"><button class="sf-btn" id="pstop" type="button" title="Leave game (keeps the session running)" aria-label="Leave game"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M8 1L3 6l5 5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg><span class="sf-label">Exit</span></button></div><div class="sf-group sf-mid"><span class="sf-title" id="ptitle"></span></div><div class="sf-group"><div class="sf-chip sf-stats" id="pfps"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><rect x="0.5" y="7" width="2.4" height="4" rx="0.6" fill="currentColor"/><rect x="4.3" y="4" width="2.4" height="7" rx="0.6" fill="currentColor"/><rect x="8.1" y="1" width="2.4" height="10" rx="0.6" fill="currentColor"/></svg><span id="pfpst">-- FPS</span></div><button class="sf-btn sf-icon" id="pstats" type="button" aria-pressed="false" title="Show stats" aria-label="Show stats"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></button><button class="sf-btn sf-icon" id="pshot" type="button" title="Screenshot" aria-label="Screenshot"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg></button><button class="sf-btn sf-icon" id="prec" type="button" aria-pressed="false" title="Record clip" aria-label="Record clip"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg></button><button class="sf-btn sf-icon" id="pkb" type="button" title="On-screen keyboard" aria-label="On-screen keyboard" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></button><button class="sf-btn sf-icon" id="ppaste" type="button" title="Paste clipboard text" aria-label="Paste clipboard text"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="5" width="12" height="16" rx="2"/><path d="M9 5V3h6v2M9 11h6M9 15h4"/></svg></button><button class="sf-btn sf-icon" id="pcap" type="button" title="Capture mouse" aria-label="Capture mouse"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 3v7"/></svg></button><button class="sf-btn sf-icon" id="pmute" type="button" title="Sound" aria-label="Sound" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6"/></svg></button><button class="sf-btn sf-icon" id="pmic" type="button" title="Microphone off" aria-label="Toggle microphone" aria-pressed="false"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v4"/></svg></button><button class="sf-btn" id="pfs" type="button" title="Toggle fullscreen" aria-label="Toggle fullscreen"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M1 4V1h3M8 1h3v3M1 8v3h3M11 8v3H8" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="sf-label">Fullscreen</span></button><button class="sf-btn sf-icon" id="pset" type="button" title="Settings" aria-label="Settings"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3h0a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5h0a1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8v0a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button><button class="sf-btn danger" id="pend" type="button" title="End the session">End</button></div></div></div>
 <script type="module">
 const store = {
   get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
@@ -1410,7 +1412,7 @@ async function launch(g) {
     const p = progOf(t); if (p != null) lastP = Math.max(lastP, p);
     toParent("status", { text: t, p: lastP });
   };
-  $("ptitle").textContent = g.title || ""; paintMic(false); $("pfpst").textContent = "-- FPS"; $("pfps").className = "sf-chip sf-stats";
+  $("ptitle").textContent = g.title || ""; paintMic(false); resetTools(); $("pfpst").textContent = "-- FPS"; $("pfps").className = "sf-chip sf-stats";
   st("Starting " + (g.title || "game") + "…");
   try {
     const tokens = await gfnTokens(session);
@@ -1501,6 +1503,7 @@ function paintMic(on, err) {
   b.innerHTML = on ? MIC_ON : MIC_OFF; b.title = err || (on ? "Microphone on" : "Microphone off");
 }
 function paintFps(d) {
+  lastStats = d || null; paintStatsBox();
   const f = Math.round(d && d.fps || 0), c = $("pfps"); $("pfpst").textContent = f + " FPS";
   c.classList.toggle("good", f >= 50); c.classList.toggle("warn", f >= 25 && f < 50); c.classList.toggle("danger", f < 25);
 }
@@ -1511,6 +1514,128 @@ $("pmic").addEventListener("click", async () => {
   catch (e) { const m = (e && e.message) || String(e); log("[mic] failed", m); paintMic(false, m); const ps = $("pstatus"); ps.textContent = m; setTimeout(() => { if (ps.textContent === m) ps.textContent = ""; }, 4000); }
   $("pmic").blur(); focusPlayer();
 });
+let lastStats = null, statsOn = false, recorder = null, recChunks = [];
+function paintStatsBox() {
+  const b = $("pstatsbox"); b.hidden = !statsOn; if (!statsOn) return;
+  const d = lastStats || {}, v = $("pv");
+  b.textContent = "FPS      " + Math.round(d.fps || 0) + "\nDecode   " + (d.decodeMs || 0) + " ms\nJitter   " + (d.jitterBufMs || 0) + " ms\nLost     " + (d.lost || 0) + "\nDropped  " + (d.dropped || 0) + "\nNACK     " + (d.nack || 0) + (v.videoWidth ? "\nRes      " + v.videoWidth + "x" + v.videoHeight : "");
+}
+function stopRec() { if (recorder && recorder.state !== "inactive") { try { recorder.stop(); } catch {} } }
+function resetTools() { stopRec(); kbHide(); lastStats = null; statsOn = false; $("pstats").classList.remove("on"); $("pstats").setAttribute("aria-pressed", "false"); paintStatsBox(); }
+const toolMsg = (m) => { const ps = $("pstatus"); ps.textContent = m; setTimeout(() => { if (ps.textContent === m) ps.textContent = ""; }, 2500); };
+const saveBlob = (blob, name) => { const a = document.createElement("a"), u = URL.createObjectURL(blob); a.href = u; a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); };
+const stamp = () => new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+$("pstats").addEventListener("click", () => { statsOn = !statsOn; $("pstats").classList.toggle("on", statsOn); $("pstats").setAttribute("aria-pressed", statsOn ? "true" : "false"); paintStatsBox(); $("pstats").blur(); focusPlayer(); });
+$("pshot").addEventListener("click", () => {
+  const v = $("pv");
+  if (!v.videoWidth) { toolMsg("Nothing to capture yet"); return; }
+  const c = document.createElement("canvas"); c.width = v.videoWidth; c.height = v.videoHeight;
+  try { c.getContext("2d").drawImage(v, 0, 0); c.toBlob((b) => { if (b) { saveBlob(b, "screenshot-" + stamp() + ".png"); toolMsg("Screenshot saved"); } else toolMsg("Screenshot failed"); }, "image/png"); }
+  catch { toolMsg("Screenshot failed"); }
+  $("pshot").blur(); focusPlayer();
+});
+$("prec").addEventListener("click", () => {
+  const b = $("prec"), v = $("pv");
+  if (recorder && recorder.state !== "inactive") { stopRec(); $("prec").blur(); focusPlayer(); return; }
+  if (!v.captureStream || !window.MediaRecorder) { toolMsg("Recording isn’t supported here"); return; }
+  try {
+    const st = v.captureStream(), mt = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm", "video/mp4"].find((m) => MediaRecorder.isTypeSupported(m)) || "";
+    recChunks = []; const r = new MediaRecorder(st, mt ? { mimeType: mt } : undefined); recorder = r;
+    r.ondataavailable = (e) => { if (e.data && e.data.size) recChunks.push(e.data); };
+    r.onstop = () => { b.classList.remove("on"); b.setAttribute("aria-pressed", "false"); b.title = "Record clip"; const type = r.mimeType || "video/webm"; if (recChunks.length) { saveBlob(new Blob(recChunks, { type }), "clip-" + stamp() + (/mp4/.test(type) ? ".mp4" : ".webm")); toolMsg("Clip saved"); } recChunks = []; if (recorder === r) recorder = null; };
+    r.start(1000); b.classList.add("on"); b.setAttribute("aria-pressed", "true"); b.title = "Stop recording"; toolMsg("Recording…");
+  } catch { recorder = null; toolMsg("Couldn’t start recording"); }
+  $("prec").blur(); focusPlayer();
+});
+const KD = {}, KS = {};
+{ const add = (n, code, kc, shifted) => { KD[n] = { code, kc }; if (shifted) KS[shifted] = n; };
+  for (let i = 0; i < 26; i++) { const l = String.fromCharCode(97 + i); add(l, "Key" + l.toUpperCase(), 65 + i, l.toUpperCase()); }
+  "1234567890".split("").forEach((d, i) => add(d, "Digit" + d, 48 + d.charCodeAt(0) - 48, "!@#$%^&*()"[i]));
+  [["`", "Backquote", 192, "~"], ["-", "Minus", 189, "_"], ["=", "Equal", 187, "+"], ["[", "BracketLeft", 219, "{"], ["]", "BracketRight", 221, "}"], ["\\", "Backslash", 220, "|"], [";", "Semicolon", 186, ":"], ["'", "Quote", 222, '"'], [",", "Comma", 188, "<"], [".", "Period", 190, ">"], ["/", "Slash", 191, "?"]].forEach((a) => add(a[0], a[1], a[2], a[3]));
+  for (let i = 1; i <= 12; i++) add("F" + i, "F" + i, 111 + i);
+  [["Esc", "Escape", 27], ["Tab", "Tab", 9], ["Back", "Backspace", 8], ["Enter", "Enter", 13], ["Space", "Space", 32], ["Del", "Delete", 46], ["Ins", "Insert", 45], ["Home", "Home", 36], ["End", "End", 35], ["PgUp", "PageUp", 33], ["PgDn", "PageDown", 34], ["←", "ArrowLeft", 37], ["↑", "ArrowUp", 38], ["↓", "ArrowDown", 40], ["→", "ArrowRight", 39], ["Shift", "ShiftLeft", 16], ["Ctrl", "ControlLeft", 17], ["Alt", "AltLeft", 18], ["Win", "MetaLeft", 91]].forEach((a) => add(a[0], a[1], a[2]));
+}
+const kbMods = { Shift: false, Ctrl: false, Alt: false, Win: false };
+const kbFlags = () => ({ shiftKey: kbMods.Shift, ctrlKey: kbMods.Ctrl, altKey: kbMods.Alt, metaKey: kbMods.Win });
+function kbFire(down, name, extra) {
+  const d = KD[name]; if (!d) return;
+  const f = Object.assign(kbFlags(), extra || {});
+  const e = new KeyboardEvent(down ? "keydown" : "keyup", Object.assign({ key: name.length === 1 ? name : d.code, code: d.code, keyCode: d.kc, which: d.kc, bubbles: true, cancelable: true }, f));
+  window.dispatchEvent(e);
+}
+const kbTap = (name, extra) => { kbFire(true, name, extra); kbFire(false, name, extra); };
+const kbSleep = (ms) => new Promise((r) => setTimeout(r, ms));
+function kbModToggle(name, btn) {
+  kbMods[name] = !kbMods[name]; btn.classList.toggle("on", kbMods[name]);
+  const d = KD[name]; const e = new KeyboardEvent(kbMods[name] ? "keydown" : "keyup", Object.assign({ key: name, code: d.code, keyCode: d.kc, which: d.kc, bubbles: true, cancelable: true }, kbFlags()));
+  window.dispatchEvent(e);
+}
+function kbReleaseMods() { document.querySelectorAll("#pkbd button.mod.on").forEach((b) => kbModToggle(b.dataset.k, b)); }
+function kbBuild() {
+  const box = $("pkbd"); if (box.dataset.built) return;
+  const rows = [
+    "Esc F1 F2 F3 F4 F5 F6 F7 F8 F9 F10 F11 F12",
+    "` 1 2 3 4 5 6 7 8 9 0 - = Back",
+    "Tab q w e r t y u i o p [ ] \\",
+    "a s d f g h j k l ; ' Enter",
+    "Shift z x c v b n m , . / ↑",
+    "Ctrl Win Alt Space Del ← ↓ →",
+  ];
+  rows.forEach((r) => {
+    const row = document.createElement("div"); row.className = "kr";
+    r.split(" ").forEach((n) => {
+      const b = document.createElement("button"); b.type = "button"; b.dataset.k = n; b.textContent = n.length === 1 ? n.toUpperCase() : n;
+      if (n === "Back" || n === "Enter" || n === "Tab" || n === "Shift") b.className = "w2";
+      if (n === "Space") b.className = "w4";
+      if (kbMods[n] !== undefined) b.classList.add("mod");
+      row.appendChild(b);
+    });
+    box.appendChild(row);
+  });
+  box.dataset.built = "1";
+  box.addEventListener("mousedown", (e) => e.preventDefault());
+  box.addEventListener("pointerdown", (e) => { if (e.pointerType !== "mouse") e.preventDefault(); });
+  box.addEventListener("click", (e) => {
+    const b = e.target.closest("button"); if (!b) return; const n = b.dataset.k;
+    if (kbMods[n] !== undefined) { kbModToggle(n, b); focusPlayer(); return; }
+    kbTap(n); if (kbMods.Shift || kbMods.Ctrl || kbMods.Alt || kbMods.Win) kbReleaseMods(); focusPlayer();
+  });
+}
+function kbHide() { const box = $("pkbd"); if (box.dataset.built) kbReleaseMods(); box.hidden = true; const b = $("pkb"); b.classList.remove("on"); b.setAttribute("aria-pressed", "false"); }
+$("pkb").addEventListener("click", () => {
+  const box = $("pkbd");
+  if (!box.hidden) { kbHide(); } else { kbBuild(); box.hidden = false; $("pkb").classList.add("on"); $("pkb").setAttribute("aria-pressed", "true"); }
+  $("pkb").blur(); focusPlayer();
+});
+async function typeText(txt) {
+  txt = String(txt || "").replace(/\r\n?/g, "\n").slice(0, 2000);
+  let n = 0;
+  for (const ch of txt) {
+    if (!isLive()) break;
+    let name = null, shift = false;
+    if (ch === "\n") name = "Enter"; else if (ch === "\t") name = "Tab"; else if (ch === " ") name = "Space";
+    else if (KD[ch] && ch.length === 1) name = ch; else if (KS[ch]) { name = KS[ch]; shift = true; }
+    if (!name) continue;
+    if (shift) kbFire(true, "Shift", { shiftKey: true });
+    kbTap(name, { shiftKey: shift || kbMods.Shift });
+    if (shift) kbFire(false, "Shift", { shiftKey: false });
+    if (++n % 8 === 0) await kbSleep(6);
+  }
+  return n;
+}
+$("ppaste").addEventListener("click", async () => {
+  let t = "";
+  try { t = await navigator.clipboard.readText(); } catch { t = prompt("Paste the text to type into the game:") || ""; }
+  if (!t) { toolMsg("Clipboard is empty"); } else { toolMsg("Typing " + Math.min(t.length, 2000) + " characters…"); const c = await typeText(t); toolMsg("Typed " + c + " characters"); }
+  $("ppaste").blur(); focusPlayer();
+});
+$("pcap").addEventListener("click", () => { try { const r = $("pv").requestPointerLock && $("pv").requestPointerLock(); r && r.catch && r.catch(() => toolMsg("Click the video to capture the mouse")); } catch { toolMsg("Click the video to capture the mouse"); } $("pcap").blur(); focusPlayer(); });
+const SPK_ON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM17 9a4 4 0 0 1 0 6"/></svg>', SPK_OFF = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9zM17 9l5 6M22 9l-5 6"/></svg>';
+function paintMute() { const v = $("pv"), b = $("pmute"), m = v.muted || v.volume === 0; b.innerHTML = m ? SPK_OFF : SPK_ON; b.classList.toggle("on", !m); b.setAttribute("aria-pressed", m ? "false" : "true"); b.title = m ? "Sound off" : "Sound on"; }
+$("pmute").addEventListener("click", () => { const v = $("pv"); v.muted = !v.muted; if (!v.muted && v.volume === 0) v.volume = 1; v.play().catch(() => {}); paintMute(); $("pmute").blur(); focusPlayer(); });
+$("pv").addEventListener("volumechange", paintMute); paintMute();
+$("pstop").addEventListener("click", () => { stopRec(); kbHide(); });
+$("pend").addEventListener("click", () => { stopRec(); kbHide(); });
 $("pstop").addEventListener("click", () => closePlayer("user"));
 $("pend").addEventListener("click", () => closePlayer("end"));
 const isLive = () => !$("player").hidden && $("player").classList.contains("live");
