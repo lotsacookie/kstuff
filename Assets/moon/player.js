@@ -214,6 +214,7 @@ export class Player {
       this.rot = parseInt(val) || 0;
       this.ready = true;
       this.mount.classList.add("live");
+      setTimeout(() => { this._layoutKeys(); this._buildKeys(); }, 300);
       this._forceRemoteIME();
       this.say("Streaming", "ok");
     } else if (type === "keyboard") {
@@ -312,10 +313,86 @@ export class Player {
     });
     inp.addEventListener("keyup", (e) => e.stopPropagation());
     x.addEventListener("click", () => this._imeClose());
+    const st = document.createElement("style");
+    st.textContent = ".mkl{position:absolute;pointer-events:none;z-index:6;display:none}.mkl.on{display:block}.mk{position:absolute;transform:translate(-50%,-50%);min-width:34px;height:34px;padding:0 8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border-radius:9px;background:rgba(20,24,40,.32);border:1px solid rgba(255,255,255,.4);color:rgba(255,255,255,.85);font:600 12px system-ui,sans-serif;white-space:nowrap}.mk.sm{min-width:28px;height:28px;padding:0 4px}.mk.press{background:rgba(255,255,255,.55);color:#000}";
+    this.mount.querySelector(".stage").append(st);
+    const kl = this.keyLayer = document.createElement("div");
+    kl.className = "mkl";
+    this.mount.querySelector(".stage").append(kl);
+    this.keyEls = new Map(); this.rock = new Set(); this.rockOn = false;
+    try { this.showKeys = localStorage.getItem("moon_hotkeys") !== "0"; } catch { this.showKeys = true; }
+    const relayout = () => this._layoutKeys();
+    v.addEventListener("resize", () => { relayout(); this._buildKeys(); });
+    v.addEventListener("loadedmetadata", () => { relayout(); this._buildKeys(); });
+    addEventListener("resize", relayout);
+    this._rzKeys = relayout;
     this._kd = (e) => this._key(e, true); this._ku = (e) => this._key(e, false);
     addEventListener("keydown", this._kd); addEventListener("keyup", this._ku);
     this._raf = () => { if (this.pending) { this.send(this.pending); this.pending = null; } this._rid = requestAnimationFrame(this._raf); };
     this._rid = requestAnimationFrame(this._raf);
+  }
+  _cfgc() { const c = this.cfg; return c ? (c.keyBoard ? c : (c.config || {})) : {}; }
+  _layoutKeys() {
+    const v = this.video, L = this.keyLayer, stage = this.mount && this.mount.querySelector(".stage");
+    if (!v || !L || !stage) return;
+    const vw = v.videoWidth, vh = v.videoHeight;
+    if (!vw || !vh) return;
+    const r = v.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    const sc = Math.min(r.width / vw, r.height / vh), cw = vw * sc, ch = vh * sc;
+    L.style.left = (r.left - sr.left + (r.width - cw) / 2) + "px";
+    L.style.top = (r.top - sr.top + (r.height - ch) / 2) + "px";
+    L.style.width = cw + "px"; L.style.height = ch + "px";
+  }
+  _buildKeys() {
+    const L = this.keyLayer, v = this.video;
+    if (!L || !v) return;
+    L.textContent = ""; this.keyEls = new Map();
+    const c = this._cfgc(), kb = c.keyBoard, vw = v.videoWidth, vh = v.videoHeight;
+    if (!kb || !vw || !vh) { L.classList.remove("on"); return; }
+    if (c.keyBoardDirection != null && Number(c.keyBoardDirection) !== this.rot && Number(c.keyBoardDirection) !== (vw >= vh ? 1 : 0)) { L.classList.remove("on"); return; }
+    const put = (x, y, text, small, key) => {
+      const d = document.createElement("div");
+      d.className = "mk" + (small ? " sm" : "");
+      d.textContent = text;
+      d.style.left = (x / vw * 100) + "%"; d.style.top = (y / vh * 100) + "%";
+      L.append(d);
+      if (key) this.keyEls.set(key, d);
+    };
+    const rock = c.supportLeftRocker && !c.hideLeftRocker && c.center && Number.isFinite(+c.center.x) && Number.isFinite(+c.center.y);
+    for (const k of Object.keys(kb)) {
+      const m = kb[k], co = m && m.coordinate;
+      if (!co || co === "0,0") continue;
+      const [x, y] = String(co).split(",").map(Number);
+      if (!Number.isFinite(x) || !Number.isFinite(y)) continue;
+      const str = (m.str != null && m.str !== "") ? String(m.str) : (k.length === 1 ? k.toUpperCase() : k);
+      put(x, y, str, false, k);
+    }
+    if (rock) {
+      const cx = +c.center.x, cy = +c.center.y, d = 38;
+      const skip = (k) => kb[k] && kb[k].coordinate && kb[k].coordinate !== "0,0";
+      if (!skip("w")) put(cx, cy - d, "W", true, "w");
+      if (!skip("a")) put(cx - d, cy, "A", true, "a");
+      if (!skip("s")) put(cx, cy + d, "S", true, "s");
+      if (!skip("d")) put(cx + d, cy, "D", true, "d");
+    }
+    this._layoutKeys();
+    L.classList.toggle("on", !!this.showKeys && this.keyEls.size > 0);
+  }
+  toggleKeys() {
+    this.showKeys = !this.showKeys;
+    try { localStorage.setItem("moon_hotkeys", this.showKeys ? "1" : "0"); } catch {}
+    this._buildKeys();
+    return this.showKeys;
+  }
+  _hi(k, on) { const el = this.keyEls && this.keyEls.get(k); if (el) el.classList.toggle("press", !!on); }
+  _rocker(c) {
+    const r = this.rock, cx = +c.center.x, cy = +c.center.y, R = 110;
+    let dx = (r.has("d") ? 1 : 0) - (r.has("a") ? 1 : 0), dy = (r.has("s") ? 1 : 0) - (r.has("w") ? 1 : 0);
+    if (!dx && !dy) { if (this.rockOn) { this.send(`touch>Touch end:9,${cx},${cy}`); this.rockOn = false; } return; }
+    const n = Math.hypot(dx, dy); dx = dx / n * R; dy = dy / n * R;
+    const x = Math.round(cx + dx), y = Math.round(cy + dy);
+    if (!this.rockOn) { this.send(`touch>Touch start:9,${cx},${cy}`); this.rockOn = true; }
+    this.send(`touch>Touch move:9,${x},${y}`);
   }
   _forceRemoteIME() {
     const go = () => { if (this.stopped) return; this.send("softinput>hide"); this.send("softinput>switch:remote"); };
@@ -360,10 +437,18 @@ export class Player {
     const kb = this.cfg && (this.cfg.keyBoard || (this.cfg.config && this.cfg.config.keyBoard));
     const k = (e.key || "").toLowerCase();
     const map = kb && kb[k];
+    const cc = this._cfgc();
+    if (!(map && map.coordinate && map.coordinate !== "0,0") && k.length === 1 && "wasd".includes(k) && cc.supportLeftRocker && !cc.hideLeftRocker && cc.center && !this.imeOpen) {
+      e.preventDefault();
+      if (down) this.rock.add(k); else this.rock.delete(k);
+      this._hi(k, down);
+      this._rocker(cc);
+      return;
+    }
     if (map && map.coordinate && map.coordinate !== "0,0") {
       e.preventDefault();
-      if (down && !this.keys.has(k)) { const id = this.touchN++ % 10 + 10; this.keys.set(k, id); this.send(`touch>Touch start:${id},${map.coordinate}`); }
-      else if (!down && this.keys.has(k)) { this.send(`touch>Touch end:${this.keys.get(k)},${map.coordinate}`); this.keys.delete(k); }
+      if (down && !this.keys.has(k)) { const id = this.touchN++ % 10 + 10; this.keys.set(k, id); this._hi(k, true); this.send(`touch>Touch start:${id},${map.coordinate}`); }
+      else if (!down && this.keys.has(k)) { this._hi(k, false); this.send(`touch>Touch end:${this.keys.get(k)},${map.coordinate}`); this.keys.delete(k); }
       return;
     }
     if (this.typing && AK[e.code] != null) {
@@ -378,7 +463,7 @@ export class Player {
   async stop(notify = false, reason = "") {
     if (this.stopping) return; this.stopping = true; this.stopped = true;
     cancelAnimationFrame(this._rid);
-    removeEventListener("keydown", this._kd); if (this._unmute) for (const t of ["pointerdown", "keydown", "touchstart", "click"]) removeEventListener(t, this._unmute, true); removeEventListener("keyup", this._ku);
+    removeEventListener("keydown", this._kd); if (this._rzKeys) removeEventListener("resize", this._rzKeys); if (this._unmute) for (const t of ["pointerdown", "keydown", "touchstart", "click"]) removeEventListener(t, this._unmute, true); removeEventListener("keyup", this._ku);
     try { this.sock && this.sock.close(); } catch {}
     try { this.dc && (this.dc.onclose = null, this.dc.close()); } catch {}
     try { this.pc && this.pc.close(); } catch {}
