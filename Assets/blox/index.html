@@ -319,6 +319,7 @@
     WT.prototype.close = function (info) { send({ t: "close", id: this._id, info: info || {} }); };
     WT.__wbBridge = true;
     self.WebTransport = WT;
+    try { console.warn("[webblox] worker shim active"); } catch (x) {}
   }
 
   function mainBridge(PRELUDE) {
@@ -352,10 +353,12 @@
         try { wt = opts ? new w.WebTransport(m.url, opts) : new w.WebTransport(m.url); }
         catch (err) { post({ t: "readyfail", id: m.id, error: String((err && err.message) || err) }); return; }
         var c = conns[m.id] = { wt: wt, outs: {}, nextOut: 1, nextIn: 1, dgw: null };
+        L("bridge: opening WebTransport " + m.url + " hashes=" + ((m.hashes && m.hashes.length) || 0));
         wt.ready.then(function () {
+          L("bridge: WebTransport ready");
           post({ t: "ready", id: m.id, max: (wt.datagrams && wt.datagrams.maxDatagramSize) || 0 });
           readDatagrams(c, m.id); readIncoming(c, m.id);
-        }, function (err) { post({ t: "readyfail", id: m.id, error: String((err && err.message) || err) }); });
+        }, function (err) { L("bridge: WebTransport ready failed: " + ((err && err.message) || err)); post({ t: "readyfail", id: m.id, error: String((err && err.message) || err) }); });
         wt.closed.then(function (i) { post({ t: "closed", id: m.id, info: { closeCode: i && i.closeCode, reason: i && i.reason } }); },
           function (err) { post({ t: "closedfail", id: m.id, error: String((err && err.message) || err) }); });
       }
@@ -385,6 +388,7 @@
         var abs = new URL(String(url), location.href).href;
         var code = PRELUDE + (opts && opts.type === "module" ? ";await import(" + JSON.stringify(abs) + ");" : ";importScripts(" + JSON.stringify(abs) + ");");
         nw = new NW(URL.createObjectURL(new Blob([code], { type: "text/javascript" })), opts);
+        L("wrapped worker " + abs.slice(-70) + (opts && opts.type ? " (" + opts.type + ")" : ""));
       } catch (e) { L("worker wrap failed, using plain worker: " + e); return new NW(url, opts); }
       try { var mc = new MessageChannel(); nw.postMessage({ __wbwt: 1, port: mc.port2 }, [mc.port2]); serve(mc.port1); } catch (e) { L("worker bridge failed: " + e); }
       return nw;
@@ -402,7 +406,7 @@
     "var N=w.WebTransport;if(N&&!N.__wb){var T=function(u,o){L('new WebTransport '+u+' hashes='+((o&&o.serverCertificateHashes)||[]).length);var t=new N(u,o);t.ready.then(function(){L('WebTransport ready')},function(e){L('WebTransport ready failed: '+(e&&e.message||e))});t.closed.then(function(i){L('WebTransport closed '+JSON.stringify(i))},function(e){L('WebTransport closed error: '+(e&&e.message||e))});return t};T.prototype=N.prototype;T.__wb=1;w.WebTransport=T}",
     "}catch(e){console.warn('[webblox] probe error '+e)}})();"
   ].join("");
-  const probeScript = () => "<script data-webblox>" + PROBE + ";(" + mainBridge.toString() + ")(" + JSON.stringify("(" + workerPrelude.toString() + ")();") + ");<\/script>";
+  const probeScript = () => "<script data-webblox>;(" + mainBridge.toString() + ")(" + JSON.stringify("(" + workerPrelude.toString() + ")();") + ");" + PROBE + "<\/script>";
   const injectFlags = (html) => {
     if (typeof html !== "string") return html;
     const extra = flagScript() + probeScript();
