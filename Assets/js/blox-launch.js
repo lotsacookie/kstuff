@@ -18,6 +18,11 @@ export function init(K) {
 #blox-loading .ld-word span{font-weight:400;opacity:.6}
 #blox-loading .ld-status{text-align:center;max-width:80vw;padding:0 12px}
 #blox-loading.failed .ld-status{color:#ff6b6b;opacity:1}
+#blox-loading .blox-ld-ask{display:none;gap:10px;align-items:center;justify-content:center;margin:0}
+#blox-loading.asking .blox-ld-ask{display:flex}
+#blox-ld-place{width:min(300px,62vw);box-sizing:border-box;padding:.55rem .9rem;border-radius:12px;border:1px solid var(--line,var(--hairline,rgba(255,255,255,.2)));background:var(--card-bg,transparent);color:var(--text-color,#fff);font:inherit;font-weight:700;text-align:center;outline:none;transition:border-color .2s ease}
+#blox-ld-place::placeholder{color:var(--text-color,#fff);opacity:.45;font-weight:600}
+#blox-ld-place:hover,#blox-ld-place:focus{border-color:var(--text-color,#fff)}
 #blox-loading .blox-ld-btns{display:flex;gap:10px;min-height:2.6rem;align-items:center}
 #blox-loading .page-btn{padding:8px 20px}
 #blox-frame{position:absolute;inset:0;display:block;width:100%!important;height:100%!important;min-width:100%;min-height:100%;border:0;background:transparent;z-index:55;visibility:hidden}
@@ -79,14 +84,34 @@ export function init(K) {
     ensureHost();
     ensureStyle();
     const load = document.createElement('div'); load.id = 'blox-loading'; load.className = 'hidden';
-    load.innerHTML = `${LOGO}<div class="ld-word">Web<span>Blox</span></div><div class="ld-bar"><div class="ld-fill" id="blox-ld-fill"></div></div><div class="ld-status" id="blox-ld-status">Loading</div><div class="blox-ld-btns"><button class="page-btn" id="blox-ld-cancel" type="button">Cancel</button><button class="page-btn" id="blox-ld-log" type="button">Log</button><button class="page-btn" id="blox-ld-back" type="button" hidden>Back</button></div>`;
+    load.innerHTML = `${LOGO}<div class="ld-word">Web<span>Blox</span></div><div class="ld-bar"><div class="ld-fill" id="blox-ld-fill"></div></div><div class="ld-status" id="blox-ld-status">Loading</div><form class="blox-ld-ask" id="blox-ld-ask" autocomplete="off"><input id="blox-ld-place" type="text" inputmode="numeric" placeholder="Place ID or game link" spellcheck="false" aria-label="Place ID"><button class="page-btn" id="blox-ld-go" type="submit">Launch</button></form><div class="blox-ld-btns"><button class="page-btn" id="blox-ld-cancel" type="button">Cancel</button><button class="page-btn" id="blox-ld-log" type="button">Log</button><button class="page-btn" id="blox-ld-back" type="button" hidden>Back</button></div>`;
     host.appendChild(load);
     const x = document.createElement('button'); x.id = 'blox-x'; x.type = 'button'; x.title = 'Close'; x.innerHTML = '<i class="ph ph-x"></i>'; x.onclick = () => end(true); host.appendChild(x);
-    ui = { x, load, fill: $('blox-ld-fill'), status: $('blox-ld-status'), cancel: $('blox-ld-cancel'), back: $('blox-ld-back'), log: $('blox-ld-log') };
+    ui = { x, load, ask: $('blox-ld-ask'), place: $('blox-ld-place'), fill: $('blox-ld-fill'), status: $('blox-ld-status'), cancel: $('blox-ld-cancel'), back: $('blox-ld-back'), log: $('blox-ld-log') };
     // the loader covers the client page, so this brings the client forward with its console open
     ui.log.onclick = () => { if (!frame) return; showFrame(true, true); post({ type: 'blox:console' }); };
     ui.cancel.onclick = ui.back.onclick = () => end(true);
     return ui;
+  }
+  // The player always chooses the game: no default Place ID, and nothing starts until one is entered.
+  const parsePlace = v => {
+    const t = String(v || '').trim();
+    const m = /roblox\.com\/(?:[a-z-]+\/)?games\/(\d{1,20})/i.exec(t) || /^(\d{1,20})$/.exec(t);
+    return m ? m[1] : '';
+  };
+  function askPlace() {
+    return new Promise(resolve => {
+      ui.load.classList.add('asking'); ui.place.value = '';
+      ui.status.textContent = 'Enter the Place ID of the game to join';
+      ui.ask.onsubmit = e => {
+        e.preventDefault();
+        const id = parsePlace(ui.place.value);
+        if (!id) { ui.status.textContent = 'Enter a numeric Place ID or a roblox.com/games link'; ui.place.focus(); return; }
+        ui.load.classList.remove('asking'); ui.ask.onsubmit = null;
+        resolve(id);
+      };
+      setTimeout(() => { try { ui.place.focus(); } catch {} }, 60);
+    });
   }
   const setStatus = t => { if (ui) ui.status.textContent = t || ''; };
   const setProg = p => { if (ui) ui.fill.style.transform = `scaleX(${Math.min(Math.max(p, 0), 1)})`; };
@@ -165,6 +190,7 @@ export function init(K) {
 
   function end(userCancelled) {
     token++;
+    ui?.load.classList.remove('asking');
     if (userCancelled && frame) { frame.remove(); frame = null; frameP = null; ready = false; }
     launching = false; live = false; wanted = null;
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -177,6 +203,7 @@ export function init(K) {
   function fail(text) {
     if (!ui) return;
     live = false; showFrame(false); frame?.style.removeProperty('visibility'); ui.x.classList.remove('on');
+    ui.load.classList.remove('asking');
     ui.load.classList.remove('hidden'); ui.load.classList.add('failed');
     setStatus(text); ui.cancel.hidden = true; ui.back.hidden = false;
   }
@@ -211,20 +238,24 @@ export function init(K) {
 
   // ---------------------------------------------------------------- public API
   K.openBloxGame = async item => {
-    if (!item || !/^\d{1,20}$/.test(String(item.bloxId || ''))) return;
-    if (launching) return;
+    if (!item || launching) return;
     ensureHost(); ensureUi();
     const my = ++token;
-    launching = true; live = false;
+    launching = true; live = false; wanted = null;
     host.classList.add('blox-running');
     ui.load.classList.remove('hidden', 'failed'); ui.cancel.hidden = false; ui.back.hidden = true;
-    setProg(0.02); setStatus('Starting');
+    setProg(0.02);
+    // the client loads in the background while the player types the Place ID
+    const mounted = mountFrame();
+    mounted.catch(err => { if (my === token) fail('Couldn’t start WebBlox: ' + ((err && err.message) || err)); });
     try {
-      setStatus('Loading the WebBlox client…');
-      await mountFrame();
+      const id = await askPlace();
       if (my !== token) return;
-      wanted = { id: String(item.bloxId), title: item.bloxName || item.title };
-      setProg(0.05); setStatus('Starting ' + wanted.title);
+      setStatus('Loading the WebBlox client…'); setProg(0.05);
+      await mounted;
+      if (my !== token) return;
+      wanted = { id, title: item.bloxName || item.title || 'WebBlox' };
+      setStatus('Starting game ' + id);
       post({ type: 'blox:launch', game: wanted });
     } catch (err) {
       if (my !== token) return;

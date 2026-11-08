@@ -201,7 +201,6 @@
   const post = (type, extra) => { if (!embedded) return; try { window.parent.postMessage(Object.assign({ type }, extra || {}), "*"); } catch {} };
   let lastSay = "";
   const say = (t) => { if (status) status.textContent = t; if (t !== lastSay) { lastSay = t; post("blox:status", { text: t }); } };
-  const DEFAULT_PLACE = "10879318443";
   const START = "https://play.roblox.com/games/start";
   const FLAGS = { FFlagBaseClientGateOnSendChannel: "False", FLogGameJoinUtil: "7" };
   // Auto-patch for "Failed to open send channel Chat! (256)" on "Joining server".
@@ -258,7 +257,7 @@
     const h = loc.hash.slice(1);
     if (/^https?:\/\//i.test(h)) return h;
     const id = place || window.__BLOX_PLACE || new URLSearchParams(loc.search).get("placeId") || "";
-    return START + "?placeId=" + (/^\d{1,20}$/.test(String(id)) ? id : DEFAULT_PLACE);
+    return /^\d{1,20}$/.test(String(id)) ? START + "?placeId=" + id : START;
   };
 
   const flagScript = () => {
@@ -526,8 +525,7 @@
     return frame;
   }
 
-  // Place ID prompt on the loading screen. Standalone: wait for the user. Embedded: the host's pick is prefilled and starts
-  // by itself after a few seconds unless the user touches the field.
+  // Place ID prompt for standalone use (embedded in kstuff, the Singularity loading screen asks and sends the ID). Nothing starts until one is entered.
   const form = document.getElementById("wb-form"), placeInput = document.getElementById("wb-place");
   let askPending = null;
   const parsePlace = (v) => {
@@ -535,16 +533,12 @@
     const m = /roblox\.com\/(?:[a-z-]+\/)?games\/(\d{1,20})/i.exec(t) || /^(\d{1,20})$/.exec(t);
     return m ? m[1] : "";
   };
-  const lastPlace = () => { try { return localStorage.getItem("blox_place") || ""; } catch { return ""; } };
-  const showForm = (prefill, autoMs) => {
+  const showForm = (prefill) => {
     if (askPending) { if (prefill) placeInput.value = prefill; return askPending; }
-    let timer = null;
     askPending = new Promise((resolve) => {
       const done = () => {
         const id = parsePlace(placeInput.value);
         if (!id) { say("Enter a numeric Place ID"); placeInput.focus(); return; }
-        clearTimeout(timer);
-        try { localStorage.setItem("blox_place", id); } catch {}
         form.classList.remove("show"); form.onsubmit = null; askPending = null;
         say("Starting…");
         resolve(id);
@@ -552,18 +546,12 @@
       form.onsubmit = (e) => { e.preventDefault(); done(); };
       placeInput.value = prefill || "";
       form.classList.add("show");
-      say(autoMs ? "Starting game " + prefill + "… edit the Place ID to change it" : "Enter the Place ID of the game to join");
-      if (autoMs) {
-        timer = setTimeout(done, autoMs);
-        const stop = () => { clearTimeout(timer); say("Enter the Place ID of the game to join"); };
-        placeInput.addEventListener("focus", stop, { once: true });
-        placeInput.addEventListener("input", stop, { once: true });
-      }
-      else setTimeout(() => { try { placeInput.focus(); placeInput.select(); } catch {} }, 0);
+      say("Enter the Place ID of the game to join");
+      setTimeout(() => { try { placeInput.focus(); placeInput.select(); } catch {} }, 0);
     });
     return askPending;
   };
-  const defaultPlace = () => parsePlace(window.__BLOX_PLACE) || parsePlace(new URLSearchParams(pageLocation().search).get("placeId")) || lastPlace() || DEFAULT_PLACE;
+  const defaultPlace = () => parsePlace(window.__BLOX_PLACE) || parsePlace(new URLSearchParams(pageLocation().search).get("placeId")) || "";
 
   const launch = (id) => {
     if (id && /^\d{1,20}$/.test(String(id))) place = String(id);
@@ -580,7 +568,7 @@
     if (!d || typeof d !== "object" || typeof d.type !== "string") return;
     if (d.type === "blox:launch") {
       const id = parsePlace(d.game && d.game.id);
-      if (booted) launch(id); else showForm(id || defaultPlace(), id ? 4000 : 0).then(launch);
+      if (id) launch(id);
     }
     if (d.type === "blox:console") { try { globalThis.__wbConsole && globalThis.__wbConsole.open(); } catch {} }
   });
