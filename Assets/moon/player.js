@@ -207,13 +207,14 @@ export class Player {
   }
 
   _dcMessage(m) {
+    if (!/^rotation>/.test(m)) console.log("[player] dc", m.slice(0, 200));
     const i = m.indexOf(">");
     const type = i < 0 ? m : m.slice(0, i), val = i < 0 ? "" : m.slice(i + 1);
     if (type === "rotation") {
       this.rot = parseInt(val) || 0;
       this.ready = true;
       this.mount.classList.add("live");
-      this.send("softinput>switch:local");
+      this._forceRemoteIME();
       this.say("Streaming", "ok");
     } else if (type === "keyboard") {
       this.typing = true;
@@ -315,6 +316,11 @@ export class Player {
     addEventListener("keydown", this._kd); addEventListener("keyup", this._ku);
     this._raf = () => { if (this.pending) { this.send(this.pending); this.pending = null; } this._rid = requestAnimationFrame(this._raf); };
     this._rid = requestAnimationFrame(this._raf);
+  }
+  _forceRemoteIME() {
+    const go = () => { if (this.stopped) return; this.send("softinput>hide"); this.send("softinput>switch:remote"); };
+    go();
+    for (const ms of [1500, 5000, 12000]) setTimeout(go, ms);
   }
   _imeShow() {
     if (!this.imeBox) return;
