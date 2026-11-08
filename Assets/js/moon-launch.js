@@ -90,8 +90,13 @@ export function init(K) {
     ensureHost();
     ensureStyle();
     frameP = (async () => {
-      const html = await clientHtml(true);
+      let html = await clientHtml(true);
       const boot = `<base href="${base}"><script>window.__MOON_EMBED=true;window.__MOON_BASE=${JSON.stringify(base)};<\/script>`;
+      const sg = window.singularity;
+      const packed = f => { try { return sg && sg.has && sg.has(DIR + f) ? sg.url(DIR + f) : null; } catch { return null; } };
+      const pu = packed('proxy.js'), pl = packed('player.js');
+      if (pu) html = html.replace(/(<script[^>]*\ssrc=["'])\.\/proxy\.js(["'])/i, (m, a, b) => a + pu + b);
+      if (pl) html = html.replace(/(from\s*["'])\.\/player\.js(["'])/, (m, a, b) => a + pl + b);
       const doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + boot) : boot + html;
       frame = document.createElement('iframe');
       frame.id = 'moon-frame'; frame.title = 'CloudMoon';
