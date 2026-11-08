@@ -260,7 +260,7 @@
     "var N=w.WebTransport;if(N&&!N.__wb){var T=function(u,o){L('new WebTransport '+u+' hashes='+((o&&o.serverCertificateHashes)||[]).length);var t=new N(u,o);t.ready.then(function(){L('WebTransport ready')},function(e){L('WebTransport ready failed: '+(e&&e.message||e))});t.closed.then(function(i){L('WebTransport closed '+JSON.stringify(i))},function(e){L('WebTransport closed error: '+(e&&e.message||e))});return t};T.prototype=N.prototype;T.__wb=1;w.WebTransport=T}",
     "}catch(e){console.warn('[webblox] probe error '+e)}})();"
   ].join("");
-  const probeScript = () => "<script data-webblox>" + PROBE + "<\\/script>";
+  const probeScript = () => "<script data-webblox>" + PROBE + "<\/script>";
   const injectFlags = (html) => {
     if (typeof html !== "string") return html;
     const extra = flagScript() + probeScript();
@@ -348,6 +348,7 @@
     const d = e.data;
     if (!d || typeof d !== "object" || typeof d.type !== "string") return;
     if (d.type === "blox:launch") launch(d.game && d.game.id);
+    if (d.type === "blox:console") { try { globalThis.__wbConsole && globalThis.__wbConsole.open(); } catch {} }
   });
 
   if (embedded) post("blox:ready"); else launch();

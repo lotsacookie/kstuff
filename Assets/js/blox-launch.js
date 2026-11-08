@@ -79,10 +79,12 @@ export function init(K) {
     ensureHost();
     ensureStyle();
     const load = document.createElement('div'); load.id = 'blox-loading'; load.className = 'hidden';
-    load.innerHTML = `${LOGO}<div class="ld-word">Web<span>Blox</span></div><div class="ld-bar"><div class="ld-fill" id="blox-ld-fill"></div></div><div class="ld-status" id="blox-ld-status">Loading</div><div class="blox-ld-btns"><button class="page-btn" id="blox-ld-cancel" type="button">Cancel</button><button class="page-btn" id="blox-ld-back" type="button" hidden>Back</button></div>`;
+    load.innerHTML = `${LOGO}<div class="ld-word">Web<span>Blox</span></div><div class="ld-bar"><div class="ld-fill" id="blox-ld-fill"></div></div><div class="ld-status" id="blox-ld-status">Loading</div><div class="blox-ld-btns"><button class="page-btn" id="blox-ld-cancel" type="button">Cancel</button><button class="page-btn" id="blox-ld-log" type="button">Log</button><button class="page-btn" id="blox-ld-back" type="button" hidden>Back</button></div>`;
     host.appendChild(load);
     const x = document.createElement('button'); x.id = 'blox-x'; x.type = 'button'; x.title = 'Close'; x.innerHTML = '<i class="ph ph-x"></i>'; x.onclick = () => end(true); host.appendChild(x);
-    ui = { x, load, fill: $('blox-ld-fill'), status: $('blox-ld-status'), cancel: $('blox-ld-cancel'), back: $('blox-ld-back'), };
+    ui = { x, load, fill: $('blox-ld-fill'), status: $('blox-ld-status'), cancel: $('blox-ld-cancel'), back: $('blox-ld-back'), log: $('blox-ld-log') };
+    // the loader covers the client page, so this brings the client forward with its console open
+    ui.log.onclick = () => { if (!frame) return; showFrame(true, true); post({ type: 'blox:console' }); };
     ui.cancel.onclick = ui.back.onclick = () => end(true);
     return ui;
   }
