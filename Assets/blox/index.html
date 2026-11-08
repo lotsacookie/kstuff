@@ -178,10 +178,19 @@
   html, body { margin: 0; height: 100%; background: #111; color: #ddd; font-family: system-ui, sans-serif; overflow: hidden; }
   #wb-boot { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; }
   #wb-status { opacity: .8; font-size: 14px; margin-top: 8px; }
+  #wb-form { display: none; margin-top: 18px; }
+  #wb-form.show { display: block; }
+  #wb-row { display: flex; gap: 8px; justify-content: center; }
+  #wb-place { width: min(260px, 60vw); padding: 10px 12px; border-radius: 8px; border: 1px solid #555; background: #1b1b1b; color: #eee; font: inherit; font-size: 15px; text-align: center; outline: none; }
+  #wb-place:focus { border-color: #8ab4ff; }
+  #wb-go { padding: 10px 18px; border-radius: 8px; border: 0; background: #3b82f6; color: #fff; font: inherit; font-size: 15px; cursor: pointer; }
+  #wb-go:hover { background: #2f6fd8; }
+  #wb-hint { opacity: .55; font-size: 12px; margin-top: 8px; }
 </style>
 </head>
 <body>
-<div id="wb-boot"><div><h2 style="margin:0">WebBlox</h2><div id="wb-status">Starting…</div></div></div>
+<div id="wb-boot"><div><h2 style="margin:0">WebBlox</h2><div id="wb-status">Starting…</div>
+<form id="wb-form" autocomplete="off"><div id="wb-row"><input id="wb-place" inputmode="numeric" placeholder="Place ID" aria-label="Place ID" spellcheck="false"><button id="wb-go" type="submit">Launch</button></div><div id="wb-hint">Paste a Place ID or a roblox.com/games/… link.</div></form></div></div>
 <script>
 (() => {
   // WebBlox inside kstuff: every request goes through the kstuff net hub (window.kNetDirect). This page never creates
@@ -517,10 +526,49 @@
     return frame;
   }
 
+  // Place ID prompt on the loading screen. Standalone: wait for the user. Embedded: the host's pick is prefilled and starts
+  // by itself after a few seconds unless the user touches the field.
+  const form = document.getElementById("wb-form"), placeInput = document.getElementById("wb-place");
+  let askPending = null;
+  const parsePlace = (v) => {
+    const t = String(v || "").trim();
+    const m = /roblox\.com\/(?:[a-z-]+\/)?games\/(\d{1,20})/i.exec(t) || /^(\d{1,20})$/.exec(t);
+    return m ? m[1] : "";
+  };
+  const lastPlace = () => { try { return localStorage.getItem("blox_place") || ""; } catch { return ""; } };
+  const showForm = (prefill, autoMs) => {
+    if (askPending) { if (prefill) placeInput.value = prefill; return askPending; }
+    let timer = null;
+    askPending = new Promise((resolve) => {
+      const done = () => {
+        const id = parsePlace(placeInput.value);
+        if (!id) { say("Enter a numeric Place ID"); placeInput.focus(); return; }
+        clearTimeout(timer);
+        try { localStorage.setItem("blox_place", id); } catch {}
+        form.classList.remove("show"); form.onsubmit = null; askPending = null;
+        say("Starting…");
+        resolve(id);
+      };
+      form.onsubmit = (e) => { e.preventDefault(); done(); };
+      placeInput.value = prefill || "";
+      form.classList.add("show");
+      say(autoMs ? "Starting game " + prefill + "… edit the Place ID to change it" : "Enter the Place ID of the game to join");
+      if (autoMs) {
+        timer = setTimeout(done, autoMs);
+        const stop = () => { clearTimeout(timer); say("Enter the Place ID of the game to join"); };
+        placeInput.addEventListener("focus", stop, { once: true });
+        placeInput.addEventListener("input", stop, { once: true });
+      }
+      else setTimeout(() => { try { placeInput.focus(); placeInput.select(); } catch {} }, 0);
+    });
+    return askPending;
+  };
+  const defaultPlace = () => parsePlace(window.__BLOX_PLACE) || parsePlace(new URLSearchParams(pageLocation().search).get("placeId")) || lastPlace() || DEFAULT_PLACE;
+
   const launch = (id) => {
     if (id && /^\d{1,20}$/.test(String(id))) place = String(id);
     if (!booted) {
-      booted = boot().catch((e) => { booted = null; say("Failed: " + ((e && e.message) || e)); console.error(e); post("blox:failed", { text: "Couldn’t start WebBlox: " + ((e && e.message) || e) }); });
+      booted = boot().catch((e) => { booted = null; say("Failed: " + ((e && e.message) || e)); console.error(e); if (!embedded) showForm(place || defaultPlace()).then(launch); post("blox:failed", { text: "Couldn’t start WebBlox: " + ((e && e.message) || e) }); });
       return booted;
     }
     return booted.then((f) => { if (f && f.navigate_to) return f.navigate_to(startUrl()).then(() => post("blox:live")); });
@@ -530,11 +578,14 @@
     if (embedded && e.source !== window.parent) return;
     const d = e.data;
     if (!d || typeof d !== "object" || typeof d.type !== "string") return;
-    if (d.type === "blox:launch") launch(d.game && d.game.id);
+    if (d.type === "blox:launch") {
+      const id = parsePlace(d.game && d.game.id);
+      if (booted) launch(id); else showForm(id || defaultPlace(), id ? 4000 : 0).then(launch);
+    }
     if (d.type === "blox:console") { try { globalThis.__wbConsole && globalThis.__wbConsole.open(); } catch {} }
   });
 
-  if (embedded) post("blox:ready"); else launch();
+  if (embedded) post("blox:ready"); else showForm(defaultPlace()).then(launch);
 })();
 </script>
 </body>
