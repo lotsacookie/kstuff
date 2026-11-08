@@ -1406,7 +1406,7 @@ async function launch(g) {
   const st = (t) => {
     $("pstatus").textContent = t || "";
     if (!EMBED || gen !== launchGen) return;
-    if (!t) { pl.classList.add("live"); toParent("live"); focusPlayer(); pokeBar(); return; }
+    if (!t) { pl.classList.add("live"); toParent("live"); focusPlayer(); return; }
     const p = progOf(t); if (p != null) lastP = Math.max(lastP, p);
     toParent("status", { text: t, p: lastP });
   };
@@ -1493,7 +1493,6 @@ async function closePlayer(reason) {
 const MIC_ON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v4"/></svg>', MIC_OFF = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 2l20 20M9 9v2a3 3 0 0 0 5.1 2.1M15 9.3V5a3 3 0 0 0-5.7-1.3M5 11a7 7 0 0 0 11.5 5.3M19 11a7 7 0 0 1-.6 2.8M12 18v4"/></svg>';
 let barTimer = 0;
 function pokeBar() { const b = $("ptools"); b.classList.remove("idle"); clearTimeout(barTimer); barTimer = setTimeout(() => { if (!b.matches(":hover") && !b.contains(document.activeElement)) b.classList.add("idle"); }, 2800); }
-$("player").addEventListener("pointermove", (e) => { if (e.clientY < 14) pokeBar(); }, { passive: true });
 $("phandle").addEventListener("click", pokeBar);
 $("ptools").addEventListener("pointerenter", () => { clearTimeout(barTimer); $("ptools").classList.remove("idle"); });
 $("ptools").addEventListener("pointerleave", pokeBar);

@@ -579,13 +579,13 @@ function openPill(keep) {
   $("mt-tools").classList.add("open"); clearTimeout(penT);
   penT = setTimeout(() => $("mt-tools").classList.remove("open"), keep ? 6000 : 3500);
 }
-$("play").addEventListener("mousemove", (e) => { wake(); if (e.clientY < 14) openPill(false); });
+$("play").addEventListener("mousemove", () => { wake(); });
 $("play").addEventListener("touchstart", wake, { passive: true });
 $("mt-tools").addEventListener("mouseenter", () => clearTimeout(penT));
 $("mt-handle").addEventListener("click", () => openPill(true));
 new MutationObserver(() => {
   const on = $("play").classList.contains("live");
-  if (on) { up({ type: "moon:live" }); wake(); openPill(false); } else $("ptools").classList.remove("idle");
+  if (on) { up({ type: "moon:live" }); wake(); } else $("ptools").classList.remove("idle");
 }).observe($("play"), { attributes: true, attributeFilter: ["class"] });
 
 async function embedStart() {

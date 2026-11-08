@@ -269,6 +269,7 @@ export class Player {
   /* ---- UI + input ---- */
   _buildUI() {
     const v = this.video = document.createElement("video");
+    v.addEventListener("resize", () => { this.onDebug && this.onDebug("video " + v.videoWidth + "x" + v.videoHeight); console.log("[player] video size " + v.videoWidth + "x" + v.videoHeight); });
     v.autoplay = true; v.playsInline = true; v.className = "pv";
     this.mount.querySelector(".stage").append(v);
     const on = (t, fn, o) => { v.addEventListener(t, fn, o); };
@@ -288,7 +289,7 @@ export class Player {
     const vw = v.videoWidth || SCREEN_W, vh = v.videoHeight || SCREEN_H;
     const sc = Math.min(r.width / vw, r.height / vh), cw = vw * sc, ch = vh * sc;
     const ox = r.left + (r.width - cw) / 2, oy = r.top + (r.height - ch) / 2;
-    const land = vw >= vh, W = land ? SCREEN_W : SCREEN_H, H = land ? SCREEN_H : SCREEN_W;
+    const W = vw, H = vh;
     return { x: Math.round(clamp((e.clientX - ox) / cw, 0, 1) * W), y: Math.round(clamp((e.clientY - oy) / ch, 0, 1) * H) };
   }
   _ptr(e, phase) {
