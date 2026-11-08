@@ -3,7 +3,14 @@ export function init(K) {
   if (!btn || btn.__sgCookies) return;
   btn.__sgCookies = true;
 
-  const STORE_KEY = 'proxy_cookie_storage';
+  const JAR_KEY = 'proxy_cookie_jar_v2';
+  const FRAME_KEY = 'proxy_cookie_storage';
+  const DB_NAME = 'proxy_cookie_db';
+  const DB_STORE = 'jars';
+  const CHANNEL_NAME = 'proxy_cookie_jar';
+
+  let cookies = [];
+  let timer = 0;
 
   const style = document.createElement('style');
   style.textContent = `
@@ -38,13 +45,107 @@ export function init(K) {
   const scope = panel.querySelector('.sg-cookies-scope');
   const siteEl = panel.querySelector('.sg-cookies-site');
 
-  const readStore = () => {
+  const parseList = text => {
     try {
-      const raw = JSON.parse(localStorage.getItem(STORE_KEY) || '{}');
-      return raw && typeof raw === 'object' ? raw : {};
+      const value = JSON.parse(text);
+      return Array.isArray(value) ? value : null;
     } catch {
-      return {};
+      return null;
     }
+  };
+
+  const readLocal = () => {
+    try {
+      return parseList(localStorage.getItem(JAR_KEY));
+    } catch {
+      return null;
+    }
+  };
+
+  const readDb = () => new Promise(resolve => {
+    try {
+      const req = indexedDB.open(DB_NAME, 1);
+      req.onupgradeneeded = () => {
+        try { req.result.createObjectStore(DB_STORE); } catch {}
+      };
+      req.onerror = () => resolve(null);
+      req.onblocked = () => resolve(null);
+      req.onsuccess = () => {
+        try {
+          const db = req.result;
+          const get = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(JAR_KEY);
+          get.onsuccess = () => {
+            db.close();
+            resolve(parseList(get.result));
+          };
+          get.onerror = () => {
+            db.close();
+            resolve(null);
+          };
+        } catch {
+          resolve(null);
+        }
+      };
+    } catch {
+      resolve(null);
+    }
+  });
+
+  const mergeLists = lists => {
+    const map = new Map();
+    lists.forEach(list => (list || []).forEach(c => {
+      if (!c || typeof c.name !== 'string' || typeof c.domain !== 'string') return;
+      const key = c.domain + '|' + c.path + '|' + c.name;
+      const prev = map.get(key);
+      if (!prev || (Number(c.updated) || 0) > (Number(prev.updated) || 0)) map.set(key, c);
+    }));
+    const now = Date.now();
+    return [...map.values()]
+      .filter(c => !c.deleted && !(c.expires && Number(c.expires) <= now))
+      .map(c => ({
+        name: c.name,
+        value: String(c.value ?? ''),
+        domain: String(c.domain).replace(/^\./, '').toLowerCase(),
+        path: c.path || '/',
+        hostOnly: c.host_only !== false,
+        secure: !!c.secure,
+        httpOnly: !!c.http_only,
+        expires: Number(c.expires) || 0
+      }));
+  };
+
+  const frameFallback = () => {
+    const out = [];
+    let raw = {};
+    try {
+      raw = JSON.parse(localStorage.getItem(FRAME_KEY) || '{}') || {};
+    } catch {}
+    Object.keys(raw).forEach(origin => {
+      let host = '';
+      try { host = new URL(origin).hostname.toLowerCase(); } catch { return; }
+      (Array.isArray(raw[origin]) ? raw[origin] : []).forEach(pair => {
+        if (!Array.isArray(pair) || typeof pair[0] !== 'string') return;
+        const e = pair[1] && typeof pair[1] === 'object' ? pair[1] : { value: String(pair[1] ?? '') };
+        if (e.expires !== null && e.expires !== undefined && Number(e.expires) <= Date.now()) return;
+        out.push({
+          name: pair[0],
+          value: String(e.value ?? ''),
+          domain: host,
+          path: '/',
+          hostOnly: true,
+          secure: origin.startsWith('https:'),
+          httpOnly: !!e.http_only,
+          expires: Number(e.expires) || 0
+        });
+      });
+    });
+    return out;
+  };
+
+  const load = async () => {
+    const local = readLocal();
+    const db = await readDb();
+    cookies = local === null && db === null ? frameFallback() : mergeLists([local, db]);
   };
 
   const currentOrigin = () => {
@@ -53,39 +154,37 @@ export function init(K) {
     try { return new URL(v).origin; } catch { return ''; }
   };
 
-  const normalize = entries => {
-    const out = [];
-    const now = Date.now();
-    (Array.isArray(entries) ? entries : []).forEach(pair => {
-      if (!Array.isArray(pair) || typeof pair[0] !== 'string') return;
-      const e = pair[1] && typeof pair[1] === 'object' ? pair[1] : { value: String(pair[1] ?? '') };
-      if (e.expires !== null && e.expires !== undefined && Number(e.expires) <= now) return;
-      out.push({
-        name: pair[0],
-        value: String(e.value ?? ''),
-        expires: e.expires === null || e.expires === undefined ? null : Number(e.expires),
-        httpOnly: !!e.http_only
-      });
-    });
-    return out;
-  };
+  const hostMatches = (c, host) => c.hostOnly ? host === c.domain : host === c.domain || host.endsWith('.' + c.domain);
+  const byName = (a, b) => a.name.localeCompare(b.name) || a.path.localeCompare(b.path);
 
   const collect = () => {
-    const store = readStore();
     const origin = currentOrigin();
+    let host = '';
+    try { host = origin ? new URL(origin).hostname.toLowerCase() : ''; } catch {}
     const groups = [];
     if (scope.value === 'all') {
-      Object.keys(store).sort().forEach(o => {
-        const list = normalize(store[o]);
-        if (list.length) groups.push({ origin: o, cookies: list });
+      const byDomain = new Map();
+      cookies.forEach(c => {
+        if (!byDomain.has(c.domain)) byDomain.set(c.domain, []);
+        byDomain.get(c.domain).push(c);
       });
-    } else if (origin) {
-      groups.push({ origin, cookies: normalize(store[origin]) });
+      [...byDomain.keys()].sort().forEach(domain => {
+        groups.push({ origin: domain, cookies: byDomain.get(domain).slice().sort(byName) });
+      });
+    } else if (host) {
+      groups.push({ origin, cookies: cookies.filter(c => hostMatches(c, host)).sort(byName) });
     }
     return { origin, groups };
   };
 
-  const fmtExpiry = t => t === null ? 'Session' : new Date(t).toLocaleString();
+  const fmtExpiry = t => t ? new Date(t).toLocaleString() : 'Session';
+
+  const flag = (parent, text) => {
+    const el = document.createElement('span');
+    el.className = 'sg-cookies-flag';
+    el.textContent = text;
+    parent.appendChild(el);
+  };
 
   const render = () => {
     const { origin, groups } = collect();
@@ -119,13 +218,9 @@ export function init(K) {
         value.textContent = c.value;
         const meta = document.createElement('span');
         meta.className = 'sg-cookies-meta';
-        if (c.httpOnly) {
-          const flag = document.createElement('span');
-          flag.className = 'sg-cookies-flag';
-          flag.textContent = 'HttpOnly';
-          meta.appendChild(flag);
-        }
-        meta.appendChild(document.createTextNode('Expires: ' + fmtExpiry(c.expires)));
+        if (c.httpOnly) flag(meta, 'HttpOnly');
+        if (c.secure) flag(meta, 'Secure');
+        meta.appendChild(document.createTextNode('Domain: ' + c.domain + (c.hostOnly ? '' : ' (+subdomains)') + ' · Path: ' + c.path + ' · Expires: ' + fmtExpiry(c.expires)));
         row.appendChild(name);
         row.appendChild(value);
         row.appendChild(meta);
@@ -133,6 +228,11 @@ export function init(K) {
       });
     });
     body.appendChild(frag);
+  };
+
+  const refresh = async () => {
+    await load();
+    render();
   };
 
   const copyText = async text => {
@@ -159,14 +259,25 @@ export function init(K) {
     panel.classList.toggle('open', open);
     btn.classList.toggle('is-on', open);
     btn.setAttribute('aria-pressed', open ? 'true' : 'false');
-    if (open) render();
+    clearInterval(timer);
+    timer = 0;
+    if (open) {
+      refresh();
+      timer = setInterval(refresh, 2000);
+    }
   };
 
   btn.addEventListener('click', () => setOpen(!panel.classList.contains('open')));
   scope.addEventListener('change', render);
   window.addEventListener('storage', e => {
-    if (e.key === STORE_KEY && panel.classList.contains('open')) render();
+    if ((e.key === JAR_KEY || e.key === FRAME_KEY) && panel.classList.contains('open')) refresh();
   });
+  try {
+    const channel = new BroadcastChannel(CHANNEL_NAME);
+    channel.onmessage = () => {
+      if (panel.classList.contains('open')) refresh();
+    };
+  } catch {}
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && panel.classList.contains('open')) setOpen(false);
   });
@@ -176,7 +287,7 @@ export function init(K) {
     const act = target?.dataset.act;
     if (!act) return;
     if (act === 'close') { setOpen(false); return; }
-    if (act === 'refresh') { render(); return; }
+    if (act === 'refresh') { refresh(); return; }
     const { groups } = collect();
     const flat = groups.flatMap(g => g.cookies);
     const text = act === 'json'

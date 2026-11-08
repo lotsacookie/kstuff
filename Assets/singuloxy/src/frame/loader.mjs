@@ -14,6 +14,7 @@ const navigate_rpc = rpc.create_rpc_wrapper(rpc.host, "navigate");
 export const local_storage = rpc.create_rpc_wrapper(rpc.host, "local_storage");
 export const session_storage = rpc.create_rpc_wrapper(rpc.host, "session_storage");
 export const cookies = rpc.create_rpc_wrapper(rpc.host, "cookies");
+export const js_cookie = rpc.create_rpc_wrapper(rpc.host, "js_cookie");
 const page_info_rpc = rpc.create_rpc_wrapper(rpc.host, "page_info");
 
 const console_rpc = rpc.create_rpc_wrapper(rpc.host, "console");

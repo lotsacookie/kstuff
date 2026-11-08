@@ -3,6 +3,7 @@ import * as util from "../util.mjs";
 import * as network from "./network.mjs";
 import * as page_cache from "./page_cache.mjs";
 import * as rewrite_cache from "./rewrite_cache.mjs";
+import { ingest_script_cookie } from "./cookie_jar.mjs";
 
 import { version } from "./index.mjs";
 
@@ -496,11 +497,20 @@ rpc.rpc_handlers["session_storage"] = async (frame_id, entries) => {
 
 rpc.rpc_handlers["cookies"] = async (frame_id, entries) => {
   let frame = iframes[frame_id];
-  if (!frame) return;
+  if (!frame || !frame.url) return;
   cookie_storage[frame.url.origin] = entries;
   if (window.origin) {
-    localStorage.setItem(persist_cookie_key, JSON.stringify(cookie_storage));
+    try {
+      localStorage.setItem(persist_cookie_key, JSON.stringify(cookie_storage));
+    }
+    catch {}
   }
+}
+
+rpc.rpc_handlers["js_cookie"] = async (frame_id, cookie_string) => {
+  let frame = iframes[frame_id];
+  if (!frame || !frame.url) return;
+  ingest_script_cookie(frame.url.href, cookie_string);
 }
 
 //this is for getting navigation events from form submission handlers

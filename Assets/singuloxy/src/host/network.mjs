@@ -3,7 +3,7 @@ import * as response_cache from "./cache.mjs";
 import { iframes } from "./controller.mjs";
 import { rpc_handlers } from "../rpc.mjs";
 import { libcurl } from "libcurl.js/bundled";
-import { load_jar, create_jar_saver } from "./jar_store.mjs";
+import { init_jar } from "./cookie_jar.mjs";
 import { route_session, set_transport_fetch, transport_active } from "./epoxy_transport.mjs";
 
 export { set_transport_fetch, transport_active };
@@ -731,30 +731,14 @@ export async function test_hosts(urls = DEFAULT_TEST_URLS) {
   return results;
 }
 
-let save_jar = () => false;
-
 function make_session() {
-  let created = null;
   try {
-    let stored = load_jar(localStorage);
-    try {
-      created = new libcurl.HTTPSession(stored ? {enable_cookies: true, cookie_jar: stored} : {enable_cookies: true});
-    }
-    catch {
-      created = new libcurl.HTTPSession({enable_cookies: true});
-    }
-    save_jar = create_jar_saver(localStorage, () => created.export_cookies?.() || "");
-    setInterval(() => save_jar(), 2000);
-    for (let name of ["pagehide", "beforeunload"]) window.addEventListener(name, () => save_jar());
-    document.addEventListener("visibilitychange", () => {
-      if (document.visibilityState === "hidden") save_jar();
-    });
-    return route_session(created);
+    init_jar();
   }
   catch (e) {
-    quiet_warn("sandstone host: cookie-enabled session failed, using a plain session:", error_message(e));
-    return route_session(new libcurl.HTTPSession());
+    quiet_warn("sandstone host: cookie jar failed to start:", error_message(e));
   }
+  return route_session(new libcurl.HTTPSession());
 }
 
 function rotate_wisp() {
@@ -1410,17 +1394,12 @@ function segment_target(url, options, response) {
 }
 
 function current_jar() {
-  try {
-    return session.export_cookies?.() || "";
-  }
-  catch {
-    return "";
-  }
+  return "";
 }
 
 function create_bulk(jar) {
   try {
-    let created = new libcurl.HTTPSession(jar ? {enable_cookies: true, cookie_jar: jar} : {enable_cookies: true});
+    let created = new libcurl.HTTPSession();
     created.set_connections(BULK_MAX_TOTAL, BULK_CACHE_SIZE, BULK_PER_HOST);
     route_session(created);
     return {session: created, jar: jar, users: 0, retired: false};

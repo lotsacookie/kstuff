@@ -104,6 +104,13 @@ export class FakeCookieJar {
     let existing = this.#map.get(name);
     if (!from_http && existing && existing.http_only) return;
 
+    if (!from_http) {
+      try {
+        Promise.resolve(loader.js_cookie(loader.frame_id, cookie_string)).catch(() => {});
+      }
+      catch {}
+    }
+
     if (expires !== null && expires <= Date.now()) {
       this.#map.delete(name);
     }
