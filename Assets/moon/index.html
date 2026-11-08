@@ -109,6 +109,19 @@ body.embed input{background:transparent;color:var(--e-text);border:1px solid var
 body.embed input:focus{border-color:var(--e-text)}
 body.embed input::placeholder{color:var(--e-dim)}
 body.embed button.primary{background:var(--e-text);color:var(--e-bg);border:0;border-radius:12px;font-weight:800;padding:13px 18px}
+#play .stage{margin:var(--ad-t,0px) var(--ad-r,0px) var(--ad-b,0px) var(--ad-l,0px)}
+.ads-root{position:absolute;inset:0;pointer-events:none;z-index:30}
+.ad-panel{position:absolute;pointer-events:auto;z-index:31;display:flex;justify-content:center;align-items:center;background:#26252b;border-radius:5px;overflow:hidden}
+.ad-panel.bg-none{background:transparent}
+.ad-panel.left,.ad-panel.right{top:50%;transform:translateY(-50%);min-height:600px;flex-direction:column}
+.ad-panel.left{left:10px}
+.ad-panel.right{right:10px}
+.ad-panel.top,.ad-panel.bottom{left:50%;transform:translateX(-50%);height:120px;max-width:calc(100% - 20px)}
+.ad-panel.top{top:8px}
+.ad-ph{position:absolute;top:50%;transform:translateY(-50%);width:100%;padding:0 1rem;box-sizing:border-box;text-align:center;color:#929295;font-size:1rem;white-space:pre-line;word-break:break-word;z-index:-1}
+.gam-wrapper{position:relative;display:flex;justify-content:center;align-items:center;overflow:hidden}
+.ads-root .reward-btn{position:absolute;top:16px;right:16px;z-index:40;pointer-events:auto;min-width:180px;height:40px;padding:0 14px;font-size:13px;font-weight:700;color:#fff;background:linear-gradient(135deg,#5c6ac4,#8fa0ff);border:0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.28);cursor:pointer}
+.toast{position:absolute;left:50%;bottom:64px;transform:translateX(-50%);z-index:50;max-width:90vw;padding:10px 16px;background:var(--panel,#14182f);border:1px solid var(--accent,#8fa0ff);border-radius:10px;font-size:13px;pointer-events:none}
 </style>
 </head>
 <body>
@@ -220,6 +233,7 @@ body.embed button.primary{background:var(--e-text);color:var(--e-bg);border:0;bo
 <script type="module" src="./proxy.js"></script>
 <script type="module">
 import { Player } from "./player.js";
+import { createAds } from "./ads.js";
 const API_HOSTS = ["https://api.prod.cloudmoonapp.com", "https://api.cloudmoon.cloudbatata.com", "https://api.prod.geometry.today"];
 const EMBED = !!window.__MOON_EMBED;
 const up = (m) => { if (EMBED) { try { parent.postMessage(m, "*"); } catch {} } };
@@ -281,7 +295,7 @@ function api(path, opts = {}, retried = false) {
   inflight.set(path, p);
   return p;
 }
-async function apiRun(path, { method = "GET", body } = {}, retried = false) {
+async function apiRun(path, { method = "GET", body, quiet = false } = {}, retried = false) {
   let lastErr = new Error("No API host reachable");
   for (let round = 0; round < 2; round++) {
     const { libcurl } = await window.__getProxy({ log, say });
@@ -322,7 +336,7 @@ async function apiRun(path, { method = "GET", body } = {}, retried = false) {
     } catch (e) { lastErr = e; }
     if (res) {
       apiHost = res.h; store.set(HOST_KEY, res.h);
-      console.log("[api] " + method + " " + path + " @" + new URL(res.h).host + " → HTTP " + res.status + " " + res.text.slice(0, 400));
+      if (!quiet) console.log("[api] " + method + " " + path + " @" + new URL(res.h).host + " → HTTP " + res.status + " " + res.text.slice(0, 400));
       const j = res.j;
       if (String(j.code) === "40001") {
         if (!retried && !path.startsWith("/login") && await relogin()) return await apiRun(path, { method, body }, true);
@@ -549,12 +563,14 @@ async function launch(g) {
   if (!androidId) { box.classList.remove("on"); failLaunch("No cloud phone found on this account"); return; }
   try { const { raw } = g; console.log("[launch] game entry: " + JSON.stringify(raw).slice(0, 900)); } catch {}
   console.log("[launch] game=" + g.id + " androidId=" + androidId + " serverId=" + serverId);
+  const ads = createAds({ api, getLibcurl, mount: box, getRot: () => (player ? player.rot : 0), send: (m) => { if (player) player.send(m); } });
   player = new Player({
-    api, getLibcurl, game: g.id, androidId, serverId, mount: box,
+    api, getLibcurl, ads, game: g.id, androidId, serverId, mount: box,
     onStatus: (t, cls) => { prog = Math.min(prog + 0.07, 0.92); up({ type: "moon:status", text: t, p: prog }); $("pst").textContent = t; $("pstat").textContent = t; $("pstat").style.color = cls === "err" ? "var(--bad)" : cls === "ok" ? "var(--ok)" : ""; },
     onDebug: (t) => { $("pdbg").textContent = t; },
     onEnd: (reason) => {
       player = null;
+      ads.end();
       const v = box.querySelector("video"); if (v) v.remove();
       if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
       say(reason || "Session ended", reason ? "err" : "");
@@ -564,6 +580,7 @@ async function launch(g) {
     },
   });
   player.start();
+  ads.begin(g.id).catch((e) => console.warn("[ads] start failed", e));
 }
 $("pexit").addEventListener("click", () => { if (player) player.stop(); else $("play").classList.remove("on", "live"); });
 $("pback").addEventListener("click", () => player && player.back());

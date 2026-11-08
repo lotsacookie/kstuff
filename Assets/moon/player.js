@@ -97,8 +97,8 @@ function preferCodec(sdp, pt) {
 const addRrtr = (sdp) => sdp.replace(/(m=video.*\r\n)/, "$1a=rtcp-xr:rrtr\r\n").replace(/(m=audio.*\r\n)/, "$1a=rtcp-xr:rrtr\r\n");
 
 export class Player {
-  constructor({ api, getLibcurl, game, androidId, serverId, mount, onStatus, onEnd, onDebug }) {
-    Object.assign(this, { api, getLibcurl, game, androidId, serverId, mount, onStatus, onEnd, onDebug });
+  constructor({ api, getLibcurl, ads, game, androidId, serverId, mount, onStatus, onEnd, onDebug }) {
+    Object.assign(this, { api, getLibcurl, ads, game, androidId, serverId, mount, onStatus, onEnd, onDebug });
     this.stopped = false; this.rot = 0; this.typing = true; this.cfg = null;
     this.keys = new Map(); this.touchN = 20; this.pending = null; this.pcands = [];
     this.stream = new MediaStream();
@@ -122,6 +122,7 @@ export class Player {
   }
 
   async _connect() {
+    const unblocked = this.ads ? await this.ads.unblocked() : true;
     let queued = false, blank = 0;
     for (;;) {
       if (this.stopped) return;
@@ -131,7 +132,7 @@ export class Player {
         console.log("[player] POST /phone/connect game=" + this.game + " server_id=" + this.serverId + " android_id=" + this.androidId);
         j = await this.api("/phone/connect", { method: "POST", body: {
           android_id: this.androidId, game_name: this.game, screen_res: SCREEN_W + "x" + SCREEN_H, server_id: this.serverId,
-          params: JSON.stringify({ language: "en", locale: (navigator.language.split("-")[1] || "").toLowerCase() }), ad_unblock: true } });
+          params: JSON.stringify({ language: "en", locale: (navigator.language.split("-")[1] || "").toLowerCase() }), ad_unblock: unblocked } });
       } catch (e) {
         if (!queued) throw e;               // like the site: ignore hiccups while waiting in the queue
         console.warn("[player] queue poll failed", e); await sleep(5000); continue;
@@ -200,7 +201,7 @@ export class Player {
       if (pc.connectionState === "failed") this.stop(true, "Connection lost");
     };
     const dc = this.dc = pc.createDataChannel("config", { ordered: true });
-    dc.onopen = () => this.say("Connected — waiting for the screen…");
+    dc.onopen = () => { this.say("Connected — waiting for the screen…"); this.ads && this.ads.sync(); };
     dc.onmessage = (e) => this._dcMessage(String(e.data));
     dc.onclose = () => { if (!this.stopped) this.stop(true, "Session ended"); };
     this._buildUI();
@@ -217,6 +218,7 @@ export class Player {
       setTimeout(() => { this._layoutKeys(); this._buildKeys(); }, 300);
       this._forceRemoteIME();
       this.say("Streaming", "ok");
+      this.ads && this.ads.sync();
     } else if (type === "keyboard") {
       this.typing = true;
       if (val.startsWith("show")) this._imeShow(); else if (val.startsWith("hide")) this._imeHide();
