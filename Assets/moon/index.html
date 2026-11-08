@@ -87,6 +87,27 @@ body.embed #guest{display:none}
 #ptools .sf-icon{padding:0 9px}
 #ptools .sf-btn.danger{color:rgba(255,150,150,.95);background:rgba(255,80,80,.12);border-color:rgba(255,90,90,.28)}
 @media (max-width:640px){#ptools .sf-label,#ptools .sf-title{display:none}#ptools .sf-btn,#ptools .sf-chip{padding:0 9px}#mt-tools .mt-title{display:none}}
+body.embed{--e-text:var(--text,#fff);--e-bg:var(--bg,#000);--e-dim:color-mix(in srgb,var(--e-text) 62%,transparent);--e-line:color-mix(in srgb,var(--e-text) 18%,transparent);background:transparent!important;color:var(--e-text);font-family:var(--font,"Comfortaa",system-ui,sans-serif)!important;font-weight:600;min-height:100vh;padding:16px;gap:1.1rem;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center}
+body.embed *{font-family:inherit!important}
+body.embed main{width:min(380px,100%);max-width:none;padding:0;margin:0}
+body.embed:not(.need-ui) .emb-brand{display:none}
+body.embed .emb-brand{display:flex;flex-direction:column;align-items:center;gap:1.1rem;margin-bottom:.4rem}
+body.embed .ld-logo{width:5.5rem;height:5.5rem;overflow:visible;color:var(--e-text);filter:drop-shadow(0 0 8px color-mix(in srgb,var(--e-text) 50%,transparent))}
+body.embed .ld-arms{opacity:.8;transform-origin:50px 50px;stroke-dasharray:1;animation:ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both,ld-spin 14s linear 1.2s infinite}
+body.embed .ld-core{transform-origin:50px 50px;animation:ld-pulse 2.8s ease-in-out infinite}
+body.embed .ld-word{font-size:1.15rem;font-weight:900;letter-spacing:.06em}
+@keyframes ld-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes ld-spin{to{transform:rotate(360deg)}}@keyframes ld-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+body.embed .card{background:transparent;border:0;box-shadow:none;backdrop-filter:none;padding:0;margin:0;max-width:none;display:flex;flex-direction:column;align-items:stretch;text-align:center;gap:.9rem}
+body.embed .card h1{font-size:1rem;font-weight:900;letter-spacing:.06em;margin:0}
+body.embed .card label{display:none}
+body.embed .card form{display:flex;flex-direction:column;gap:.9rem}
+body.embed .card .row{margin-top:0}
+body.embed .err{color:#ff6b6b;margin:0;min-height:0}
+body.embed .err:empty{display:none}
+body.embed input{background:transparent;color:var(--e-text);border:1px solid var(--e-line);border-radius:12px;text-align:center;padding:13px 14px}
+body.embed input:focus{border-color:var(--e-text)}
+body.embed input::placeholder{color:var(--e-dim)}
+body.embed button.primary{background:var(--e-text);color:var(--e-bg);border:0;border-radius:12px;font-weight:800;padding:13px 18px}
 </style>
 </head>
 <body>
@@ -99,20 +120,18 @@ body.embed #guest{display:none}
 </header>
 <main>
   <section id="auth" class="card">
-    <h1>Sign in</h1>
-    <p>Use your CloudMoon email and password. Requests go through the browser proxy.</p>
+    <h1>Sign in to CloudMoon</h1>
     <form id="form" autocomplete="on">
       <label for="email">Email</label>
-      <input id="email" type="email" autocomplete="username" required>
+      <input id="email" type="email" autocomplete="username" placeholder="CloudMoon email" required>
       <label for="pw">Password</label>
-      <input id="pw" type="password" autocomplete="current-password" required>
+      <input id="pw" type="password" autocomplete="current-password" placeholder="Password" required>
       <div class="err" id="autherr"></div>
       <div class="row">
         <button class="primary" id="go" type="submit">Sign in</button>
         <button id="guest" type="button">Browse as guest</button>
       </div>
     </form>
-    <div class="hint">Google / Apple sign-in isn’t supported here. If you only use those, set a password in your CloudMoon account first. Signing in doesn’t start anything — pick a game and press Play to launch a session.</div>
   </section>
 
   <section id="lib" class="hidden">
@@ -201,6 +220,17 @@ const EMBED = !!window.__MOON_EMBED;
 const up = (m) => { if (EMBED) { try { parent.postMessage(m, "*"); } catch {} } };
 if (EMBED) {
   document.body.classList.add("embed");
+  const brand = document.createElement("div");
+  brand.className = "emb-brand";
+  brand.innerHTML = '<svg class="ld-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><g id="emb-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10"><path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/><path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/></g></defs><g class="ld-arms" stroke="currentColor"><use href="#emb-arm"/><use href="#emb-arm" transform="rotate(120 50 50)"/><use href="#emb-arm" transform="rotate(240 50 50)"/></g><g class="ld-core" fill="currentColor"><path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/></g></svg><div class="ld-word">Singularity</div>';
+  document.querySelector("main").before(brand);
+  const syncTheme = () => { try {
+    const cs = parent.getComputedStyle(parent.document.body), d = document.documentElement.style, g = (n) => (cs.getPropertyValue(n) || "").trim();
+    const m = { "--bg": g("--bg-color") || g("--background"), "--text": g("--text-color") || cs.color, "--nav": g("--nav-bg"), "--font": g("--font") };
+    for (const k in m) m[k] ? d.setProperty(k, m[k]) : d.removeProperty(k);
+  } catch {} };
+  syncTheme();
+  addEventListener("message", (e) => { if (e.source === parent && e.data === "theme-updated") syncTheme(); });
   try {
     const cs = getComputedStyle(parent.document.documentElement);
     for (const v of ["--nav-bg", "--text-color"]) { const x = cs.getPropertyValue(v).trim(); if (x) document.documentElement.style.setProperty(v, x); }
