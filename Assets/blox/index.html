@@ -252,9 +252,18 @@
     const json = JSON.stringify(FLAGS).replace(/</g, "\\u003c");
     return "<script data-webblox>(function(){var o=" + json + ";var d=window.__wasmDevSettings=window.__wasmDevSettings||{};var prev=d.getFlagOverrides;d.getFlagOverrides=function(){var p={};try{if(prev)p=prev()||{};}catch(e){}return Object.assign({},p,o);};})()<\/script>";
   };
+  const PROBE = [
+    "(function(){try{var w=window,L=function(m){console.warn('[webblox] '+m)};",
+    "L('frame probe: WebTransport='+typeof w.WebTransport+' isolated='+w.crossOriginIsolated+' SAB='+typeof w.SharedArrayBuffer+' origin='+location.origin);",
+    "if(typeof w.WebTransport==='undefined'){try{var P=(w.parent&&w.parent.WebTransport)||(w.top&&w.top.WebTransport);if(P){w.WebTransport=P;L('WebTransport restored from parent window')}}catch(e){L('restore failed '+e)}}",
+    "try{var k=new Worker(URL.createObjectURL(new Blob(['postMessage(typeof WebTransport)'],{type:'text/javascript'})));k.onmessage=function(e){L('worker probe: WebTransport='+e.data);k.terminate()};k.onerror=function(){L('worker probe failed')}}catch(e){L('worker probe error '+e)}",
+    "var N=w.WebTransport;if(N&&!N.__wb){var T=function(u,o){L('new WebTransport '+u+' hashes='+((o&&o.serverCertificateHashes)||[]).length);var t=new N(u,o);t.ready.then(function(){L('WebTransport ready')},function(e){L('WebTransport ready failed: '+(e&&e.message||e))});t.closed.then(function(i){L('WebTransport closed '+JSON.stringify(i))},function(e){L('WebTransport closed error: '+(e&&e.message||e))});return t};T.prototype=N.prototype;T.__wb=1;w.WebTransport=T}",
+    "}catch(e){console.warn('[webblox] probe error '+e)}})();"
+  ].join("");
+  const probeScript = () => "<script data-webblox>" + PROBE + "<\\/script>";
   const injectFlags = (html) => {
     if (typeof html !== "string") return html;
-    const extra = flagScript();
+    const extra = flagScript() + probeScript();
     const m = /<head[^>]*>/i.exec(html);
     return m ? html.slice(0, m.index + m[0].length) + extra + html.slice(m.index + m[0].length) : extra + html;
   };
@@ -301,19 +310,12 @@
     let chatLevel = initialChatLevel(pageLocation().search), chatBusy = false, chatAt = 0;
     applyChatLevel(chatLevel);
     console.log("[webblox] chat patch level:", chatLevel, "wisp:", hub.wisp && hub.wisp());
+    let chatReported = false;
     const chatEscalate = async () => {
-      if (chatBusy || Date.now() - chatAt < 8000) return true;
-      if (chatLevel >= CHAT_PATCHES.length) return false;
-      chatBusy = true;
-      try {
-        chatLevel++;
-        applyChatLevel(chatLevel);
-        try { localStorage.setItem("WB_CHATFIX", JSON.stringify(chatLevel)); } catch {}
-        warn("send channel Chat failed, relaunching with chat patch level " + chatLevel + "/" + CHAT_PATCHES.length);
-        say("Patching chat channel (level " + chatLevel + ")…");
-        await frame.navigate_to(startUrl());
-      } catch (e) { warn("chat patch relaunch failed: " + ((e && e.message) || e)); }
-      finally { chatBusy = false; chatAt = Date.now(); }
+      if (chatReported) return true;
+      chatReported = true;
+      warn("send channel Chat failed (engine could not open its game connection); not relaunching, each relaunch leaks another 2GB wasm instance");
+      post("blox:failed", { text: "WebBlox: the engine couldn’t open its game connection (Chat send channel, code 256). Check the log for the [webblox] probe lines." });
       return true;
     };
     const watchdog = createWatchdog({ hub, chat: chatEscalate, relaunch: () => frame.navigate_to(startUrl()) });
