@@ -154,6 +154,8 @@ body.embed button.primary{background:var(--e-text);color:var(--e-bg);border:0;bo
   <button id="mt-handle" type="button" aria-label="Show controls"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>
   <div id="mt-tools"><span class="mt-title" id="mt-title"></span>
 <button id="pback" type="button" title="Android back" aria-label="Android back"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></button>
+<button id="plock" type="button" title="Lock mouse (Ctrl+M) — mouse look" aria-label="Lock mouse"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="6"/><path d="M12 3v7"/></svg></button>
+<button id="pcur" type="button" title="Toggle on-screen cursor" aria-label="Cursor"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3l14 7-6 2-2 6z"/></svg></button>
 <button id="pkeys" type="button" title="Show or hide key mapping" aria-label="Key mapping"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8h4v4H6zM14 8h4v4h-4zM6 15h12"/></svg></button>
 <button id="pkb" type="button" title="Keyboard" aria-label="Keyboard"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></button>
 <button id="prest" type="button" title="Restart game" aria-label="Restart game"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg></button>
@@ -570,6 +572,8 @@ const toggleFs = () => { const b = $("play"); document.fullscreenElement ? docum
 $("pfs").addEventListener("click", toggleFs);
 $("pfs2").addEventListener("click", toggleFs);
 $("pend").addEventListener("click", () => $("pexit").click());
+$("plock").addEventListener("click", () => { if (player && player.toggleLock) player.toggleLock(); });
+$("pcur").addEventListener("click", () => { if (player && player.toggleCursor) player.toggleCursor(); });
 $("pkeys").addEventListener("click", () => { if (player && player.toggleKeys) player.toggleKeys(); });
 $("pkb").addEventListener("click", () => { if (player && player._imeShow) player._imeShow(); });
 $("pstop").addEventListener("click", () => $("pexit").click());

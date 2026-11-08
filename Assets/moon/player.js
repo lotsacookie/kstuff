@@ -313,6 +313,27 @@ export class Player {
     });
     inp.addEventListener("keyup", (e) => e.stopPropagation());
     x.addEventListener("click", () => this._imeClose());
+    const cur = this.cursorEl = document.createElement("div");
+    cur.style.cssText = "position:absolute;left:0;top:0;width:22px;height:22px;z-index:7;pointer-events:none;display:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.6))";
+    cur.innerHTML = '<svg width="22" height="22" viewBox="0 0 22 22"><path d="M2 1l0 17 4.6-4.2 3.2 7 3-1.4-3.2-6.9H17z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>';
+    this.mount.querySelector(".stage").append(cur);
+    try { this.softCursor = localStorage.getItem("moon_cursor") !== "0"; } catch { this.softCursor = true; }
+    v.style.cursor = this.softCursor ? "none" : "";
+    v.addEventListener("pointermove", (e) => {
+      if (e.pointerType !== "mouse" || !this.softCursor || document.pointerLockElement === v) { cur.style.display = "none"; return; }
+      const sr = this.mount.querySelector(".stage").getBoundingClientRect();
+      cur.style.display = "block";
+      cur.style.transform = `translate(${e.clientX - sr.left}px,${e.clientY - sr.top}px)`;
+    });
+    v.addEventListener("pointerleave", () => { cur.style.display = "none"; });
+    this._plc = () => {
+      if (document.pointerLockElement !== v && this.lockOn) {
+        this.lockOn = false;
+        if (this.lockTouch) { const c = this._cfgc().pointerLockCenter || { x: 640, y: 360 }; this.send(`touch>Touch end:8,${c.x},${c.y}`); this.lockTouch = false; }
+        this.mx = this.my = 0;
+      }
+    };
+    document.addEventListener("pointerlockchange", this._plc);
     const st = document.createElement("style");
     st.textContent = ".mkl{position:absolute;pointer-events:none;z-index:6;display:none}.mkl.on{display:block}.mk{position:absolute;transform:translate(-50%,-50%);min-width:34px;height:34px;padding:0 8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border-radius:9px;background:rgba(20,24,40,.32);border:1px solid rgba(255,255,255,.4);color:rgba(255,255,255,.85);font:600 12px system-ui,sans-serif;white-space:nowrap}.mk.sm{min-width:28px;height:28px;padding:0 4px}.mk.press{background:rgba(255,255,255,.55);color:#000}";
     this.mount.querySelector(".stage").append(st);
@@ -394,6 +415,65 @@ export class Player {
     if (!this.rockOn) { this.send(`touch>Touch start:9,${cx},${cy}`); this.rockOn = true; }
     this.send(`touch>Touch move:9,${x},${y}`);
   }
+  _upp() {
+    const v = this.video, r = v.getBoundingClientRect(), vw = v.videoWidth || SCREEN_W, vh = v.videoHeight || SCREEN_H;
+    const sc = Math.min(r.width / vw, r.height / vh) || 1;
+    return 1 / sc;
+  }
+  _rcPtr(e, phase, c) {
+    const ctr = c.rightClickCenter || { x: 640, y: 360 }, R = c.rightClickRadius != null ? +c.rightClickRadius : 350;
+    const pos = () => `${ctr.x + Math.floor(this.rcPos.x)},${ctr.y + Math.floor(this.rcPos.y)}`;
+    if (phase === "start" && e.button === 2 && c.supportRightClick) {
+      this.rcDrag = true; this.rcPos = { x: 0, y: 0 };
+      this.send(`touch>Touch start:8,${pos()}`);
+      return true;
+    }
+    if (!this.rcDrag) return false;
+    if (phase === "move") {
+      let x = this.rcPos.x + (e.movementX || 0), y = this.rcPos.y + (e.movementY || 0);
+      if (Math.hypot(x, y) > R) { const a = Math.atan2(y, x); x = R * Math.cos(a); y = R * Math.sin(a); }
+      this.rcPos = { x, y };
+      this.pending = `touch>Touch move:8,${pos()}`;
+      return true;
+    }
+    if (phase === "end") { this.pending = null; this.send(`touch>Touch end:8,${pos()}`); this.rcDrag = false; return true; }
+    return true;
+  }
+  _lockPtr(e, phase, c) {
+    const kb = c.keyBoard || {}, pc = c.pointerLockCoordinate || {};
+    if (phase === "start" || phase === "end") {
+      let co = null;
+      if (e.button === 0) { co = pc.lClick || "1060,550"; if (kb.lClick && kb.lClick.coordinate && kb.lClick.coordinate !== "0,0") co = kb.lClick.coordinate; }
+      else if (e.button === 2) { co = pc.rClick || "1180,620"; if (kb.rClick && kb.rClick.coordinate && kb.rClick.coordinate !== "0,0") co = kb.rClick.coordinate; if (co === "0,0") return; }
+      if (co) this.send(`touch>Touch ${phase}:5,${co}`);
+      return;
+    }
+    const ctr = c.pointerLockCenter || { x: 640, y: 360 }, k = this._upp() * (this.sens || 1);
+    this.mx = (this.mx || 0) + (e.movementX || 0) * k; this.my = (this.my || 0) + (e.movementY || 0) * k;
+    const vw = this.video.videoWidth || SCREEN_W, vh = this.video.videoHeight || SCREEN_H;
+    if (Math.abs(this.mx) > vw * 0.4 || Math.abs(this.my) > vh * 0.4) {
+      if (this.lockTouch) this.send(`touch>Touch end:8,${ctr.x + Math.round(this.mx)},${ctr.y + Math.round(this.my)}`);
+      this.mx = this.my = 0; this.lockTouch = false; return;
+    }
+    const x = ctr.x + Math.round(this.mx), y = ctr.y + Math.round(this.my);
+    if (!this.lockTouch) { this.send(`touch>Touch start:8,${ctr.x},${ctr.y}`); this.lockTouch = true; }
+    this.send(`touch>Touch move:8,${x},${y}`);
+    clearTimeout(this._lockT);
+    this._lockT = setTimeout(() => { if (this.lockTouch) { this.send(`touch>Touch end:8,${x},${y}`); this.lockTouch = false; } this.mx = this.my = 0; }, 50);
+  }
+  toggleLock() {
+    const v = this.video;
+    if (document.pointerLockElement === v) { document.exitPointerLock(); return false; }
+    try { v.requestPointerLock(); this.lockOn = true; } catch {}
+    return true;
+  }
+  toggleCursor() {
+    this.softCursor = !this.softCursor;
+    try { localStorage.setItem("moon_cursor", this.softCursor ? "1" : "0"); } catch {}
+    this.video.style.cursor = this.softCursor ? "none" : "";
+    if (!this.softCursor) this.cursorEl.style.display = "none";
+    return this.softCursor;
+  }
   _forceRemoteIME() {
     const go = () => { if (this.stopped) return; this.send("softinput>hide"); this.send("softinput>switch:remote"); };
     go();
@@ -419,6 +499,11 @@ export class Player {
   }
   _ptr(e, phase) {
     if (!this.ready) return;
+    const c0 = this._cfgc();
+    if (e.pointerType === "mouse") {
+      if (document.pointerLockElement === this.video) { this._lockPtr(e, phase, c0); return; }
+      if (this._rcPtr(e, phase, c0)) return;
+    }
     const p = this._pt(e);
     if (e.pointerType === "mouse") {
       const b = e.button < 0 ? 0 : e.button;
@@ -434,6 +519,7 @@ export class Player {
   }
   _key(e, down) {
     if (!this.ready || e.target.closest && e.target.closest("input,textarea")) return;
+    if (down && e.ctrlKey && e.code === "KeyM") { e.preventDefault(); this.toggleLock(); return; }
     const kb = this.cfg && (this.cfg.keyBoard || (this.cfg.config && this.cfg.config.keyBoard));
     const k = (e.key || "").toLowerCase();
     const map = kb && kb[k];
@@ -463,7 +549,7 @@ export class Player {
   async stop(notify = false, reason = "") {
     if (this.stopping) return; this.stopping = true; this.stopped = true;
     cancelAnimationFrame(this._rid);
-    removeEventListener("keydown", this._kd); if (this._rzKeys) removeEventListener("resize", this._rzKeys); if (this._unmute) for (const t of ["pointerdown", "keydown", "touchstart", "click"]) removeEventListener(t, this._unmute, true); removeEventListener("keyup", this._ku);
+    removeEventListener("keydown", this._kd); if (this._rzKeys) removeEventListener("resize", this._rzKeys); if (this._plc) document.removeEventListener("pointerlockchange", this._plc); try { if (document.pointerLockElement) document.exitPointerLock(); } catch {} if (this._unmute) for (const t of ["pointerdown", "keydown", "touchstart", "click"]) removeEventListener(t, this._unmute, true); removeEventListener("keyup", this._ku);
     try { this.sock && this.sock.close(); } catch {}
     try { this.dc && (this.dc.onclose = null, this.dc.close()); } catch {}
     try { this.pc && this.pc.close(); } catch {}
