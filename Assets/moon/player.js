@@ -201,9 +201,11 @@ export class Player {
       this.rot = parseInt(val) || 0;
       this.ready = true;
       this.mount.classList.add("live");
+      this.send("softinput>switch:local");
       this.say("Streaming", "ok");
     } else if (type === "keyboard") {
       this.typing = true;
+      if (val.startsWith("show")) this._imeShow(); else if (val.startsWith("hide")) this._imeHide();
     } else if (type === "kickout") {
       this.stop(true, "You were disconnected from the session");
     }
@@ -230,7 +232,7 @@ export class Player {
     const join = () => {
       if (offered || this.stopped) return;
       if (joined++ >= 3) { this.stop(true, "Unable to join the session"); return; }
-      sock.emit("client_register", { screenRes: "720x1280", game: s.game || this.game, userId: s.android_id || this.androidId, slotId: `${s.android_id || this.androidId}@${s.game || this.game}`, instanceId: s.android_instance_id });
+      sock.emit("client_register", { screenRes: SCREEN_W + "x" + SCREEN_H, game: s.game || this.game, userId: s.android_id || this.androidId, slotId: `${s.android_id || this.androidId}@${s.game || this.game}`, instanceId: s.android_instance_id });
       sock.emit("metrics", navigator.userAgent);
       setTimeout(join, 3000);
     };
@@ -278,11 +280,39 @@ export class Player {
     on("pointermove", (e) => { e.preventDefault(); this._ptr(e, "move"); });
     on("pointerup", (e) => { e.preventDefault(); this._ptr(e, "end"); });
     on("pointercancel", (e) => { e.preventDefault(); this._ptr(e, "end"); });
+    const box = this.imeBox = document.createElement("div");
+    box.style.cssText = "position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:40;display:none;gap:8px;align-items:center;width:min(560px,92%);padding:8px;border-radius:14px;background:rgba(10,12,24,.88);border:1px solid rgba(255,255,255,.2);box-shadow:0 8px 24px rgba(0,0,0,.45)";
+    const inp = this.imeInput = document.createElement("input");
+    inp.type = "text"; inp.autocomplete = "off"; inp.spellcheck = false; inp.placeholder = "Type here — Enter to send, Esc to close";
+    inp.style.cssText = "flex:1;min-width:0;padding:10px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:15px system-ui,sans-serif;outline:none";
+    const x = document.createElement("button");
+    x.type = "button"; x.textContent = "✕"; x.title = "Close keyboard";
+    x.style.cssText = "padding:8px 12px;border-radius:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;cursor:pointer";
+    box.append(inp, x);
+    this.mount.querySelector(".stage").append(box);
+    this.imeCnt = 0;
+    inp.addEventListener("input", () => this.send(`softinput>text_change:${this.imeCnt++}:0,99999,${inp.value}`));
+    inp.addEventListener("keydown", (e) => {
+      e.stopPropagation();
+      if (e.key === "Enter") { e.preventDefault(); this.send("softinput>action:4"); inp.value = ""; }
+      else if (e.key === "Escape") { e.preventDefault(); this._imeClose(); }
+    });
+    inp.addEventListener("keyup", (e) => e.stopPropagation());
+    x.addEventListener("click", () => this._imeClose());
     this._kd = (e) => this._key(e, true); this._ku = (e) => this._key(e, false);
     addEventListener("keydown", this._kd); addEventListener("keyup", this._ku);
     this._raf = () => { if (this.pending) { this.send(this.pending); this.pending = null; } this._rid = requestAnimationFrame(this._raf); };
     this._rid = requestAnimationFrame(this._raf);
   }
+  _imeShow() {
+    if (!this.imeBox) return;
+    this.send("softinput>height:1");
+    this.imeBox.style.display = "flex";
+    this.imeInput.value = "";
+    setTimeout(() => { try { this.imeInput.focus(); } catch {} }, 30);
+  }
+  _imeHide() { if (this.imeBox) { this.imeBox.style.display = "none"; this.imeInput.value = ""; try { this.imeInput.blur(); } catch {} } }
+  _imeClose() { this.send("softinput>hide"); this._imeHide(); }
   send(m) { if (this.dc && this.dc.readyState === "open") try { this.dc.send(m); } catch {} }
   _pt(e) {
     const v = this.video, r = v.getBoundingClientRect();
