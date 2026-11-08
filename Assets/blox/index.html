@@ -324,8 +324,8 @@
 
   function mainBridge(PRELUDE) {
     var w = window, L = function (m) { console.warn("[webblox] " + m); };
-    var NW = w.Worker;
-    if (!NW || NW.__wbwt) return;
+    var NW0 = w.Worker;
+    if (!NW0 || NW0.__wbwt) return;
     function serve(port) {
       var conns = {};
       function post(m, t) { try { port.postMessage(m, t || []); } catch (x) {} }
@@ -382,6 +382,7 @@
         }
       };
     }
+    function wrap(NW) {
     function W(url, opts) {
       var nw;
       try {
@@ -394,8 +395,18 @@
       return nw;
     }
     W.prototype = NW.prototype; W.__wbwt = 1;
-    w.Worker = W;
+    return W;
+    }
+    // The proxy's client script may assign its own window.Worker after this script ran, which would silently drop our wrapper.
+    // Keep Worker behind an accessor so any later assignment gets re-wrapped.
+    var cur = wrap(NW0);
+    try {
+      Object.defineProperty(w, "Worker", { configurable: true, enumerable: false,
+        get: function () { return cur; },
+        set: function (v) { cur = (v && !v.__wbwt) ? wrap(v) : v; L("window.Worker was reassigned, re-wrapped"); } });
+    } catch (e) { w.Worker = cur; L("Worker accessor failed: " + e); }
     L("worker WebTransport bridge installed");
+    [500, 4000].forEach(function (ms) { setTimeout(function () { L("Worker check +" + ms + "ms: ours=" + !!(w.Worker && w.Worker.__wbwt) + " native=" + /\[native code\]/.test(Function.prototype.toString.call(NW0))); }, ms); });
   }
 
   const PROBE = [
