@@ -290,8 +290,28 @@ async function connectWisp(st, say, log) {
   }
   throw new Error("No working proxy found. Reload to try again.");
 }
+const findHub = () => {
+  for (const w of [window, window.parent, window.top]) {
+    try { if (w && w.kNetDirect && typeof w.kNetDirect.fetch === "function") return w.kNetDirect; } catch {}
+  }
+  return null;
+};
 function getProxy({ log = () => {}, say = () => {} } = {}) {
   return (ready ||= (async () => {
+    let hub = findHub();
+    if (!hub && window.__MOON_EMBED) {
+      say("Connecting to net hub…");
+      const t = Date.now();
+      while (!hub && Date.now() - t < 120000) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
+    }
+    if (hub) {
+      say("Connecting to net hub…");
+      const wisp = String(await withTimeout(hub.ready(), 60000, "net hub"));
+      const lc = await hub.libcurl();
+      log("[proxy] net hub wisp", wisp);
+      state = { hub, wisp, libcurl: { fetch: (url, init) => hub.fetch(url, init), WebSocket: lc.WebSocket } };
+      return state;
+    }
     const t0 = Date.now(), say2 = (t) => say(t + " (" + Math.round((Date.now() - t0) / 1000) + "s)");
     say2("Loading proxy…");
     const sandstone = await loadSandstone(log);
@@ -306,6 +326,15 @@ function getProxy({ log = () => {}, say = () => {} } = {}) {
 async function rotateProxy(log = () => {}, say = () => {}) {
   if (!state) return getProxy({ log, say });
   if (rotating) return rotating;
+  if (state.hub) {
+    rotating = (async () => {
+      log("[proxy] asking net hub to switch wisp");
+      const next = await state.hub.rotate(state.wisp, false);
+      if (next) state.wisp = String(next);
+      return state;
+    })().finally(() => { rotating = null; });
+    return rotating;
+  }
   rotating = (async () => {
     log("[proxy] switching wisp");
     if (state.wisp) { bad.add(state.wisp); state.tried.push(state.wisp); }

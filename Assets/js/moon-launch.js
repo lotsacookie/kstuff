@@ -236,7 +236,7 @@ export function init(K) {
     if (launching || live || !stale()) return;
     try { await mountFrame(); if (!launching && !live) post({ type: 'moon:sync' }); } catch {}
   };
-  setTimeout(() => K.syncMoonCatalog(), 12000);
+  setTimeout(() => K.syncMoonCatalog(), 5000);
 
   K.exitMoon = () => {
     if (!launching && !live && !(frame && frame.classList.contains('on'))) return false;

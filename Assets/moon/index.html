@@ -236,7 +236,7 @@ if (EMBED) {
     for (const v of ["--nav-bg", "--text-color"]) { const x = cs.getPropertyValue(v).trim(); if (x) document.documentElement.style.setProperty(v, x); }
   } catch {}
 }
-let pendingGame = null, libBusy = false, prog = 0;
+let pendingGame = null, libBusy = false, prog = 0, phonePre = null;
 const SESSION = "singularitymoon.session";
 const CREDS = "singularitymoon.creds";
 const $ = (id) => document.getElementById(id);
@@ -251,7 +251,8 @@ function say(t, cls = "") { const s = $("status"); s.textContent = t; s.classNam
 const log = (...a) => console.log(...a);
 
 let session = store.get(SESSION); // { userId, token }
-let apiHost = null;
+const HOST_KEY = "singularitymoon.apihost";
+let apiHost = (() => { const h = store.get(HOST_KEY); return API_HOSTS.includes(h) ? h : null; })();
 let all = [];
 let catNames = {};
 let activeCat = "all";
@@ -270,36 +271,50 @@ async function api(path, { method = "GET", body } = {}, retried = false) {
   let lastErr = new Error("No API host reachable");
   for (let round = 0; round < 2; round++) {
     const { libcurl } = await window.__getProxy({ log, say });
-    const hosts = apiHost ? [apiHost, ...API_HOSTS.filter((h) => h !== apiHost)] : API_HOSTS;
-    for (const h of hosts) {
+    const order = apiHost ? [apiHost, ...API_HOSTS.filter((h) => h !== apiHost)] : API_HOSTS;
+    const attempt = async (h) => {
       const u = new URL(h + path);
       u.searchParams.set("device_type", "web");
       u.searchParams.set("query_uuid", crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
       u.searchParams.set("site", "cm");
       u.searchParams.set("device_id", deviceId());
       const headers = { "Content-Type": "application/json", "X-User-Language": "en", "X-User-Locale": "US" };
-      headers["Origin"] = "https://web.cloudmoonapp.com"; headers["Referer"] = "https://web.cloudmoonapp.com/";   // the real site's requests come from this origin
+      headers["Origin"] = "https://web.cloudmoonapp.com"; headers["Referer"] = "https://web.cloudmoonapp.com/";
       if (session && session.token) headers["X-User-Token"] = session.token;
       const init = { method, headers };
       if (body !== undefined) init.body = JSON.stringify(body);
-      try {
-        const r = await withTimeout(libcurl.fetch(u.href, init), 20000, "Request");
-        if (r.status >= 500) { lastErr = new Error("Server error " + r.status); continue; }
-        const text = await withTimeout(r.text(), 20000, "Response");
-        let j;
-        try { j = JSON.parse(text); } catch { lastErr = new Error("Unexpected response (" + r.status + ")"); continue; }
-        apiHost = h;
-        console.log("[api] " + method + " " + path + " @" + new URL(h).host + " → HTTP " + r.status + " " + text.slice(0, 400));
-        if (String(j.code) === "40001") {
-          if (!retried && !path.startsWith("/login") && await relogin()) return await api(path, { method, body }, true);
-          signOut(true); throw new Error("Session expired — sign in again");
+      const r = await withTimeout(libcurl.fetch(u.href, init), 15000, "Request");
+      if (r.status >= 500) throw new Error("Server error " + r.status);
+      const text = await withTimeout(r.text(), 15000, "Response");
+      let j;
+      try { j = JSON.parse(text); } catch { throw new Error("Unexpected response (" + r.status + ")"); }
+      return { h, j, text, status: r.status };
+    };
+    let res = null;
+    try {
+      if (method === "GET") {
+        res = await new Promise((resolve, reject) => {
+          let left = order.length, done = false;
+          order.forEach((h, i) => setTimeout(() => {
+            if (done) return;
+            attempt(h).then((x) => { if (!done) { done = true; resolve(x); } }, (e) => { lastErr = e; console.warn("[api] " + path + " @" + new URL(h).host + " failed: " + (e && e.message || e)); if (--left === 0 && !done) reject(e); });
+          }, i * 1200));
+        });
+      } else {
+        for (const h of order) {
+          try { res = await attempt(h); break; } catch (e) { lastErr = e; console.warn("[api] " + method + " " + path + " @" + new URL(h).host + " failed: " + (e && e.message || e)); }
         }
-        return j;
-      } catch (e) {
-        if (e && /expired/.test(e.message)) throw e;
-        console.warn("[api] " + method + " " + path + " @" + new URL(h).host + " failed: " + (e && e.message || e));
-        lastErr = e;
       }
+    } catch (e) { lastErr = e; }
+    if (res) {
+      apiHost = res.h; store.set(HOST_KEY, res.h);
+      console.log("[api] " + method + " " + path + " @" + new URL(res.h).host + " → HTTP " + res.status + " " + res.text.slice(0, 400));
+      const j = res.j;
+      if (String(j.code) === "40001") {
+        if (!retried && !path.startsWith("/login") && await relogin()) return await api(path, { method, body }, true);
+        signOut(true); throw new Error("Session expired — sign in again");
+      }
+      return j;
     }
     if (round === 0) { try { await window.__rotateProxy(log, say); } catch {} }
   }
@@ -512,7 +527,8 @@ async function launch(g) {
   $("ptitle").textContent = $("mt-title").textContent = g.title; prog = 0; wake();
   let androidId = null;
   try {
-    const p = await api("/phone/list");
+    const pre = phonePre; phonePre = null;
+    const p = (pre && await pre) || await api("/phone/list");
     androidId = p.code === 0 && p.data && p.data.list && p.data.list[0] && p.data.list[0].android_id;
     try { console.log("[launch] phone entry: " + JSON.stringify(p.data.list[0]).slice(0, 900)); } catch {}
   } catch (e) { console.warn(e); }
@@ -571,6 +587,7 @@ async function embedStart() {
   document.body.classList.remove("need-ui");
   up({ type: "moon:view", ui: false });
   pendingGame = null;
+  phonePre = api("/phone/list").catch(() => null);
   await loadServers();
   await launch({ id: g.id, title: g.title, raw: {} });
 }
