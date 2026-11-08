@@ -252,6 +252,148 @@
     const json = JSON.stringify(FLAGS).replace(/</g, "\\u003c");
     return "<script data-webblox>(function(){var o=" + json + ";var d=window.__wasmDevSettings=window.__wasmDevSettings||{};var prev=d.getFlagOverrides;d.getFlagOverrides=function(){var p={};try{if(prev)p=prev()||{};}catch(e){}return Object.assign({},p,o);};})()<\/script>";
   };
+  // WebTransport is missing inside workers of the proxied page, but the engine opens its game connection from a pthread worker.
+  // workerPrelude runs at the top of every worker and defines a WebTransport that forwards to the real one on the page's main thread
+  // (mainBridge, below) over a MessagePort. Both functions are injected as source text, so keep them free of outside references.
+  function workerPrelude() {
+    if (typeof self.WebTransport !== "undefined") return;
+    var port = null, queue = [], nextId = 1, nextRid = 1, conns = {}, rpcs = {};
+    function send(m, t) { if (port) port.postMessage(m, t || []); else queue.push([m, t || []]); }
+    function rpc(m, t) { return new Promise(function (res, rej) { var rid = nextRid++; rpcs[rid] = [res, rej]; m.rid = rid; send(m, t); }); }
+    function copy(x) { return (ArrayBuffer.isView(x) ? new Uint8Array(x.buffer, x.byteOffset, x.byteLength) : new Uint8Array(x)).slice().buffer; }
+    addEventListener("message", function (e) {
+      var d = e.data;
+      if (d && d.__wbwt === 1) {
+        e.stopImmediatePropagation();
+        port = d.port; port.onmessage = onMain;
+        var q = queue; queue = [];
+        q.forEach(function (x) { port.postMessage(x[0], x[1]); });
+      }
+    });
+    function onMain(e) {
+      var m = e.data, c = conns[m.id];
+      if (m.t === "ack") { var r = rpcs[m.rid]; if (r) { delete rpcs[m.rid]; if (m.error) r[1](new Error(m.error)); else r[0](m); } return; }
+      if (!c) return;
+      var s;
+      switch (m.t) {
+        case "ready": c.datagrams.maxDatagramSize = m.max || 0; c.resolveReady(); break;
+        case "readyfail": c.rejectReady(new Error(m.error)); try { c.dgCtrl.close(); c.inCtrl.close(); } catch (x) {} break;
+        case "closed": c.resolveClosed(m.info || {}); try { c.dgCtrl.close(); } catch (x) {} try { c.inCtrl.close(); } catch (x) {} break;
+        case "closedfail": c.rejectClosed(new Error(m.error)); break;
+        case "dg": try { c.dgCtrl.enqueue(new Uint8Array(m.buf)); } catch (x) {} break;
+        case "instream":
+          s = new ReadableStream({ start: function (ctrl) { c.ins[m.sid] = ctrl; }, cancel: function () { send({ t: "incancel", id: m.id, sid: m.sid }); } });
+          try { c.inCtrl.enqueue(s); } catch (x) {}
+          break;
+        case "indata": if (c.ins[m.sid]) try { c.ins[m.sid].enqueue(new Uint8Array(m.buf)); } catch (x) {} break;
+        case "inend": if (c.ins[m.sid]) { try { c.ins[m.sid].close(); } catch (x) {} delete c.ins[m.sid]; } break;
+        case "inerr": if (c.ins[m.sid]) { try { c.ins[m.sid].error(new Error(m.error)); } catch (x) {} delete c.ins[m.sid]; } break;
+      }
+    }
+    function WT(url, opts) {
+      var id = nextId++, c = conns[id] = { ins: {} };
+      this._id = id;
+      this.ready = new Promise(function (res, rej) { c.resolveReady = res; c.rejectReady = rej; });
+      this.closed = new Promise(function (res, rej) { c.resolveClosed = res; c.rejectClosed = rej; });
+      this.ready.catch(function () {}); this.closed.catch(function () {});
+      this.datagrams = c.datagrams = {
+        maxDatagramSize: 0,
+        readable: new ReadableStream({ start: function (ctrl) { c.dgCtrl = ctrl; } }),
+        writable: new WritableStream({ write: function (chunk) { var b = copy(chunk); return rpc({ t: "dgw", id: id, buf: b }, [b]); } })
+      };
+      this.incomingUnidirectionalStreams = new ReadableStream({ start: function (ctrl) { c.inCtrl = ctrl; } });
+      var hashes = ((opts && opts.serverCertificateHashes) || []).map(function (h) { return { algorithm: h.algorithm, value: new Uint8Array(h.value) }; });
+      send({ t: "new", id: id, url: String(url), hashes: hashes });
+    }
+    WT.prototype.createUnidirectionalStream = function () {
+      var id = this._id;
+      return rpc({ t: "newout", id: id }).then(function (a) {
+        var sid = a.sid;
+        return new WritableStream({
+          write: function (chunk) { var b = copy(chunk); return rpc({ t: "outw", id: id, sid: sid, buf: b }, [b]); },
+          close: function () { return rpc({ t: "outc", id: id, sid: sid }); },
+          abort: function () { return rpc({ t: "outa", id: id, sid: sid }); }
+        });
+      });
+    };
+    WT.prototype.close = function (info) { send({ t: "close", id: this._id, info: info || {} }); };
+    WT.__wbBridge = true;
+    self.WebTransport = WT;
+  }
+
+  function mainBridge(PRELUDE) {
+    var w = window, L = function (m) { console.warn("[webblox] " + m); };
+    var NW = w.Worker;
+    if (!NW || NW.__wbwt) return;
+    function serve(port) {
+      var conns = {};
+      function post(m, t) { try { port.postMessage(m, t || []); } catch (x) {} }
+      function ack(rid, err) { post({ t: "ack", rid: rid, error: err ? String((err && err.message) || err) : undefined }); }
+      function readDatagrams(c, id) {
+        var rd; try { rd = c.wt.datagrams.readable.getReader(); } catch (x) { return; }
+        (function loop() { rd.read().then(function (r) { if (r.done) return; var b = new Uint8Array(r.value).slice().buffer; post({ t: "dg", id: id, buf: b }, [b]); loop(); }, function () {}); })();
+      }
+      function readStream(id, sid, rs) {
+        var rd = rs.getReader(); c_streams[id + ":" + sid] = rd;
+        (function loop() {
+          rd.read().then(function (r) {
+            if (r.done) { post({ t: "inend", id: id, sid: sid }); return; }
+            var b = new Uint8Array(r.value).slice().buffer; post({ t: "indata", id: id, sid: sid, buf: b }, [b]); loop();
+          }, function (err) { post({ t: "inerr", id: id, sid: sid, error: String((err && err.message) || err) }); });
+        })();
+      }
+      var c_streams = {};
+      function readIncoming(c, id) {
+        var rd; try { rd = c.wt.incomingUnidirectionalStreams.getReader(); } catch (x) { return; }
+        (function loop() { rd.read().then(function (r) { if (r.done) return; var sid = c.nextIn++; post({ t: "instream", id: id, sid: sid }); readStream(id, sid, r.value); loop(); }, function () {}); })();
+      }
+      function open(m) {
+        var opts = m.hashes && m.hashes.length ? { serverCertificateHashes: m.hashes.map(function (h) { return { algorithm: h.algorithm, value: h.value }; }) } : undefined, wt;
+        try { wt = opts ? new w.WebTransport(m.url, opts) : new w.WebTransport(m.url); }
+        catch (err) { post({ t: "readyfail", id: m.id, error: String((err && err.message) || err) }); return; }
+        var c = conns[m.id] = { wt: wt, outs: {}, nextOut: 1, nextIn: 1, dgw: null };
+        wt.ready.then(function () {
+          post({ t: "ready", id: m.id, max: (wt.datagrams && wt.datagrams.maxDatagramSize) || 0 });
+          readDatagrams(c, m.id); readIncoming(c, m.id);
+        }, function (err) { post({ t: "readyfail", id: m.id, error: String((err && err.message) || err) }); });
+        wt.closed.then(function (i) { post({ t: "closed", id: m.id, info: { closeCode: i && i.closeCode, reason: i && i.reason } }); },
+          function (err) { post({ t: "closedfail", id: m.id, error: String((err && err.message) || err) }); });
+      }
+      port.onmessage = function (e) {
+        var m = e.data, c = m && conns[m.id];
+        if (!m) return;
+        if (m.t === "new") return open(m);
+        if (!c) { if (m.rid) ack(m.rid, "no connection"); return; }
+        switch (m.t) {
+          case "close": try { c.wt.close(m.info); } catch (x) {} break;
+          case "dgw":
+            try { if (!c.dgw) c.dgw = c.wt.datagrams.writable.getWriter(); c.dgw.write(new Uint8Array(m.buf)).then(function () { ack(m.rid); }, function (er) { ack(m.rid, er); }); } catch (er) { ack(m.rid, er); }
+            break;
+          case "newout":
+            c.wt.createUnidirectionalStream().then(function (ws) { var sid = c.nextOut++; c.outs[sid] = ws.getWriter(); post({ t: "ack", rid: m.rid, sid: sid }); }, function (er) { ack(m.rid, er); });
+            break;
+          case "outw": if (c.outs[m.sid]) c.outs[m.sid].write(new Uint8Array(m.buf)).then(function () { ack(m.rid); }, function (er) { ack(m.rid, er); }); else ack(m.rid, "no stream"); break;
+          case "outc": if (c.outs[m.sid]) c.outs[m.sid].close().then(function () { ack(m.rid); }, function (er) { ack(m.rid, er); }); else ack(m.rid, "no stream"); break;
+          case "outa": if (c.outs[m.sid]) c.outs[m.sid].abort().then(function () { ack(m.rid); }, function (er) { ack(m.rid, er); }); else ack(m.rid, "no stream"); break;
+          case "incancel": try { var rd = c_streams[m.id + ":" + m.sid]; if (rd) rd.cancel(); } catch (x) {} break;
+        }
+      };
+    }
+    function W(url, opts) {
+      var nw;
+      try {
+        var abs = new URL(String(url), location.href).href;
+        var code = PRELUDE + (opts && opts.type === "module" ? ";await import(" + JSON.stringify(abs) + ");" : ";importScripts(" + JSON.stringify(abs) + ");");
+        nw = new NW(URL.createObjectURL(new Blob([code], { type: "text/javascript" })), opts);
+      } catch (e) { L("worker wrap failed, using plain worker: " + e); return new NW(url, opts); }
+      try { var mc = new MessageChannel(); nw.postMessage({ __wbwt: 1, port: mc.port2 }, [mc.port2]); serve(mc.port1); } catch (e) { L("worker bridge failed: " + e); }
+      return nw;
+    }
+    W.prototype = NW.prototype; W.__wbwt = 1;
+    w.Worker = W;
+    L("worker WebTransport bridge installed");
+  }
+
   const PROBE = [
     "(function(){try{var w=window,L=function(m){console.warn('[webblox] '+m)};",
     "L('frame probe: WebTransport='+typeof w.WebTransport+' isolated='+w.crossOriginIsolated+' SAB='+typeof w.SharedArrayBuffer+' origin='+location.origin);",
@@ -260,7 +402,7 @@
     "var N=w.WebTransport;if(N&&!N.__wb){var T=function(u,o){L('new WebTransport '+u+' hashes='+((o&&o.serverCertificateHashes)||[]).length);var t=new N(u,o);t.ready.then(function(){L('WebTransport ready')},function(e){L('WebTransport ready failed: '+(e&&e.message||e))});t.closed.then(function(i){L('WebTransport closed '+JSON.stringify(i))},function(e){L('WebTransport closed error: '+(e&&e.message||e))});return t};T.prototype=N.prototype;T.__wb=1;w.WebTransport=T}",
     "}catch(e){console.warn('[webblox] probe error '+e)}})();"
   ].join("");
-  const probeScript = () => "<script data-webblox>" + PROBE + "<\/script>";
+  const probeScript = () => "<script data-webblox>" + PROBE + ";(" + mainBridge.toString() + ")(" + JSON.stringify("(" + workerPrelude.toString() + ")();") + ");<\/script>";
   const injectFlags = (html) => {
     if (typeof html !== "string") return html;
     const extra = flagScript() + probeScript();
