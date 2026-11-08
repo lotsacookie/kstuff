@@ -306,8 +306,13 @@ function getProxy({ log = () => {}, say = () => {} } = {}) {
     }
     if (hub) {
       say("Connecting to net hub…");
-      const wisp = String(await withTimeout(hub.ready(), 60000, "net hub"));
-      const lc = await hub.libcurl();
+      let wisp = "", lc = null;
+      const t1 = Date.now();
+      while (!lc && Date.now() - t1 < 300000) {
+        try { wisp = String(await withTimeout(hub.ready(), 20000, "net hub")); lc = await withTimeout(hub.libcurl(), 20000, "net hub libcurl"); }
+        catch (e) { say("Waiting for the net hub…"); await new Promise((r) => setTimeout(r, 2000)); }
+      }
+      if (!lc) throw new Error("Net hub didn't become ready");
       log("[proxy] net hub wisp", wisp);
       state = { hub, wisp, libcurl: { fetch: (url, init) => hub.fetch(url, init), WebSocket: lc.WebSocket } };
       return state;
@@ -327,6 +332,8 @@ async function rotateProxy(log = () => {}, say = () => {}) {
   if (!state) return getProxy({ log, say });
   if (rotating) return rotating;
   if (state.hub) {
+    if (Date.now() - (state.lastRotate || 0) < 60000) return state;
+    state.lastRotate = Date.now();
     rotating = (async () => {
       log("[proxy] asking net hub to switch wisp");
       const next = await state.hub.rotate(state.wisp, false);

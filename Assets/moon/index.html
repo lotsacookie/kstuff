@@ -267,7 +267,16 @@ function deviceId() {
   return d;
 }
 
-async function api(path, { method = "GET", body } = {}, retried = false) {
+const inflight = new Map();
+function api(path, opts = {}, retried = false) {
+  const method = opts.method || "GET";
+  if (method !== "GET") return apiRun(path, opts, retried);
+  if (inflight.has(path)) return inflight.get(path);
+  const p = apiRun(path, opts, retried).finally(() => inflight.delete(path));
+  inflight.set(path, p);
+  return p;
+}
+async function apiRun(path, { method = "GET", body } = {}, retried = false) {
   let lastErr = new Error("No API host reachable");
   for (let round = 0; round < 2; round++) {
     const { libcurl } = await window.__getProxy({ log, say });
@@ -298,7 +307,7 @@ async function api(path, { method = "GET", body } = {}, retried = false) {
           order.forEach((h, i) => setTimeout(() => {
             if (done) return;
             attempt(h).then((x) => { if (!done) { done = true; resolve(x); } }, (e) => { lastErr = e; console.warn("[api] " + path + " @" + new URL(h).host + " failed: " + (e && e.message || e)); if (--left === 0 && !done) reject(e); });
-          }, i * 1200));
+          }, i * 2500));
         });
       } else {
         for (const h of order) {
@@ -311,12 +320,12 @@ async function api(path, { method = "GET", body } = {}, retried = false) {
       console.log("[api] " + method + " " + path + " @" + new URL(res.h).host + " → HTTP " + res.status + " " + res.text.slice(0, 400));
       const j = res.j;
       if (String(j.code) === "40001") {
-        if (!retried && !path.startsWith("/login") && await relogin()) return await api(path, { method, body }, true);
+        if (!retried && !path.startsWith("/login") && await relogin()) return await apiRun(path, { method, body }, true);
         signOut(true); throw new Error("Session expired — sign in again");
       }
       return j;
     }
-    if (round === 0) { try { await window.__rotateProxy(log, say); } catch {} }
+    if (round === 0) { await new Promise((r) => setTimeout(r, 2000)); try { await window.__rotateProxy(log, say); } catch {} }
   }
   throw lastErr;
 }
