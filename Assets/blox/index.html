@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>WebBlox</title>
+<script>
+(() => {
+  if (window.__wbConsole) return;
+  const MAX = 3000, DOM_MAX = 1500, CAP = 4000;
+  const buf = [];
+  let ui = null, unseen = 0;
+  const pad = (n, l = 2) => String(n).padStart(l, "0");
+  const stamp = () => { const d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + "." + pad(d.getMilliseconds(), 3); };
+  const fmt = (v) => {
+    try {
+      if (typeof v === "string") return v;
+      if (v instanceof Error) return v.stack || v.message;
+      if (typeof v === "function") return String(v);
+      if (v && typeof v === "object") { try { return JSON.stringify(v, (k, x) => (typeof x === "bigint" ? String(x) : x), 2); } catch { return Object.prototype.toString.call(v); } }
+      return String(v);
+    } catch { return "[unprintable]"; }
+  };
+  const line = (e) => "[" + e.t + "] [" + e.src + "] [" + e.level + "] " + e.text + (e.n > 1 ? "  (x" + e.n + ")" : "");
+
+  function add(src, level, text) {
+    text = String(text).slice(0, CAP);
+    const last = buf[buf.length - 1];
+    if (last && last.src === src && last.level === level && last.text === text) {
+      last.n++;
+      if (ui) ui.update(last);
+    } else {
+      const e = { t: stamp(), src, level, text, n: 1, el: null };
+      buf.push(e);
+      if (buf.length > MAX) buf.shift();
+      if (ui) ui.append(e);
+    }
+    if (level === "error") { unseen++; if (ui) ui.badge(); }
+  }
+
+  for (const m of ["log", "info", "warn", "error", "debug"]) {
+    const orig = console[m];
+    console[m] = function (...a) { try { add("H", m, a.map(fmt).join(" ")); } catch {} return orig.apply(this, a); };
+  }
+  addEventListener("error", (e) => {
+    if (e.target && e.target !== window) { const u = e.target.src || e.target.href; if (u) add("H", "error", "Failed to load " + u); return; }
+    add("H", "error", (e.message || "Error") + (e.filename ? " (" + e.filename + ":" + e.lineno + ":" + e.colno + ")" : ""));
+  }, true);
+  addEventListener("unhandledrejection", (e) => add("H", "error", "Unhandled rejection: " + fmt(e.reason)));
+
+  function build() {
+    const host = document.createElement("div");
+    host.id = "wb-console-host";
+    const root = host.attachShadow({ mode: "open" });
+    root.innerHTML =
+      "<style>" +
+      "*{box-sizing:border-box}" +
+      "#btn{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:46px;height:46px;border-radius:50%;border:1px solid #666;background:#1b1b1bd9;color:#eee;font:600 13px ui-monospace,monospace;z-index:2147483647;padding:0}" +
+      "#badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#e03131;color:#fff;font:700 11px/18px system-ui;display:none;padding:0 4px}" +
+      "#panel{position:fixed;left:0;right:0;bottom:0;height:55vh;height:55dvh;display:none;flex-direction:column;background:#0a0a0af2;color:#ddd;z-index:2147483647;border-top:1px solid #444;padding-bottom:env(safe-area-inset-bottom)}" +
+      "#panel.open{display:flex}" +
+      "#bar{display:flex;gap:6px;padding:6px;border-bottom:1px solid #333;align-items:center}" +
+      "#bar span{flex:1;font:12px system-ui;color:#999}" +
+      "button{font:13px system-ui;padding:8px 10px;background:#2a2a2a;color:#eee;border:1px solid #555;border-radius:6px}" +
+      "button.on{background:#3b5bdb;border-color:#3b5bdb}" +
+      "#log{flex:1;overflow:auto;padding:6px;font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;overscroll-behavior:contain}" +
+      ".e{padding:2px 0;border-bottom:1px solid #1c1c1c;-webkit-user-select:text;user-select:text}" +
+      ".l-error{color:#ff6b6b}.l-warn{color:#ffd166}.l-info{color:#7cc7ff}.l-debug{color:#9a9a9a}.l-result{color:#8ce99a}.l-cmd{color:#b197fc}" +
+      "#log.only .l-log,#log.only .l-info,#log.only .l-debug,#log.only .l-result,#log.only .l-cmd{display:none}" +
+      "#row{display:flex;border-top:1px solid #333}" +
+      "#in{flex:1;min-width:0;font:16px ui-monospace,monospace;background:#111;color:#eee;border:0;padding:8px;outline:0}" +
+      "</style>" +
+      '<button id="btn" aria-label="Open console">&gt;_<span id="badge"></span></button>' +
+      '<div id="panel"><div id="bar"><span id="hint">H=host F=page</span>' +
+      '<button id="only">Errors</button><button id="copy">Copy</button><button id="clear">Clear</button><button id="close">&#x2715;</button></div>' +
+      '<div id="log"></div><div id="row"><input id="in" placeholder="js (prefix ! to run in the page)" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"></div></div>';
+    const $ = (id) => root.getElementById(id);
+    const log = $("log"), panel = $("panel"), btn = $("btn"), badgeEl = $("badge");
+    let open = false, only = false;
+
+    const render = (e) => {
+      const d = document.createElement("div");
+      d.className = "e l-" + e.level;
+      d.textContent = line(e);
+      e.el = d;
+      return d;
+    };
+    const atBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 40;
+    const api = {
+      host,
+      append(e) {
+        if (!open) return;
+        const stick = atBottom();
+        log.appendChild(render(e));
+        while (log.childElementCount > DOM_MAX) log.removeChild(log.firstChild);
+        if (stick) log.scrollTop = log.scrollHeight;
+      },
+      update(e) { if (open && e.el) e.el.textContent = line(e); },
+      badge() { if (open || !unseen) { badgeEl.style.display = "none"; return; } badgeEl.textContent = unseen > 99 ? "99+" : unseen; badgeEl.style.display = "block"; },
+      open() {
+        open = true; unseen = 0; api.badge();
+        log.textContent = "";
+        const frag = document.createDocumentFragment();
+        for (const e of buf.slice(-DOM_MAX)) frag.appendChild(render(e));
+        log.appendChild(frag);
+        panel.classList.add("open"); btn.style.display = "none";
+        log.scrollTop = log.scrollHeight;
+      },
+      close() { open = false; panel.classList.remove("open"); btn.style.display = ""; },
+      text() { return buf.filter((e) => !only || e.level === "error" || e.level === "warn").map(line).join("\n"); },
+    };
+
+    btn.onclick = api.open;
+    $("close").onclick = api.close;
+    $("clear").onclick = () => { buf.length = 0; log.textContent = ""; unseen = 0; api.badge(); };
+    $("only").onclick = () => { only = !only; $("only").classList.toggle("on", only); log.classList.toggle("only", only); };
+    $("copy").onclick = async () => {
+      const text = api.text(), b = $("copy");
+      let ok = false;
+      try { await navigator.clipboard.writeText(text); ok = true; } catch {}
+      if (!ok) {
+        try {
+          const ta = document.createElement("textarea");
+          ta.value = text; ta.style.cssText = "position:fixed;opacity:0;left:0;top:0";
+          root.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
+          ok = document.execCommand("copy"); ta.remove();
+        } catch {}
+      }
+      b.textContent = ok ? "Copied" : "Failed";
+      setTimeout(() => { b.textContent = "Copy"; }, 1200);
+    };
+    $("in").addEventListener("keydown", async (ev) => {
+      if (ev.key !== "Enter") return;
+      const input = ev.target, code = input.value.trim();
+      if (!code) return;
+      input.value = "";
+      add("H", "cmd", "> " + code);
+      try {
+        let r;
+        if (code[0] === "!") {
+          const f = window.webblox && window.webblox.frame;
+          if (!f) throw new Error("page frame not ready yet");
+          r = await f.eval_js(code.slice(1));
+        } else r = (0, eval)(code);
+        if (r && typeof r.then === "function") r = await r;
+        add("H", "result", fmt(r));
+      } catch (e) { add("H", "error", fmt(e)); }
+    });
+    return api;
+  }
+
+  const mount = () => {
+    if (!ui) ui = build();
+    if (!ui.host.isConnected) document.documentElement.appendChild(ui.host);
+    ui.badge();
+  };
+  const start = () => {
+    mount();
+    new MutationObserver(() => { if (ui && !ui.host.isConnected) document.documentElement.appendChild(ui.host); }).observe(document.documentElement, { childList: true });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
+
+  window.__wbConsole = {
+    add,
+    frame(batch) { for (const [level, text] of batch || []) add("F", level, text); },
+    open: () => { mount(); ui.open(); },
+    close: () => ui && ui.close(),
+    text: () => (ui ? ui.text() : buf.map(line).join("\n")),
+  };
+})();
+</script>
+
+<style>
+  html, body { margin: 0; height: 100%; background: #111; color: #ddd; font-family: system-ui, sans-serif; overflow: hidden; }
+  #wb-boot { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; }
+  #wb-status { opacity: .8; font-size: 14px; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div id="wb-boot"><div><h2 style="margin:0">WebBlox</h2><div id="wb-status">Starting…</div></div></div>
+<script>
+(() => {
+  // WebBlox inside kstuff: every request goes through the kstuff net hub (window.kNetDirect). This page never creates
+  // its own proxy, picks wisps, or handles cookies: the hub's sandstone/ProxyFrame does, and its cookie jar
+  // (proxy_cookie_storage) is the same one the rest of kstuff uses.
+  const status = document.getElementById("wb-status");
+  const embedded = window.parent && window.parent !== window;
+  const post = (type, extra) => { if (!embedded) return; try { window.parent.postMessage(Object.assign({ type }, extra || {}), "*"); } catch {} };
+  let lastSay = "";
+  const say = (t) => { if (status) status.textContent = t; if (t !== lastSay) { lastSay = t; post("blox:status", { text: t }); } };
+  const DEFAULT_PLACE = "10879318443";
+  const START = "https://play.roblox.com/games/start";
+  const FLAGS = { FFlagBaseClientGateOnSendChannel: "False", FLogGameJoinUtil: "7" };
+  // Auto-patch for "Failed to open send channel Chat! (256)" on "Joining server".
+  // The engine opens Chat on a logical channel over RtcIo; these flags relax that path.
+  // Levels are cumulative. Start at 1, escalate + relaunch each time the error is seen.
+  const CHAT_FAIL_RE = /Failed to open send channel\s*Chat/i;
+  const bothPrefixes = (o) => { const r = {}; for (const [k, v] of Object.entries(o)) { r["FFlag" + k] = v; r["DFFlag" + k] = v; } return r; };
+  const CHAT_PATCHES = [
+    bothPrefixes({ EnableExpChatUseLogicalChannelId: "False", RbxTransportRtcioRejectDuplicateChannel: "False", RbxTransportSentinelWireChannelIdCheck: "False" }),
+    bothPrefixes({ RbxTransportRtcioRejectChannelOpenOnFailedConnect: "False", RbxTransportRtcioCreditChannelHeader: "False", RbxTransportRtcioNativeControlChannel: "False", RbxTransportRtcioValidateApplicationEnum: "False" }),
+    bothPrefixes({ RbxTransportRtcIoClientForceReliableChannels: "True", RbxTransportRtcioConnStartReentrant: "False", RbxTransportRtcioAwaitIdleOnTransientError: "False", TextChatFixUniverseChatChannelReassignment: "False" }),
+  ];
+  const applyChatLevel = (n) => {
+    for (const p of CHAT_PATCHES) for (const k of Object.keys(p)) delete FLAGS[k];
+    for (let i = 0; i < Math.min(n, CHAT_PATCHES.length); i++) Object.assign(FLAGS, CHAT_PATCHES[i]);
+  };
+  const initialChatLevel = (search) => {
+    const q = new URLSearchParams(search).get("chatfix");
+    if (q === "off" || q === "0") return 0;
+    if (q !== null && /^\d+$/.test(q)) return Math.min(+q, CHAT_PATCHES.length);
+    const saved = store_get_level();
+    return Math.min(Math.max(saved, 1), CHAT_PATCHES.length);
+  };
+  const store_get_level = () => { try { const v = JSON.parse(localStorage.getItem("WB_CHATFIX")); return Number.isInteger(v) ? v : 1; } catch { return 1; } };
+
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  };
+  const warn = (m) => console.warn("[webblox] " + m);
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+  const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
+
+  const findHub = () => {
+    for (const w of [window, window.parent, window.top]) {
+      try { if (w && w.kNetDirect && typeof w.kNetDirect.sandstone === "function") return w.kNetDirect; } catch {}
+    }
+    return null;
+  };
+  async function waitHub(ms) {
+    const t0 = Date.now();
+    let hub = findHub();
+    while (!hub && Date.now() - t0 < ms) { await sleep(100); hub = findHub(); }
+    if (!hub) throw new Error("Net hub not available. Open WebBlox from the kstuff Games page.");
+    return hub;
+  }
+
+  let place = "";
+  const pageLocation = () => {
+    if (location.search || location.hash) return location;
+    try { void window.top.location.href; return window.top.location; } catch { return location; }
+  };
+  const startUrl = () => {
+    const loc = pageLocation();
+    const h = loc.hash.slice(1);
+    if (/^https?:\/\//i.test(h)) return h;
+    const id = place || window.__BLOX_PLACE || new URLSearchParams(loc.search).get("placeId") || "";
+    return START + "?placeId=" + (/^\d{1,20}$/.test(String(id)) ? id : DEFAULT_PLACE);
+  };
+
+  const flagScript = () => {
+    const json = JSON.stringify(FLAGS).replace(/</g, "\\u003c");
+    return "<script data-webblox>(function(){var o=" + json + ";var d=window.__wasmDevSettings=window.__wasmDevSettings||{};var prev=d.getFlagOverrides;d.getFlagOverrides=function(){var p={};try{if(prev)p=prev()||{};}catch(e){}return Object.assign({},p,o);};})()<\/script>";
+  };
+  const injectFlags = (html) => {
+    if (typeof html !== "string") return html;
+    const extra = flagScript();
+    const m = /<head[^>]*>/i.exec(html);
+    return m ? html.slice(0, m.index + m[0].length) + extra + html.slice(m.index + m[0].length) : extra + html;
+  };
+
+  // Engine failures: the Chat send-channel error climbs the patch ladder; anything else asks the hub for another wisp.
+  function createWatchdog({ hub, relaunch, chat, max = 2 }) {
+    let used = 0, busy = false, lastSig = null, shared = false;
+    return async (text) => {
+      if (typeof text !== "string" || !/\[LoadingScreen\]\s*Engine failure/i.test(text)) return;
+      if (chat && CHAT_FAIL_RE.test(text) && (await chat())) return;
+      if (busy || used >= max || shared) return;
+      const msg = /"message"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(text);
+      const code = /"errorCode"\s*:\s*(-?\d+)/.exec(text);
+      const sig = (code ? code[1] : "") + "|" + (msg ? msg[1] : "");
+      warn("engine failure detail: code=" + (code ? code[1] : "?") + " message=" + (msg ? msg[1] : ""));
+      if (lastSig !== null && sig === lastSig) { shared = true; warn("same engine failure on " + (used + 1) + " servers, not server-specific; not retrying"); return; }
+      busy = true; used++;
+      try {
+        const failed = hub.wisp ? hub.wisp() : null;
+        warn("engine failed on " + failed + ", asking the net hub for another wisp (" + used + "/" + max + ")");
+        const next = await hub.rotate(failed, false);
+        if (!next || next === failed) { warn("no other server available"); return; }
+        await relaunch();
+        lastSig = sig;
+      } catch (e) { warn("recovery failed: " + ((e && e.message) || e)); }
+      finally { busy = false; }
+    };
+  }
+
+  let booted = null;
+  async function boot() {
+    if (!window.crossOriginIsolated) warn("page is not cross-origin isolated; the proxied frame has to provide it");
+    say("Connecting to net hub…");
+    const hub = await waitHub(120000);
+    for (let i = 0; i < 6; i++) {
+      try { await withTimeout(hub.ready(), 40000, "net hub"); break; } catch (e) { say("Waiting for the net hub…"); if (i === 5) throw e; await sleep(2000); }
+    }
+    say("Loading proxy…");
+    const sandstone = await withTimeout(hub.sandstone(), 90000, "proxy");
+    const frame = new sandstone.controller.ProxyFrame();
+    Object.assign(frame.iframe.style, { position: "fixed", inset: "0", width: "100%", height: "100%", border: "0", background: "#fff" });
+    try { await withTimeout(frame.wait_for_libcurl(), 20000, "libcurl"); } catch (e) { warn(String((e && e.message) || e)); }
+
+    let chatLevel = initialChatLevel(pageLocation().search), chatBusy = false, chatAt = 0;
+    applyChatLevel(chatLevel);
+    console.log("[webblox] chat patch level:", chatLevel, "wisp:", hub.wisp && hub.wisp());
+    const chatEscalate = async () => {
+      if (chatBusy || Date.now() - chatAt < 8000) return true;
+      if (chatLevel >= CHAT_PATCHES.length) return false;
+      chatBusy = true;
+      try {
+        chatLevel++;
+        applyChatLevel(chatLevel);
+        try { localStorage.setItem("WB_CHATFIX", JSON.stringify(chatLevel)); } catch {}
+        warn("send channel Chat failed, relaunching with chat patch level " + chatLevel + "/" + CHAT_PATCHES.length);
+        say("Patching chat channel (level " + chatLevel + ")…");
+        await frame.navigate_to(startUrl());
+      } catch (e) { warn("chat patch relaunch failed: " + ((e && e.message) || e)); }
+      finally { chatBusy = false; chatAt = Date.now(); }
+      return true;
+    };
+    const watchdog = createWatchdog({ hub, chat: chatEscalate, relaunch: () => frame.navigate_to(startUrl()) });
+    const send = frame.send_page;
+    frame.send_page = (page) => send.call(frame, { ...page, html: injectFlags(page.html) });
+    frame.on_console = (batch) => {
+      try { globalThis.__wbConsole && globalThis.__wbConsole.frame(batch); } catch {}
+      try { for (const item of batch || []) watchdog(item && item[1]); } catch {}
+    };
+    frame.on_info = ({ title }) => { if (title) document.title = title; };
+    frame.on_progress = (_, text) => say(text || "Loading…");
+    document.body.replaceChildren(frame.iframe);
+    Object.assign(globalThis, { sandstone, webblox: { frame, hub } });
+    await frame.navigate_to(startUrl());
+    post("blox:live");
+    return frame;
+  }
+
+  const launch = (id) => {
+    if (id && /^\d{1,20}$/.test(String(id))) place = String(id);
+    if (!booted) {
+      booted = boot().catch((e) => { booted = null; say("Failed: " + ((e && e.message) || e)); console.error(e); post("blox:failed", { text: "Couldn’t start WebBlox: " + ((e && e.message) || e) }); });
+      return booted;
+    }
+    return booted.then((f) => { if (f && f.navigate_to) return f.navigate_to(startUrl()).then(() => post("blox:live")); });
+  };
+
+  window.addEventListener("message", (e) => {
+    if (embedded && e.source !== window.parent) return;
+    const d = e.data;
+    if (!d || typeof d !== "object" || typeof d.type !== "string") return;
+    if (d.type === "blox:launch") launch(d.game && d.game.id);
+  });
+
+  if (embedded) post("blox:ready"); else launch();
+})();
+</script>
+</body>
+</html>

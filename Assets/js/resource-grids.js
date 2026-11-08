@@ -186,7 +186,9 @@ export function init(K) {
     if (item.cloudId) return K.openCloudGame?.(item); // Cloud games open inside SingularityCloud, not in this grid's frame
     if (item.gfnId) return K.openGfnGame?.(item); // GeForce NOW games stream through the SingularityNOW client
     if (item.moonId) return K.openMoonGame?.(item, opts.pageId); // CloudMoon games run through the SingularityMoon client
+    if (item.bloxId) return K.openBloxGame?.(item, opts.pageId); // WebBlox runs Roblox through the net hub
     K.hideMoon?.();
+    K.hideBlox?.();
     K.hideGfn?.(); // any other title: make sure no GeForce NOW loader or frame is left over the grid
     const pageId = opts.pageId || document.querySelector('.page.active')?.id;
     if (!pageId || !grids[pageId]) return;
@@ -737,6 +739,13 @@ export function init(K) {
         if (item.source === 'moon') {
           const art = Array.isArray(item.cover) ? item.cover : [item.cover];
           const row = { title: `${baseName} (Moon)`, image: art[0] || '', url: '', category: 'CloudMoon', description: '', moonId: item.moonId, moonName: baseName };
+          if (art.length > 1) row.imageAlts = art.slice(1);
+          mappedData.push(row);
+          return;
+        }
+        if (item.source === 'blox') {
+          const art = Array.isArray(item.cover) ? item.cover : [item.cover];
+          const row = { title: baseName, image: art[0] || '', url: '', category: 'Roblox', description: 'Roblox in your browser', bloxId: item.bloxId, bloxName: baseName };
           if (art.length > 1) row.imageAlts = art.slice(1);
           mappedData.push(row);
           return;

@@ -412,13 +412,20 @@ export function init(K) {
   }
   K.moonApps = () => (readMoon()?.games || []).filter(moonIsApp).map(r => ({ title: `${r[1]} (Moon)`, image: r[2] || K.gameFallbackIcon(r[1]), url: '', category: 'CloudMoon', description: '', moonId: r[0], moonName: r[1] }));
 
+  // WebBlox: Roblox in the browser through the net hub (Assets/blox/index.html, launched by blox-launch.js).
+  const BLOX_PLACE = '10879318443';
+  async function fetchBlox() {
+    return [{ source: 'blox', bloxId: BLOX_PLACE, name: 'WebBlox', cover: [`https://cdn.jsdelivr.net/gh/${CLOUD_REPO}@main/ref/cg/tg-roblox-launch.jpg`, K.gameFallbackIcon('WebBlox')] }];
+  }
+
   K.fetchExtraGames = async () => {
     const lists = await Promise.all([
       source('seraph', fetchSeraph),
       source('storage', fetchStorageGames),
       source('cloud', fetchCloud),
       source('gfn', fetchGfn),
-      source('moon', fetchMoon)
+      source('moon', fetchMoon),
+      source('blox', fetchBlox)
     ]);
     return lists.flat();
   };
