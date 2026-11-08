@@ -356,8 +356,59 @@ export function init(K) {
     try { localStorage.setItem(MOON_STORE, JSON.stringify({ at: Date.now(), games })); } catch {}
     return games.filter(r => !had.has(r[0])).length;
   };
+  const MOON_API = ['https://api.prod.cloudmoonapp.com', 'https://api.cloudmoon.cloudbatata.com', 'https://api.prod.geometry.today'];
+  const MOON_TTL = 6 * 3600000;
+  let moonBusy = null;
+  const moonDevice = () => { try { let d = localStorage.getItem('kstuff_moon_dev'); if (!d) { d = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now())); localStorage.setItem('kstuff_moon_dev', d); } return d; } catch { return String(Date.now()); } };
+  async function moonHub(ms) {
+    const t = Date.now();
+    while (Date.now() - t < ms) {
+      const h = window.kNetDirect;
+      if (h && typeof h.fetch === 'function') return h;
+      await new Promise(r => setTimeout(r, 250));
+    }
+    return null;
+  }
+  async function moonApi(hub, host, path) {
+    const u = new URL(host + path);
+    u.searchParams.set('device_type', 'web');
+    u.searchParams.set('query_uuid', crypto.randomUUID ? crypto.randomUUID() : String(Date.now()));
+    u.searchParams.set('site', 'cm');
+    u.searchParams.set('device_id', moonDevice());
+    const r = await Promise.race([hub.fetch(u.href, { method: 'GET', headers: { 'Content-Type': 'application/json', 'X-User-Language': 'en', 'X-User-Locale': 'US', Origin: 'https://web.cloudmoonapp.com', Referer: 'https://web.cloudmoonapp.com/' } }), new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 20000))]);
+    if (r.status >= 500) throw new Error('HTTP ' + r.status);
+    return JSON.parse(await r.text());
+  }
+  async function refreshMoon() {
+    if (moonBusy) return moonBusy;
+    moonBusy = (async () => {
+      const hub = await moonHub(120000);
+      if (!hub) return 0;
+      try { await Promise.race([hub.ready(), new Promise((_, rej) => setTimeout(() => rej(new Error('hub')), 30000))]); } catch { return 0; }
+      for (const host of MOON_API) {
+        try {
+          const [j, c] = await Promise.all([moonApi(hub, host, '/game/guest_list'), moonApi(hub, host, '/game/category').catch(() => null)]);
+          if (!j || j.code !== 0 || !j.data || !Array.isArray(j.data.list)) continue;
+          const names = {};
+          if (c && c.code === 0 && c.data && Array.isArray(c.data.list)) for (const x of c.data.list) if (x && x.key) names[x.key] = x.name || x.title || x.label || x.key;
+          const rows = j.data.list.map(g => {
+            const cats = (g.categories || []).map(x => typeof x === 'string' ? x : (x && (x.key || x.name)) || '').filter(Boolean);
+            return [g.package_name, g.title || g.package_name || 'Untitled', g.icon_url, cats.concat(cats.map(k => names[k] || ''))];
+          });
+          return K.mergeMoonGames(rows);
+        } catch {}
+      }
+      return 0;
+    })().finally(() => { moonBusy = null; });
+    return moonBusy;
+  }
   async function fetchMoon() {
-    const c = readMoon();
+    let c = readMoon();
+    const stale = !c || Date.now() - (c.at || 0) > MOON_TTL;
+    if (stale) {
+      if (!c) { await Promise.race([refreshMoon(), new Promise(r => setTimeout(r, 25000))]); c = readMoon(); }
+      else refreshMoon().then(n => { if (n) { K.hardRefreshGrid?.('readingcorner'); K.hardRefreshGrid?.('sciencequiz'); } });
+    }
     return (c ? c.games : []).filter(r => !moonIsApp(r)).map(r => ({ source: 'moon', moonId: r[0], name: r[1], cover: [r[2], K.gameFallbackIcon(r[1])].filter(Boolean) }));
   }
   K.moonApps = () => (readMoon()?.games || []).filter(moonIsApp).map(r => ({ title: `${r[1]} (Moon)`, image: r[2] || K.gameFallbackIcon(r[1]), url: '', category: 'CloudMoon', description: '', moonId: r[0], moonName: r[1] }));
