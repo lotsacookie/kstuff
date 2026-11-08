@@ -367,7 +367,7 @@
         try { wt = opts ? new w.WebTransport(m.url, opts) : new w.WebTransport(m.url); }
         catch (err) { post({ t: "readyfail", id: m.id, error: String((err && err.message) || err) }); return; }
         var c = conns[m.id] = { wt: wt, outs: {}, nextOut: 1, nextIn: 1, dgw: null };
-        L("bridge: opening WebTransport " + m.url + " hashes=" + ((m.hashes && m.hashes.length) || 0));
+        L("bridge: opening WebTransport " + m.url + " hashes=" + ((m.hashes && m.hashes.length) || 0) + (m.hashes && m.hashes[0] ? " alg=" + m.hashes[0].algorithm + " len=" + (m.hashes[0].value && m.hashes[0].value.length) : ""));
         wt.ready.then(function () {
           L("bridge: WebTransport ready");
           post({ t: "ready", id: m.id, max: (wt.datagrams && wt.datagrams.maxDatagramSize) || 0 });
@@ -419,7 +419,6 @@
         set: function (v) { cur = (v && !v.__wbwt) ? wrap(v) : v; L("window.Worker was reassigned, re-wrapped"); } });
     } catch (e) { w.Worker = cur; L("Worker accessor failed: " + e); }
     L("worker WebTransport bridge installed");
-    [500, 4000].forEach(function (ms) { setTimeout(function () { L("Worker check +" + ms + "ms: ours=" + !!(w.Worker && w.Worker.__wbwt) + " native=" + /\[native code\]/.test(Function.prototype.toString.call(NW0))); }, ms); });
   }
 
   const PROBE = [
@@ -439,11 +438,12 @@
   };
 
   // Engine failures: the Chat send-channel error climbs the patch ladder; anything else asks the hub for another wisp.
-  function createWatchdog({ hub, relaunch, chat, max = 2 }) {
+  function createWatchdog({ hub, relaunch, chat, wt, max = 2 }) {
     let used = 0, busy = false, lastSig = null, shared = false;
     return async (text) => {
       if (typeof text !== "string" || !/\[LoadingScreen\]\s*Engine failure/i.test(text)) return;
       if (chat && CHAT_FAIL_RE.test(text) && (await chat())) return;
+      if (wt && wt(text)) return;
       if (busy || used >= max || shared) return;
       const msg = /"message"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(text);
       const code = /"errorCode"\s*:\s*(-?\d+)/.exec(text);
@@ -488,11 +488,24 @@
       post("blox:failed", { text: "WebBlox: the engine couldn’t open its game connection (Chat send channel, code 256). Check the log for the [webblox] probe lines." });
       return true;
     };
-    const watchdog = createWatchdog({ hub, chat: chatEscalate, relaunch: () => frame.navigate_to(startUrl()) });
+    // WebTransport is QUIC/UDP straight from the browser to the game server; a wisp can't carry it, so rotating wisps and
+    // relaunching (another 2GB wasm instance) can't help when its handshake fails.
+    let wtFail = null, wtReported = false;
+    const wtEscalate = (text) => {
+      if (!wtFail || !/Failed to connect to the Game/i.test(text)) return false;
+      if (!wtReported) {
+        wtReported = true;
+        warn("game connection failed: the browser's WebTransport handshake to the game server failed (" + wtFail + "); not relaunching");
+        post("blox:failed", { text: "WebBlox: the browser couldn’t open a WebTransport (QUIC/UDP) connection to the Roblox game server. This network or browser may be blocking UDP." });
+      }
+      return true;
+    };
+    const watchdog = createWatchdog({ hub, chat: chatEscalate, wt: wtEscalate, relaunch: () => frame.navigate_to(startUrl()) });
     const send = frame.send_page;
     frame.send_page = (page) => send.call(frame, { ...page, html: injectFlags(page.html) });
     frame.on_console = (batch) => {
       try { globalThis.__wbConsole && globalThis.__wbConsole.frame(batch); } catch {}
+      try { for (const item of batch || []) { const t = item && item[1]; if (typeof t === "string" && /bridge: WebTransport ready failed:/.test(t)) wtFail = t.replace(/^.*ready failed:\s*/, "").slice(0, 120); } } catch {}
       try { for (const item of batch || []) watchdog(item && item[1]); } catch {}
     };
     frame.on_info = ({ title }) => { if (title) document.title = title; };
