@@ -328,8 +328,18 @@
 
   function mainBridge(PRELUDE) {
     var w = window, L = function (m) { console.warn("[webblox] " + m); };
-    var NW0 = w.Worker;
-    if (!NW0 || NW0.__wbwt) return;
+    // This script runs inside the sandstone sandbox, where window.Worker / window.URL are its fakes (FakeWorker spawns the real
+    // workers itself). Wrapping the fake made it spawn itself forever (hundreds of workers), so take the native constructors from
+    // the real global's property descriptors instead and patch those: the real workers sandstone creates then go through us.
+    var dW = Object.getOwnPropertyDescriptor(w, "Worker"), dU = Object.getOwnPropertyDescriptor(w, "URL");
+    var NW0 = dW && dW.value, U0 = dU && dU.value;
+    if (!NW0 || NW0.__wbwt || !U0 || !U0.createObjectURL) { L("worker bridge not installed: native Worker/URL not reachable"); return; }
+    var CU = U0.createObjectURL, blobs = {}, order = [], nWrapped = 0, nPlain = 0;
+    U0.createObjectURL = function (o) {
+      var u = CU.apply(U0, arguments);
+      try { if (o instanceof Blob) { blobs[u] = o; order.push(u); if (order.length > 400) delete blobs[order.shift()]; } } catch (x) {}
+      return u;
+    };
     function serve(port) {
       var conns = {};
       function post(m, t) { try { port.postMessage(m, t || []); } catch (x) {} }
@@ -388,13 +398,12 @@
     }
     function wrap(NW) {
     function W(url, opts) {
-      var nw;
-      try {
-        var abs = new URL(String(url), location.href).href;
-        var code = PRELUDE + (opts && opts.type === "module" ? ";await import(" + JSON.stringify(abs) + ");" : ";importScripts(" + JSON.stringify(abs) + ");");
-        nw = new NW(URL.createObjectURL(new Blob([code], { type: "text/javascript" })), opts);
-        L("wrapped worker " + abs.slice(-70) + (opts && opts.type ? " (" + opts.type + ")" : ""));
-      } catch (e) { L("worker wrap failed, using plain worker: " + e); return new NW(url, opts); }
+      var b = blobs[String(url)], nw;
+      // sandstone always starts its real workers from a blob URL it just made; prepend the shim to a copy of that blob.
+      if (!b) { if (nPlain++ < 2) L("worker not wrapped (not a known blob): " + String(url).slice(0, 80)); return new NW(url, opts); }
+      try { nw = new NW(CU.call(U0, new Blob([PRELUDE, ";\n", b], { type: "text/javascript" })), opts); }
+      catch (e) { L("worker wrap failed, using plain worker: " + e); return new NW(url, opts); }
+      if (nWrapped++ < 2) L("wrapped worker #" + nWrapped + (opts && opts.type ? " (" + opts.type + ")" : ""));
       try { var mc = new MessageChannel(); nw.postMessage({ __wbwt: 1, port: mc.port2 }, [mc.port2]); serve(mc.port1); } catch (e) { L("worker bridge failed: " + e); }
       return nw;
     }
