@@ -25,12 +25,16 @@
 
   function add(src, level, text) {
     text = String(text).slice(0, CAP);
+    // Heartbeat lines are pure noise (they flood the log and the copied text), so they never enter the buffer.
+    if (/heart\s*-?beat/i.test(text)) return;
+    // Repeats that differ only in numbers (timestamps, counters) collapse into one line with an (xN) count.
+    const key = src + "|" + level + "|" + text.replace(/\d+(?:\.\d+)?/g, "#");
     const last = buf[buf.length - 1];
-    if (last && last.src === src && last.level === level && last.text === text) {
+    if (last && last.key === key) {
       last.n++;
       if (ui) ui.update(last);
     } else {
-      const e = { t: stamp(), src, level, text, n: 1, el: null };
+      const e = { t: stamp(), src, level, text, key, n: 1, el: null };
       buf.push(e);
       if (buf.length > MAX) buf.shift();
       if (ui) ui.append(e);
