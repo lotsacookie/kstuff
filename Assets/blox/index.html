@@ -145,7 +145,11 @@
           const f = window.webblox && window.webblox.frame;
           if (!f) throw new Error("page frame not ready yet");
           r = await f.eval_js(code.slice(1));
-        } else r = (0, eval)(code);
+        } else {
+          // Wrap as an async expression first so `await x` works at the prompt; statements (var, if, ...) fall back to plain eval.
+          try { r = (0, eval)("(async()=>(" + code.replace(/;+\s*$/, "") + "\n))()"); }
+          catch (se) { if (se instanceof SyntaxError) r = (0, eval)(code); else throw se; }
+        }
         if (r && typeof r.then === "function") r = await r;
         add("H", "result", fmt(r));
       } catch (e) { add("H", "error", fmt(e)); }
@@ -275,6 +279,19 @@
     });
   }
   window.wbUdpProbe = udpProbe;
+  // One command: probes several UDP targets on the current wisp and prints a summary. Usage: await wbUdpScan()  (or just wbUdpScan())
+  window.wbUdpScan = async function (wispUrl) {
+    const targets = [["1.1.1.1", 53], ["8.8.8.8", 53], ["9.9.9.9", 53], ["8.8.8.8", 443], ["1.1.1.1", 443], ["8.8.8.8", 51864]];
+    const rows = [];
+    for (const [h, p] of targets) {
+      const r = await udpProbe(wispUrl, h, p, 4500);
+      const allowed = !!(r.ok || /^no-reply/.test(r.reason || ""));
+      rows.push((allowed ? "ALLOWED " : "BLOCKED ") + h + ":" + p + "  " + (r.reason || ""));
+    }
+    const out = "UDP scan\n" + rows.join("\n");
+    console.warn("[webblox] " + out);
+    return out;
+  };
 
   const findHub = () => {
     for (const w of [window, window.parent, window.top]) {
