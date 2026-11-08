@@ -185,7 +185,7 @@ export function init(K) {
     if (!item) return;
     if (item.cloudId) return K.openCloudGame?.(item); // Cloud games open inside SingularityCloud, not in this grid's frame
     if (item.gfnId) return K.openGfnGame?.(item); // GeForce NOW games stream through the SingularityNOW client
-    if (item.moonId) return K.openMoonGame?.(item); // CloudMoon games run through the SingularityMoon client
+    if (item.moonId) return K.openMoonGame?.(item, opts.pageId); // CloudMoon games run through the SingularityMoon client
     K.hideMoon?.();
     K.hideGfn?.(); // any other title: make sure no GeForce NOW loader or frame is left over the grid
     const pageId = opts.pageId || document.querySelector('.page.active')?.id;
@@ -581,11 +581,12 @@ export function init(K) {
 
   const rData = async (t, p, resetPage = true, mode = 'updating', silent = false) => {
     try {
-      const n = await K.fetchWithProxy(p).catch(err => { console.error('rData fetch failed', p, err); return null; });
-      if (!Array.isArray(n)) { if (!silent) K.toggleLoader(false); return false; }
-      if (grids[t].sig && n === grids[t].lastRaw) { if (!silent) K.toggleLoader(false); return false; }
+      const n0 = await K.fetchWithProxy(p).catch(err => { console.error('rData fetch failed', p, err); return null; });
+      if (!Array.isArray(n0)) { if (!silent) K.toggleLoader(false); return false; }
+      if (grids[t].sig && n0 === grids[t].lastRaw) { if (!silent) K.toggleLoader(false); return false; }
+      const n = t === 'sciencequiz' ? n0.concat(K.moonApps?.() || []) : n0;
       const sig = hashSig(JSON.stringify(n));
-      grids[t].lastRaw = n;
+      grids[t].lastRaw = n0;
       if (sig === grids[t].sig) { if (!silent) K.toggleLoader(false); return false; }
       if (t === 'sciencequiz') K.rawSciencequizData = n;
       const processed = proc(n);
@@ -862,7 +863,7 @@ export function init(K) {
     K.fetchWisps()
   ]).then(async ([readingResult, scienceData]) => {
     K.rawReadingCornerData = readingResult?.data || [];
-    K.rawSciencequizData = Array.isArray(scienceData) ? scienceData : [];
+    K.rawSciencequizData = (Array.isArray(scienceData) ? scienceData : []).concat(K.moonApps?.() || []);
 
     grids.readingcorner.data = proc(K.rawReadingCornerData);
     grids.readingcorner.sig = readingResult?.sig || '';

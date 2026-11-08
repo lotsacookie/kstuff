@@ -342,11 +342,14 @@ export function init(K) {
     return add.length ? items.concat(gfnItems(add)) : items;
   }
 
-  const MOON_STORE = 'kstuff_moon_catalog_v1';
+  const MOON_STORE = 'kstuff_moon_catalog_v2';
+  const MOON_APP_CAT = /\b(apps?|tools?|utilit(y|ies)|social|communication|messaging|chat|music|audio|video|streaming|productivity|browser|shopping|finance|news)\b/i;
+  const MOON_APP_NAME = /discord|spotify|netflix|youtube|tiktok|instagram|whatsapp|telegram|twitch|snapchat|facebook|messenger|reddit|chrome|firefox|tinder|pinterest|twitter|\bx\b|disney|hulu|prime video|soundcloud|deezer|capcut|canva|gmail|maps|office|word|excel|zoom|skype|signal|duolingo|kindle|vlc|mx player|file manager|launcher/i;
+  const moonIsApp = r => (Array.isArray(r[3]) && r[3].some(c => MOON_APP_CAT.test(String(c)))) || MOON_APP_NAME.test(r[1]);
   const MOON_ID_OK = /^[\w.-]{1,120}$/;
   const readMoon = () => { try { const c = JSON.parse(localStorage.getItem(MOON_STORE) || 'null'); return c && Array.isArray(c.games) ? c : null; } catch { return null; } };
   K.mergeMoonGames = rows => {
-    const games = (Array.isArray(rows) ? rows : []).filter(r => Array.isArray(r) && MOON_ID_OK.test(String(r[0] || '')) && r[1]).slice(0, 4000).map(r => [String(r[0]), String(r[1]), /^https:\/\//.test(String(r[2] || '')) ? String(r[2]) : '']);
+    const games = (Array.isArray(rows) ? rows : []).filter(r => Array.isArray(r) && MOON_ID_OK.test(String(r[0] || '')) && r[1]).slice(0, 4000).map(r => [String(r[0]), String(r[1]), /^https:\/\//.test(String(r[2] || '')) ? String(r[2]) : '', Array.isArray(r[3]) ? r[3].map(String).slice(0, 12) : []]);
     if (!games.length) return 0;
     const prev = readMoon();
     const had = new Set((prev ? prev.games : []).map(r => r[0]));
@@ -355,8 +358,9 @@ export function init(K) {
   };
   async function fetchMoon() {
     const c = readMoon();
-    return (c ? c.games : []).map(r => ({ source: 'moon', moonId: r[0], name: r[1], cover: [r[2], K.gameFallbackIcon(r[1])].filter(Boolean) }));
+    return (c ? c.games : []).filter(r => !moonIsApp(r)).map(r => ({ source: 'moon', moonId: r[0], name: r[1], cover: [r[2], K.gameFallbackIcon(r[1])].filter(Boolean) }));
   }
+  K.moonApps = () => (readMoon()?.games || []).filter(moonIsApp).map(r => ({ title: `${r[1]} (Moon)`, image: r[2] || K.gameFallbackIcon(r[1]), url: '', category: 'CloudMoon', description: '', moonId: r[0], moonName: r[1] }));
 
   K.fetchExtraGames = async () => {
     const lists = await Promise.all([

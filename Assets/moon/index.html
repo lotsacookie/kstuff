@@ -385,7 +385,7 @@ async function loadLibrary() {
     renderChips();
     render();
     say(all.length + " games loaded", "ok");
-    up({ type: "moon:catalog", games: all.map((g) => [g.id, g.title, g.icon]) });
+    up({ type: "moon:catalog", games: all.map((g) => [g.id, g.title, g.icon, g.cats.concat(g.cats.map((k) => catNames[k] || ""))]) });
   } catch (e) {
     note.textContent = e.message || String(e);
     note.classList.remove("hidden");

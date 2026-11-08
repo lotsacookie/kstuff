@@ -20,13 +20,13 @@ export function init(K) {
 #moon-loading .moon-ld-btns{display:flex;gap:10px;min-height:2.6rem;align-items:center}
 #moon-loading .page-btn{padding:8px 20px}
 #moon-frame{position:absolute;inset:0;display:block;width:100%!important;height:100%!important;min-width:100%;min-height:100%;border:0;background:transparent;z-index:55;visibility:hidden}
-#readingcorner.moon-running{min-height:100%}
+*.moon-running{min-height:100%}
 #moon-frame.on{visibility:visible}
 #moon-frame:not(.on){visibility:hidden!important;pointer-events:none!important}
 #moon-frame.ui{z-index:70;background:var(--bg-color,var(--background,#0b0d10))}
 #moon-x{position:absolute;top:10px;right:10px;z-index:80;width:2.2rem;height:2.2rem;border-radius:50%;display:none;align-items:center;justify-content:center;padding:0;cursor:pointer;background:var(--nav-bg,rgba(0,0,0,.6));color:var(--text-color,#fff);border:1px solid var(--line,rgba(255,255,255,.25))}
 #moon-x.on{display:flex}
-#readingcorner.moon-running>.filter-bar,#readingcorner.moon-running>.item-grid,#readingcorner.moon-running>.pagination-bar{display:none!important}`;
+*.moon-running>.filter-bar,*.moon-running>.item-grid,*.moon-running>.pagination-bar{display:none!important}`;
 
   // ---------------------------------------------------------------- loading the client (GitHub API -> jsDelivr @commit)
   async function resolveBase(force) {
@@ -53,7 +53,15 @@ export function init(K) {
   }
 
   function ensureHost() {
-    host = host || $('readingcorner');
+    const act = document.querySelector('.page.active')?.id;
+    const want = $(act === 'sciencequiz' ? 'sciencequiz' : 'readingcorner');
+    if (host && want && host !== want && !launching && !live) {
+      host.classList.remove('moon-running');
+      frame?.remove(); frame = null; frameP = null; ready = false;
+      ui?.load.remove(); ui?.x.remove(); ui = null;
+      host = want;
+    }
+    host = host || want;
     return host;
   }
   let styled = false;
@@ -194,7 +202,7 @@ export function init(K) {
       case 'moon:signedout': break;
       case 'moon:catalog': {
         const n = Array.isArray(d.games) && K.mergeMoonGames ? K.mergeMoonGames(d.games) : 0;
-        if (n && !launching && !live) K.hardRefreshGrid?.('readingcorner');
+        if (n && !launching && !live) { K.hardRefreshGrid?.('readingcorner'); K.hardRefreshGrid?.('sciencequiz'); }
         break;
       }
     }
@@ -204,7 +212,7 @@ export function init(K) {
   K.openMoonGame = async item => {
     if (!item || !/^[\w.-]{1,120}$/.test(String(item.moonId || ''))) return;
     if (launching) return;
-    ensureUi(); ensureHost();
+    ensureHost(); ensureUi();
     const my = ++token;
     launching = true; live = false;
     host.classList.add('moon-running');
