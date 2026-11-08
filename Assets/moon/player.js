@@ -19,7 +19,10 @@ const ERR = {
 const AK = { Enter: 66, NumpadEnter: 66, Backspace: 67, Delete: 112, Space: 62, Tab: 61, Escape: 111, ArrowUp: 19, ArrowDown: 20, ArrowLeft: 21, ArrowRight: 22, Home: 122, End: 123, PageUp: 92, PageDown: 93, Insert: 124, CapsLock: 115, ShiftLeft: 59, ShiftRight: 60, ControlLeft: 113, ControlRight: 114, AltLeft: 57, AltRight: 58, Comma: 55, Period: 56, Slash: 76, Semicolon: 74, Quote: 75, Minus: 69, Equal: 70, BracketLeft: 71, BracketRight: 72, Backslash: 73, Backquote: 68 };
 for (let n = 0; n < 26; n++) AK["Key" + String.fromCharCode(65 + n)] = 29 + n;
 for (let n = 0; n < 10; n++) { AK["Digit" + n] = 7 + n; AK["Numpad" + n] = 144 + n; }
-const SCREEN_W = 1920, SCREEN_H = 1080;
+const _dpr = Math.max(1, window.devicePixelRatio || 1);
+let SCREEN_W = Math.round((screen.width || 1920) * _dpr), SCREEN_H = Math.round((screen.height || 1080) * _dpr);
+if ((window.innerWidth || 1) >= (window.innerHeight || 1) && SCREEN_W < SCREEN_H) [SCREEN_W, SCREEN_H] = [SCREEN_H, SCREEN_W];
+SCREEN_W -= SCREEN_W % 2; SCREEN_H -= SCREEN_H % 2;
 for (let i = 0; i < 26; i++) AK["Key" + String.fromCharCode(65 + i)] = 29 + i;
 for (let i = 0; i < 10; i++) AK["Digit" + i] = 7 + i;
 
@@ -182,7 +185,16 @@ export class Player {
     pc.ontrack = (e) => {
       this.stream.addTrack(e.track);
       this.video.srcObject = this.stream;
-      this.video.play().catch(() => { this.video.muted = true; this.video.play().catch(() => {}); });
+      const v = this.video;
+      v.muted = false; v.volume = 1;
+      v.play().catch(() => { v.muted = true; v.play().catch(() => {}); });
+      if (!this._unmute) {
+        this._unmute = () => {
+          if (!v.muted && !v.paused) return;
+          v.muted = false; v.volume = 1; v.play().catch(() => {});
+        };
+        for (const t of ["pointerdown", "keydown", "touchstart", "click"]) addEventListener(t, this._unmute, true);
+      }
     };
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "failed") this.stop(true, "Connection lost");
@@ -360,7 +372,7 @@ export class Player {
   async stop(notify = false, reason = "") {
     if (this.stopping) return; this.stopping = true; this.stopped = true;
     cancelAnimationFrame(this._rid);
-    removeEventListener("keydown", this._kd); removeEventListener("keyup", this._ku);
+    removeEventListener("keydown", this._kd); if (this._unmute) for (const t of ["pointerdown", "keydown", "touchstart", "click"]) removeEventListener(t, this._unmute, true); removeEventListener("keyup", this._ku);
     try { this.sock && this.sock.close(); } catch {}
     try { this.dc && (this.dc.onclose = null, this.dc.close()); } catch {}
     try { this.pc && this.pc.close(); } catch {}
