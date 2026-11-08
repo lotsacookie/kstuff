@@ -90,7 +90,7 @@ export function init(K) {
     ensureHost();
     ensureStyle();
     frameP = (async () => {
-      const html = await clientHtml(false);
+      const html = await clientHtml(true);
       const boot = `<base href="${base}"><script>window.__MOON_EMBED=true;window.__MOON_BASE=${JSON.stringify(base)};<\/script>`;
       const doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + boot) : boot + html;
       frame = document.createElement('iframe');
