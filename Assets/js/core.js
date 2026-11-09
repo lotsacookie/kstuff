@@ -250,6 +250,22 @@ export function init(K) {
     return h;
   };
 
+  const viaJsdelivr = async (repo, apiRef, st, key) => {
+    const ref = apiRef === 'HEAD' ? 'main' : apiRef;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), K.SHA_FETCH_TIMEOUT);
+    try {
+      const r = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${repo}/resolved?specifier=${encodeURIComponent(ref)}`, { signal: ctrl.signal, cache: 'no-store' });
+      if (!r.ok) return '';
+      const v = (await r.json())?.version;
+      if (typeof v !== 'string' || !SHA_RE.test(v)) return '';
+      st.sha = v;
+      st.at = Date.now();
+      writeStoredSha(key, v);
+      return v;
+    } catch { return ''; } finally { clearTimeout(timer); }
+  };
+
   K.getRefSha = async (repo, ref = 'main', force = false) => {
     const apiRef = !ref || ref === 'latest' ? 'HEAD' : ref;
     if (SHA_RE.test(apiRef)) return apiRef;
@@ -260,7 +276,7 @@ export function init(K) {
       const stored = readStoredSha(key);
       if (stored) { st.sha = stored.sha; st.at = stored.at; }
     }
-    if (now < st.blockUntil) return st.sha;
+    if (now < st.blockUntil) return (force && await viaJsdelivr(repo, apiRef, st, key)) || st.sha;
     if (!force && st.sha && now - st.at < K.SHA_TTL) return st.sha;
     if (!force && st.failAt && now - st.failAt < K.SHA_FAIL_TTL) return st.sha;
     if (st.pending) return st.pending;
@@ -284,6 +300,8 @@ export function init(K) {
           st.blockUntil = reset > Date.now() ? reset : Date.now() + 600000;
         }
       } catch {} finally { clearTimeout(timer); }
+      const alt = await viaJsdelivr(repo, apiRef, st, key);
+      if (alt) { st.failAt = 0; return alt; }
       st.failAt = Date.now();
       return st.sha;
     })();

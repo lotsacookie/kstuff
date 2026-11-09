@@ -116,6 +116,8 @@ export function init(K) {
     ensureStyle();
     return (async () => {
       const { sha, base } = await resolveBase(true);
+      console.log('[blox] client commit', sha ? sha.slice(0, 7) : 'unknown, using main');
+      setStatus('Loading the WebBlox client ' + (sha ? sha.slice(0, 7) : 'main') + '…');
       const html = await clientHtml(sha, base);
       const page = base + 'index.html' + (placeId ? '?placeId=' + encodeURIComponent(placeId) : '');
       const boot = `<base href="${base}"><script>window.__WB_PAGE=${JSON.stringify(page)};window.__WB_SHA=${JSON.stringify(sha || '')};window.__WB_EMBED=true;<\/script>`;
