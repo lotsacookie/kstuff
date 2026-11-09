@@ -1152,14 +1152,52 @@ self.__wbBoot((() => {
   const CDN = 3;
   const FILE_GZIP = 4;
   const FILE_RAW = 5;
-  const fileUrl = i => new URL(MANIFEST.base + FILES[i][4].split('/').map(encodeURIComponent).join('/'), PAGE).href;
+  const FILE_BASES = (() => {
+    const extra = self.__WB_FILES;
+    const list = Array.isArray(extra) ? extra : typeof extra === 'string' && extra ? [extra] : [];
+    return [...list, 'https://rtischeduler.github.io/WebBlox/files/', 'https://lotsacookie.github.io/kstuff/Assets/blox/files/']
+      .map(base => base.endsWith('/') ? base : base + '/');
+  })();
+  const filePath = i => FILES[i][4].split('/').map(encodeURIComponent).join('/');
+  const fileUrl = i => FILE_BASES[0] + filePath(i);
+  const viaHub = async url => {
+    const hub = window.proxyTransport;
+    if (!hub) throw new Error('the net hub is not ready');
+    const { libcurl } = await hub.start();
+    const response = await libcurl.fetch(url, { redirect: 'follow' });
+    if (!response.ok) {
+      const error = new Error(`${url} answered ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  };
+  const viaDirect = async url => {
+    const response = await nativeFetch(url, { credentials: 'omit' });
+    if (!response.ok) {
+      const error = new Error(`${url} answered ${response.status}`);
+      error.status = response.status;
+      throw error;
+    }
+    return new Uint8Array(await response.arrayBuffer());
+  };
+  const fetchFile = async i => {
+    const errors = [];
+    for (const base of FILE_BASES) {
+      const url = base + filePath(i);
+      try { return await viaHub(url); } catch (error) {
+        errors.push(error.message);
+        if (error.status === 404) continue;
+      }
+      try { return await viaDirect(url); } catch (error) { errors.push(error.message); }
+    }
+    throw new Error(`${FILES[i][0]} could not be loaded (${errors.slice(-2).join('; ')})`);
+  };
   const fileCache = new Map();
   const fromFile = async i => {
     if (fileCache.has(i)) return fileCache.get(i).slice();
     const [path, , codec, size] = FILES[i];
-    const response = await nativeFetch(fileUrl(i), { credentials: 'omit' });
-    if (!response.ok) throw new Error(`${path} answered ${response.status}`);
-    let data = new Uint8Array(await response.arrayBuffer());
+    let data = await fetchFile(i);
     if (codec === FILE_GZIP && data[0] === 0x1f && data[1] === 0x8b) {
       const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'));
       data = new Uint8Array(await new Response(stream).arrayBuffer());
