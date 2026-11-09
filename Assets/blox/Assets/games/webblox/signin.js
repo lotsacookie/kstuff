@@ -48,28 +48,51 @@
       await frame.wait_for_libcurl();
       frame.navigate_to('https://www.roblox.com/login').catch(e => console.warn('[signin] navigate failed', e));
       return new Promise((resolve, reject) => {
+        const css = document.createElement('style');
+        css.textContent = [
+          '.wb-cookie{position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:2147483001;box-sizing:border-box;width:min(560px,calc(100% - 24px));padding:16px;display:flex;flex-direction:column;gap:12px;background:#232527;color:#f7f7f8;border:1px solid #393b3d;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.55);font:400 14px/20px "Builder Sans","HCo Gotham SSm",Gotham,"Helvetica Neue",Arial,sans-serif}',
+          '.wb-cookie .wb-title{font-weight:700;font-size:16px;line-height:22px}',
+          '.wb-cookie .wb-hint{color:#bdbebe;font-size:13px}',
+          '.wb-cookie .wb-hint.wb-bad{color:#f6797f}',
+          '.wb-cookie input{box-sizing:border-box;width:100%;height:40px;padding:0 12px;background:#191a1c;color:#f7f7f8;border:1px solid #5c5e60;border-radius:8px;font:inherit;outline:0}',
+          '.wb-cookie input::placeholder{color:#8f9092}',
+          '.wb-cookie input:hover{border-color:#8f9092}',
+          '.wb-cookie input:focus{border-color:#f7f7f8}',
+          '.wb-cookie .wb-row{display:flex;gap:8px;justify-content:flex-end}',
+          '.wb-cookie button{height:36px;padding:0 20px;border:0;border-radius:8px;font:inherit;font-weight:600;cursor:pointer;background:#393b3d;color:#f7f7f8}',
+          '.wb-cookie button:hover{background:#4a4c4e}',
+          '.wb-cookie button.wb-primary{background:#335fff;color:#fff}',
+          '.wb-cookie button.wb-primary:hover{background:#4d74ff}',
+          '.wb-cookie button:disabled{opacity:.5;cursor:default}',
+        ].join('\n');
         bar = document.createElement('div');
-        Object.assign(bar.style, { position: 'fixed', left: '0', right: '0', bottom: '0', zIndex: 2147483001, display: 'flex', gap: '8px', padding: '8px', background: '#111', color: '#fff', font: '13px sans-serif', alignItems: 'center', flexWrap: 'wrap' });
-        const label = document.createElement('span');
-        label.textContent = 'Puzzle failing? Paste your .ROBLOSECURITY cookie instead:';
+        bar.className = 'wb-cookie';
+        bar.append(css);
+        const title = document.createElement('div');
+        title.className = 'wb-title'; title.textContent = 'Sign in with your cookie';
+        const label = document.createElement('div');
+        label.className = 'wb-hint';
+        label.textContent = 'Puzzle failing? Paste your .ROBLOSECURITY cookie instead.';
         const input = document.createElement('input');
-        input.type = 'password'; input.autocomplete = 'off'; input.placeholder = '_|WARNING:-DO-NOT-SHARE-THIS...';
-        Object.assign(input.style, { flex: '1', minWidth: '160px', padding: '6px' });
+        input.type = 'password'; input.autocomplete = 'off'; input.spellcheck = false; input.placeholder = '.ROBLOSECURITY cookie';
         const go = document.createElement('button');
-        go.type = 'button'; go.textContent = 'Use cookie';
+        go.type = 'button'; go.textContent = 'Use cookie'; go.className = 'wb-primary';
         const cancel = document.createElement('button');
         cancel.type = 'button'; cancel.textContent = 'Cancel';
+        input.addEventListener('keydown', e => { if (e.key === 'Enter') go.click(); });
         go.onclick = async () => {
           const value = input.value.trim().replace(/^\.?ROBLOSECURITY=/i, '').replace(/^["']|["';]$/g, '');
           if (!value) return;
-          go.disabled = true; label.textContent = 'Checking cookie…';
+          go.disabled = true; label.className = 'wb-hint'; label.textContent = 'Checking cookie…';
           try { localStorage.setItem(COOKIE_KEY, value); } catch {}
           if (await isSignedIn()) { input.value = ''; closeFrame(); resolve(true); return; }
           try { localStorage.removeItem(COOKIE_KEY); } catch {}
-          go.disabled = false; label.textContent = 'Roblox rejected that cookie. Paste a fresh one:';
+          go.disabled = false; label.className = 'wb-hint wb-bad'; label.textContent = 'Roblox rejected that cookie. Paste a fresh one.';
         };
         cancel.onclick = () => { closeFrame(); reject(new Error('Sign-in cancelled.')); };
-        bar.append(label, input, go, cancel);
+        const row = document.createElement('div');
+        row.className = 'wb-row'; row.append(cancel, go);
+        bar.append(title, label, input, row);
         document.body.append(bar);
         const started = Date.now();
         let busy = false;
