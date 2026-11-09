@@ -1,4 +1,7 @@
 export function init(K) {
+  // Proxied (Sandbox / CrossOrigin isolate): the parent owns wisp + sandstone. Everything here is
+  // forwarded to it by the coi shim (window.kNetDirect), so do not boot a second hub in the frame.
+  if (window.__COI) return initProxied(K);
   const BASES = [
     'https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/build/',
     'https://fastly.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/build/'
@@ -952,4 +955,54 @@ export function init(K) {
       handleFetch(d, reply);
     }
   });
+}
+
+function initProxied(K) {
+  const net = () => window.kNetDirect;
+  K.netHubBoot = () => net().ready();
+  K.setTransport = m => net().setTransport(m);
+  K.getTransport = () => net().transport();
+
+  const hostOf = u => { try { return new URL(u).host; } catch { return String(u || ''); } };
+  const refresh = async () => {
+    try { await net().__refresh(); } catch {}
+    const cur = document.getElementById('proxy-wisp-current');
+    const w = net().wisp();
+    if (cur) cur.textContent = w ? 'Current: ' + hostOf(w) + ' (via parent)' : 'Not connected yet';
+    const sel = document.getElementById('proxy-transport-select');
+    if (sel && sel.value !== net().transport()) sel.value = net().transport();
+    const st = document.getElementById('proxy-transport-status');
+    if (st) st.textContent = 'Requests are sent to the parent page, which runs ' + net().transport() + '.';
+  };
+  const bind = () => {
+    const btn = document.getElementById('switch-wisp-btn');
+    if (btn && !btn.dataset.bound) {
+      btn.dataset.bound = '1';
+      btn.addEventListener('click', async () => {
+        if (btn.disabled) return;
+        const st = document.getElementById('proxy-wisp-status');
+        const label = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="ph ph-arrows-clockwise"></i> Switching...';
+        if (st) st.textContent = 'Testing other wisps, this can take a little while.';
+        const from = net().wisp();
+        try {
+          await net().rotate(from, false);
+          if (st) st.textContent = net().wisp() && net().wisp() !== from ? 'Switched to ' + hostOf(net().wisp()) : 'No other wisp could be reached, staying on ' + hostOf(net().wisp());
+        } catch { if (st) st.textContent = 'Switch failed, try again.'; }
+        btn.disabled = false;
+        btn.innerHTML = label;
+        refresh();
+      });
+    }
+    const sel = document.getElementById('proxy-transport-select');
+    if (sel && !sel.dataset.bound) {
+      sel.dataset.bound = '1';
+      sel.addEventListener('change', () => { net().setTransport(sel.value); refresh(); });
+    }
+    refresh();
+  };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
+  document.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('.settings-tab')) bind(); });
+  net().ready().then(refresh, () => {});
 }

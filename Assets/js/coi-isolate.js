@@ -9,8 +9,10 @@
 // bridge in net-hub.js (fetch / rotate / abort, which Singuloxy inside the frame
 // uses) plus the kstuff-coi:* messages handled here.
 export function init(K) {
+  if (window.__COI) return; // never run inside the isolated frame itself
   const KEY = 'kstuff_coi';
-  const COI_URL = 'https://lotsacookie.github.io/Assets/coi.html';
+  const BASE_URL = 'https://lotsacookie.github.io/kstuff/';
+  const COI_URL = BASE_URL + 'Assets/coi.html';
   const byId = id => document.getElementById(id);
   const SANDBOX = 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads allow-pointer-lock allow-presentation';
 
@@ -104,11 +106,26 @@ export function init(K) {
   // ---- Load coi.html through the proxy transport ----
   const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error(what + ' timed out')), ms))]);
 
-  async function getClientScript() {
-    try { return await K.fetchWithProxy('Assets/pages/js/net-client.js', true); } catch {}
-    const r = await fetch('https://cdn.jsdelivr.net/gh/' + (K.MAIN_REPO || 'lotsacookie/kstuff') + '@main/Assets/pages/js/net-client.js');
-    if (!r.ok) throw new Error('net-client ' + r.status);
+  async function getScript(name) {
+    const path = 'Assets/pages/js/' + name;
+    try { return await K.fetchWithProxy(path, true); } catch {}
+    const r = await fetch('https://cdn.jsdelivr.net/gh/' + (K.MAIN_REPO || 'lotsacookie/kstuff') + '@main/' + path);
+    if (!r.ok) throw new Error(name + ' ' + r.status);
     return r.text();
+  }
+
+  const safeJson = v => JSON.stringify(v).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029');
+  const inlineJs = code => '<script>' + code.replace(/<\/script/gi, '<\\/script') + '<\/script>';
+
+  function snapshotStore() {
+    const store = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k !== KEY) store[k] = localStorage.getItem(k);
+      }
+    } catch {}
+    return store;
   }
 
   async function fetchCoiHtml() {
@@ -131,10 +148,14 @@ export function init(K) {
   async function load() {
     const token = ++loadToken;
     try {
-      const [html, client] = await Promise.all([fetchCoiHtml(), getClientScript()]);
+      const [html, shim, client] = await Promise.all([fetchCoiHtml(), getScript('coi-shim.js'), getScript('net-client.js')]);
       if (token !== loadToken || !frame) return;
-      const inject = '<base href="' + COI_URL + '"><script>' + client.replace(/<\/script/gi, '<\\/script') + '<\/script>';
-      const m = /<head[^>]*>/i.exec(html);
+      const net = window.kNetDirect || {};
+      // base = the site root, so coi.html (a copy of index.html) resolves style.css, Assets/... exactly as index.html does.
+      const inject = '<base href="' + BASE_URL + '">' +
+        inlineJs('window.__COI_STORE=' + safeJson(snapshotStore()) + ';window.__COI_CFG=' + safeJson({ wisp: net.wisp ? net.wisp() : null, transport: net.transport ? net.transport() : 'epoxy' }) + ';') +
+        inlineJs(shim) + inlineJs(client);
+      const m = /<head(\s[^>]*)?>/i.exec(html);
       frame.srcdoc = m ? html.slice(0, m.index + m[0].length) + inject + html.slice(m.index + m[0].length) : inject + html;
     } catch (err) {
       console.error('coi load failed', err);
@@ -142,33 +163,84 @@ export function init(K) {
     }
   }
 
+  // ---- Bundle cache (the frame cannot use IndexedDB, so it borrows ours) ----
+  const idb = () => new Promise((ok, no) => {
+    const q = indexedDB.open('singularity', 1);
+    q.onupgradeneeded = () => q.result.createObjectStore('s');
+    q.onsuccess = () => ok(q.result);
+    q.onerror = () => no(q.error);
+  });
+  const bundleGet = async () => {
+    try {
+      const db = await idb();
+      return await new Promise(r => { const q = db.transaction('s').objectStore('s').get('bundle'); q.onsuccess = () => r(q.result || null); q.onerror = () => r(null); });
+    } catch { return null; }
+  };
+  const bundleClear = async () => {
+    try {
+      const db = await idb();
+      await new Promise(done => { const tx = db.transaction('s', 'readwrite'); tx.objectStore('s').delete('bundle'); tx.oncomplete = tx.onerror = tx.onabort = () => done(); });
+      db.close();
+    } catch {}
+  };
+
   // ---- Messages from the isolated page ----
-  const SYNC_PREFIX = 'kstuff_';
+  // The sandboxed frame has an opaque origin ("null"), so trust the window identity, not the origin.
+  const sockets = new Map();
+  const closeSockets = () => { sockets.forEach(ws => { try { ws.close(); } catch {} }); sockets.clear(); };
+
+  const handlers = {
+    hello: () => ({ store: snapshotStore(), wisp: window.kNetDirect ? window.kNetDirect.wisp() : null, transport: window.kTransportMode || null }),
+    'wisp-info': () => ({ wisp: window.kNetDirect ? window.kNetDirect.wisp() : null, transport: window.kNetDirect ? window.kNetDirect.transport() : null }),
+    'set-transport': d => (window.kNetDirect ? window.kNetDirect.setTransport(d && d.mode) : null),
+    'bundle-get': () => bundleGet(),
+    reload: async d => { if (d && d.fresh) await bundleClear(); closeSockets(); load(); return true; },
+    disable: () => { setOn(false); window.__sgReloading = true; location.reload(); return true; }
+  };
+
   window.addEventListener('message', e => {
     const d = e.data;
     if (!frame || !d || typeof d !== 'object' || typeof d.type !== 'string' || d.type.indexOf('kstuff-coi:') !== 0) return;
-    // The sandboxed frame has an opaque origin ("null"), so trust the window identity, not the origin.
     if (e.source !== frame.contentWindow) return;
-    const reply = m => { try { e.source.postMessage(m, '*'); } catch {} };
+    const src = e.source;
+    const type = d.type.slice('kstuff-coi:'.length);
+    const send = (m, t) => { try { src.postMessage(m, '*', t || []); } catch {} };
 
-    if (d.type === 'kstuff-coi:hello') {
-      const store = {};
-      try {
-        for (let i = 0; i < localStorage.length; i++) {
-          const k = localStorage.key(i);
-          if (k && k.indexOf(SYNC_PREFIX) === 0 && k !== KEY) store[k] = localStorage.getItem(k);
-        }
-      } catch {}
-      reply({ type: 'kstuff-coi:hello-ack', store, wisp: window.kNetDirect && window.kNetDirect.wisp ? window.kNetDirect.wisp() : null, transport: window.kTransportMode || null });
-    } else if (d.type === 'kstuff-coi:storage-set' && typeof d.key === 'string' && d.key.indexOf(SYNC_PREFIX) === 0 && d.key !== KEY) {
-      try { if (d.value == null) localStorage.removeItem(d.key); else localStorage.setItem(d.key, String(d.value)); } catch {}
-    } else if (d.type === 'kstuff-coi:reload') {
-      load();
-    } else if (d.type === 'kstuff-coi:disable') {
-      setOn(false);
-      window.__sgReloading = true;
-      location.reload();
+    // fire-and-forget
+    if (type === 'storage-set' && typeof d.key === 'string' && d.key !== KEY) { try { localStorage.setItem(d.key, String(d.value)); } catch {} return; }
+    if (type === 'storage-remove' && typeof d.key === 'string' && d.key !== KEY) { try { localStorage.removeItem(d.key); } catch {} return; }
+    if (type === 'storage-clear') {
+      try { const keep = localStorage.getItem(KEY); localStorage.clear(); if (keep != null) localStorage.setItem(KEY, keep); } catch {}
+      return;
     }
+    if (type === 'ws-open' && typeof d.url === 'string' && /^wss?:\/\//i.test(d.url)) {
+      (async () => {
+        try {
+          const ws = await window.kNetDirect.websocket(d.url, d.protocols);
+          sockets.set(d.id, ws);
+          ws.binaryType = 'arraybuffer';
+          ws.addEventListener('open', () => send({ type: 'kstuff-coi:ws-event', id: d.id, ev: 'open', protocol: ws.protocol }));
+          ws.addEventListener('message', ev => {
+            const data = ev.data;
+            send({ type: 'kstuff-coi:ws-event', id: d.id, ev: 'message', data }, data instanceof ArrayBuffer ? [data] : []);
+          });
+          ws.addEventListener('error', () => send({ type: 'kstuff-coi:ws-event', id: d.id, ev: 'error' }));
+          ws.addEventListener('close', ev => { sockets.delete(d.id); send({ type: 'kstuff-coi:ws-event', id: d.id, ev: 'close', code: ev.code, reason: ev.reason, clean: ev.wasClean }); });
+        } catch { send({ type: 'kstuff-coi:ws-event', id: d.id, ev: 'close', code: 1006 }); }
+      })();
+      return;
+    }
+    if (type === 'ws-send') { const ws = sockets.get(d.id); if (ws) try { ws.send(d.data); } catch {} return; }
+    if (type === 'ws-close') { const ws = sockets.get(d.id); if (ws) try { ws.close(d.code, d.reason); } catch {} return; }
+
+    // request / response
+    const fn = handlers[type];
+    if (!fn) return;
+    const payload = type === 'hello' ? undefined : d.data;
+    Promise.resolve().then(() => fn(payload)).then(
+      data => send({ type: 'kstuff-coi:res', id: d.id, ok: true, data }),
+      err => send({ type: 'kstuff-coi:res', id: d.id, ok: false, error: String(err && err.message || err) })
+    );
   });
 
   if (isOn()) {

@@ -99,6 +99,20 @@ export function parseServerList(src) {
 }
 
 export function init(K) {
+  // Proxied (Sandbox / CrossOrigin isolate): wisp servers are picked and probed by the parent page.
+  if (window.__COI) {
+    K.wispUrls = [];
+    K.syncWispServers = () => Promise.resolve([]);
+    K.fetchWisps = () => Promise.resolve(K.wispUrls);
+    K.resolveWlsp = K.revalidateWisp = () => window.kNetDirect.__refresh().then(() => { window.wlspServer = window.kNetDirect.wisp(); return window.wlspServer; });
+    K.movieHosts = async () => {
+      try { await window.kNetDirect.__refresh(); } catch {}
+      try { const w = window.kNetDirect.wisp(); return w ? ['https://' + new URL(w).host] : []; } catch { return []; }
+    };
+    window.movieHosts = K.movieHosts;
+    K.wisp = { get: () => K.resolveWlsp(), isBackup: () => false, isBad: () => false, markBad: () => {} };
+    return;
+  }
   const WISP_LIST_PATH = 'Assets/json/wss.json';
   const TEST_TIMEOUT = 3000;
   const PROBE_WAVE = 6;

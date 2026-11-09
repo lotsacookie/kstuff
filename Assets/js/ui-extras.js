@@ -346,6 +346,14 @@ export function init(K) {
       updating = true;
       updateBtn.disabled = true;
       setUpdateLabel('Updating...');
+      if (window.__COI) {
+        // Proxied: the parent drops its cached bundle and reloads this frame through the proxy.
+        try { await window.__coiCall('reload', { fresh: true }); } catch {}
+        updating = false;
+        updateBtn.disabled = false;
+        setUpdateLabel('Update Singularity');
+        return;
+      }
       try { K.toggleLoader?.(true, 'updating'); } catch {}
 
       const html = await fetchLatestHtml();

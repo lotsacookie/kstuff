@@ -8,6 +8,7 @@
   "exclude": [
     "Assets/singularity.js",
     "Assets/singularity.json",
+    "Assets/coi.html",
     "Assets/vms/**",
     "Assets/now/**",
     "Assets/singuloxy/**",
