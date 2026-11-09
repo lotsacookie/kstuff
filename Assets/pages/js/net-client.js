@@ -16,7 +16,8 @@
     return direct;
   }
 
-  window.addEventListener('pagehide', function () {
+  function on(t, ty, f, o) { t.addEventListener(ty, f, o); if (window.__coiReg) window.__coiReg.push([t, ty, f, o]); }
+  on(window, 'pagehide', function () {
     ctls.forEach(function (c) { try { c.abort(); } catch (e) {} });
     ctls.clear();
     Object.keys(pendingFetch).forEach(function (id) { try { parent && parent.postMessage({ type: 'kstuff-net:abort', id: id }, '*'); } catch (e) {} });
@@ -34,7 +35,7 @@
     return getDirect().fetch(url, o);
   }
 
-  window.addEventListener('message', function (e) {
+  on(window, 'message', function (e) {
     var d = e.data;
     if (!d || typeof d !== 'object' || e.source !== realParent) return;
     if (d.type === 'kstuff-net:res' || d.type === 'kstuff-net:ready-ack' || d.type === 'kstuff-net:rotate-ack' || d.type === 'kstuff-net:hello-ack') {

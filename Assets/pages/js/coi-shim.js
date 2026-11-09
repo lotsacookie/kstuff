@@ -14,6 +14,12 @@
   try { parent = window.parent && window.parent !== window ? window.parent : null; } catch (e) {}
   var cfg = window.__COI_CFG || {};
 
+  /* document.open() (the Update button rewrites the page in place) wipes every listener on window and document.
+   * Everything this shim listens with is registered through reg(), and window.__coiRebind() puts them back. */
+  var REG = window.__coiReg = window.__coiReg || [];
+  function reg(t, type, fn, opt) { t.addEventListener(type, fn, opt); REG.push([t, type, fn, opt]); }
+  window.__coiRebind = function () { REG.forEach(function (r) { try { r[0].addEventListener(r[1], r[2], r[3]); } catch (e) {} }); };
+
   /* ---- RPC ---- */
   var seq = 0, pending = {}, wsMap = {};
   function post(msg, transfer) { try { parent && parent.postMessage(msg, '*', transfer || []); } catch (e) {} }
@@ -26,7 +32,7 @@
       post({ type: 'kstuff-coi:' + type, id: id, data: data });
     });
   };
-  window.addEventListener('message', function (e) {
+  reg(window, 'message', function (e) {
     var d = e.data;
     if (!d || typeof d !== 'object' || e.source !== parent) return;
     if (d.type === 'kstuff-coi:res') { var p = pending[d.id]; if (p) { delete pending[d.id]; p(d); } }
@@ -80,7 +86,7 @@
   } catch (e) {}
 
   /* ---- Hash links: <base> would turn "#x" into a navigation away from the srcdoc ---- */
-  document.addEventListener('click', function (e) {
+  reg(document, 'click', function (e) {
     var a = e.target && e.target.closest && e.target.closest('a[href^="#"]');
     if (!a || e.defaultPrevented) return;
     e.preventDefault();
@@ -404,7 +410,7 @@
 
   /* Messages from page frames: theme requests, storage writes, small calls, and the net hub relay. */
   var relay = {}, childWs = {};
-  window.addEventListener('message', function (e) {
+  reg(window, 'message', function (e) {
     var d = e.data;
     if (!d || typeof d !== 'object' || typeof d.type !== 'string' || e.source === parent || !isChild(e.source)) return;
     var src = e.source;
@@ -468,7 +474,7 @@
     var tr = d.init && d.init.body instanceof ArrayBuffer ? [d.init.body] : [];
     post(out, tr);
   });
-  window.addEventListener('message', function (e) {
+  reg(window, 'message', function (e) {
     var d = e.data;
     if (!d || typeof d !== 'object' || e.source !== parent || typeof d.type !== 'string' || d.type.indexOf('kstuff-net:') !== 0) return;
     var r = relay[d.id];

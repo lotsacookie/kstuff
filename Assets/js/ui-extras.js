@@ -365,13 +365,18 @@ export function init(K) {
         // the page was mounted with <base> pointing at the site root; document.open() drops it, so put it back
         const baseTag = '<base href="' + String(res.base || '').replace(/"/g, '&quot;') + '">';
         const hm = /<head(\s[^>]*)?>/i.exec(html);
-        const page = /<base\s/i.test(html) ? html : (hm ? html.slice(0, hm.index + hm[0].length) + baseTag + html.slice(hm.index + hm[0].length) : baseTag + html);
+        // document.open() also wipes the listeners the coi shim uses to talk to the parent (that is what cut the
+        // frame off from it), so re-attach them first thing in the new document, before its own scripts run.
+        const rebind = '<script>try{window.__coiRebind&&window.__coiRebind()}catch(e){}<\/script>';
+        const inject = rebind + (/<base\s/i.test(html) ? '' : baseTag);
+        const page = hm ? html.slice(0, hm.index + hm[0].length) + inject + html.slice(hm.index + hm[0].length) : inject + html;
         window.__sgReloading = true;
         teardown();
         try {
           document.open();
           document.write(page);
           document.close();
+          try { window.__coiRebind && window.__coiRebind(); } catch {}
         } catch (err) {
           console.error('coi update failed', err);
           // last resort: let the parent remount this frame (still no page reload)
