@@ -16,6 +16,8 @@ const close_options_button = from_id("close_options_button");
 const eval_js_input = from_id("eval_js_input");
 const eval_js_button = from_id("eval_js_button");
 
+let coi_hub = null;
+
 const main_frame = new sandstone.controller.ProxyFrame();
 globalThis.sandstone = sandstone;
 globalThis.main_frame = main_frame;
@@ -34,7 +36,7 @@ main_frame.on_load = async () => {
   url_box.value = main_frame.url.href;
   let favicon_url = await main_frame.get_favicon();
   if (!favicon_url.startsWith("data:")) {
-    let response = await sandstone.libcurl.fetch(favicon_url);
+    let response = await (coi_hub ? coi_hub.fetch(favicon_url) : sandstone.libcurl.fetch(favicon_url));
     if (!response.ok) return;
     let favicon = await response.blob();
     favicon_url = URL.createObjectURL(favicon);
@@ -59,7 +61,6 @@ function toggle_options() {
   options_div.style.display = options_div.style.display === "none" ? "flex" : "none";
   frame_container.style.filter = frame_container.style.filter ? "" : "brightness(50%)";
   
-  //apply options
   sandstone.libcurl.set_websocket(wisp_url_input.value);
 }
 
@@ -100,8 +101,6 @@ async function main() {
     sandstone.libcurl.set_websocket(wisp_url);
   }
 
-  // kstuff: when embedded in the site (normal or coi mode), take the wisp from the parent net hub so
-  // proxied pages keep going through it instead of a wisp of our own.
   try {
     const findHub = () => {
       for (const w of [window, window.parent]) {
@@ -114,7 +113,17 @@ async function main() {
     for (let i = 0; inCoi && !hub && i < 50; i++) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
     if (hub) {
       const w = String(await Promise.race([hub.ready(), new Promise((_, no) => setTimeout(() => no(new Error("hub timeout")), 40000))]));
-      if (w && /^wss?:/i.test(w)) { wisp_url = w; sandstone.libcurl.set_websocket(w); }
+      if (inCoi) {
+        coi_hub = hub;
+        sandstone.network.set_transport_fetch((url, init) => hub.fetch(String(url), init || {}));
+      }
+      if (w && /^wss?:/i.test(w)) {
+        wisp_url = w;
+        sandstone.libcurl.set_websocket(w);
+        if (inCoi) {
+          try { sandstone.network.set_wisp_pool([w]); } catch {}
+        }
+      }
     }
   } catch (e) { console.warn("singuloxy: net hub not used:", e && e.message); }
 

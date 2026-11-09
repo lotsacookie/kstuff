@@ -10,11 +10,66 @@
         statusEl.classList.add('hidden');
     };
 
+    const inCoi = (() => {
+        try { if (window.__coiRealParent || window.__COI) return true; } catch (e) {}
+        try { if (window.origin === "null") return true; } catch (e) {}
+        try { return !!window.parent.__isCoiParent; } catch (e) { return false; }
+    })();
+
     const findHub = () => {
         for (const w of [window.parent, window.top, window]) {
-            try { if (w && w.kNetDirect && typeof w.kNetDirect.sandstone === "function") return w.kNetDirect; } catch (e) {}
+            try {
+                if (!w || !w.kNetDirect) continue;
+                const h = w.kNetDirect;
+                if (typeof h.sandstone === "function") return h;
+                if (inCoi && typeof h.fetch === "function" && typeof h.ready === "function") return h;
+            } catch (e) {}
         }
         return null;
+    };
+
+    const fetchText = async (hub, url) => {
+        try {
+            const ctrl = new AbortController();
+            const t = setTimeout(() => ctrl.abort(), 25000);
+            try {
+                const r = await fetch(url, { cache: "no-store", signal: ctrl.signal });
+                if (r.ok) return await r.text();
+            } finally { clearTimeout(t); }
+        } catch (e) {}
+        const r = await hub.fetch(url, {});
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return r.text();
+    };
+
+    const loadCoiSandstone = async (hub) => {
+        const repo = "lotsacookie/kstuff";
+        const path = "Assets/build/sandstone.mjs";
+        const urls = [
+            "https://cdn.jsdelivr.net/gh/" + repo + "@main/" + path,
+            "https://fastly.jsdelivr.net/gh/" + repo + "@main/" + path,
+            "https://raw.githubusercontent.com/" + repo + "/main/" + path
+        ];
+        let last = null;
+        for (const u of urls) {
+            try {
+                const code = await fetchText(hub, u);
+                if (code.length < 100000 || !/\bexport\b/.test(code)) throw new Error("bad sandstone bundle");
+                return await import(URL.createObjectURL(new Blob([code], { type: "text/javascript" })));
+            } catch (e) { last = e; }
+        }
+        throw last || new Error("sandstone failed to load");
+    };
+
+    const bootCoiSandstone = async (hub) => {
+        const sg = await loadCoiSandstone(hub);
+        const wisp = String((await hub.ready()) || "");
+        sg.network.set_transport_fetch((url, init) => hub.fetch(String(url), init || {}));
+        if (/^wss?:/i.test(wisp)) {
+            sg.libcurl.set_websocket(wisp);
+            try { sg.network.set_wisp_pool([wisp]); } catch (e) {}
+        }
+        return sg;
     };
 
     setStatus("Connecting to net hub...");
@@ -35,9 +90,13 @@
     let bootError = null;
     for (let attempt = 0; attempt < 3 && !sandstone; attempt++) {
         try {
-            const sg = await hub.sandstone();
-            await hub.ready();
-            sandstone = sg;
+            if (typeof hub.sandstone === "function") {
+                const sg = await hub.sandstone();
+                await hub.ready();
+                sandstone = sg;
+            } else {
+                sandstone = await bootCoiSandstone(hub);
+            }
         } catch (err) {
             bootError = err;
             if (attempt < 2) {
@@ -51,7 +110,7 @@
         console.error("EasyGame: net hub failed:", bootError);
         return;
     }
-    console.log("EasyGame: net hub wisp", hub.wisp());
+    try { console.log("EasyGame: net hub wisp", hub.wisp()); } catch (e) {}
 
     try {
         const LV = ["log", "info", "warn", "error", "debug"];
