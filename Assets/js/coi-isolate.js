@@ -2,15 +2,17 @@
 //
 // When enabled, the whole visible page is cleared (scripts, wisp, net hub and the
 // Singuloxy transport keep running in the background) and a single full-screen
-// iframe loads the cross-origin-isolated copy of the site. That page talks to this
-// one over postMessage: the kstuff-net:* bridge in net-hub.js (fetch / rotate /
-// abort, which is what Singuloxy inside the frame uses) plus the kstuff-coi:*
-// messages handled here.
+// iframe is shown. coi.html is NOT embedded by URL: it is fetched through the
+// sandstone/Singuloxy transport (wisp), then mounted via srcdoc in a sandboxed
+// frame with no allow-same-origin, so it runs in an opaque origin, cross-origin
+// to this page. It talks to this page only over postMessage: the kstuff-net:*
+// bridge in net-hub.js (fetch / rotate / abort, which Singuloxy inside the frame
+// uses) plus the kstuff-coi:* messages handled here.
 export function init(K) {
   const KEY = 'kstuff_coi';
   const COI_URL = 'https://lotsacookie.github.io/Assets/coi.html';
-  const COI_ORIGIN = new URL(COI_URL).origin;
   const byId = id => document.getElementById(id);
+  const SANDBOX = 'allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads allow-pointer-lock allow-presentation';
 
   const isOn = () => { try { return localStorage.getItem(KEY) === 'on'; } catch { return false; } };
   const setOn = on => { try { localStorage.setItem(KEY, on ? 'on' : 'off'); } catch {} };
@@ -80,12 +82,15 @@ export function init(K) {
     frame = document.createElement('iframe');
     frame.id = 'coi-frame';
     frame.dataset.coi = '1';
-    frame.setAttribute('allow', 'fullscreen; autoplay; clipboard-read; clipboard-write; gamepad; cross-origin-isolated; microphone; camera');
+    frame.__proxied = false;
+    // No allow-same-origin: the frame gets an opaque origin and cannot touch this page.
+    frame.setAttribute('sandbox', SANDBOX);
+    frame.setAttribute('allow', 'cross-origin-isolated; fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; picture-in-picture; microphone; camera');
     frame.setAttribute('allowfullscreen', '');
-    frame.src = COI_URL;
-
+    frame.setAttribute('credentialless', '');
     sweep();
     document.body.appendChild(frame);
+    load();
 
     // Keep the host DOM empty: anything modules add later is removed again.
     observer = new MutationObserver(muts => {
@@ -96,13 +101,55 @@ export function init(K) {
     observer.observe(document.body, { childList: true });
   }
 
+  // ---- Load coi.html through the proxy transport ----
+  const withTimeout = (p, ms, what) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error(what + ' timed out')), ms))]);
+
+  async function getClientScript() {
+    try { return await K.fetchWithProxy('Assets/pages/js/net-client.js', true); } catch {}
+    const r = await fetch('https://cdn.jsdelivr.net/gh/' + (K.MAIN_REPO || 'lotsacookie/kstuff') + '@main/Assets/pages/js/net-client.js');
+    if (!r.ok) throw new Error('net-client ' + r.status);
+    return r.text();
+  }
+
+  async function fetchCoiHtml() {
+    const net = window.kNetDirect;
+    if (!net) throw new Error('net hub unavailable');
+    await withTimeout(net.ready(), 40000, 'proxy boot');
+    const res = await withTimeout(net.fetch(COI_URL + '?t=' + Date.now(), { method: 'GET', redirect: 'follow' }), 30000, 'coi.html fetch');
+    if (!res.ok) throw new Error('coi.html HTTP ' + res.status);
+    const html = await res.text();
+    if (!/<html|<body|<!doctype/i.test(html)) throw new Error('coi.html looks invalid');
+    return html;
+  }
+
+  const errorHtml = msg => '<html style="background:#000"><body style="margin:0;height:100vh;display:flex;flex-direction:column;gap:14px;align-items:center;justify-content:center;color:#f5f5f5;font-family:sans-serif"><h2 style="margin:0">Could not load the isolated page</h2><div style="opacity:.7;max-width:80vw;text-align:center;word-break:break-word">' +
+    String(msg).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) +
+    '</div><div style="display:flex;gap:10px"><button id="r" style="padding:8px 16px;font:inherit;cursor:pointer">Retry</button><button id="d" style="padding:8px 16px;font:inherit;cursor:pointer">Turn off isolation</button></div><script>' +
+    'r.onclick=function(){parent.postMessage({type:"kstuff-coi:reload"},"*")};d.onclick=function(){parent.postMessage({type:"kstuff-coi:disable"},"*")}<\/script></body></html>';
+
+  let loadToken = 0;
+  async function load() {
+    const token = ++loadToken;
+    try {
+      const [html, client] = await Promise.all([fetchCoiHtml(), getClientScript()]);
+      if (token !== loadToken || !frame) return;
+      const inject = '<base href="' + COI_URL + '"><script>' + client.replace(/<\/script/gi, '<\\/script') + '<\/script>';
+      const m = /<head[^>]*>/i.exec(html);
+      frame.srcdoc = m ? html.slice(0, m.index + m[0].length) + inject + html.slice(m.index + m[0].length) : inject + html;
+    } catch (err) {
+      console.error('coi load failed', err);
+      if (token === loadToken && frame) frame.srcdoc = errorHtml(err && err.message || err);
+    }
+  }
+
   // ---- Messages from the isolated page ----
   const SYNC_PREFIX = 'kstuff_';
   window.addEventListener('message', e => {
     const d = e.data;
     if (!frame || !d || typeof d !== 'object' || typeof d.type !== 'string' || d.type.indexOf('kstuff-coi:') !== 0) return;
-    if (e.source !== frame.contentWindow || e.origin !== COI_ORIGIN) return;
-    const reply = m => { try { e.source.postMessage(m, COI_ORIGIN); } catch {} };
+    // The sandboxed frame has an opaque origin ("null"), so trust the window identity, not the origin.
+    if (e.source !== frame.contentWindow) return;
+    const reply = m => { try { e.source.postMessage(m, '*'); } catch {} };
 
     if (d.type === 'kstuff-coi:hello') {
       const store = {};
@@ -115,6 +162,8 @@ export function init(K) {
       reply({ type: 'kstuff-coi:hello-ack', store, wisp: window.kNetDirect && window.kNetDirect.wisp ? window.kNetDirect.wisp() : null, transport: window.kTransportMode || null });
     } else if (d.type === 'kstuff-coi:storage-set' && typeof d.key === 'string' && d.key.indexOf(SYNC_PREFIX) === 0 && d.key !== KEY) {
       try { if (d.value == null) localStorage.removeItem(d.key); else localStorage.setItem(d.key, String(d.value)); } catch {}
+    } else if (d.type === 'kstuff-coi:reload') {
+      load();
     } else if (d.type === 'kstuff-coi:disable') {
       setOn(false);
       window.__sgReloading = true;
