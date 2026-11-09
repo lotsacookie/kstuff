@@ -190,13 +190,93 @@ export function init(K) {
   const sockets = new Map();
   const closeSockets = () => { sockets.forEach(ws => { try { ws.close(); } catch {} }); sockets.clear(); };
 
+  // ---- Leave isolation: clear the frame and re-import Singularity, the same way the Update button does ----
+  const UPDATE_REPO = 'lotsacookie/kstuff';
+  const FETCH_MS = 8000;
+  const fetchWithTimeout = async (url, type) => {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), FETCH_MS);
+    try {
+      const r = await fetch(url, { cache: 'no-store', signal: ctrl.signal });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return await r[type]();
+    } finally { clearTimeout(timer); }
+  };
+  const looksValid = html => typeof html === 'string' && html.length > 5000 && /<html/i.test(html) && /singularity/i.test(html);
+  const fetchLatestHtml = async () => {
+    const bust = '?t=' + Date.now();
+    const urls = [];
+    try {
+      const data = await fetchWithTimeout('https://api.github.com/repos/' + UPDATE_REPO + '/commits/main', 'json');
+      if (data && /^[0-9a-f]{40}$/i.test(data.sha)) urls.push('https://cdn.jsdelivr.net/gh/' + UPDATE_REPO + '@' + data.sha + '/index.html');
+    } catch {}
+    urls.push(
+      'https://raw.githubusercontent.com/' + UPDATE_REPO + '/main/index.html' + bust,
+      'https://cdn.jsdelivr.net/gh/' + UPDATE_REPO + '@main/index.html' + bust,
+      'https://cdn.statically.io/gh/' + UPDATE_REPO + '/main/index.html' + bust
+    );
+    try {
+      const here = location.href.split('#')[0];
+      if (/^https?:/i.test(here)) urls.push(here + (here.includes('?') ? '&' : '?') + 't=' + Date.now());
+    } catch {}
+    for (const url of urls) {
+      try { const html = await fetchWithTimeout(url, 'text'); if (looksValid(html)) return html; } catch {}
+    }
+    return null;
+  };
+  const clearBundleCache = async () => {
+    await bundleClear();
+    try { if (window.caches) for (const name of await caches.keys()) await caches.delete(name); } catch {}
+  };
+  const teardown = () => {
+    try { const top = setTimeout(() => {}, 0); for (let i = 0; i <= top; i++) { clearTimeout(i); clearInterval(i); } } catch {}
+    try { const last = requestAnimationFrame(() => {}); for (let i = 0; i <= last; i++) cancelAnimationFrame(i); } catch {}
+    try { if (window.__sgLogSubs) window.__sgLogSubs.clear(); } catch {}
+    ['singularity', 'kShaP', 'kWispP', 'kModulesStarted', 'kReady', 'kReadyResolve', 'kAssetsP', 'kAssetsPR', 'kHolidayLoaded'].forEach(key => {
+      try { delete window[key]; } catch { try { window[key] = undefined; } catch {} }
+    });
+  };
+
+  let restoring = false;
+  async function restoreSingularity() {
+    if (restoring) return;
+    restoring = true;
+    setOn(false);
+    const html = await fetchLatestHtml();
+    // Clear the isolation: drop the frame, its sockets and everything that keeps the page empty.
+    loadToken++;
+    closeSockets();
+    if (observer) { observer.disconnect(); observer = null; }
+    if (frame) { try { frame.remove(); } catch {} frame = null; }
+    if (!html) {
+      // Could not fetch anything; reload in place (same URL) rather than leave a black page.
+      window.__sgReloading = true;
+      location.reload();
+      return;
+    }
+    await clearBundleCache();
+    window.__sgReloading = true;
+    teardown();
+    try {
+      document.open();
+      document.write(html);
+      document.close();
+    } catch (err) {
+      console.error('coi restore failed', err);
+      location.reload();
+      return;
+    }
+    setTimeout(() => { window.__sgReloading = false; }, 3000);
+  }
+  K.coi.restore = restoreSingularity;
+
   const handlers = {
     hello: () => ({ store: snapshotStore(), wisp: window.kNetDirect ? window.kNetDirect.wisp() : null, transport: window.kTransportMode || null }),
     'wisp-info': () => ({ wisp: window.kNetDirect ? window.kNetDirect.wisp() : null, transport: window.kNetDirect ? window.kNetDirect.transport() : null }),
     'set-transport': d => (window.kNetDirect ? window.kNetDirect.setTransport(d && d.mode) : null),
     'bundle-get': () => bundleGet(),
     reload: async d => { if (d && d.fresh) await bundleClear(); closeSockets(); load(); return true; },
-    disable: () => { setOn(false); window.__sgReloading = true; location.reload(); return true; }
+    disable: () => { restoreSingularity(); return true; }
   };
 
   window.addEventListener('message', e => {
