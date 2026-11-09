@@ -34,8 +34,34 @@ export function init(K) {
 *.blox-running>.filter-bar,*.blox-running>.item-grid,*.blox-running>.pagination-bar{display:none!important}`;
 
   // ---------------------------------------------------------------- loading the client (GitHub API -> jsDelivr @commit)
+  // Every push is followed by a bot "build" commit, so the newest commit is often not on jsDelivr yet (it 404s, and the miss is cached).
+  // The embedded client resolves all of its relative files against that URL, so pinning to an unserved commit breaks the game start.
+  // Use the newest commit jsDelivr can actually serve for the client files, walking back a few commits if needed.
+  const servedShas = new Map();
+  const served = sha => {
+    if (!servedShas.has(sha)) {
+      const c = new AbortController(), t = setTimeout(() => c.abort(), 6000);
+      servedShas.set(sha, fetch(`https://cdn.jsdelivr.net/gh/${REPO}@${sha}/${DIR}index.html`, { method: 'HEAD', cache: 'no-store', signal: c.signal })
+        .then(r => r.ok, () => false).then(ok => { if (!ok) setTimeout(() => servedShas.delete(sha), 30000); return ok; }).finally(() => clearTimeout(t)));
+    }
+    return servedShas.get(sha);
+  };
+  async function recentShas() {
+    try {
+      const r = await fetch(`https://api.github.com/repos/${REPO}/commits?sha=main&per_page=10`, { cache: 'no-store' });
+      if (!r.ok) return [];
+      return (await r.json()).map(c => c && c.sha).filter(x => typeof x === 'string' && /^[0-9a-f]{40}$/.test(x));
+    } catch { return []; }
+  }
   async function resolveBase(force) {
-    const sha = await K.getRefSha(REPO, 'main', force).catch(() => '');
+    let sha = await K.getRefSha(REPO, 'main', force).catch(() => '');
+    if (sha && !(await served(sha))) {
+      const older = (await recentShas()).filter(x => x !== sha);
+      const ok = await Promise.all(older.map(served));
+      const i = ok.indexOf(true);
+      console.warn('[blox] commit', sha.slice(0, 7), 'is not on jsDelivr yet,', i >= 0 ? 'using ' + older[i].slice(0, 7) : 'using main');
+      sha = i >= 0 ? older[i] : '';
+    }
     return { sha, base: `https://cdn.jsdelivr.net/gh/${REPO}@${sha || 'main'}/${DIR}` };
   }
   function ensureHost() {
