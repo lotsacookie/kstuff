@@ -299,7 +299,7 @@ function getProxy({ log = () => {}, say = () => {} } = {}) {
     provisionalWisp(sandstone.network);
     for (let i = 0; i < 150 && !sandstone.libcurl.ready; i++) await new Promise((r) => setTimeout(r, 100));
     if (!sandstone.libcurl.ready) throw new Error("libcurl did not load");
-    state = { libcurl: sandstone.libcurl, network: sandstone.network, wisp: "", tried: [] };
+    state = { libcurl: sandstone.libcurl, network: sandstone.network, sandstone, wisp: "", tried: [] };
     await connectWisp(state, say2, log);
     return state;
   })().catch((e) => { ready = null; throw e; }));

@@ -414,7 +414,8 @@ export function init(K) {
 
   // WebBlox: Roblox in the browser through the net hub (Assets/blox/index.html, launched by blox-launch.js).
   async function fetchBlox() {
-    return [{ source: 'blox', bloxId: 'prompt', name: 'WebBlox', cover: [`https://cdn.jsdelivr.net/gh/${CLOUD_REPO}@main/ref/cg/tg-roblox-launch.jpg`, K.gameFallbackIcon('WebBlox')] }];
+    const sha = await K.getRefSha(CLOUD_REPO, 'main').catch(() => '');
+    return [{ source: 'blox', bloxId: 'prompt', name: 'WebBlox', cover: [`https://cdn.jsdelivr.net/gh/${CLOUD_REPO}@${sha || 'main'}/ref/cg/tg-roblox-launch.jpg`, K.gameFallbackIcon('WebBlox')] }];
   }
 
   K.fetchExtraGames = async () => {

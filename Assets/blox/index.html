@@ -52,6 +52,15 @@
   ];
   window.fetch = async function (input, init) {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input && input.url;
+    // Site overrides (overrides/wisps.js, overrides/upstream.js) come from jsDelivr at the pinned commit, same-origin copy as the fallback.
+    const ovr = url && CDN && /\/overrides\/(wisps|upstream)\.js(\?|$)/.exec(url);
+    if (ovr) {
+      try {
+        const r = await nativeFetch(CDN + "overrides/" + ovr[1] + ".js", { credentials: "omit" });
+        if (r.ok) return r;
+        console.warn("[pin] override", ovr[1], r.status);
+      } catch (e) { console.warn("[pin] override failed", ovr[1], e && e.message); }
+    }
     if (url && /\/core\.pack\.gz(\?|$)/.test(url) && !packSources.includes(url)) {
       let last;
       for (const src of packSources) {

@@ -21,7 +21,7 @@
       say("Connecting through the net hub…");
       const sg = await hub.sandstone();
       await hub.ready().catch(() => {});
-      state = { libcurl: sg.libcurl, network: sg.network, wisp: String(hub.wisp() || ""), hub };
+      state = { libcurl: sg.libcurl, network: sg.network, sandstone: sg, wisp: String(hub.wisp() || ""), hub };
       log("using the kstuff net hub", state.wisp);
       return state;
     }
