@@ -19,6 +19,9 @@
       try { window.parent.postMessage({ type: "blox:navigate", search: search }, "*"); } catch (e) {}
     };
     window.__wbNavigate = send;
+    window.__wbSearch = function () {
+      try { return new Real(page).search; } catch (e) { return ""; }
+    };
     var home = "";
     try { home = new Real(page).searchParams.get("launcher") === "roblox" ? "?launcher=roblox" : ""; } catch (e) {}
     Object.defineProperty(window, "__webbloxExit", {

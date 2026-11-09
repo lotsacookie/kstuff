@@ -1196,9 +1196,17 @@ self.__wbBoot((() => {
   };
   const stored = i => MANIFEST.encoding === 'bytes' ? DATA[i] : MANIFEST.encoding === 'dense' ? fromDense(DATA[i], FILES[i][4]) : fromBase64(DATA[i]);
   const syncable = i => FILES[i][2] === 0 || FILES[i][2] === ZSTD;
+  const SEARCH_READER = /\b(?:(?:self|window)\.)?location\.search\b/g;
+  const SEARCH_VALUE = '(self.__wbSearch?self.__wbSearch():location.search)';
+  const patchSearch = (i, data) => {
+    if (!data || typeof self.__wbSearch !== 'function' || !/^text\/(javascript|html)$/.test(FILES[i][1])) return data;
+    const source = new TextDecoder().decode(data);
+    if (source.includes('__wbSearch') || !/\blocation\.search\b/.test(source)) return data;
+    return new TextEncoder().encode(source.replace(SEARCH_READER, SEARCH_VALUE));
+  };
   const rawSync = i => {
-    if (FILES[i][2] === ZSTD) return wbZstdDecode(stored(i), FILES[i][3]);
-    return FILES[i][2] === 0 ? stored(i) : null;
+    if (FILES[i][2] === ZSTD) return patchSearch(i, wbZstdDecode(stored(i), FILES[i][3]));
+    return FILES[i][2] === 0 ? patchSearch(i, stored(i)) : null;
   };
 
   const hex = buffer => Array.from(new Uint8Array(buffer), b => b.toString(16).padStart(2, '0')).join('');
@@ -1244,6 +1252,7 @@ self.__wbBoot((() => {
       const stream = new Blob([stored(i)]).stream().pipeThrough(new DecompressionStream('gzip'));
       data = new Uint8Array(await new Response(stream).arrayBuffer());
     } else data = rawSync(i);
+    data = patchSearch(i, data);
     return fakeThreads && MANIFEST.threadPatch && FILES[i][0] === MANIFEST.threadPatch.path ? threadPatch(data) : data;
   };
   const text = i => new TextDecoder().decode(rawSync(i));
