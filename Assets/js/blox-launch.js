@@ -95,15 +95,31 @@ export function init(K) {
 
   // The client runs as a normal same-origin page (its service worker and ?placeId= mode need a real URL), pinned to the latest commit.
   // Its scripts and the core pack come from jsDelivr at that commit (see Assets/blox/index.html).
+  const HTML_CACHE = 'blox-client-html';
+  async function clientHtml(sha, base) {
+    if (sha) {
+      try { const c = JSON.parse(localStorage.getItem(HTML_CACHE) || 'null'); if (c && c.sha === sha && c.html) return c.html; } catch {}
+    }
+    const urls = [];
+    if (sha) urls.push(base + 'index.html', `https://raw.githubusercontent.com/${REPO}/${sha}/${DIR}index.html`);
+    urls.push(`https://cdn.jsdelivr.net/gh/${REPO}@main/${DIR}index.html`);
+    let err;
+    for (const u of urls) {
+      try { const r = await fetch(u, { cache: 'default' }); if (r.ok) { const html = await r.text(); if (sha) { try { localStorage.setItem(HTML_CACHE, JSON.stringify({ sha, html })); } catch {} } return html; } err = new Error(r.status + ' ' + u); } catch (e) { err = e; }
+    }
+    throw err || new Error('Couldn’t load the WebBlox client');
+  }
+  // The client page comes from kstuff on jsDelivr at the latest commit (GitHub API pin) and is embedded with srcdoc, so it never
+  // depends on this site hosting Assets/blox. __WB_PAGE tells the client which URL it lives at, since a srcdoc frame has none.
   function mountFrame(placeId) {
     ensureHost();
     ensureStyle();
     return (async () => {
-      const { sha } = await resolveBase(true);
-      const url = new URL(DIR + 'index.html', document.baseURI);
-      if (placeId) url.searchParams.set('placeId', placeId);
-      url.searchParams.set('v', sha || String(Date.now()));
-      url.searchParams.set('embed', '1');
+      const { sha, base } = await resolveBase(true);
+      const html = await clientHtml(sha, base);
+      const page = base + 'index.html' + (placeId ? '?placeId=' + encodeURIComponent(placeId) : '');
+      const boot = `<base href="${base}"><script>window.__WB_PAGE=${JSON.stringify(page)};window.__WB_SHA=${JSON.stringify(sha || '')};window.__WB_EMBED=true;<\/script>`;
+      const doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + boot) : boot + html;
       if (frame) frame.remove();
       frame = document.createElement('iframe');
       frame.id = 'blox-frame'; frame.title = 'WebBlox';
@@ -111,7 +127,7 @@ export function init(K) {
       frame.setAttribute('allowfullscreen', '');
       host.appendChild(frame);
       ready = false;
-      frame.src = url.href;
+      frame.srcdoc = doc;
     })().catch(e => { if (frame) { frame.remove(); frame = null; } throw e; });
   }
   const focusFrame = () => { try { frame?.focus(); frame?.contentWindow?.focus(); } catch {} };

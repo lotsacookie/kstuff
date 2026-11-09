@@ -27,7 +27,7 @@
       return sha;
     } finally { clearTimeout(t); }
   };
-  let sha = new URLSearchParams(location.search).get("v");
+  let sha = window.__WB_SHA || new URLSearchParams(location.search).get("v");
   if (!isSha(sha)) {
     say("Checking for the latest WebBlox…");
     sha = null;
