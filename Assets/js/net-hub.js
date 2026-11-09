@@ -786,6 +786,8 @@ export function init(K) {
     },
     wisp: () => current,
     transport: () => transportMode,
+    // real link state for the footer indicator (also asked for by the coi frame): idle | on | off
+    status: () => (!booted ? 'idle' : linkUp && current ? 'on' : 'off'),
     setTransport
   };
 
@@ -1005,4 +1007,25 @@ function initProxied(K) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bind); else bind();
   document.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('.settings-tab')) bind(); });
   net().ready().then(refresh, () => {});
+
+  // Footer connection indicator: the real state lives in the parent's hub, so ask it (the local one is never booted).
+  const paintConn = state => {
+    const box = document.getElementById('conn-indicator');
+    if (!box || box.dataset.state === state) return;
+    box.dataset.state = state;
+    const icons = { idle: 'ph-pause-circle', on: 'ph-plugs-connected', off: 'ph-plugs' };
+    const labels = { idle: 'Idle', on: 'Connected', off: 'Not connected' };
+    const icon = document.getElementById('conn-icon');
+    const text = document.getElementById('conn-text');
+    if (icon) icon.className = 'ph ' + icons[state];
+    if (text) text.textContent = labels[state];
+  };
+  const pollConn = async () => {
+    try {
+      const r = await net().__refresh();
+      paintConn(r && (r.status === 'on' || r.status === 'off' || r.status === 'idle') ? r.status : (r && r.wisp ? 'on' : 'idle'));
+    } catch { paintConn('off'); }
+  };
+  pollConn();
+  setInterval(() => { if (!document.hidden) pollConn(); }, 4000);
 }

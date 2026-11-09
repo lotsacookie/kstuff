@@ -272,7 +272,7 @@ export function init(K) {
 
   const handlers = {
     hello: () => ({ store: snapshotStore(), wisp: window.kNetDirect ? window.kNetDirect.wisp() : null, transport: window.kTransportMode || null }),
-    'wisp-info': () => ({ wisp: window.kNetDirect ? window.kNetDirect.wisp() : null, transport: window.kNetDirect ? window.kNetDirect.transport() : null }),
+    'wisp-info': () => ({ wisp: window.kNetDirect ? window.kNetDirect.wisp() : null, transport: window.kNetDirect ? window.kNetDirect.transport() : null, status: window.kNetDirect && window.kNetDirect.status ? window.kNetDirect.status() : null }),
     'set-transport': d => (window.kNetDirect ? window.kNetDirect.setTransport(d && d.mode) : null),
     'bundle-get': () => bundleGet(),
     reload: async d => { if (d && d.fresh) await bundleClear(); closeSockets(); load(); return true; },
