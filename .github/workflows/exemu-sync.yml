@@ -34,6 +34,9 @@ jobs:
           rm -rf Assets/exemu
           mkdir -p Assets/exemu
           cp -r "$RUNNER_TEMP/exemu/." Assets/exemu/
+          if ! grep -qi '<base[ >]' Assets/exemu/index.html; then
+            sed -i '0,/<meta charset="utf-8">/s||<meta charset="utf-8">\n<base href="https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/exemu/">|' Assets/exemu/index.html
+          fi
 
       - name: Install build deps
         run: npm install --no-save --no-audit --no-fund esbuild html-minifier-terser
@@ -65,4 +68,6 @@ jobs:
           for f in singularity.js singularity.json; do
             curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/Assets/$f" || true
           done
-          curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/Assets/exemu/index.html" || true
+          for f in $(cd Assets/exemu && find . -type f | sed 's|^\./||'); do
+            curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/Assets/exemu/$f" || true
+          done
