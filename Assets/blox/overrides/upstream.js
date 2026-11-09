@@ -266,14 +266,16 @@
 
   async function wisp(url, init) {
     let tries = 0;
+    // join-game only asks Roblox for a join ticket, so it is safe to retry like a GET when the proxy connection drops
+    const retryable = (init.method || 'GET') === 'GET' || /^https:\/\/gamejoin\.roblox\.com\/v1\/join-/.test(String(url));
     for (;;) {
       try {
         const r = await window.webbloxProxyFetch(url, { ...init, redirect: 'follow' });
         const body = await r.arrayBuffer();
-        if (r.status >= 500 && tries < 1 && (init.method || 'GET') === 'GET') { tries++; continue; }
+        if (r.status >= 500 && tries < 1 && retryable) { tries++; continue; }
         return { status: r.status, statusText: r.statusText, headers: r.headers, body };
       } catch (e) {
-        if (tries++ >= 2 || (init.method || 'GET') !== 'GET') throw e;
+        if (tries++ >= 2 || !retryable) throw e;
       }
     }
   }

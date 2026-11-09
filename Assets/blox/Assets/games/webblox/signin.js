@@ -161,4 +161,104 @@
     const empty = [204, 205, 304].includes(res.status) || method === 'HEAD';
     return new Response(empty ? null : await res.arrayBuffer(), { status: res.status, headers: out });
   };
+
+  // Game-server and realtime connections (wss://*.qdmux.roblox.com, *.roblox.com) are WebSockets the engine opens itself.
+  // A direct browser WebSocket skips the net hub, so route every Roblox-host WebSocket through the same libcurl/wisp session.
+  (() => {
+    const NativeWS = window.WebSocket;
+    if (!NativeWS || NativeWS.__wbProxied) return;
+    const RBX = /(^|\.)(roblox\.com|rbxcdn\.com|robloxlabs\.com|rbx\.com)$/i;
+    const NEEDS_COOKIE = /(^|\.)roblox\.com$/i;
+    const roblox = u => { try { return RBX.test(u.hostname) && /^(wss?|https?):$/.test(u.protocol); } catch { return false; } };
+    const EVENTS = ['open', 'message', 'error', 'close'];
+    class ProxiedWebSocket extends EventTarget {
+      constructor(url, protocols) {
+        super();
+        const u = new URL(String(url));
+        u.protocol = u.protocol === 'http:' ? 'ws:' : u.protocol === 'https:' ? 'wss:' : u.protocol;
+        const list = protocols === undefined ? [] : Array.isArray(protocols) ? protocols.map(String) : [String(protocols)];
+        this._u = u.href; this._state = 0; this._proto = ''; this._ext = ''; this._bin = 'blob'; this._queue = []; this._ws = null; this._h = {};
+        this._connect(u, list, 0);
+      }
+      get url() { return this._u; }
+      get readyState() { return this._state; }
+      get bufferedAmount() { return 0; }
+      get extensions() { return this._ext; }
+      get protocol() { return this._proto; }
+      get binaryType() { return this._bin; }
+      set binaryType(v) { if (v === 'blob' || v === 'arraybuffer') this._bin = v; }
+      _emit(ev) { try { const h = this._h[ev.type]; if (h) h.call(this, ev); } catch (e) { console.error('[ws]', e); } this.dispatchEvent(ev); }
+      async _connect(u, list, attempt) {
+        try {
+          const st = await proxy();
+          const headers = { origin: 'https://www.roblox.com' };
+          if (NEEDS_COOKIE.test(u.hostname) && !/\.qdmux\.roblox\.com$/i.test(u.hostname)) Object.assign(headers, withCookie({}));
+          const ws = new st.libcurl.WebSocket(u.href, list, { headers });
+          ws.binaryType = 'arraybuffer';
+          this._ws = ws;
+          let opened = false;
+          ws.onopen = () => {
+            opened = true;
+            this._proto = ws.protocol || ''; this._ext = ws.extensions || ''; this._state = 1;
+            this._emit(new Event('open'));
+            const q = this._queue; this._queue = [];
+            for (const d of q) { try { ws.send(d); } catch {} }
+            if (this._closeReq) ws.close(this._closeReq[0], this._closeReq[1]);
+          };
+          ws.onmessage = e => {
+            let data = e.data;
+            if (this._bin === 'blob' && data instanceof ArrayBuffer) data = new Blob([data]);
+            this._emit(new MessageEvent('message', { data }));
+          };
+          ws.onerror = () => {
+            if (!opened && attempt < 1 && this._state === 0) {
+              // first attempt never connected: rotate the wisp server once and try again before reporting the failure
+              (async () => { try { if (st.hub) { await st.hub.rotate(st.wisp, true).catch(() => {}); st.wisp = String(st.hub.wisp() || ''); } } catch {} this._connect(u, list, attempt + 1); })();
+              ws.onclose = ws.onerror = ws.onopen = ws.onmessage = null;
+              return;
+            }
+            this._emit(new Event('error'));
+          };
+          ws.onclose = e => {
+            if (this._state === 3) return;
+            this._state = 3;
+            this._emit(new CloseEvent('close', { code: e.code || 1006, reason: e.reason || '', wasClean: !!e.wasClean }));
+          };
+        } catch (err) {
+          console.warn('[ws] proxy connect failed', u.hostname, err && err.message);
+          this._state = 3;
+          this._emit(new Event('error'));
+          this._emit(new CloseEvent('close', { code: 1006, reason: '', wasClean: false }));
+        }
+      }
+      send(data) {
+        if (this._state > 1) return;
+        if (data instanceof Blob) { data.arrayBuffer().then(b => this.send(b)); return; }
+        if (this._state === 0 || !this._ws) { this._queue.push(data); return; }
+        this._ws.send(data);
+      }
+      close(code, reason) {
+        if (this._state >= 2) return;
+        if (this._state === 0) { this._closeReq = [code, reason]; this._state = 2; return; }
+        this._state = 2;
+        try { this._ws.close(code, reason || ''); } catch {}
+      }
+    }
+    for (const ev of EVENTS) {
+      Object.defineProperty(ProxiedWebSocket.prototype, 'on' + ev, { configurable: true, enumerable: true, get() { return this._h[ev] || null; }, set(fn) { this._h[ev] = typeof fn === 'function' ? fn : null; } });
+    }
+    Object.assign(ProxiedWebSocket, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
+    Object.assign(ProxiedWebSocket.prototype, { CONNECTING: 0, OPEN: 1, CLOSING: 2, CLOSED: 3 });
+    try { if (NativeWS.prototype instanceof EventTarget) Object.setPrototypeOf(ProxiedWebSocket.prototype, NativeWS.prototype); } catch {}
+    const Wrapped = new Proxy(NativeWS, {
+      construct(target, args, newTarget) {
+        let u = null;
+        try { u = new URL(String(args[0])); } catch {}
+        if (u && roblox(u)) { console.log('[hub] websocket via proxy', u.hostname); return new ProxiedWebSocket(...args); }
+        return Reflect.construct(target, args, newTarget === Wrapped ? target : newTarget);
+      },
+      get(target, key, recv) { return key === '__wbProxied' ? true : Reflect.get(target, key, target); },
+    });
+    window.WebSocket = Wrapped;
+  })();
 })();
