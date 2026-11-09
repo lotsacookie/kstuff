@@ -251,9 +251,21 @@ const store = {
 };
 const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
 
+const inCoi = () => {
+  for (const w of [window, window.parent, window.top]) { try { if (w && w.__COI) return true; } catch {} }
+  try { if (window.frameElement && window.frameElement.dataset.coi === "1") return true; } catch {}
+  try { if (window.origin === "null" && window.parent !== window) return true; } catch {}
+  return false;
+};
 const findHub = () => {
+  const coi = inCoi();
   for (const w of [window, window.parent, window.top]) {
-    try { if (w && w.kNetDirect && typeof w.kNetDirect.fetch === "function") return w.kNetDirect; } catch {}
+    try {
+      const h = w && w.kNetDirect;
+      if (!h || typeof h.fetch !== "function") continue;
+      if (coi && typeof h.sandstone === "function") continue;
+      return h;
+    } catch {}
   }
   return null;
 };
@@ -270,7 +282,7 @@ function getProxy({ log = () => {}, say = () => {} } = {}) {
     const wisp = String(await withTimeout(hub.ready(), 60000, "net hub"));
     if (typeof hub.libcurl !== "function") throw new Error("Net hub has no libcurl() (coi mode needs the updated shim): reload the main site.");
     const lc = await hub.libcurl();
-    const viaParent = !!hub.__coiChild || !!window.__COI;
+    const viaParent = inCoi() || !!hub.__coiChild || !!window.__COI;
     const hfetch = (url, init) => {
       if (!viaParent) return hub.fetch(url, init);
       const t0 = Date.now(), host = (() => { try { return new URL(url).host; } catch { return String(url).slice(0, 40); } })();
