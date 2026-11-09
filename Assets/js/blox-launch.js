@@ -4,6 +4,7 @@
 // The client is fetched from jsDelivr at the latest commit (K.getRefSha) and cached in localStorage by commit, so it stays current
 // without waiting for the singularity.js rebuild; the copy packed into singularity.js is the offline fallback.
 export function init(K) {
+  console.log('[blox] launcher rev 4 (console bridge in client page)');
   const $ = id => document.getElementById(id);
   const REPO = K.MAIN_REPO || 'lotsacookie/kstuff';
   const DIR = 'Assets/blox/';
