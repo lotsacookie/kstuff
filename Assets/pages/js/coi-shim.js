@@ -148,6 +148,12 @@
     ready: function () { return window.kNet.ready().then(function (r) { if (r && r.wisp) cur = r.wisp; return cur; }); },
     rotate: function (bad, soft) { return window.kNet.rotate(bad, soft).then(function (r) { if (r && r.wisp) cur = r.wisp; return cur; }); },
     websocket: function (url, protocols) { return Promise.resolve(new CoiWebSocket(url, protocols)); },
+    libcurl: function () {
+      return Promise.resolve({
+        fetch: function (url, init) { return window.kNetDirect.fetch(url, init); },
+        WebSocket: CoiWebSocket
+      });
+    },
     wisp: function () { return cur; },
     transport: function () { return mode; },
     setTransport: function (m) {
@@ -221,6 +227,7 @@
     var el = { style: {}, className: '', classList: { contains: function () { return false; } }, getAttribute: function () { return null; } };
     var fake = {
       __isCoiParent: true,
+      __COI: true,
       document: { body: el, documentElement: el },
       getComputedStyle: gcs,
       postMessage: function (m, o, t) { post(m, t); },
@@ -229,12 +236,119 @@
     };
     try { Object.defineProperty(window, 'parent', { configurable: true, get: function () { return fake; } }); } catch (e) {}
 
+    // Net hub for page frames (NOW, VMs, Singuloxy, ...): they look for window.parent.kNetDirect, so the stand-in
+    // parent carries one. Every call is relayed (postMessage) through the isolated page to the real parent hub.
+    var nseq = 0, npend = {}, wsm = {}, curWisp = null, tmode = 'epoxy';
+    function nOk(d) { if (d && d.wisp) curWisp = d.wisp; return d; }
+    function nfetch(url, init) {
+      init = init || {};
+      var sig = init.signal;
+      if (sig && sig.aborted) return Promise.reject(new DOMException('Aborted', 'AbortError'));
+      var h = {};
+      if (init.headers) {
+        if (typeof Headers !== 'undefined' && init.headers instanceof Headers) init.headers.forEach(function (v, k) { h[k] = v; });
+        else Object.keys(init.headers).forEach(function (k) { h[k] = init.headers[k]; });
+      }
+      return Promise.resolve().then(function () {
+        var b = init.body, o = { method: init.method || 'GET', redirect: init.redirect || 'follow', headers: h }, tr = [];
+        if (b == null) return { o: o, tr: tr };
+        if (typeof b === 'string') { o.body = b; return { o: o, tr: tr }; }
+        if (b instanceof ArrayBuffer) { o.body = b.slice(0); tr.push(o.body); return { o: o, tr: tr }; }
+        if (ArrayBuffer.isView(b)) { o.body = b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); tr.push(o.body); return { o: o, tr: tr }; }
+        var r = new Request(String(url), { method: 'POST', body: b }), ct = r.headers.get('content-type');
+        if (ct && !Object.keys(h).some(function (k) { return k.toLowerCase() === 'content-type'; })) h['Content-Type'] = ct;
+        return r.arrayBuffer().then(function (ab) { o.body = ab; tr.push(ab); return { o: o, tr: tr }; });
+      }).then(function (p) {
+        return new Promise(function (resolve, reject) {
+          var id = 'n' + (++nseq) + '-' + Date.now();
+          var onAbort = function () { delete npend[id]; post({ type: 'kstuff-net:abort', id: id }); reject(new DOMException('Aborted', 'AbortError')); };
+          if (sig) sig.addEventListener('abort', onAbort, { once: true });
+          npend[id] = function (d) {
+            if (sig) sig.removeEventListener('abort', onAbort);
+            if (!d.ok) return reject(new TypeError(d.error || 'network error'));
+            var st = d.status, res;
+            try { res = new Response({ 101: 1, 204: 1, 205: 1, 304: 1 }[st] ? null : d.body, { status: st, statusText: d.statusText }); }
+            catch (e) { res = new Response(null, { status: st >= 200 && st <= 599 ? st : 200 }); }
+            var hs = new Headers();
+            (d.headers || []).forEach(function (kv) { try { hs.append(kv[0], kv[1]); } catch (e) {} });
+            try { Object.defineProperty(res, 'headers', { value: hs }); } catch (e) {}
+            try { Object.defineProperty(res, 'url', { value: d.url || String(url) }); } catch (e) {}
+            resolve(res);
+          };
+          post({ type: 'kstuff-net:fetch', id: id, url: String(url), init: p.o }, p.tr);
+        });
+      });
+    }
+    function nrpc(msg, ms) {
+      return new Promise(function (resolve, reject) {
+        var id = 'n' + (++nseq) + '-' + Date.now();
+        var t = setTimeout(function () { delete npend[id]; reject(new Error('net hub timed out')); }, ms);
+        npend[id] = function (d) { clearTimeout(t); d && d.error ? reject(new Error(d.error)) : resolve(nOk(d)); };
+        msg.id = id; post(msg);
+      });
+    }
+    function ChildWS(url, protocols) {
+      var self = this;
+      this.url = String(url); this.readyState = 0; this.binaryType = 'blob'; this.protocol = ''; this.extensions = ''; this.bufferedAmount = 0; this._l = {};
+      this._id = 'cw' + (++nseq) + '-' + Date.now();
+      wsm[this._id] = this;
+      ['open', 'message', 'close', 'error'].forEach(function (n) {
+        Object.defineProperty(self, 'on' + n, { get: function () { return self['_on' + n] || null; }, set: function (f) { self['_on' + n] = f; } });
+      });
+      post({ type: 'kstuff-coi-child:ws-open', id: this._id, url: this.url, protocols: protocols });
+    }
+    ChildWS.CONNECTING = 0; ChildWS.OPEN = 1; ChildWS.CLOSING = 2; ChildWS.CLOSED = 3;
+    ChildWS.prototype.addEventListener = function (n, f) { (this._l[n] = this._l[n] || []).push(f); };
+    ChildWS.prototype.removeEventListener = function (n, f) { this._l[n] = (this._l[n] || []).filter(function (x) { return x !== f; }); };
+    ChildWS.prototype._emit = function (n, ev) {
+      var h = this['_on' + n]; if (h) try { h.call(this, ev); } catch (e) {}
+      (this._l[n] || []).slice().forEach(function (f) { try { f.call(this, ev); } catch (e) {} }, this);
+    };
+    ChildWS.prototype._ev = function (d) {
+      if (d.ev === 'open') { this.readyState = 1; this.protocol = d.protocol || ''; this._emit('open', new Event('open')); }
+      else if (d.ev === 'message') { var x = d.data; if (x instanceof ArrayBuffer && this.binaryType === 'blob') x = new Blob([x]); this._emit('message', new MessageEvent('message', { data: x })); }
+      else if (d.ev === 'error') this._emit('error', new Event('error'));
+      else if (d.ev === 'close') { this.readyState = 3; delete wsm[this._id]; var ev = new Event('close'); ev.code = d.code || 1006; ev.reason = d.reason || ''; ev.wasClean = !!d.clean; this._emit('close', ev); }
+    };
+    ChildWS.prototype.send = function (data) {
+      if (this.readyState !== 1) throw new DOMException('WebSocket is not open', 'InvalidStateError');
+      var id = this._id;
+      if (typeof data === 'string') return post({ type: 'kstuff-coi-child:ws-send', id: id, data: data });
+      if (data instanceof Blob) return data.arrayBuffer().then(function (b) { post({ type: 'kstuff-coi-child:ws-send', id: id, data: b }, [b]); });
+      var b = ArrayBuffer.isView(data) ? data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) : data.slice(0);
+      post({ type: 'kstuff-coi-child:ws-send', id: id, data: b }, [b]);
+    };
+    ChildWS.prototype.close = function (code, reason) {
+      if (this.readyState >= 2) return;
+      this.readyState = 2;
+      post({ type: 'kstuff-coi-child:ws-close', id: this._id, code: code, reason: reason });
+    };
+    var hubApi = {
+      __coiChild: true,
+      fetch: nfetch,
+      ready: function () { return nrpc({ type: 'kstuff-net:ready' }, 40000).then(function () { return curWisp; }); },
+      rotate: function (bad, soft) { return nrpc({ type: 'kstuff-net:rotate', bad: bad, soft: !!soft }, 20000).then(function () { return curWisp; }, function () { return curWisp; }); },
+      websocket: function (url, protocols) { return Promise.resolve(new ChildWS(url, protocols)); },
+      libcurl: function () { return Promise.resolve({ fetch: nfetch, WebSocket: ChildWS }); },
+      wisp: function () { return curWisp; },
+      transport: function () { return tmode; },
+      setTransport: function (m) { tmode = m === 'libcurl' ? 'libcurl' : 'epoxy'; return tmode; }
+    };
+    fake.kNetDirect = hubApi;
+    try { if (!window.kNetDirect) window.kNetDirect = hubApi; } catch (e) {}
+    window.__coiChildWS = wsm;
+
     // Registered before the page's own scripts: refresh the snapshot, then replay "theme-updated" once.
     window.addEventListener('message', function (e) {
       var d = e.data;
       if (e.source !== real) return;
       if (d === 'theme-updated' && !e.__coiReplay) { e.stopImmediatePropagation(); post({ type: 'kstuff-coi-child:theme-get' }); return; }
       if (!d || typeof d !== 'object') return;
+      if (typeof d.type === 'string' && d.type.indexOf('kstuff-net:') === 0) {
+        var np = npend[d.id]; if (np) { delete npend[d.id]; np(d); }
+        return;
+      }
+      if (d.type === 'kstuff-coi-child:ws-event') { var cw = wsm[d.id]; if (cw) cw._ev(d); return; }
       if (d.type === 'kstuff-coi-child:theme') {
         T = d.theme || T;
         var ev = new MessageEvent('message', { data: 'theme-updated', source: real });
@@ -296,7 +410,7 @@
   }
 
   /* Messages from page frames: theme requests, storage writes, small calls, and the net hub relay. */
-  var relay = {};
+  var relay = {}, childWs = {};
   window.addEventListener('message', function (e) {
     var d = e.data;
     if (!d || typeof d !== 'object' || typeof d.type !== 'string' || e.source === parent || !isChild(e.source)) return;
@@ -318,6 +432,20 @@
       } else reply({ type: 'kstuff-coi-child:res', id: d.id, ok: false, error: 'unknown call' });
       return;
     }
+
+    // websockets for page frames: open them here (CoiWebSocket -> parent libcurl) and mirror events back
+    if (d.type === 'kstuff-coi-child:ws-open' && typeof d.url === 'string' && /^wss?:\/\//i.test(d.url)) {
+      var cws = new CoiWebSocket(d.url, d.protocols);
+      cws.binaryType = 'arraybuffer';
+      childWs[d.id] = cws;
+      cws.addEventListener('open', function () { reply({ type: 'kstuff-coi-child:ws-event', id: d.id, ev: 'open', protocol: cws.protocol }); });
+      cws.addEventListener('message', function (ev) { var x = ev.data; reply({ type: 'kstuff-coi-child:ws-event', id: d.id, ev: 'message', data: x }, x instanceof ArrayBuffer ? [x] : []); });
+      cws.addEventListener('error', function () { reply({ type: 'kstuff-coi-child:ws-event', id: d.id, ev: 'error' }); });
+      cws.addEventListener('close', function (ev) { delete childWs[d.id]; reply({ type: 'kstuff-coi-child:ws-event', id: d.id, ev: 'close', code: ev.code, reason: ev.reason, clean: ev.wasClean }); });
+      return;
+    }
+    if (d.type === 'kstuff-coi-child:ws-send') { var sw = childWs[d.id]; if (sw && sw.readyState === 1) try { sw.send(d.data); } catch (x) {} return; }
+    if (d.type === 'kstuff-coi-child:ws-close') { var cw2 = childWs[d.id]; if (cw2) try { cw2.close(d.code, d.reason); } catch (x) {} return; }
 
     // net hub: forward to the real parent, remapping ids so replies find their way back
     if (d.type.indexOf('kstuff-net:') !== 0) return;

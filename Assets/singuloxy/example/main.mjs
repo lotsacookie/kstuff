@@ -100,6 +100,24 @@ async function main() {
     sandstone.libcurl.set_websocket(wisp_url);
   }
 
+  // kstuff: when embedded in the site (normal or coi mode), take the wisp from the parent net hub so
+  // proxied pages keep going through it instead of a wisp of our own.
+  try {
+    const findHub = () => {
+      for (const w of [window, window.parent]) {
+        try { if (w && w.kNetDirect && typeof w.kNetDirect.fetch === "function" && typeof w.kNetDirect.wisp === "function") return w.kNetDirect; } catch {}
+      }
+      return null;
+    };
+    const inCoi = window.__COI || window.origin === "null" || (() => { try { return !!window.parent.__isCoiParent; } catch { return false; } })();
+    let hub = findHub();
+    for (let i = 0; inCoi && !hub && i < 50; i++) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
+    if (hub) {
+      const w = String(await Promise.race([hub.ready(), new Promise((_, no) => setTimeout(() => no(new Error("hub timeout")), 40000))]));
+      if (w && /^wss?:/i.test(w)) { wisp_url = w; sandstone.libcurl.set_websocket(w); }
+    }
+  } catch (e) { console.warn("singuloxy: net hub not used:", e && e.message); }
+
   version_text.textContent = `v${sandstone.version.ver} (${sandstone.version.hash})`;
   wisp_url_input.value = wisp_url;
   options_button.onclick = toggle_options;

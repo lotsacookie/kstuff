@@ -19,6 +19,13 @@ if (!headRe.test(html)) throw new Error('coi build: could not find <head> in ind
 html = html.replace(headRe, m => m +
   '\n    <script id="coi-guard">if(!window.__COI){try{location.replace(new URL("../",location.href).href)}catch(e){location.replace("/")}}</script>');
 
+// 1b. proxy guards (only in coi mode): proxy pages (Singuloxy, SingularityNOW, SingularityVMs) must use the
+//     parent net hub. The sandboxed frame cannot register service workers, so make that fail cleanly, and
+//     tell pages when the hub is usable.
+html = html.replace(headRe, m => m +
+  '\n    <script id="coi-proxy-guard">(function(){if(!window.__COI)return;window.__COI_PROXY=true;try{if(navigator.serviceWorker){navigator.serviceWorker.register=function(){return Promise.reject(new Error("service workers are unavailable in coi mode"))}}}catch(e){}' +
+  'var n=0,t=setInterval(function(){var h=window.kNetDirect;if(h&&typeof h.fetch=="function"&&typeof h.libcurl=="function"){clearInterval(t);window.__COI_HUB=true;try{window.dispatchEvent(new Event("coi-hub-ready"))}catch(e){}}else if(++n>600)clearInterval(t)},100)})();<\/script>');
+
 // 2. bundle cache comes from the parent
 const idbRe = /const idb=\(\)=>[\s\S]*?const dbSet=async v=>\{[^\n]*\};\n/;
 swap(idbRe,

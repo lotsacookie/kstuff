@@ -1,4 +1,7 @@
 (() => {
+  // kstuff coi mode: this page runs inside the sandboxed isolate frame (opaque origin, no service workers).
+  // Isolation is already handled by the parent, and the net hub lives there, so do not try the sw reload.
+  try { if (window.__COI || window.origin === "null" || (window.parent && window.parent.__isCoiParent)) return; } catch {}
   let reload_key = "sandstone_coi_reloaded";
 
   if (window.crossOriginIsolated) {

@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <script id="coi-proxy-guard">(function(){if(!window.__COI)return;window.__COI_PROXY=true;try{if(navigator.serviceWorker){navigator.serviceWorker.register=function(){return Promise.reject(new Error("service workers are unavailable in coi mode"))}}}catch(e){}var n=0,t=setInterval(function(){var h=window.kNetDirect;if(h&&typeof h.fetch=="function"&&typeof h.libcurl=="function"){clearInterval(t);window.__COI_HUB=true;try{window.dispatchEvent(new Event("coi-hub-ready"))}catch(e){}}else if(++n>600)clearInterval(t)},100)})();</script>
     <script id="coi-guard">if(!window.__COI){try{location.replace(new URL("../",location.href).href)}catch(e){location.replace("/")}}</script>
     <meta charset="UTF-8">
     <script>try{document.documentElement.style.background=localStorage.getItem('kstuff_bg')||'#000'}catch(e){}</script>

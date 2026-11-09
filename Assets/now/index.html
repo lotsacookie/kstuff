@@ -268,6 +268,7 @@ function getProxy({ log = () => {}, say = () => {} } = {}) {
     while (!hub && Date.now() - hubStart < 120000) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
     if (!hub) throw new Error("Net hub unavailable. Open this page from the main site.");
     const wisp = String(await withTimeout(hub.ready(), 60000, "net hub"));
+    if (typeof hub.libcurl !== "function") throw new Error("Net hub has no libcurl() (coi mode needs the updated shim): reload the main site.");
     const lc = await hub.libcurl();
     state = { hub, wisp, libcurl: { fetch: (url, init) => hub.fetch(url, init), WebSocket: lc.WebSocket } };
     log("[proxy] net hub wisp", wisp);

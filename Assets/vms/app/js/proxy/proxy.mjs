@@ -16,6 +16,7 @@ export function getProxy({ log = () => {}, say = () => {} } = {}) {
     for (let i = 0; !hub && i < 100; i++) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
     if (!hub) throw new Error("Net hub unavailable: open this from the main site so it can provide the proxy.");
     const wisp = String(await hub.ready());
+    if (typeof hub.libcurl !== "function") throw new Error("Net hub has no libcurl() (coi mode needs the updated shim): reload the main site.");
     const lc = await hub.libcurl();
     log("[proxy] net hub", wisp);
     return { libcurl: { fetch: (url, init) => hub.fetch(url, init), WebSocket: lc.WebSocket }, hub, get wisp() { return hub.wisp(); } };
