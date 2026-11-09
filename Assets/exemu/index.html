@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EXEmu</title>
+<link rel="stylesheet" href="assets/style.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+    "fflate": "https://cdn.jsdelivr.net/npm/fflate@0.8.2/esm/browser.js"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app">
+  <aside id="panel">
+    <h1>EXEmu</h1>
+    <p class="sub">Unity game player for the browser</p>
+    <label id="drop" for="file">
+      <input type="file" id="file" accept=".zip,application/zip" hidden>
+      <span id="dropText">Drop a game .zip here or click to choose</span>
+    </label>
+    <section id="infoBox" hidden>
+      <h2>Build</h2>
+      <dl id="meta"></dl>
+    </section>
+    <section id="sceneBox" hidden>
+      <h2>Scene</h2>
+      <select id="scene"></select>
+    </section>
+    <section id="statsBox" hidden>
+      <h2>Stats</h2>
+      <div id="stats"></div>
+    </section>
+    <section>
+      <h2>Log</h2>
+      <pre id="log"></pre>
+    </section>
+    <p class="note">The .exe is never executed. EXEmu reads the Unity data files from the zip and rebuilds the scene with WebGL. Scripts, physics, audio, UI and lightmaps do not run.</p>
+  </aside>
+  <main id="stage">
+    <canvas id="view"></canvas>
+    <div id="hint">Click the view to look around · WASD move · Shift fast · Q/E down/up · wheel changes speed · Esc releases the mouse</div>
+    <div id="busy" hidden></div>
+  </main>
+</div>
+<script type="module" src="assets/app.js"></script>
+</body>
+</html>
