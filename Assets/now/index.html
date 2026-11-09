@@ -1788,7 +1788,7 @@ if (EMBED) {
   else if (loadCred()) autoLogin();
   else show("email-card");
 }
-window.__getProxy({ log, say }).then(() => { if (!loadStore()) warmFlow(); }).catch((e) => log("[proxy] failed", (e && e.message) || e));
+window.__getProxy({ log, say }).then(() => { if (!loadStore()) warmFlow(); }).catch((e) => { log("[proxy] failed", (e && e.message) || e); try { say("Couldn’t reach the net hub: " + ((e && e.message) || e)); } catch {} });
 </script>
 </body>
 </html>
