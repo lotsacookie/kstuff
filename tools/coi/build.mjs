@@ -25,5 +25,15 @@ swap(idbRe,
   "const dbGet=async()=>{try{const r=await window.__coiCall('bundle-get');return r&&r.code?r:null}catch{return null}};\nconst dbSet=async()=>{};\n",
   'bundle cache helpers');
 
+// 3. footer: "COI: Yes/No" = cross-origin isolated AND sandboxed (opaque origin)
+const connRe = /(<div class="footer-item conn-item" id="conn-indicator"[\s\S]*?<\/div>\s*)(<\/div>\s*<div class="footer-right">)/;
+if (!connRe.test(html)) throw new Error('coi build: could not find the footer conn-indicator in index.html');
+html = html.replace(connRe, (m, conn, tail) => conn +
+  '    <div class="footer-item conn-item" id="coi-indicator" data-state="off" title="Cross-origin isolated: checking...">\n' +
+  '                <i class="ph ph-shield-check"></i>\n' +
+  '                <span id="coi-text">COI: --</span>\n' +
+  '            </div>\n        ' + tail);
+html = html.replace('</footer>', () => '</footer>\n    <script id="coi-footer">(function(){var s=window.origin==="null",i=window.crossOriginIsolated===true,ok=s&&i,b=document.getElementById("coi-indicator"),t=document.getElementById("coi-text");if(!b||!t)return;t.textContent="COI: "+(ok?"Yes":"No");b.setAttribute("data-state",ok?"on":"off");b.title="Cross-origin isolated: "+(i?"yes":"no")+" | Sandboxed: "+(s?"yes":"no");})();</script>');
+
 await writeFile('Assets/coi.html', html);
 console.log('wrote Assets/coi.html (' + html.length + ' bytes)');

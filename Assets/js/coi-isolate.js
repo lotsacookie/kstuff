@@ -9,7 +9,7 @@
 // bridge in net-hub.js (fetch / rotate / abort, which Singuloxy inside the frame
 // uses) plus the kstuff-coi:* messages handled here.
 export function init(K) {
-  if (window.__COI) return; // never run inside the isolated frame itself
+  if (window.__COI) return initInsideFrame(K); // running inside the isolated frame itself
   const KEY = 'kstuff_coi';
   const BASE_URL = 'https://lotsacookie.github.io/kstuff/';
   const COI_URL = BASE_URL + 'Assets/coi.html';
@@ -34,6 +34,7 @@ export function init(K) {
     if (!panel || !sel || sel.__coi) return;
     sel.__coi = true;
     sel.value = isOn() ? 'on' : 'off';
+    try { K.applyCustomDropdown && K.applyCustomDropdown(sel); } catch {}
     const status = byId('coi-isolate-status');
     sel.addEventListener('change', () => {
       const on = sel.value === 'on';
@@ -248,4 +249,33 @@ export function init(K) {
     // Let the other modules finish initialising first so wisp / net hub are running.
     (K.kReadyP || window.kReady || Promise.resolve()).then(() => setTimeout(go, 0), go);
   }
+}
+
+// Inside the isolated frame: the footer indicator is in coi.html (generated); this wires the Proxy tab.
+// The setting reads On here, and turning it off tells the parent to drop isolation and reload the normal site.
+function initInsideFrame(K) {
+  const byId = id => document.getElementById(id);
+  const sandboxed = window.origin === 'null';
+  const isolated = window.crossOriginIsolated === true;
+
+  const bind = () => {
+    const sel = byId('coi-isolate-select');
+    const status = byId('coi-isolate-status');
+    if (!sel) return;
+    if (!sel.__coi) {
+      sel.__coi = true;
+      sel.value = 'on';
+      try { K.applyCustomDropdown && K.applyCustomDropdown(sel); } catch {}
+      sel.addEventListener('change', async () => {
+        if (sel.value !== 'off') return;
+        const st = byId('coi-isolate-status');
+        if (st) st.textContent = 'Switching back to normal Singularity...';
+        try { await window.__coiCall('disable'); }
+        catch { if (st) st.textContent = 'Could not reach the parent page. Add ?coi=off to its URL.'; }
+      });
+    }
+    if (status) status.textContent = 'On. Sandboxed: ' + (sandboxed ? 'yes' : 'no') + ' · Cross-origin isolated: ' + (isolated ? 'yes' : 'no') + '. Turn off to go back to normal Singularity.';
+  };
+  bind();
+  document.addEventListener('click', e => { if (e.target && e.target.closest && e.target.closest('.settings-tab')) bind(); });
 }

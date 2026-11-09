@@ -424,6 +424,10 @@ async function legacy(){
                 <i class="ph ph-pause-circle" id="conn-icon"></i>
                 <span id="conn-text">Idle</span>
             </div>
+            <div class="footer-item conn-item" id="coi-indicator" data-state="off" title="Cross-origin isolated: checking...">
+                <i class="ph ph-shield-check"></i>
+                <span id="coi-text">COI: --</span>
+            </div>
         </div>
         <div class="footer-right">
             <div class="footer-item clock-item" id="clock-indicator">
@@ -432,6 +436,7 @@ async function legacy(){
             </div>
         </div>
     </footer>
+    <script id="coi-footer">(function(){var s=window.origin==="null",i=window.crossOriginIsolated===true,ok=s&&i,b=document.getElementById("coi-indicator"),t=document.getElementById("coi-text");if(!b||!t)return;t.textContent="COI: "+(ok?"Yes":"No");b.setAttribute("data-state",ok?"on":"off");b.title="Cross-origin isolated: "+(i?"yes":"no")+" | Sandboxed: "+(s?"yes":"no");})();</script>
     <script>
 (()=>{
 const root=document.documentElement,area=document.getElementById('studymaterial-area');
