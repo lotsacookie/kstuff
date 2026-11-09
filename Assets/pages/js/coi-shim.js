@@ -208,12 +208,12 @@
     try { Object.defineProperty(window, 'localStorage', { configurable: true, get: function () { return ls; } }); } catch (e) {}
     try { Object.defineProperty(window, 'sessionStorage', { configurable: true, get: function () { return ss; } }); } catch (e) {}
 
-    function call(name, ms) {
+    function call(name, ms, data, tr) {
       return new Promise(function (resolve, reject) {
         var id = 'k' + (++seq) + '-' + Date.now();
         var t = setTimeout(function () { delete pend[id]; reject(new Error(name + ' timed out')); }, ms || 8000);
         pend[id] = function (d) { clearTimeout(t); d.ok ? resolve(d.data) : reject(new Error(d.error || 'failed')); };
-        post({ type: 'kstuff-coi-child:call', id: id, name: name });
+        post({ type: 'kstuff-coi-child:call', id: id, name: name, data: data }, tr);
       });
     }
 
@@ -250,49 +250,35 @@
         else Object.keys(init.headers).forEach(function (k) { h[k] = init.headers[k]; });
       }
       return Promise.resolve().then(function () {
-        var b = init.body, o = { method: init.method || 'GET', redirect: init.redirect || 'follow', headers: h }, tr = [];
-        if (b == null) return { o: o, tr: tr };
-        if (typeof b === 'string') { o.body = b; return { o: o, tr: tr }; }
-        if (b instanceof ArrayBuffer) { o.body = b.slice(0); tr.push(o.body); return { o: o, tr: tr }; }
-        if (ArrayBuffer.isView(b)) { o.body = b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength); tr.push(o.body); return { o: o, tr: tr }; }
-        var r = new Request(String(url), { method: 'POST', body: b }), ct = r.headers.get('content-type');
+        var bd = init.body, o = { method: init.method || 'GET', redirect: init.redirect || 'follow', headers: h };
+        if (bd == null) return o;
+        if (typeof bd === 'string') { o.body = bd; return o; }
+        if (bd instanceof ArrayBuffer) { o.body = bd.slice(0); return o; }
+        if (ArrayBuffer.isView(bd)) { o.body = bd.buffer.slice(bd.byteOffset, bd.byteOffset + bd.byteLength); return o; }
+        var r = new Request(String(url), { method: 'POST', body: bd }), ct = r.headers.get('content-type');
         if (ct && !Object.keys(h).some(function (k) { return k.toLowerCase() === 'content-type'; })) h['Content-Type'] = ct;
-        return r.arrayBuffer().then(function (ab) { o.body = ab; tr.push(ab); return { o: o, tr: tr }; });
-      }).then(function (p) {
-        return new Promise(function (resolve, reject) {
-          var id = 'n' + (++nseq) + '-' + Date.now();
-          var onAbort = function () { clearTimeout(tm); delete npend[id]; post({ type: 'kstuff-net:abort', id: id }); reject(new DOMException('Aborted', 'AbortError')); };
-          if (sig) sig.addEventListener('abort', onAbort, { once: true });
-          // guard: a reply lost on the way (frame reloaded, hub restarted) must fail, not hang forever
-          var tm = setTimeout(function () {
-            delete npend[id]; post({ type: 'kstuff-net:abort', id: id });
-            if (sig) sig.removeEventListener('abort', onAbort);
-            reject(new TypeError('net hub timed out (no reply from parent)'));
-          }, 120000);
-          npend[id] = function (d) {
-            clearTimeout(tm);
-            if (sig) sig.removeEventListener('abort', onAbort);
-            if (!d.ok) return reject(new TypeError(d.error || 'network error'));
-            var st = d.status, res;
-            try { res = new Response({ 101: 1, 204: 1, 205: 1, 304: 1 }[st] ? null : d.body, { status: st, statusText: d.statusText }); }
-            catch (e) { res = new Response(null, { status: st >= 200 && st <= 599 ? st : 200 }); }
-            var hs = new Headers();
-            (d.headers || []).forEach(function (kv) { try { hs.append(kv[0], kv[1]); } catch (e) {} });
-            try { Object.defineProperty(res, 'headers', { value: hs }); } catch (e) {}
-            try { Object.defineProperty(res, 'url', { value: d.url || String(url) }); } catch (e) {}
-            resolve(res);
-          };
-          post({ type: 'kstuff-net:fetch', id: id, url: String(url), init: p.o }, p.tr);
-        });
+        return r.arrayBuffer().then(function (ab) { o.body = ab; return o; });
+      }).then(function (o) {
+        var run = call('net-fetch', 120000, { url: String(url), init: o });
+        var guard = sig ? new Promise(function (_, no) { sig.addEventListener('abort', function () { no(new DOMException('Aborted', 'AbortError')); }, { once: true }); }) : null;
+        return (guard ? Promise.race([run, guard]) : run);
+      }).then(function (d) {
+        var st = d.status, res;
+        try { res = new Response({ 101: 1, 204: 1, 205: 1, 304: 1 }[st] ? null : d.body, { status: st, statusText: d.statusText }); }
+        catch (e) { res = new Response(null, { status: st >= 200 && st <= 599 ? st : 200 }); }
+        var hs = new Headers();
+        (d.headers || []).forEach(function (kv) { try { hs.append(kv[0], kv[1]); } catch (e) {} });
+        try { Object.defineProperty(res, 'headers', { value: hs }); } catch (e) {}
+        try { Object.defineProperty(res, 'url', { value: d.url || String(url) }); } catch (e) {}
+        return res;
+      }, function (e) {
+        if (e && e.name === 'AbortError') throw e;
+        throw new TypeError(String((e && e.message) || e || 'network error'));
       });
     }
     function nrpc(msg, ms) {
-      return new Promise(function (resolve, reject) {
-        var id = 'n' + (++nseq) + '-' + Date.now();
-        var t = setTimeout(function () { delete npend[id]; reject(new Error('net hub timed out')); }, ms);
-        npend[id] = function (d) { clearTimeout(t); d && d.error ? reject(new Error(d.error)) : resolve(nOk(d)); };
-        msg.id = id; post(msg);
-      });
+      if (msg.type === 'kstuff-net:rotate') return call('net-rotate', ms, { bad: msg.bad, soft: msg.soft }).then(nOk);
+      return call('net-ready', ms).then(nOk);
     }
     function ChildWS(url, protocols) {
       var self = this;
@@ -432,6 +418,20 @@
       return;
     }
     if (d.type === 'kstuff-coi-child:call') {
+      if (d.name === 'net-ready' || d.name === 'net-rotate' || d.name === 'net-fetch') {
+        var hubk = window.kNetDirect, dd = d.data || {};
+        var fail = function (x) { reply({ type: 'kstuff-coi-child:res', id: d.id, ok: false, error: String(x && x.message || x) }); };
+        if (!hubk) return fail('net hub unavailable');
+        if (d.name === 'net-ready') hubk.ready().then(function (w) { reply({ type: 'kstuff-coi-child:res', id: d.id, ok: true, data: { wisp: w || hubk.wisp() } }); }, fail);
+        else if (d.name === 'net-rotate') hubk.rotate(dd.bad, !!dd.soft).then(function (w) { reply({ type: 'kstuff-coi-child:res', id: d.id, ok: true, data: { wisp: w || hubk.wisp() } }); }, fail);
+        else hubk.fetch(String(dd.url), dd.init || {}).then(function (res) {
+          return res.arrayBuffer().then(function (b) {
+            var hs = []; res.headers.forEach(function (v, k) { hs.push([k, v]); });
+            reply({ type: 'kstuff-coi-child:res', id: d.id, ok: true, data: { status: res.status, statusText: res.statusText || '', url: res.url || dd.url, headers: hs, body: b } }, [b]);
+          });
+        }).catch(fail);
+        return;
+      }
       if (d.name === 'movieHosts' && typeof window.movieHosts === 'function') {
         Promise.resolve(window.movieHosts()).then(
           function (r) { reply({ type: 'kstuff-coi-child:res', id: d.id, ok: true, data: r }); },
