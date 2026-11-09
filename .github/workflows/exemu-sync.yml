@@ -1,0 +1,68 @@
+name: Sync EXEmu
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/exemu-sync.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: singularity-build
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Pull rtischeduler/EXEmu into Assets/exemu
+        run: |
+          rm -rf "$RUNNER_TEMP/exemu"
+          git clone --depth 1 https://github.com/rtischeduler/EXEmu.git "$RUNNER_TEMP/exemu"
+          rm -rf "$RUNNER_TEMP/exemu/.git" "$RUNNER_TEMP/exemu/.github"
+          rm -rf Assets/exemu
+          mkdir -p Assets/exemu
+          cp -r "$RUNNER_TEMP/exemu/." Assets/exemu/
+
+      - name: Install build deps
+        run: npm install --no-save --no-audit --no-fund esbuild html-minifier-terser
+
+      - name: Build Assets/singularity.js
+        run: node tools/singularity/build.mjs
+
+      - name: Commit if changed
+        id: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Assets/exemu Assets/singularity.js Assets/singularity.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          git commit -m "sync: EXEmu and singularity bundle"
+          for i in 1 2 3 4; do
+            git pull --rebase -X theirs origin main && git push && break
+            echo "push attempt $i failed, retrying"; sleep $((i*3))
+          done
+          git push --dry-run >/dev/null 2>&1 || { echo "push failed"; exit 1; }
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Purge jsDelivr cache
+        if: steps.commit.outputs.changed == 'true'
+        run: |
+          for f in singularity.js singularity.json; do
+            curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/Assets/$f" || true
+          done
+          curl -fsS "https://purge.jsdelivr.net/gh/${{ github.repository }}@main/Assets/exemu/index.html" || true

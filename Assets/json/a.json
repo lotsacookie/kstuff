@@ -49,5 +49,12 @@
     "title": "Iframe",
     "url": "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/embed/iframe.html",
     "image": ""
+  },
+  {
+    "title": "EXEmu",
+    "description": "Unity exe emulator (indev)",
+    "category": "Entertainment",
+    "url": "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/exemu/index.html",
+    "image": ""
   }
 ]
