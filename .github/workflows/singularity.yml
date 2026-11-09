@@ -6,6 +6,7 @@ on:
     paths-ignore:
       - 'Assets/singularity.js'
       - 'Assets/singularity.json'
+      - 'Assets/coi.html'
       - 'Assets/now/catalog.json'
       - '**.md'
   workflow_dispatch:
@@ -30,6 +31,9 @@ jobs:
       - name: Install build deps
         run: npm install --no-save --no-audit --no-fund esbuild html-minifier-terser
 
+      - name: Build Assets/coi.html (isolate frame page, generated from index.html)
+        run: node tools/coi/build.mjs
+
       - name: Build Assets/singularity.js
         run: node tools/singularity/build.mjs
 
@@ -38,7 +42,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Assets/singularity.js Assets/singularity.json
+          git add Assets/singularity.js Assets/singularity.json Assets/coi.html
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
