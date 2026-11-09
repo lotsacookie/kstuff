@@ -1155,7 +1155,7 @@ self.__wbBoot((() => {
   const FILE_BASES = (() => {
     const extra = self.__WB_FILES;
     const list = Array.isArray(extra) ? extra : typeof extra === 'string' && extra ? [extra] : [];
-    return [...list, 'https://rtischeduler.github.io/WebBlox/files/', 'https://lotsacookie.github.io/kstuff/Assets/blox/files/']
+    return [...list, 'https://truffled.lol/games/webblox/files/', 'https://rtischeduler.github.io/WebBlox/files/', 'https://lotsacookie.github.io/kstuff/Assets/blox/files/']
       .map(base => base.endsWith('/') ? base : base + '/');
   })();
   const filePath = i => FILES[i][4].split('/').map(encodeURIComponent).join('/');
@@ -1203,7 +1203,7 @@ self.__wbBoot((() => {
       data = new Uint8Array(await new Response(stream).arrayBuffer());
     }
     if (data.length !== size) throw new Error(`${path} is the wrong size`);
-    if (codec === FILE_RAW) fileCache.set(i, data.slice());
+    if (codec === FILE_RAW || path === '/engine/WebClient.wasm') fileCache.set(i, data.slice());
     return data;
   };
   const fileSync = i => {
@@ -1597,6 +1597,32 @@ self.__wbBoot((() => {
       inert.replaceWith(script);
     }
   };
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show, { once: true });
-  else setTimeout(show);
+  const start = () => {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show, { once: true });
+    else setTimeout(show);
+  };
+  if (!engine) start();
+  else (async () => {
+    const note = text => {
+      const el = document.getElementById('wb-msg') || document.getElementById('wb-wait');
+      if (el) el.textContent = text;
+    };
+    try {
+      const need = ['/engine/WebClient.wasm', '/engine/WebClient.metadata.json'].map(path => INDEX.get(path)).filter(i => i !== undefined && FILES[i][2] >= FILE_GZIP);
+      let done = 0;
+      note('Downloading the Roblox engine…');
+      await Promise.all(need.map(i => fromFile(i).then(() => note('Downloading the Roblox engine… ' + (++done) + '/' + need.length))));
+      start();
+    } catch (error) {
+      console.error('[engine]', error);
+      const el = document.getElementById('wb-msg') || document.getElementById('wb-wait');
+      if (el) {
+        el.textContent = 'Could not download the Roblox engine: ' + (error && error.message || error);
+        const b = document.createElement('button');
+        b.textContent = 'Try again';
+        b.onclick = () => location.reload();
+        el.append(document.createElement('br'), b);
+      }
+    }
+  })();
 }));
