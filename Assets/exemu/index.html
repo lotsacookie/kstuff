@@ -2,8 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<base href="https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/exemu/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EXEmu</title>
+<link rel="stylesheet" href="assets/style.css">
 <script type="importmap">
 {
   "imports": {
@@ -46,44 +48,6 @@
     <div id="busy" hidden></div>
   </main>
 </div>
-<script>
-// Resolve the newest commit on main through the GitHub API on every load, then load
-// the app from jsDelivr pinned to that exact commit. A SHA URL never changes, so the
-// CDN cache can never serve a stale build.
-(async () => {
-  const repo = 'lotsacookie/kstuff';
-  const dir = 'Assets/exemu/';
-  let ref = 'main';
-  try {
-    const res = await fetch('https://api.github.com/repos/' + repo + '/commits/main', {
-      cache: 'no-store',
-      headers: { Accept: 'application/vnd.github.sha' },
-    });
-    if (!res.ok) throw new Error('HTTP ' + res.status);
-    const sha = (await res.text()).trim();
-    if (!/^[0-9a-f]{40}$/.test(sha)) throw new Error('bad sha');
-    ref = sha;
-    try { localStorage.setItem('exemu-ref', sha); } catch {}
-  } catch {
-    // rate limited or offline: reuse the last commit that worked
-    try { ref = localStorage.getItem('exemu-ref') || 'main'; } catch {}
-  }
-  const base = 'https://cdn.jsdelivr.net/gh/' + repo + '@' + ref + '/' + dir;
-  window.EXEMU_REF = ref;
-  if (document.readyState === 'loading') {
-    await new Promise((r) => document.addEventListener('DOMContentLoaded', r, { once: true }));
-  }
-  const sub = document.querySelector('.sub');
-  if (sub) sub.textContent += ' \u00b7 build ' + (ref === 'main' ? 'main (unpinned)' : ref.slice(0, 7));
-  const css = document.createElement('link');
-  css.rel = 'stylesheet';
-  css.href = base + 'assets/style.css';
-  document.head.appendChild(css);
-  const js = document.createElement('script');
-  js.type = 'module';
-  js.src = base + 'assets/app.js';
-  document.body.appendChild(js);
-})();
-</script>
+<script type="module" src="assets/app.js"></script>
 </body>
 </html>

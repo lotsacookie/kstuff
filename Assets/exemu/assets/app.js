@@ -5,20 +5,6 @@ import { readGameObject, readTransform, findMaterials, findPtr, getGeometry, get
 
 const $ = (id) => document.getElementById(id);
 const tick = () => new Promise((r) => setTimeout(r, 0));
-// MessageChannel yield: no 4ms setTimeout clamp, so the page stays responsive while building
-const yieldChannel = new MessageChannel();
-const yieldWaiters = [];
-yieldChannel.port1.onmessage = () => {
-  const w = yieldWaiters.shift();
-  if (w) w();
-};
-const yieldNow = () =>
-  new Promise((r) => {
-    yieldWaiters.push(r);
-    yieldChannel.port2.postMessage(0);
-  });
-let lastYield = 0;
-const BUDGET_MS = 10;
 
 const logEl = $('log');
 function log(msg, cls) {
@@ -147,8 +133,6 @@ async function buildScene(file) {
   disposeRoot();
   sceneInfo = { meshes: 0, skipped: 0 };
   project.messages.length = 0;
-  project.meshStats = { raw: 0, compressed: 0, streamed: 0, failed: 0 };
-  lastYield = performance.now();
   busy('Building ' + file.name + '…');
   await tick();
   const gos = new Map();
@@ -156,12 +140,7 @@ async function buildScene(file) {
   const renderers = new Map();
   const filters = [];
   const cameras = [];
-  let scanned = 0;
   for (const o of file.objects.values()) {
-    if ((++scanned & 1023) === 0 && performance.now() - lastYield > BUDGET_MS) {
-      await yieldNow();
-      lastYield = performance.now();
-    }
     try {
       if (o.classID === 1) gos.set(o.pathID, readGameObject(file, o));
       else if (o.classID === 4) trs.set(o.pathID, readTransform(file, o));
@@ -225,11 +204,9 @@ async function buildScene(file) {
     for (let i = 0; i < groupCount; i++) list.push(mats[Math.min(i, mats.length - 1)]);
     node.add(new THREE.Mesh(geo, list));
     sceneInfo.meshes++;
-    done++;
-    if (performance.now() - lastYield > BUDGET_MS) {
+    if (++done % 25 === 0) {
       busy('Building ' + file.name + ' · ' + done + '/' + jobs.length);
-      await yieldNow();
-      lastYield = performance.now();
+      await tick();
     }
   }
   root.updateMatrixWorld(true);
@@ -262,8 +239,6 @@ async function buildScene(file) {
   camera.updateProjectionMatrix();
   for (const m of project.messages.slice(0, 12)) log(m, 'warn');
   if (project.messages.length > 12) log('…and ' + (project.messages.length - 12) + ' more warnings', 'warn');
-  const ms = project.meshStats;
-  log('Meshes: ' + ms.raw + ' plain, ' + ms.compressed + ' compressed, ' + ms.streamed + ' streamed, ' + ms.failed + ' unreadable');
   log('Scene ' + file.name + ': ' + sceneInfo.meshes + ' meshes, ' + sceneInfo.skipped + ' skipped');
   $('statsBox').hidden = false;
   busy('');
