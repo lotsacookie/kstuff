@@ -432,14 +432,17 @@ function wbQuietConsole() {
     /^Gamepad API isn't available/, /^Canvas: \d+x\d+ CSS/, /^isTouchDevice = /, /^\[DEBUG\] /,
     /^initialize returned, code/, /^launchUGCGame\s*$/, /^\[IXP\] /, /^\[flags\] Using the /, /^\[Locale\] /,
     /^\[ClientSettings\] /, /^Registered \d+ asset metadata/, /^Preloaded \d+ assets/, /^\[FMOD\] DSP buffer size/,
-    /^\[LIFECYCLE\] (?!joinGameFailed)/, /^\[local\] Service Worker/,
+    /^\[local\] Service Worker/,
     /^\d+$/, /^\s*created\s*$/, /^\[Flags\] Fetched/, /^No prefetch:/, /^Wasm Memory Bytes/, /^Redirecting WebWorker/,
-    /^Base (URL|Host):/, /^\[wasm-cors\]/, /Build system id/, /Failed to open tombstone file/, /^\[gamejoin\]/, /^\[proxy\] /, /^\[single\] request failed/,
+    /^Base (URL|Host):/, /^\[wasm-cors\]/, /Build system id/, /Failed to open tombstone file/,
   ];
   const ENGINE = /^\[\d+\][^\[\n]*\[(D?FLog)::(\w+)\]/;
 
-  const quiet = args => {
+  const NOISY_ERROR = /^------ Error caught by React ------|Reducer not found for keyPath/;
+  const quiet = (args, level) => {
     const first = args[0];
+    // Real errors (join failures, failed requests, worker crashes) must always reach the console.
+    if (level === 'error' && !(typeof first === 'string' && NOISY_ERROR.test(first))) return false;
     if (args.length === 1 && typeof first === 'number') return true;
     if (Array.isArray(first)) return first.length > 0 && first.every(item => typeof item === 'string' && /^[A-Z0-9]+_\w+$/.test(item));
     if (typeof first !== 'string') return false;
@@ -455,7 +458,7 @@ function wbQuietConsole() {
     const original = console[level];
     if (typeof original !== 'function') continue;
     console[level] = function (...args) {
-      if (quiet(args)) return;
+      if (quiet(args, level)) return;
       return original.apply(this, args);
     };
   }
