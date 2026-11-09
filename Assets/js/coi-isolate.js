@@ -275,6 +275,9 @@ export function init(K) {
     'wisp-info': () => ({ wisp: window.kNetDirect ? window.kNetDirect.wisp() : null, transport: window.kNetDirect ? window.kNetDirect.transport() : null, status: window.kNetDirect && window.kNetDirect.status ? window.kNetDirect.status() : null }),
     'set-transport': d => (window.kNetDirect ? window.kNetDirect.setTransport(d && d.mode) : null),
     'bundle-get': () => bundleGet(),
+    // Update button inside the frame: the parent fetches the latest coi.html through the proxy and drops its cached bundle
+    'coi-html': async () => ({ html: await fetchCoiHtml(), base: BASE_URL }),
+    'clear-bundle': async () => { await bundleClear(); return true; },
     reload: async d => { if (d && d.fresh) await bundleClear(); closeSockets(); load(); return true; },
     disable: () => { restoreSingularity(); return true; }
   };

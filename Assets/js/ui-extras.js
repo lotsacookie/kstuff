@@ -347,11 +347,39 @@ export function init(K) {
       updateBtn.disabled = true;
       setUpdateLabel('Updating...');
       if (window.__COI) {
-        // Proxied: the parent drops its cached bundle and reloads this frame through the proxy.
-        try { await window.__coiCall('reload', { fresh: true }); } catch {}
-        updating = false;
-        updateBtn.disabled = false;
-        setUpdateLabel('Update Singularity');
+        // Proxied (coi mode): same in-place flow as normal, but the parent does the network part. It fetches the
+        // latest coi.html through the net hub and drops its cached bundle; this frame then clears itself and
+        // writes the new page over itself. No URL change, no frame reload.
+        const failCoi = msg => {
+          try { K.toggleLoader?.(false); } catch {}
+          setUpdateLabel(msg);
+          setTimeout(() => { setUpdateLabel('Update Singularity'); updateBtn.disabled = false; }, 2500);
+          updating = false;
+        };
+        try { K.toggleLoader?.(true, 'updating'); } catch {}
+        let res = null;
+        try { res = await window.__coiCall('coi-html', null, 60000); } catch {}
+        const html = res && res.html;
+        if (!looksValid(html)) return failCoi('Update failed - try again');
+        try { await window.__coiCall('clear-bundle', null, 10000); } catch {}
+        // the page was mounted with <base> pointing at the site root; document.open() drops it, so put it back
+        const baseTag = '<base href="' + String(res.base || '').replace(/"/g, '&quot;') + '">';
+        const hm = /<head(\s[^>]*)?>/i.exec(html);
+        const page = /<base\s/i.test(html) ? html : (hm ? html.slice(0, hm.index + hm[0].length) + baseTag + html.slice(hm.index + hm[0].length) : baseTag + html);
+        window.__sgReloading = true;
+        teardown();
+        try {
+          document.open();
+          document.write(page);
+          document.close();
+        } catch (err) {
+          console.error('coi update failed', err);
+          // last resort: let the parent remount this frame (still no page reload)
+          try { await window.__coiCall('reload', { fresh: true }); } catch {}
+          window.__sgReloading = false;
+          return failCoi('Update failed - try again');
+        }
+        setTimeout(() => { window.__sgReloading = false; }, 3000);
         return;
       }
       try { K.toggleLoader?.(true, 'updating'); } catch {}
