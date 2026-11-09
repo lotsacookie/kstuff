@@ -98,6 +98,87 @@
   console.log("[pin] using", window.WB_SHA);
 
 
+
+  // Catch-all: anything that still tries to reach a Roblox host directly (fetch, Request objects, sendBeacon, XHR that slips past the engine layer)
+  // is sent through the kstuff net hub instead of the browser's own network.
+  (() => {
+    const RBX = /(^|\.)(roblox\.com|rbxcdn\.com|robloxlabs\.com|roblox\.qq\.com|rbx\.com)$/i;
+    const seen = new Set();
+    const target = (input) => {
+      try {
+        const u = new URL(typeof input === "string" ? input : input instanceof URL ? input.href : input && input.url, location.href);
+        return /^https?:$/.test(u.protocol) && RBX.test(u.hostname) ? u : null;
+      } catch { return null; }
+    };
+    const note = (u) => { if (!seen.has(u.hostname)) { seen.add(u.hostname); console.log("[hub] proxying", u.hostname); } };
+    const hubReady = async () => {
+      for (let i = 0; i < 150 && !window.webbloxProxyFetch; i++) await new Promise((r) => setTimeout(r, 100));
+      if (!window.webbloxProxyFetch) throw new Error("net hub not ready");
+      if (window.webbloxSessionReady) { try { await window.webbloxSessionReady; } catch {} }
+    };
+    const viaHub = async (u, input, init) => {
+      await hubReady();
+      init = init || {};
+      const isReq = typeof Request === "function" && input instanceof Request;
+      const method = (init.method || (isReq && input.method) || "GET").toUpperCase();
+      const headers = new Headers(init.headers || (isReq ? input.headers : undefined) || {});
+      let body = init.body;
+      if (body == null && isReq && method !== "GET" && method !== "HEAD") body = await input.clone().arrayBuffer();
+      if (body instanceof Blob) body = await body.arrayBuffer();
+      if (ArrayBuffer.isView(body)) body = body.buffer.slice(body.byteOffset, body.byteOffset + body.byteLength);
+      return window.webbloxProxyFetch(u.href, { method, headers, body: method === "GET" || method === "HEAD" ? undefined : body, signal: init.signal });
+    };
+    const realFetch = window.fetch;
+    window.fetch = function (input, init) {
+      const u = target(input);
+      if (!u) return realFetch.call(window, input, init);
+      note(u);
+      return viaHub(u, input, init);
+    };
+    if (navigator.sendBeacon) {
+      const realBeacon = navigator.sendBeacon.bind(navigator);
+      navigator.sendBeacon = (url, data) => {
+        const u = target(url);
+        if (!u) return realBeacon(url, data);
+        note(u);
+        (async () => {
+          let body = data;
+          if (data instanceof Blob) body = await data.arrayBuffer();
+          else if (typeof data === "string") body = new TextEncoder().encode(data).buffer;
+          await viaHub(u, u.href, { method: "POST", body });
+        })().catch(() => {});
+        return true;
+      };
+    }
+    const RealXHR = window.XMLHttpRequest;
+    window.XMLHttpRequest = class extends RealXHR {
+      open(method, url, ...rest) {
+        const u = target(url);
+        if (u) { note(u); this.__hub = { method, url: u.href }; }
+        return super.open(method, url, ...rest);
+      }
+      send(body) {
+        const h = this.__hub;
+        if (!h) return super.send(body);
+        const fire = (name) => this.dispatchEvent(new Event(name));
+        viaHub(new URL(h.url), h.url, { method: h.method, body }).then(async (r) => {
+          const buf = await r.arrayBuffer();
+          const type = r.headers.get("content-type") || "";
+          const text = () => new TextDecoder().decode(buf);
+          const rt = this.responseType;
+          const val = rt === "arraybuffer" ? buf : rt === "blob" ? new Blob([buf], { type }) : rt === "json" ? JSON.parse(text()) : text();
+          const def = (k, v) => Object.defineProperty(this, k, { configurable: true, value: v });
+          def("status", r.status); def("statusText", r.statusText || ""); def("readyState", 4);
+          def("response", val); def("responseURL", h.url);
+          if (!rt || rt === "text") def("responseText", val);
+          this.getResponseHeader = (n) => r.headers.get(n);
+          this.getAllResponseHeaders = () => [...r.headers].map(([k, v]) => k + ": " + v).join("\r\n");
+          fire("readystatechange"); fire("load"); fire("loadend");
+        }).catch(() => { fire("error"); fire("loadend"); });
+      }
+    };
+  })();
+
   // Route every rbxcdn.com image through the kstuff net hub (webbloxProxyFetch) instead of letting the browser load it directly.
   (() => {
     const RB = /^https?:\/\/[^/]*rbxcdn\.com\//i;
