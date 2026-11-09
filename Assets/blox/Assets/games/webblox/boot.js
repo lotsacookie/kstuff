@@ -1194,15 +1194,49 @@ self.__wbBoot((() => {
     throw new Error(`${FILES[i][0]} could not be loaded (${errors.slice(-2).join('; ')})`);
   };
   const fileCache = new Map();
-  const fromFile = async i => {
-    if (fileCache.has(i)) return fileCache.get(i).slice();
+  // The big engine files (WebClient.wasm is ~100 MB unpacked) used to be downloaded and unpacked again on every launch, because the
+  // Map above lives only as long as the page. Keep the downloaded bytes (still gzipped, so ~4x smaller) in Cache Storage and reuse them.
+  const DISK_NAME = 'webblox-engine-files-v1';
+  const DISK_MIN = 256 * 1024;
+  const diskKey = i => 'https://webblox.cache/' + FILES[i][4].split('/').map(encodeURIComponent).join('/') + '?size=' + FILES[i][3];
+  let diskOpen = null;
+  const disk = () => diskOpen || (diskOpen = (typeof caches !== 'undefined' ? caches.open(DISK_NAME) : Promise.reject(new Error('no Cache Storage'))));
+  const diskRead = async i => {
+    if (FILES[i][3] < DISK_MIN) return null;
+    try {
+      const hit = await (await disk()).match(diskKey(i));
+      return hit ? new Uint8Array(await hit.arrayBuffer()) : null;
+    } catch { return null; }
+  };
+  const diskWrite = (i, bytes) => {
+    if (FILES[i][3] < DISK_MIN) return;
+    disk().then(cache => cache.put(diskKey(i), new Response(bytes, { headers: { 'content-type': 'application/octet-stream' } }))).catch(() => {});
+  };
+  const diskDrop = i => { disk().then(cache => cache.delete(diskKey(i))).catch(() => {}); };
+  const unpack = async (i, raw) => {
     const [path, , codec, size] = FILES[i];
-    let data = await fetchFile(i);
+    let data = raw;
     if (codec === FILE_GZIP && data[0] === 0x1f && data[1] === 0x8b) {
       const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream('gzip'));
       data = new Uint8Array(await new Response(stream).arrayBuffer());
     }
     if (data.length !== size) throw new Error(`${path} is the wrong size`);
+    return data;
+  };
+  const fromFile = async i => {
+    if (fileCache.has(i)) return fileCache.get(i).slice();
+    const [path, , codec] = FILES[i];
+    let data = null;
+    const saved = await diskRead(i);
+    if (saved) {
+      try { data = await unpack(i, saved); console.log('[engine] cached', path); }
+      catch (error) { console.warn('[engine] cached copy of', path, 'is unusable, downloading again:', error.message); diskDrop(i); }
+    }
+    if (!data) {
+      const raw = await fetchFile(i);
+      data = await unpack(i, raw);
+      diskWrite(i, raw);
+    }
     if (codec === FILE_RAW || path === '/engine/WebClient.wasm') fileCache.set(i, data.slice());
     return data;
   };
