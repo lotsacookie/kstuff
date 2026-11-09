@@ -94,6 +94,13 @@ export function init(K) {
     sweep();
     document.body.appendChild(frame);
     load();
+    try {
+      if (window.__sgLogSubs) window.__sgLogSubs.add(e => {
+        const t = String(e.text || '');
+        if (e.src === 'parent' || !/^\[(net-hub|proxy|wisp|net)/i.test(t)) return;
+        try { frame.contentWindow && frame.contentWindow.postMessage({ sgConsole: true, level: e.level, src: 'parent', text: t.slice(0, 4000) }, '*'); } catch {}
+      });
+    } catch {}
 
     // Keep the host DOM empty: anything modules add later is removed again.
     observer = new MutationObserver(muts => {

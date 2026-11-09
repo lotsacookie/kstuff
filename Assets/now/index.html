@@ -374,6 +374,8 @@ const maskText = (s) => String(s)
   .replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, "<email>")
   .replace(/("(?:code|validation|otp|device_code|access_token|refresh_token|id_token|client_token|key)"\s*:\s*")[^"]*(")/g, "$1<hidden>$2")
   .replace(/((?:code|code_verifier|validation|key)=)[^&\s"]+/g, "$1<hidden>");
+window.addEventListener("error", (e) => { try { parent.postMessage({ sgConsole: true, level: "error", src: "now", text: "[error] " + (e.message || "Error") + (e.filename ? " (" + String(e.filename).split("/").pop() + ":" + e.lineno + ")" : "") }, "*"); } catch {} });
+window.addEventListener("unhandledrejection", (e) => { try { parent.postMessage({ sgConsole: true, level: "error", src: "now", text: "[unhandled] " + String((e.reason && e.reason.message) || e.reason) }, "*"); } catch {} });
 const logLines = [];
 function log(...a) {
   const line = maskText(a.map((x) => (typeof x === "string" ? x : (() => { try { return JSON.stringify(x); } catch { return String(x); } })())).join(" "));
@@ -382,6 +384,7 @@ function log(...a) {
   $("log").textContent = logLines.join("\n");
   $("log").scrollTop = $("log").scrollHeight;
   console.log(line);
+  try { parent.postMessage({ sgConsole: true, level: "log", src: "now", text: line }, "*"); } catch {}
 }
 
 const loadStore = () => { try { return JSON.parse(localStorage.getItem(STORE) || "null"); } catch { return null; } };
