@@ -339,6 +339,11 @@ async function legacy(){
                                     <select id="proxy-transport-select"><option value="libcurl">libcurl</option><option value="epoxy" selected>epoxy</option></select>
                                     <p id="proxy-transport-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
                                 </div>
+                                <div class="setting-group full"><label for="coi-isolate-select"><i class="ph ph-shield-check"></i> Sandbox / CrossOrigin isolate</label>
+                                    <select id="coi-isolate-select"><option value="off" selected>Off</option><option value="on">On</option></select>
+                                    <p style="margin:12px 0 0;opacity:.8;font-weight:600;">Clears the whole page and loads a single cross-origin isolated frame on top. The proxy, wisp and Singuloxy keep running in the background and the frame talks to them. Add <b>?coi=off</b> to the URL to turn it off if you get stuck.</p>
+                                    <p id="coi-isolate-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
+                                </div>
                             </div>
                             <div class="settings-panel" id="settings-panel-data" role="tabpanel">Coming Soon</div>
                             <div class="settings-panel" id="settings-panel-about" role="tabpanel">

@@ -836,7 +836,7 @@ export function init(K) {
   }
 
   const isPageFrame = src => {
-    try { return [...document.querySelectorAll('iframe')].some(f => f.contentWindow === src && f.hasAttribute('srcdoc') && !f.__proxied); }
+    try { return [...document.querySelectorAll('iframe')].some(f => f.contentWindow === src && ((f.hasAttribute('srcdoc') && !f.__proxied) || f.dataset.coi === '1')); }
     catch { return false; }
   };
 

@@ -105,6 +105,9 @@ function initApp() {
       loadModule('gamepad-nav')
         .then(mod => mod.init(K))
         .catch(err => console.warn('gamepad navigation unavailable', err));
+      loadModule('coi-isolate')
+        .then(mod => mod.init(K))
+        .catch(err => console.warn('coi isolate unavailable', err));
       loadModule('welcome-tour')
         .then(mod => mod.init(K))
         .catch(err => console.warn('welcome tour unavailable', err));
