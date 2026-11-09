@@ -250,6 +250,8 @@ export function init(K) {
     return h;
   };
 
+  K.ghHeaders = ghHeaders;
+
   const viaJsdelivr = async (repo, apiRef, st, key) => {
     const ref = apiRef === 'HEAD' ? 'main' : apiRef;
     const ctrl = new AbortController();

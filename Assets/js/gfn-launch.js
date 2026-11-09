@@ -42,12 +42,19 @@ export function init(K) {
       try { const c = JSON.parse(localStorage.getItem(HTML_CACHE) || 'null'); if (c && c.sha === sha && c.html) return c.html; } catch {}
     }
     let html = '';
-    const urls = [b + 'index.html'];
+    const ref = sha || 'main';
+    const urls = [`https://api.github.com/repos/${REPO}/contents/${DIR}index.html?ref=${ref}`, b + 'index.html'];
     if (sha) urls.push(`https://raw.githubusercontent.com/${REPO}/${sha}/${DIR}index.html`);
     urls.push(`https://cdn.jsdelivr.net/gh/${REPO}@main/${DIR}index.html`);
     let err;
     for (const u of urls) {
-      try { const r = await fetch(u, { cache: 'default' }); if (r.ok) { html = await r.text(); break; } err = new Error(r.status + ' ' + u); } catch (e) { err = e; }
+      try {
+        const api = u.includes('api.github.com');
+        const hd = api ? Object.assign({}, (K.ghHeaders && K.ghHeaders()) || {}, { Accept: 'application/vnd.github.raw' }) : undefined;
+        const r = await fetch(u, api ? { headers: hd, cache: 'no-store' } : { cache: 'default' });
+        if (r.ok) { html = await r.text(); break; }
+        err = new Error(r.status + ' ' + u);
+      } catch (e) { err = e; }
     }
     if (!html) throw err || new Error('Couldn’t load the GeForce NOW client');
     if (sha) { try { localStorage.setItem(HTML_CACHE, JSON.stringify({ sha, at: Date.now(), html })); } catch {} }
@@ -85,7 +92,7 @@ export function init(K) {
     ensureHost();
     ensureStyle();
     frameP = (async () => {
-      const html = await clientHtml(false);
+      const html = await clientHtml(true);
       const boot = `<script>window.__NOW_EMBED=true;window.__NOW_BASE=${JSON.stringify(base)};<\/script>`;
       const doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + boot) : boot + html;
       frame = document.createElement('iframe');
