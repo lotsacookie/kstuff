@@ -4,7 +4,7 @@
 // The client is fetched from jsDelivr at the latest commit (K.getRefSha) and cached in localStorage by commit, so it stays current
 // without waiting for the singularity.js rebuild; the copy packed into singularity.js is the offline fallback.
 export function init(K) {
-  console.log('[blox] launcher rev 4 (console bridge in client page)');
+  console.log('[blox] launcher rev 5 (console bridge survives document.open)');
   const $ = id => document.getElementById(id);
   const REPO = K.MAIN_REPO || 'lotsacookie/kstuff';
   const DIR = 'Assets/blox/';
@@ -175,11 +175,21 @@ export function init(K) {
     var ensure = function () { LV.forEach(hook); };
     ensure();
     setInterval(ensure, 1000);
-    addEventListener('error', function (e) {
+    var onErr = function (e) {
       if (e.target && e.target !== window) { var u = e.target.src || e.target.href; if (u) send('error', 'Failed to load ' + u); return; }
       send('error', '[error] ' + (e.message || 'Error') + (e.filename ? ' (' + String(e.filename).split('/').pop() + ':' + e.lineno + ':' + e.colno + ')' : '') + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
-    }, true);
-    addEventListener('unhandledrejection', function (e) { send('error', '[unhandled] ' + fmt(e.reason)); });
+    };
+    var onRej = function (e) { send('error', '[unhandled] ' + fmt(e.reason)); };
+    // document.open() (used when the client swaps its page) erases every window listener, so put them back each time.
+    var install = function () {
+      try { addEventListener('error', onErr, true); addEventListener('unhandledrejection', onRej); } catch (e) {}
+    };
+    install();
+    try {
+      var open = document.open;
+      document.open = function () { var r = open.apply(this, arguments); install(); return r; };
+    } catch (e) {}
+    setInterval(install, 500);
   }
   function mountFrame(search) {
     ensureHost();
