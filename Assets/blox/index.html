@@ -9,13 +9,47 @@
     var fixBase = function (b) { b = String(b); return b === "null" || b.indexOf("about:") === 0 ? page : b; };
     window.URL = new Proxy(Real, {
       construct: function (target, args, newTarget) {
+        var first = args[0];
+        if (typeof first === "string" && first.indexOf("/?") === 0 && /[?&](placeId|launcher)=/.test(first)) window.__WB_NAV = first.slice(1);
         if (args.length > 1 && args[1] != null) args = [args[0], fixBase(args[1])].concat(args.slice(2));
         return Reflect.construct(target, args, newTarget);
       },
     });
+    var send = function (search) {
+      try { window.parent.postMessage({ type: "blox:navigate", search: search }, "*"); } catch (e) {}
+    };
+    window.__wbNavigate = send;
+    var home = "";
+    try { home = new Real(page).searchParams.get("launcher") === "roblox" ? "?launcher=roblox" : ""; } catch (e) {}
+    Object.defineProperty(window, "__webbloxExit", {
+      configurable: true,
+      get: function () { return function () { send(home); }; },
+      set: function () {},
+    });
+    var hook = function () {
+      var go = window.__wbNavigate;
+      new MutationObserver(function (records) {
+        for (var i = 0; i < records.length; i++) {
+          var added = records[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            var node = added[j];
+            if (node.nodeType === 1 && node.classList.contains("leaving") && /placeId=/.test(window.__WB_NAV || "")) go(window.__WB_NAV);
+          }
+        }
+      }).observe(document.documentElement, { childList: true, subtree: true });
+      document.addEventListener("click", function (e) {
+        var a = e.target && e.target.closest && e.target.closest("a[href]");
+        var href = a && a.getAttribute("href");
+        if (href && href.indexOf("srcdoc?") === 0) {
+          e.preventDefault();
+          go(href.slice(6));
+        }
+      }, true);
+    };
+    var injected = '<base href="about:srcdoc"><script>(' + hook.toString() + ')()<\/script>';
     var write = document.write;
     document.write = function (html) {
-      if (typeof html === "string") html = html.replace(/<head[^>]*>/i, function (m) { return m + '<base href="about:srcdoc">'; });
+      if (typeof html === "string") html = html.replace(/<head[^>]*>/i, function (m) { return m + injected; });
       return write.call(document, html);
     };
   })();

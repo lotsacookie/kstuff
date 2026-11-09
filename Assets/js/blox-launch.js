@@ -111,7 +111,13 @@ export function init(K) {
   }
   // The client page comes from kstuff on jsDelivr at the latest commit (GitHub API pin) and is embedded with srcdoc, so it never
   // depends on this site hosting Assets/blox. __WB_PAGE tells the client which URL it lives at, since a srcdoc frame has none.
-  function mountFrame(placeId) {
+  const cleanSearch = raw => {
+    const params = new URLSearchParams(String(raw || '').replace(/^\?/, ''));
+    const id = params.get('placeId');
+    if (id && /^\d{1,20}$/.test(id)) return '?placeId=' + id;
+    return params.get('launcher') === 'roblox' ? '?launcher=roblox' : '';
+  };
+  function mountFrame(search) {
     ensureHost();
     ensureStyle();
     return (async () => {
@@ -119,7 +125,7 @@ export function init(K) {
       console.log('[blox] client commit', sha ? sha.slice(0, 7) : 'unknown, using main');
       setStatus('Loading the WebBlox client ' + (sha ? sha.slice(0, 7) : 'main') + '…');
       const html = await clientHtml(sha, base);
-      const page = base + 'index.html' + (placeId ? '?placeId=' + encodeURIComponent(placeId) : '');
+      const page = base + 'index.html' + (search || '');
       const boot = `<base href="${base}"><script>window.__WB_PAGE=${JSON.stringify(page)};window.__WB_SHA=${JSON.stringify(sha || '')};window.__WB_EMBED=true;<\/script>`;
       const doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + boot) : boot + html;
       if (frame) frame.remove();
@@ -228,6 +234,25 @@ export function init(K) {
         if (!launching && !live) break;
         end(false);
         break;
+      case 'blox:navigate': {
+        const search = cleanSearch(d.search);
+        const my = ++token;
+        launching = true; live = false;
+        host?.classList.add('blox-running');
+        showFrame(false);
+        ui.x.classList.remove('on');
+        ui.load.classList.remove('hidden', 'failed', 'asking'); ui.cancel.hidden = false; ui.back.hidden = true;
+        setProg(0.1);
+        setStatus(search.startsWith('?placeId=') ? 'Starting the game…' : 'Loading WebBlox…');
+        mountFrame(search).then(() => {
+          if (my !== token) return;
+          showFrame(true, true); ui.load.classList.add('hidden'); focusFrame(); setTimeout(focusFrame, 300);
+        }).catch(err => {
+          if (my !== token) return;
+          fail('Couldn’t start the game: ' + ((err && err.message) || err));
+        });
+        break;
+      }
       case 'blox:signedout': break;
     }
   });
