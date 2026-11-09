@@ -1270,7 +1270,18 @@ self.__wbBoot((() => {
   const syncable = i => FILES[i][2] === 0 || FILES[i][2] === ZSTD;
   const SEARCH_READER = /\b(?:(?:self|window)\.)?location\.search\b/g;
   const SEARCH_VALUE = '(self.__wbSearch?self.__wbSearch():location.search)';
+  // The single-file bundle serves the engine from the page origin (e.g. cdn.jsdelivr.net/engine/WebClient.js),
+  // but engine/stub.js only trusts setup.rbxcdn.com/webclient/. Let it also accept our own /engine/ scripts.
+  const STUB_CHECK = /if \(!ALLOWED_ENGINE_PREFIXES\.some\(\(prefix\) => engineScriptUrl\.startsWith\(prefix\)\)\)/;
+  const STUB_CHECK_FIXED = "if (!ALLOWED_ENGINE_PREFIXES.some((prefix) => engineScriptUrl.startsWith(prefix)) && !/^\\/engine\\/[^?#]*\\.js$/.test(new URL(engineScriptUrl).pathname))";
+  const patchStub = (i, data) => {
+    if (!data || !/\/engine\/stub\.js$/.test(FILES[i][0])) return data;
+    const source = new TextDecoder().decode(data);
+    if (!STUB_CHECK.test(source)) return data;
+    return new TextEncoder().encode(source.replace(STUB_CHECK, () => STUB_CHECK_FIXED));
+  };
   const patchSearch = (i, data) => {
+    data = patchStub(i, data);
     if (!data || typeof self.__wbSearch !== 'function' || !/^text\/(javascript|html)$/.test(FILES[i][1])) return data;
     const source = new TextDecoder().decode(data);
     if (source.includes('__wbSearch') || !/\blocation\.search\b/.test(source)) return data;
