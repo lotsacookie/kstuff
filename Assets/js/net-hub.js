@@ -141,7 +141,7 @@ export function init(K) {
       let ws;
       try { ws = new WebSocket(url); } catch { resolve(null); return; }
       ws.binaryType = 'arraybuffer';
-      let connected = false, sentAt = 0;
+      let connected = false, sentAt = 0, hsAt = 0;
       const openedAt = performance.now();
       const streamId = Math.floor(Math.random() * 0xFFFFFFFE) + 1 >>> 0;
       const finish = ping => {
@@ -150,7 +150,9 @@ export function init(K) {
         try { ws.close(); } catch {}
         resolve(ping);
       };
-      const timer = setTimeout(() => finish(null), ms || 3000);
+      // A server that finished the wisp handshake but never answers the loopback test is still reachable;
+      // the real verify() decides if it works, so do not throw a main wisp away on this alone.
+      const timer = setTimeout(() => finish(hsAt ? Math.round(hsAt - openedAt) + 2000 : null), ms || 3000);
       ws.onmessage = ev => {
         if (!(ev.data instanceof ArrayBuffer) || ev.data.byteLength < 5) return;
         const v = new DataView(ev.data);
@@ -158,6 +160,7 @@ export function init(K) {
         if (!connected) {
           if (type === 5 && stream === 0) ws.send(new Uint8Array([5, 0, 0, 0, 0, 2, 1]));
           else if (type === 3 && stream === 0) {
+            hsAt = performance.now();
             if (plain) { finish(Math.round(performance.now() - openedAt)); return; }
             connected = true;
             const host = new TextEncoder().encode('127.0.0.1');
@@ -175,7 +178,7 @@ export function init(K) {
         }
         if (stream === streamId) finish(Math.round(performance.now() - sentAt));
       };
-      ws.onerror = ws.onclose = () => finish(null);
+      ws.onerror = ws.onclose = () => finish(hsAt ? Math.round(hsAt - openedAt) + 2000 : null);
     });
   }
 
@@ -309,6 +312,7 @@ export function init(K) {
         if (Date.now() > deadline) break;
         const wave = ordered.slice(i, i + 6);
         const pings = await Promise.all(wave.map(u => probe(u, 3000, !mains.has(u))));
+        console.log('[net-hub] probes', wave.map((u, j) => (mains.has(u) ? '' : 'backup:') + hostOf(u) + '=' + (pings[j] === null ? 'x' : pings[j] + 'ms')).join(' '));
         const alive = [];
         wave.forEach((u, j) => {
           if (pings[j] === null) markBad(u, SOFT_TTL);
@@ -625,6 +629,7 @@ export function init(K) {
       ])];
       if (known.length) {
         const bp = await Promise.all(known.map(u => probe(u, BOOT_PROBE_MS, !isMain(u))));
+        console.log('[net-hub] boot probes', known.map((u, i) => (isMain(u) ? '' : 'backup:') + hostOf(u) + '=' + (bp[i] === null ? 'x' : bp[i] + 'ms')).join(' '));
         known.forEach((u, i) => { if (bp[i] === null) markBad(u); });
         let at = -1;
         known.forEach((u, i) => {
