@@ -97,6 +97,65 @@
   const CDN = sha ? "https://cdn.jsdelivr.net/gh/" + REPO + "@" + sha + "/" + DIR : null;
   console.log("[pin] using", window.WB_SHA);
 
+
+  // Route every rbxcdn.com image through the kstuff net hub (webbloxProxyFetch) instead of letting the browser load it directly.
+  (() => {
+    const RB = /^https?:\/\/[^/]*rbxcdn\.com\//i;
+    const done = new Map();
+    const hubFetch = async (url) => {
+      for (let i = 0; i < 100 && !window.webbloxProxyFetch; i++) await new Promise((r) => setTimeout(r, 100));
+      let last;
+      for (let n = 0; n < 3; n++) {
+        try {
+          const r = await window.webbloxProxyFetch(url, { method: "GET", headers: { accept: "image/avif,image/webp,image/*,*/*;q=0.8" } });
+          if (r.ok) { const b = await r.blob(); return URL.createObjectURL(b.type ? b : new Blob([b], { type: "image/png" })); }
+          last = new Error("HTTP " + r.status);
+        } catch (e) { last = e; }
+      }
+      throw last;
+    };
+    const blobFor = (url) => { if (!done.has(url)) done.set(url, hubFetch(url).catch((e) => { done.delete(url); throw e; })); return done.get(url); };
+    const proto = HTMLImageElement.prototype;
+    const srcDesc = Object.getOwnPropertyDescriptor(proto, "src");
+    const rawSet = Element.prototype.setAttribute;
+    const setRaw = (img, url) => srcDesc.set.call(img, url);
+    const route = (img, url) => {
+      const abs = new URL(url, location.href).href;
+      img.__wbOrig = abs;
+      blobFor(abs).then((b) => { if (img.__wbOrig === abs) setRaw(img, b); }, () => {});
+    };
+    Object.defineProperty(proto, "src", {
+      configurable: true, enumerable: true,
+      get() { return this.__wbOrig || srcDesc.get.call(this); },
+      set(v) { RB.test(String(v)) ? route(this, String(v)) : (this.__wbOrig = null, srcDesc.set.call(this, v)); },
+    });
+    Element.prototype.setAttribute = function (name, value) {
+      if (this instanceof HTMLImageElement && String(name).toLowerCase() === "src" && RB.test(String(value))) return void route(this, String(value));
+      return rawSet.call(this, name, value);
+    };
+    const fix = (img) => {
+      const v = img.getAttribute("src");
+      if (v && RB.test(v)) { img.removeAttribute("src"); route(img, v); }
+      if (img.srcset && /rbxcdn\.com/i.test(img.srcset)) img.removeAttribute("srcset");
+    };
+    const bg = (el) => {
+      const st = el.getAttribute && el.getAttribute("style");
+      const m = st && /url\(["']?(https?:\/\/[^"')]*rbxcdn\.com\/[^"')]*)["']?\)/i.exec(st);
+      if (m) blobFor(m[1]).then((b) => { el.style.backgroundImage = el.style.backgroundImage.replace(m[1], b); }, () => {});
+    };
+    const scan = (n) => {
+      if (n.nodeType !== 1) return;
+      if (n instanceof HTMLImageElement) fix(n); else bg(n);
+      n.querySelectorAll && n.querySelectorAll("img,[style*='rbxcdn']").forEach((e) => (e instanceof HTMLImageElement ? fix(e) : bg(e)));
+    };
+    new MutationObserver((recs) => {
+      for (const r of recs) {
+        if (r.type === "attributes") scan(r.target);
+        else r.addedNodes.forEach(scan);
+      }
+    }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ["src", "srcset", "style"] });
+  })();
+
   // 2. Core pack: jsDelivr pinned to the commit, then this site (pinned query), then raw GitHub pinned.
   const nativeFetch = window.fetch.bind(window);
   // In the srcdoc embed the page's base IS the jsDelivr URL, so the same-origin copy is not an independent source and is left out;
