@@ -254,7 +254,6 @@ const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promi
 const inCoi = () => {
   for (const w of [window, window.parent, window.top]) { try { if (w && w.__COI) return true; } catch {} }
   try { if (window.frameElement && window.frameElement.dataset.coi === "1") return true; } catch {}
-  try { if (window.origin === "null" && window.parent !== window) return true; } catch {}
   return false;
 };
 const findHub = () => {
@@ -277,11 +276,13 @@ function getProxy({ log = () => {}, say = () => {} } = {}) {
     stepText("Connecting to the proxy…");
     let hub = findHub();
     const hubStart = Date.now();
-    while (!hub && Date.now() - hubStart < 120000) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
+    while (!hub && Date.now() - hubStart < 30000) { await new Promise((r) => setTimeout(r, 100)); hub = findHub(); }
     if (!hub) throw new Error("Net hub unavailable. Open this page from the main site.");
-    const wisp = String(await withTimeout(hub.ready(), 60000, "net hub"));
+    let wisp = "";
+    try { wisp = String(await withTimeout(hub.ready(), 25000, "net hub")); }
+    catch (e) { log("[proxy] net hub ready failed, continuing anyway: " + ((e && e.message) || e)); try { wisp = String((hub.wisp && hub.wisp()) || ""); } catch {} }
     if (typeof hub.libcurl !== "function") throw new Error("Net hub has no libcurl() (coi mode needs the updated shim): reload the main site.");
-    const lc = await hub.libcurl();
+    const lc = await withTimeout(hub.libcurl(), 30000, "net hub libcurl");
     const viaParent = inCoi() || !!hub.__coiChild || !!window.__COI;
     const hfetch = (url, init) => {
       if (!viaParent) return hub.fetch(url, init);
