@@ -2,6 +2,7 @@
   if (window.kNet) return;
   var parent = null;
   try { parent = window.parent && window.parent !== window ? window.parent : null; } catch (e) {}
+  var realParent = window.__coiRealParent || parent;
   var seq = 0, pending = {}, availP = null;
   var direct = null;
   var NOBODY = { 101: 1, 204: 1, 205: 1, 304: 1 };
@@ -35,7 +36,7 @@
 
   window.addEventListener('message', function (e) {
     var d = e.data;
-    if (!d || typeof d !== 'object' || e.source !== parent) return;
+    if (!d || typeof d !== 'object' || e.source !== realParent) return;
     if (d.type === 'kstuff-net:res' || d.type === 'kstuff-net:ready-ack' || d.type === 'kstuff-net:rotate-ack' || d.type === 'kstuff-net:hello-ack') {
       var key = d.type === 'kstuff-net:hello-ack' ? 'hello' : d.id;
       var p = pending[key];

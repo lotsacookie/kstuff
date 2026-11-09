@@ -163,4 +163,184 @@
        (Blox, Scramjet) feature-detect sandstone() and fall back. */
   };
   window.CoiWebSocket = CoiWebSocket;
+
+  /* ====================================================================================
+   * Page frames (the srcdoc iframes this page creates: Games, Music, Browser, ...).
+   * A sandboxed frame's children inherit the sandbox, so each page frame is its own opaque origin and can
+   * no longer read this page's DOM, storage or kNetDirect. Every srcdoc set here is therefore prefixed with
+   * childBoot(): it gives the page the same theme/font, storage and net access over postMessage, and a
+   * stand-in window.parent so pages that read the theme from the parent keep working.
+   * ==================================================================================== */
+  function childBoot(seed, theme) {
+    var real = null;
+    try { real = window.parent; } catch (e) {}
+    if (!real || real === window || window.__coiRealParent) return;
+    window.__coiRealParent = real;
+    var seq = 0, pend = {}, T = theme || { vars: {} };
+    function post(m, t) { try { real.postMessage(m, '*', t || []); } catch (e) {} }
+
+    function makeStorage(init, onWrite) {
+      var m = new Map(Object.keys(init || {}).map(function (k) { return [k, String(init[k])]; }));
+      var api = {
+        getItem: function (k) { k = String(k); return m.has(k) ? m.get(k) : null; },
+        setItem: function (k, v) { k = String(k); v = String(v); m.set(k, v); onWrite && onWrite('set', k, v); },
+        removeItem: function (k) { k = String(k); m.delete(k); onWrite && onWrite('remove', k); },
+        clear: function () { m.clear(); onWrite && onWrite('clear'); },
+        key: function (i) { var a = Array.from(m.keys()); return a[i] == null ? null : a[i]; }
+      };
+      return new Proxy(api, {
+        get: function (t, p) { if (p === 'length') return m.size; if (typeof p === 'symbol') return undefined; if (p in t) return t[p]; var v = t.getItem(p); return v === null ? undefined : v; },
+        set: function (t, p, v) { t.setItem(p, v); return true; },
+        deleteProperty: function (t, p) { t.removeItem(p); return true; },
+        has: function (t, p) { return p in t || m.has(String(p)); },
+        ownKeys: function () { return Array.from(m.keys()); },
+        getOwnPropertyDescriptor: function (t, p) { return m.has(String(p)) ? { value: m.get(String(p)), writable: true, enumerable: true, configurable: true } : undefined; }
+      });
+    }
+    var ls = makeStorage(seed, function (op, k, v) { post({ type: 'kstuff-coi-child:storage', op: op, key: k, value: v }); });
+    var ss = makeStorage({}, null);
+    try { Object.defineProperty(window, 'localStorage', { configurable: true, get: function () { return ls; } }); } catch (e) {}
+    try { Object.defineProperty(window, 'sessionStorage', { configurable: true, get: function () { return ss; } }); } catch (e) {}
+
+    function call(name, ms) {
+      return new Promise(function (resolve, reject) {
+        var id = 'k' + (++seq) + '-' + Date.now();
+        var t = setTimeout(function () { delete pend[id]; reject(new Error(name + ' timed out')); }, ms || 8000);
+        pend[id] = function (d) { clearTimeout(t); d.ok ? resolve(d.data) : reject(new Error(d.error || 'failed')); };
+        post({ type: 'kstuff-coi-child:call', id: id, name: name });
+      });
+    }
+
+    // Stand-in parent: the theme comes from a snapshot the isolated page keeps fresh; postMessage is forwarded.
+    function gcs() {
+      return {
+        getPropertyValue: function (n) { return (T.vars && T.vars[n]) || ''; },
+        backgroundColor: T.bg || '', color: T.color || '', fontFamily: (T.vars && T.vars['--font']) || T.font || ''
+      };
+    }
+    var el = { style: {}, className: '', classList: { contains: function () { return false; } }, getAttribute: function () { return null; } };
+    var fake = {
+      __isCoiParent: true,
+      document: { body: el, documentElement: el },
+      getComputedStyle: gcs,
+      postMessage: function (m, o, t) { post(m, t); },
+      addEventListener: function () {}, removeEventListener: function () {},
+      movieHosts: function () { return call('movieHosts', 10000); }
+    };
+    try { Object.defineProperty(window, 'parent', { configurable: true, get: function () { return fake; } }); } catch (e) {}
+
+    // Registered before the page's own scripts: refresh the snapshot, then replay "theme-updated" once.
+    window.addEventListener('message', function (e) {
+      var d = e.data;
+      if (e.source !== real) return;
+      if (d === 'theme-updated' && !e.__coiReplay) { e.stopImmediatePropagation(); post({ type: 'kstuff-coi-child:theme-get' }); return; }
+      if (!d || typeof d !== 'object') return;
+      if (d.type === 'kstuff-coi-child:theme') {
+        T = d.theme || T;
+        var ev = new MessageEvent('message', { data: 'theme-updated', source: real });
+        ev.__coiReplay = true;
+        window.dispatchEvent(ev);
+      } else if (d.type === 'kstuff-coi-child:res') {
+        var p = pend[d.id]; if (p) { delete pend[d.id]; p(d); }
+      }
+    });
+  }
+
+  var CHILD_MARK = '<!--coi-child-->';
+  var safeJson = function (v) { return JSON.stringify(v).replace(/</g, '\\u003c').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029'); };
+
+  function storeSnapshot() {
+    var out = {};
+    try {
+      for (var i = 0; i < local.length; i++) {
+        var k = local.key(i), v = local.getItem(k);
+        if (k && v != null && v.length <= 50000) out[k] = v;
+      }
+    } catch (e) {}
+    return out;
+  }
+
+  var THEME_VARS = ['--bg-color', '--background', '--text-color', '--font', '--nav-bg', '--card-bg', '--hairline', '--ring', '--tint', '--tint-strong', '--line', '--line-strong', '--glow', '--lift', '--fg', '--fr'];
+  function themeSnapshot() {
+    var names = {};
+    THEME_VARS.forEach(function (n) { names[n] = 1; });
+    var st = document.getElementById('dynamic-themes-style');
+    if (st) (st.textContent.match(/--[\w-]+(?=\s*:)/g) || []).forEach(function (n) { names[n] = 1; });
+    var vars = {}, cs = null;
+    try { cs = getComputedStyle(document.body); } catch (e) {}
+    if (cs) Object.keys(names).forEach(function (n) { var v = (cs.getPropertyValue(n) || '').trim(); if (v) vars[n] = v; });
+    if (!vars['--font']) { var f = (document.documentElement.style.getPropertyValue('--font') || '').trim(); if (f) vars['--font'] = f; }
+    return { vars: vars, bg: cs ? cs.backgroundColor : '', color: cs ? cs.color : '', font: cs ? cs.fontFamily : '' };
+  }
+
+  function childHtml(html) {
+    if (typeof html !== 'string' || html.indexOf(CHILD_MARK) !== -1) return html;
+    var code = '(' + childBoot.toString() + ')(' + safeJson(storeSnapshot()) + ',' + safeJson(themeSnapshot()) + ');';
+    var inj = CHILD_MARK + '<script>' + code.replace(/<\/script/gi, '<\\/script') + '<\/script>';
+    var m = /<head(\s[^>]*)?>/i.exec(html) || /<html(\s[^>]*)?>/i.exec(html) || /^\s*<!doctype[^>]*>/i.exec(html);
+    return m ? html.slice(0, m.index + m[0].length) + inj + html.slice(m.index + m[0].length) : inj + html;
+  }
+  window.__coiChildHtml = childHtml;
+
+  try {
+    var sd = Object.getOwnPropertyDescriptor(HTMLIFrameElement.prototype, 'srcdoc');
+    if (sd && sd.set) Object.defineProperty(HTMLIFrameElement.prototype, 'srcdoc', {
+      configurable: true, enumerable: sd.enumerable, get: sd.get,
+      set: function (v) { sd.set.call(this, typeof v === 'string' ? childHtml(v) : v); }
+    });
+  } catch (e) {}
+
+  function isChild(src) {
+    try { return !!src && Array.prototype.some.call(document.querySelectorAll('iframe'), function (f) { return f.contentWindow === src; }); }
+    catch (e) { return false; }
+  }
+
+  /* Messages from page frames: theme requests, storage writes, small calls, and the net hub relay. */
+  var relay = {};
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || typeof d !== 'object' || typeof d.type !== 'string' || e.source === parent || !isChild(e.source)) return;
+    var src = e.source;
+    function reply(m, t) { try { src.postMessage(m, '*', t || []); } catch (x) {} }
+
+    if (d.type === 'kstuff-coi-child:theme-get') return reply({ type: 'kstuff-coi-child:theme', theme: themeSnapshot() });
+    if (d.type === 'kstuff-coi-child:storage') {
+      if (d.op === 'set' && typeof d.key === 'string') local.setItem(d.key, d.value);
+      else if (d.op === 'remove' && typeof d.key === 'string') local.removeItem(d.key);
+      else if (d.op === 'clear') local.clear();
+      return;
+    }
+    if (d.type === 'kstuff-coi-child:call') {
+      if (d.name === 'movieHosts' && typeof window.movieHosts === 'function') {
+        Promise.resolve(window.movieHosts()).then(
+          function (r) { reply({ type: 'kstuff-coi-child:res', id: d.id, ok: true, data: r }); },
+          function (x) { reply({ type: 'kstuff-coi-child:res', id: d.id, ok: false, error: String(x && x.message || x) }); });
+      } else reply({ type: 'kstuff-coi-child:res', id: d.id, ok: false, error: 'unknown call' });
+      return;
+    }
+
+    // net hub: forward to the real parent, remapping ids so replies find their way back
+    if (d.type.indexOf('kstuff-net:') !== 0) return;
+    if (d.type === 'kstuff-net:hello') return reply({ type: 'kstuff-net:hello-ack', wisp: cur });
+    if (d.type === 'kstuff-net:abort') {
+      Object.keys(relay).forEach(function (n) { if (relay[n].src === src && relay[n].id === d.id) post({ type: 'kstuff-net:abort', id: n }); });
+      return;
+    }
+    var nid = 'r' + (++seq) + '-' + Date.now();
+    relay[nid] = { src: src, id: d.id };
+    var out = {}; Object.keys(d).forEach(function (k) { out[k] = d[k]; });
+    out.id = nid;
+    var tr = d.init && d.init.body instanceof ArrayBuffer ? [d.init.body] : [];
+    post(out, tr);
+  });
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (!d || typeof d !== 'object' || e.source !== parent || typeof d.type !== 'string' || d.type.indexOf('kstuff-net:') !== 0) return;
+    var r = relay[d.id];
+    if (!r) return;
+    delete relay[d.id];
+    var out = {}; Object.keys(d).forEach(function (k) { out[k] = d[k]; });
+    out.id = r.id;
+    try { r.src.postMessage(out, '*', d.body instanceof ArrayBuffer ? [d.body] : []); } catch (x) {}
+  });
 })();
