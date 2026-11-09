@@ -99,10 +99,14 @@
 
   // 2. Core pack: jsDelivr pinned to the commit, then this site (pinned query), then raw GitHub pinned.
   const nativeFetch = window.fetch.bind(window);
+  // In the srcdoc embed the page's base IS the jsDelivr URL, so the same-origin copy is not an independent source and is left out;
+  // raw.githubusercontent.com (CORS-enabled) is tried right after jsDelivr, then the branch heads.
   const packSources = [
     ...(CDN ? [CDN + "Assets/core.pack.gz"] : []),
-    new URL("Assets/core.pack.gz?v=" + v, document.baseURI).href,
     ...(sha ? ["https://raw.githubusercontent.com/" + REPO + "/" + sha + "/" + DIR + "Assets/core.pack.gz"] : []),
+    ...(location.protocol !== "about:" ? [new URL("Assets/core.pack.gz?v=" + v, document.baseURI).href] : []),
+    "https://cdn.jsdelivr.net/gh/" + REPO + "@" + BRANCH + "/" + DIR + "Assets/core.pack.gz",
+    "https://raw.githubusercontent.com/" + REPO + "/" + BRANCH + "/" + DIR + "Assets/core.pack.gz",
   ];
   window.fetch = async function (input, init) {
     const url = typeof input === "string" ? input : input instanceof URL ? input.href : input && input.url;
@@ -115,7 +119,7 @@
         console.warn("[pin] override", ovr[1], r.status);
       } catch (e) { console.warn("[pin] override failed", ovr[1], e && e.message); }
     }
-    if (url && /\/core\.pack\.gz(\?|$)/.test(url) && !packSources.includes(url)) {
+    if (url && /\/core\.pack\.gz(\?|$)/.test(url)) {  // the loop uses nativeFetch, so it never re-enters this wrapper
       let last;
       for (const src of packSources) {
         try {
