@@ -2,6 +2,23 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>WebBlox</title>
 <style>html,body{margin:0;height:100%;background:#18191c;color:#bdbebe;font:14px system-ui,sans-serif}#wb-wait{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:24px}#wb-wait button{margin-top:12px;padding:8px 16px;border:0;border-radius:6px;background:#335fff;color:#fff;font:inherit;cursor:pointer}</style>
 <script>
+  (function () {
+    var page = window.__WB_PAGE;
+    if (location.protocol !== "about:" || !page) return;
+    var Real = window.URL;
+    var fixBase = function (b) { b = String(b); return b === "null" || b.indexOf("about:") === 0 ? page : b; };
+    window.URL = new Proxy(Real, {
+      construct: function (target, args, newTarget) {
+        if (args.length > 1 && args[1] != null) args = [args[0], fixBase(args[1])].concat(args.slice(2));
+        return Reflect.construct(target, args, newTarget);
+      },
+    });
+    var write = document.write;
+    document.write = function (html) {
+      if (typeof html === "string") html = html.replace(/<head[^>]*>/i, function (m) { return m + '<base href="about:srcdoc">'; });
+      return write.call(document, html);
+    };
+  })();
   window.WB_ASSETS = new URL("Assets/", document.baseURI).pathname;
   window.WB_ROOT = new URL("./", document.baseURI).pathname;
 </script>

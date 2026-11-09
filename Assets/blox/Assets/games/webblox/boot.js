@@ -1479,6 +1479,8 @@ self.__wbBoot((() => {
       const token = element.__wbToken = {};
       bytes(c.i).then(data => {
         if (element.__wbToken === token) set.call(element, URL.createObjectURL(new Blob([data], { type: FILES[c.i][1] })));
+      }).catch(() => {
+        if (element.__wbToken === token) element.dispatchEvent(new Event('error'));
       });
       return;
     }
