@@ -265,8 +265,17 @@
   }
 
   async function wisp(url, init) {
-    const r = await window.webbloxProxyFetch(url, { ...init, redirect: 'follow' });
-    return { status: r.status, statusText: r.statusText, headers: r.headers, body: await r.arrayBuffer() };
+    let tries = 0;
+    for (;;) {
+      try {
+        const r = await window.webbloxProxyFetch(url, { ...init, redirect: 'follow' });
+        const body = await r.arrayBuffer();
+        if (r.status >= 500 && tries < 1 && (init.method || 'GET') === 'GET') { tries++; continue; }
+        return { status: r.status, statusText: r.statusText, headers: r.headers, body };
+      } catch (e) {
+        if (tries++ >= 2 || (init.method || 'GET') !== 'GET') throw e;
+      }
+    }
   }
 
   const LAUNCHER_JOIN = /(?:^|;\s*)launcher_join=(\d+):([gp]):([A-Za-z0-9-]+)/;
@@ -321,8 +330,8 @@
   }
 
   async function upstream({ url, method, headers, body }) {
-    await sessionReady;
     const target = new URL(url);
+    if (!ASSET_HOST.test(target.hostname)) await sessionReady;
     headers = { ...headers };
     delete headers.cookie;
     delete headers['content-length'];

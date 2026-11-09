@@ -123,8 +123,28 @@
     try { return await window.webbloxProxySignIn(true); } catch { return false; }
   };
 
+  // Auth check used to run through the hub before EVERY request (doubling latency); remember it for a while.
+  let signedAt = 0;
+  const rawSignIn = window.webbloxProxySignIn;
+  window.webbloxProxySignIn = (quiet) => {
+    if (!pendingSignIn && signedAt && Date.now() - signedAt < 5 * 60000) return Promise.resolve(true);
+    return rawSignIn(quiet).then(ok => { if (ok) signedAt = Date.now(); return ok; });
+  };
+  const PUBLIC_HOST = /(^|\.)rbxcdn\.com$/i;
+  const fetchVia = async (libcurl, url, opts) => {
+    try { return await libcurl.fetch(url, opts); }
+    catch (e) {
+      if (opts.signal && opts.signal.aborted) throw e;
+      const st = await proxy();
+      if (st.hub) { await st.hub.rotate(st.wisp, true).catch(() => {}); st.wisp = String(st.hub.wisp() || ''); }
+      return (await proxy()).libcurl.fetch(url, opts);
+    }
+  };
   window.webbloxProxyFetch = async (url, init = {}) => {
-    if (!(await window.webbloxProxySignIn())) throw new Error('Not signed in to Roblox.');
+    let isPublic = false;
+    try { isPublic = PUBLIC_HOST.test(new URL(String(url)).hostname); } catch {}
+    // Images/assets on the CDN are public: no sign-in wait, no cookie, straight through the net hub.
+    if (!isPublic && !(await window.webbloxProxySignIn())) throw new Error('Not signed in to Roblox.');
     const { libcurl } = await proxy();
     const headers = {};
     for (const [k, v] of new Headers(init.headers || {})) {
@@ -133,7 +153,7 @@
     let body = init.body ?? undefined;
     if (body instanceof Blob) body = await body.arrayBuffer();
     const method = init.method || 'GET';
-    const res = await libcurl.fetch(String(url), { method, headers: withCookie(headers), body, redirect: 'follow' });
+    const res = await fetchVia(libcurl, String(url), { method, headers: isPublic ? headers : withCookie(headers), body, redirect: 'follow' });
     const out = new Headers();
     for (const [k, v] of res.headers.entries()) {
       if (!['set-cookie', 'content-encoding', 'content-length', 'transfer-encoding'].includes(k.toLowerCase())) out.append(k, v);
