@@ -12,7 +12,8 @@
     "Assets/vms/**",
     "Assets/now/**",
     "Assets/singuloxy/**",
-    "Assets/build/**"
+    "Assets/build/**",
+    "Assets/blox/**"
   ],
   "live": [
     "Assets/json/g.json",

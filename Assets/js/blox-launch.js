@@ -7,8 +7,7 @@ export function init(K) {
   const $ = id => document.getElementById(id);
   const REPO = K.MAIN_REPO || 'lotsacookie/kstuff';
   const DIR = 'Assets/blox/';
-  const HTML_CACHE = 'kstuff_blox_html_v1';
-  let host = null, ui = null, frame = null, frameP = null, ready = false, base = '';
+    let host = null, ui = null, frame = null, frameP = null, ready = false, base = '';
   let launching = false, live = false, wanted = null, token = 0;
 
   const LOGO = '<svg class="ld-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><g id="blox-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10"><path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/><path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/></g></defs><g class="ld-arms" stroke="currentColor"><use href="#blox-arm"/><use href="#blox-arm" transform="rotate(120 50 50)"/><use href="#blox-arm" transform="rotate(240 50 50)"/></g><g class="ld-core" fill="currentColor"><path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/></g></svg>';
@@ -39,28 +38,6 @@ export function init(K) {
     const sha = await K.getRefSha(REPO, 'main', force).catch(() => '');
     return { sha, base: `https://cdn.jsdelivr.net/gh/${REPO}@${sha || 'main'}/${DIR}` };
   }
-  async function clientHtml(force) {
-    const { sha, base: b } = await resolveBase(force);
-    base = b;
-    if (sha) {
-      try { const c = JSON.parse(localStorage.getItem(HTML_CACHE) || 'null'); if (c && c.sha === sha && c.html) return c.html; } catch {}
-    }
-    let html = '';
-    const urls = [b + 'index.html'];
-    if (sha) urls.push(`https://raw.githubusercontent.com/${REPO}/${sha}/${DIR}index.html`);
-    urls.push(`https://cdn.jsdelivr.net/gh/${REPO}@main/${DIR}index.html`);
-    let err;
-    for (const u of urls) {
-      try { const r = await fetch(u, { cache: 'default' }); if (r.ok) { html = await r.text(); break; } err = new Error(r.status + ' ' + u); } catch (e) { err = e; }
-    }
-    if (!html) {
-      try { const sg = window.singularity; if (sg && sg.has && sg.has(DIR + 'index.html')) { const r = await fetch(sg.url(DIR + 'index.html')); if (r.ok) html = await r.text(); } } catch (e) { err = e; }
-    }
-    if (!html) throw err || new Error('Couldn’t load the WebBlox client');
-    if (sha) { try { localStorage.setItem(HTML_CACHE, JSON.stringify({ sha, at: Date.now(), html })); } catch {} }
-    return html;
-  }
-
   function ensureHost() {
     const act = document.querySelector('.page.active')?.id;
     const want = $(act === 'sciencequiz' ? 'sciencequiz' : 'readingcorner');
@@ -116,25 +93,26 @@ export function init(K) {
   const setStatus = t => { if (ui) ui.status.textContent = t || ''; };
   const setProg = p => { if (ui) ui.fill.style.transform = `scaleX(${Math.min(Math.max(p, 0), 1)})`; };
 
-  function mountFrame() {
-    if (frameP) return frameP;
+  // The client runs as a normal same-origin page (its service worker and ?placeId= mode need a real URL), pinned to the latest commit.
+  // Its scripts and the core pack come from jsDelivr at that commit (see Assets/blox/index.html).
+  function mountFrame(placeId) {
     ensureHost();
     ensureStyle();
-    frameP = (async () => {
-      let html = await clientHtml(true);
-      const boot = `<base href="${base}"><script>window.__BLOX_EMBED=true;window.__BLOX_BASE=${JSON.stringify(base)};<\/script>`;
-      const doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + boot) : boot + html;
+    return (async () => {
+      const { sha } = await resolveBase(true);
+      const url = new URL(DIR + 'index.html', document.baseURI);
+      if (placeId) url.searchParams.set('placeId', placeId);
+      url.searchParams.set('v', sha || String(Date.now()));
+      url.searchParams.set('embed', '1');
+      if (frame) frame.remove();
       frame = document.createElement('iframe');
       frame.id = 'blox-frame'; frame.title = 'WebBlox';
-      frame.setAttribute('allow', K.IFRAME_ALLOW || 'fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; microphone');
+      frame.setAttribute('allow', K.IFRAME_ALLOW || 'fullscreen; pointer-lock; gamepad; keyboard-map; autoplay; clipboard-read; clipboard-write; microphone; cross-origin-isolated');
       frame.setAttribute('allowfullscreen', '');
       host.appendChild(frame);
       ready = false;
-      const wait = new Promise(res => { frame._ready = res; });
-      frame.srcdoc = doc;
-      await Promise.race([wait, new Promise((_, rej) => setTimeout(() => rej(new Error('The WebBlox client didn’t start')), 25000))]);
-    })().catch(e => { frameP = null; if (frame) { frame.remove(); frame = null; } throw e; });
-    return frameP;
+      frame.src = url.href;
+    })().catch(e => { if (frame) { frame.remove(); frame = null; } throw e; });
   }
   const focusFrame = () => { try { frame?.focus(); frame?.contentWindow?.focus(); } catch {} };
   const post = msg => { try { frame?.contentWindow?.postMessage(msg, '*'); } catch {} };
@@ -245,18 +223,15 @@ export function init(K) {
     host.classList.add('blox-running');
     ui.load.classList.remove('hidden', 'failed'); ui.cancel.hidden = false; ui.back.hidden = true;
     setProg(0.02);
-    // the client loads in the background while the player types the Place ID
-    const mounted = mountFrame();
-    mounted.catch(err => { if (my === token) fail('Couldn’t start WebBlox: ' + ((err && err.message) || err)); });
     try {
       const id = await askPlace();
       if (my !== token) return;
       setStatus('Loading the WebBlox client…'); setProg(0.05);
-      await mounted;
-      if (my !== token) return;
       wanted = { id, title: item.bloxName || item.title || 'WebBlox' };
-      setStatus('Starting game ' + id);
-      post({ type: 'blox:launch', game: wanted });
+      await mountFrame(id);
+      if (my !== token) return;
+      // the client draws its own loading and sign-in screens, so hand it the screen right away
+      showFrame(true, true); ui?.load.classList.add('hidden'); focusFrame(); setTimeout(focusFrame, 300);
     } catch (err) {
       if (my !== token) return;
       fail('Couldn’t start WebBlox: ' + ((err && err.message) || err));

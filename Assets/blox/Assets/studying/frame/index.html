@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html, body { width: 100%; height: 100%; margin: 0; overflow: hidden; background: transparent; }
+      #proxy-frame { display: block; width: 100%; height: 100%; border: 0; background: transparent; }
+    </style>
+    <script>
+      window.WB_ASSETS = location.pathname.replace(/studying\/frame\/[^/]*$/, "");
+      window.WB_ROOT = window.WB_ASSETS.replace(/Assets\/$/, "");
+    </script>
+  </head>
+  <body>
+    <iframe id="proxy-frame" allow="autoplay; fullscreen; gamepad; cross-origin-isolated"></iframe>
+    <script src="../lesson.js"></script>
+    <script src="../session.js"></script>
+    <script src="../../js/proxy-transport.js"></script>
+    <script src="../start.js"></script>
+    <script src="webblox-signin.js?v=3"></script>
+    <script src="bridge.js?v=5"></script>
+  </body>
+</html>

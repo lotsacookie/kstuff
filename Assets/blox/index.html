@@ -1,641 +1,100 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>WebBlox</title>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>WebBlox</title>
+<style>html,body{margin:0;height:100%;background:#18191c;color:#bdbebe;font:14px system-ui,sans-serif}#wb-wait{position:fixed;inset:0;display:grid;place-items:center;text-align:center;padding:24px}#wb-wait button{margin-top:12px;padding:8px 16px;border:0;border-radius:6px;background:#335fff;color:#fff;font:inherit;cursor:pointer}</style>
 <script>
-(() => {
-  if (window.__wbConsole) return;
-  const MAX = 3000, DOM_MAX = 1500, CAP = 4000;
-  const buf = [];
-  let ui = null, unseen = 0;
-  const pad = (n, l = 2) => String(n).padStart(l, "0");
-  const stamp = () => { const d = new Date(); return pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds()) + "." + pad(d.getMilliseconds(), 3); };
-  const fmt = (v) => {
-    try {
-      if (typeof v === "string") return v;
-      if (v instanceof Error) return v.stack || v.message;
-      if (typeof v === "function") return String(v);
-      if (v && typeof v === "object") { try { return JSON.stringify(v, (k, x) => (typeof x === "bigint" ? String(x) : x), 2); } catch { return Object.prototype.toString.call(v); } }
-      return String(v);
-    } catch { return "[unprintable]"; }
-  };
-  const line = (e) => "[" + e.t + "] [" + e.src + "] [" + e.level + "] " + e.text + (e.n > 1 ? "  (x" + e.n + ")" : "");
-
-  function add(src, level, text) {
-    text = String(text).slice(0, CAP);
-    // Heartbeat lines are pure noise (they flood the log and the copied text), so they never enter the buffer.
-    if (/heart\s*-?beat/i.test(text)) return;
-    // Repeats that differ only in numbers (timestamps, counters) collapse into one line with an (xN) count.
-    const key = src + "|" + level + "|" + text.replace(/\d+(?:\.\d+)?/g, "#");
-    const last = buf[buf.length - 1];
-    if (last && last.key === key) {
-      last.n++;
-      if (ui) ui.update(last);
-    } else {
-      const e = { t: stamp(), src, level, text, key, n: 1, el: null };
-      buf.push(e);
-      if (buf.length > MAX) buf.shift();
-      if (ui) ui.append(e);
-    }
-    if (level === "error") { unseen++; if (ui) ui.badge(); }
-  }
-
-  for (const m of ["log", "info", "warn", "error", "debug"]) {
-    const orig = console[m];
-    console[m] = function (...a) { try { add("H", m, a.map(fmt).join(" ")); } catch {} return orig.apply(this, a); };
-  }
-  addEventListener("error", (e) => {
-    if (e.target && e.target !== window) { const u = e.target.src || e.target.href; if (u) add("H", "error", "Failed to load " + u); return; }
-    add("H", "error", (e.message || "Error") + (e.filename ? " (" + e.filename + ":" + e.lineno + ":" + e.colno + ")" : ""));
-  }, true);
-  addEventListener("unhandledrejection", (e) => add("H", "error", "Unhandled rejection: " + fmt(e.reason)));
-
-  function build() {
-    const host = document.createElement("div");
-    host.id = "wb-console-host";
-    const root = host.attachShadow({ mode: "open" });
-    root.innerHTML =
-      "<style>" +
-      "*{box-sizing:border-box}" +
-      "#btn{position:fixed;right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:46px;height:46px;border-radius:50%;border:1px solid #666;background:#1b1b1bd9;color:#eee;font:600 13px ui-monospace,monospace;z-index:2147483647;padding:0}" +
-      "#badge{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;border-radius:9px;background:#e03131;color:#fff;font:700 11px/18px system-ui;display:none;padding:0 4px}" +
-      "#panel{position:fixed;left:0;right:0;bottom:0;height:55vh;height:55dvh;display:none;flex-direction:column;background:#0a0a0af2;color:#ddd;z-index:2147483647;border-top:1px solid #444;padding-bottom:env(safe-area-inset-bottom)}" +
-      "#panel.open{display:flex}" +
-      "#bar{display:flex;gap:6px;padding:6px;border-bottom:1px solid #333;align-items:center}" +
-      "#bar span{flex:1;font:12px system-ui;color:#999}" +
-      "button{font:13px system-ui;padding:8px 10px;background:#2a2a2a;color:#eee;border:1px solid #555;border-radius:6px}" +
-      "button.on{background:#3b5bdb;border-color:#3b5bdb}" +
-      "#log{flex:1;overflow:auto;padding:6px;font:11px/1.4 ui-monospace,Menlo,Consolas,monospace;white-space:pre-wrap;word-break:break-word;-webkit-user-select:text;user-select:text;-webkit-touch-callout:default;overscroll-behavior:contain}" +
-      ".e{padding:2px 0;border-bottom:1px solid #1c1c1c;-webkit-user-select:text;user-select:text}" +
-      ".l-error{color:#ff6b6b}.l-warn{color:#ffd166}.l-info{color:#7cc7ff}.l-debug{color:#9a9a9a}.l-result{color:#8ce99a}.l-cmd{color:#b197fc}" +
-      "#log.only .l-log,#log.only .l-info,#log.only .l-debug,#log.only .l-result,#log.only .l-cmd{display:none}" +
-      "#row{display:flex;border-top:1px solid #333}" +
-      "#in{flex:1;min-width:0;font:16px ui-monospace,monospace;background:#111;color:#eee;border:0;padding:8px;outline:0}" +
-      "</style>" +
-      '<button id="btn" aria-label="Open console">&gt;_<span id="badge"></span></button>' +
-      '<div id="panel"><div id="bar"><span id="hint">H=host F=page</span>' +
-      '<button id="only">Errors</button><button id="copy">Copy</button><button id="clear">Clear</button><button id="close">&#x2715;</button></div>' +
-      '<div id="log"></div><div id="row"><input id="in" placeholder="js (prefix ! to run in the page)" autocapitalize="off" autocomplete="off" autocorrect="off" spellcheck="false"></div></div>';
-    const $ = (id) => root.getElementById(id);
-    const log = $("log"), panel = $("panel"), btn = $("btn"), badgeEl = $("badge");
-    let open = false, only = false;
-
-    const render = (e) => {
-      const d = document.createElement("div");
-      d.className = "e l-" + e.level;
-      d.textContent = line(e);
-      e.el = d;
-      return d;
-    };
-    const atBottom = () => log.scrollHeight - log.scrollTop - log.clientHeight < 40;
-    const api = {
-      host,
-      append(e) {
-        if (!open) return;
-        const stick = atBottom();
-        log.appendChild(render(e));
-        while (log.childElementCount > DOM_MAX) log.removeChild(log.firstChild);
-        if (stick) log.scrollTop = log.scrollHeight;
-      },
-      update(e) { if (open && e.el) e.el.textContent = line(e); },
-      badge() { if (open || !unseen) { badgeEl.style.display = "none"; return; } badgeEl.textContent = unseen > 99 ? "99+" : unseen; badgeEl.style.display = "block"; },
-      open() {
-        open = true; unseen = 0; api.badge();
-        log.textContent = "";
-        const frag = document.createDocumentFragment();
-        for (const e of buf.slice(-DOM_MAX)) frag.appendChild(render(e));
-        log.appendChild(frag);
-        panel.classList.add("open"); btn.style.display = "none";
-        log.scrollTop = log.scrollHeight;
-      },
-      close() { open = false; panel.classList.remove("open"); btn.style.display = ""; },
-      text() { return buf.filter((e) => !only || e.level === "error" || e.level === "warn").map(line).join("\n"); },
-    };
-
-    btn.onclick = api.open;
-    $("close").onclick = api.close;
-    $("clear").onclick = () => { buf.length = 0; log.textContent = ""; unseen = 0; api.badge(); };
-    $("only").onclick = () => { only = !only; $("only").classList.toggle("on", only); log.classList.toggle("only", only); };
-    $("copy").onclick = async () => {
-      const text = api.text(), b = $("copy");
-      let ok = false;
-      try { await navigator.clipboard.writeText(text); ok = true; } catch {}
-      if (!ok) {
-        try {
-          const ta = document.createElement("textarea");
-          ta.value = text; ta.style.cssText = "position:fixed;opacity:0;left:0;top:0";
-          root.appendChild(ta); ta.focus(); ta.select(); ta.setSelectionRange(0, text.length);
-          ok = document.execCommand("copy"); ta.remove();
-        } catch {}
-      }
-      b.textContent = ok ? "Copied" : "Failed";
-      setTimeout(() => { b.textContent = "Copy"; }, 1200);
-    };
-    $("in").addEventListener("keydown", async (ev) => {
-      if (ev.key !== "Enter") return;
-      const input = ev.target, code = input.value.trim();
-      if (!code) return;
-      input.value = "";
-      add("H", "cmd", "> " + code);
-      try {
-        let r;
-        if (code[0] === "!") {
-          const f = window.webblox && window.webblox.frame;
-          if (!f) throw new Error("page frame not ready yet");
-          r = await f.eval_js(code.slice(1));
-        } else {
-          // Wrap as an async expression first so `await x` works at the prompt; statements (var, if, ...) fall back to plain eval.
-          try { r = (0, eval)("(async()=>(" + code.replace(/;+\s*$/, "") + "\n))()"); }
-          catch (se) { if (se instanceof SyntaxError) r = (0, eval)(code); else throw se; }
-        }
-        if (r && typeof r.then === "function") r = await r;
-        add("H", "result", fmt(r));
-      } catch (e) { add("H", "error", fmt(e)); }
-    });
-    return api;
-  }
-
-  const mount = () => {
-    if (!ui) ui = build();
-    if (!ui.host.isConnected) document.documentElement.appendChild(ui.host);
-    ui.badge();
-  };
-  const start = () => {
-    mount();
-    new MutationObserver(() => { if (ui && !ui.host.isConnected) document.documentElement.appendChild(ui.host); }).observe(document.documentElement, { childList: true });
-  };
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", start); else start();
-
-  window.__wbConsole = {
-    add,
-    frame(batch) { for (const [level, text] of batch || []) add("F", level, text); },
-    open: () => { mount(); ui.open(); },
-    close: () => ui && ui.close(),
-    text: () => (ui ? ui.text() : buf.map(line).join("\n")),
-  };
-})();
+  window.WB_ASSETS = new URL("Assets/", document.baseURI).pathname;
+  window.WB_ROOT = new URL("./", document.baseURI).pathname;
 </script>
-
-<style>
-  html, body { margin: 0; height: 100%; background: #111; color: #ddd; font-family: system-ui, sans-serif; overflow: hidden; }
-  #wb-boot { position: fixed; inset: 0; display: grid; place-items: center; text-align: center; }
-  #wb-status { opacity: .8; font-size: 14px; margin-top: 8px; }
-  #wb-form { display: none; margin-top: 18px; }
-  #wb-form.show { display: block; }
-  #wb-row { display: flex; gap: 8px; justify-content: center; }
-  #wb-place { width: min(260px, 60vw); padding: 10px 12px; border-radius: 8px; border: 1px solid #555; background: #1b1b1b; color: #eee; font: inherit; font-size: 15px; text-align: center; outline: none; }
-  #wb-place:focus { border-color: #8ab4ff; }
-  #wb-go { padding: 10px 18px; border-radius: 8px; border: 0; background: #3b82f6; color: #fff; font: inherit; font-size: 15px; cursor: pointer; }
-  #wb-go:hover { background: #2f6fd8; }
-  #wb-hint { opacity: .55; font-size: 12px; margin-top: 8px; }
-</style>
-</head>
-<body>
-<div id="wb-boot"><div><h2 style="margin:0">WebBlox</h2><div id="wb-status">Starting…</div>
-<form id="wb-form" autocomplete="off"><div id="wb-row"><input id="wb-place" inputmode="numeric" placeholder="Place ID" aria-label="Place ID" spellcheck="false"><button id="wb-go" type="submit">Launch</button></div><div id="wb-hint">Paste a Place ID or a roblox.com/games/… link.</div></form></div></div>
+</head><body><div id="wb-wait"><div id="wb-msg">Loading WebBlox</div></div>
 <script>
-(() => {
-  // WebBlox inside kstuff: every request goes through the kstuff net hub (window.kNetDirect). This page never creates
-  // its own proxy, picks wisps, or handles cookies: the hub's sandstone/ProxyFrame does, and its cookie jar
-  // (proxy_cookie_storage) is the same one the rest of kstuff uses.
-  const status = document.getElementById("wb-status");
-  const embedded = window.parent && window.parent !== window;
-  const post = (type, extra) => { if (!embedded) return; try { window.parent.postMessage(Object.assign({ type }, extra || {}), "*"); } catch {} };
-  let lastSay = "";
-  const say = (t) => { if (status) status.textContent = t; if (t !== lastSay) { lastSay = t; post("blox:status", { text: t }); } };
-  const START = "https://play.roblox.com/games/start";
-  const FLAGS = { FFlagBaseClientGateOnSendChannel: "False", FLogGameJoinUtil: "7" };
-  // Auto-patch for "Failed to open send channel Chat! (256)" on "Joining server".
-  // The engine opens Chat on a logical channel over RtcIo; these flags relax that path.
-  // Levels are cumulative. Start at 1, escalate + relaunch each time the error is seen.
-  const CHAT_FAIL_RE = /Failed to open send channel\s*Chat/i;
-  const bothPrefixes = (o) => { const r = {}; for (const [k, v] of Object.entries(o)) { r["FFlag" + k] = v; r["DFFlag" + k] = v; } return r; };
-  const CHAT_PATCHES = [
-    bothPrefixes({ EnableExpChatUseLogicalChannelId: "False", RbxTransportRtcioRejectDuplicateChannel: "False", RbxTransportSentinelWireChannelIdCheck: "False" }),
-    bothPrefixes({ RbxTransportRtcioRejectChannelOpenOnFailedConnect: "False", RbxTransportRtcioCreditChannelHeader: "False", RbxTransportRtcioNativeControlChannel: "False", RbxTransportRtcioValidateApplicationEnum: "False" }),
-    bothPrefixes({ RbxTransportRtcIoClientForceReliableChannels: "True", RbxTransportRtcioConnStartReentrant: "False", RbxTransportRtcioAwaitIdleOnTransientError: "False", TextChatFixUniverseChatChannelReassignment: "False" }),
-  ];
-  const applyChatLevel = (n) => {
-    for (const p of CHAT_PATCHES) for (const k of Object.keys(p)) delete FLAGS[k];
-    for (let i = 0; i < Math.min(n, CHAT_PATCHES.length); i++) Object.assign(FLAGS, CHAT_PATCHES[i]);
-  };
-  const initialChatLevel = (search) => {
-    const q = new URLSearchParams(search).get("chatfix");
-    if (q === "off" || q === "0") return 0;
-    if (q !== null && /^\d+$/.test(q)) return Math.min(+q, CHAT_PATCHES.length);
-    const saved = store_get_level();
-    return Math.min(Math.max(saved, 1), CHAT_PATCHES.length);
-  };
-  const store_get_level = () => { try { const v = JSON.parse(localStorage.getItem("WB_CHATFIX")); return Number.isInteger(v) ? v : 1; } catch { return 1; } };
+(async () => {
+  const REPO = "lotsacookie/kstuff", BRANCH = "main", DIR = "Assets/blox/";
+  const msg = document.getElementById("wb-msg");
+  const say = (t) => { msg.textContent = t; };
+  const isSha = (s) => /^[0-9a-f]{40}$/.test(String(s || ""));
 
-  const store = {
-    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
-  };
-  const warn = (m) => console.warn("[webblox] " + m);
-  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-  const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
-
-  // UDP probe: QUIC/WebTransport can only be tunnelled if the wisp server allows UDP streams. This opens its own wisp (v1) connection
-  // to the hub's current wisp, opens a UDP stream to a public DNS server and checks for an answer. Run it from the console with
-  // `await wbUdpProbe()` (optionally wbUdpProbe(wispUrl, "8.8.8.8", 53)). It also runs once automatically when the game connection fails.
-  async function udpProbe(wispUrl, host, port, timeoutMs) {
-    host = host || "1.1.1.1"; port = port || 53; timeoutMs = timeoutMs || 8000;
-    const P = (m) => console.warn("[webblox] udp probe: " + m);
-    if (!wispUrl) { const h = findHub(); wispUrl = h && h.wisp && h.wisp(); }
-    if (!wispUrl) { P("no wisp url available"); return { ok: false, reason: "no-wisp" }; }
-    const t0 = performance.now();
-    return await new Promise((resolve) => {
-      let done = false, ws = null, opened = false;
-      const enc = new TextEncoder();
-      const finish = (r) => { if (done) return; done = true; clearTimeout(timer); try { ws && ws.close(); } catch {} r.ms = Math.round(performance.now() - t0); P(JSON.stringify(r)); resolve(r); };
-      const timer = setTimeout(() => finish({ ok: false, reason: opened ? "no-reply (UDP blocked or filtered by the wisp)" : "ws-timeout", wisp: wispUrl }), timeoutMs);
-      const frame = (type, id, payload) => { const b = new Uint8Array(5 + payload.length); b[0] = type; new DataView(b.buffer).setUint32(1, id, true); b.set(payload, 5); return b; };
-      const dns = () => { // DNS A query for example.com, id 0xbeef
-        const name = "example.com".split(".").flatMap((l) => [l.length, ...enc.encode(l)]);
-        return new Uint8Array([0xbe, 0xef, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, ...name, 0, 0, 1, 0, 1]);
-      };
-      const connect = () => {
-        const h = enc.encode(host), pl = new Uint8Array(3 + h.length);
-        pl[0] = 2; new DataView(pl.buffer).setUint16(1, port, true); pl.set(h, 3); // stream type 2 = UDP
-        ws.send(frame(0x01, 1, pl));
-        ws.send(frame(0x02, 1, dns()));
-      };
-      try { ws = new WebSocket(wispUrl); ws.binaryType = "arraybuffer"; } catch (e) { return finish({ ok: false, reason: "ws-error: " + e.message }); }
-      let sent = false;
-      ws.onopen = () => { opened = true; P("connected to " + wispUrl); };
-      ws.onerror = () => finish({ ok: false, reason: "ws-error", wisp: wispUrl });
-      ws.onclose = () => finish({ ok: false, reason: opened ? "wisp closed the connection" : "ws-closed", wisp: wispUrl });
-      ws.onmessage = (ev) => {
-        const d = new Uint8Array(ev.data); if (d.length < 5) return;
-        const type = d[0], id = new DataView(d.buffer).getUint32(1, true);
-        if (type === 0x05) return; // v2 INFO, ignore and stay on v1
-        if (type === 0x03 && id === 0 && !sent) { sent = true; connect(); return; }
-        if (type === 0x02 && id === 1) { const r = d.subarray(5); const ok = r.length >= 12 && r[0] === 0xbe && r[1] === 0xef; return finish({ ok, reason: ok ? "udp works" : "unexpected reply", bytes: r.length, wisp: wispUrl, target: host + ":" + port }); }
-        if (type === 0x04 && id === 1) return finish({ ok: false, reason: "wisp refused the UDP stream (close code 0x" + (d[5] || 0).toString(16) + ")", wisp: wispUrl, target: host + ":" + port });
-      };
-      setTimeout(() => { if (!sent && opened) { sent = true; connect(); } }, 1500); // v1 servers that skip the initial CONTINUE
-    });
-  }
-  window.wbUdpProbe = udpProbe;
-  // One command: probes several UDP targets on the current wisp and prints a summary. Usage: await wbUdpScan()  (or just wbUdpScan())
-  window.wbUdpScan = async function (wispUrl) {
-    const targets = [["1.1.1.1", 53], ["8.8.8.8", 53], ["9.9.9.9", 53], ["8.8.8.8", 443], ["1.1.1.1", 443], ["8.8.8.8", 51864]];
-    const rows = [];
-    for (const [h, p] of targets) {
-      const r = await udpProbe(wispUrl, h, p, 4500);
-      const allowed = !!(r.ok || /^no-reply/.test(r.reason || ""));
-      rows.push((allowed ? "ALLOWED " : "BLOCKED ") + h + ":" + p + "  " + (r.reason || ""));
-    }
-    const out = "UDP scan\n" + rows.join("\n");
-    console.warn("[webblox] " + out);
-    return out;
-  };
-
-  const findHub = () => {
-    for (const w of [window, window.parent, window.top]) {
-      try { if (w && w.kNetDirect && typeof w.kNetDirect.sandstone === "function") return w.kNetDirect; } catch {}
-    }
-    return null;
-  };
-  async function waitHub(ms) {
-    const t0 = Date.now();
-    let hub = findHub();
-    while (!hub && Date.now() - t0 < ms) { await sleep(100); hub = findHub(); }
-    if (!hub) throw new Error("Net hub not available. Open WebBlox from the kstuff Games page.");
-    return hub;
-  }
-
-  let place = "";
-  const pageLocation = () => {
-    if (location.search || location.hash) return location;
-    try { void window.top.location.href; return window.top.location; } catch { return location; }
-  };
-  const startUrl = () => {
-    const loc = pageLocation();
-    const h = loc.hash.slice(1);
-    if (/^https?:\/\//i.test(h)) return h;
-    const id = place || window.__BLOX_PLACE || new URLSearchParams(loc.search).get("placeId") || "";
-    return /^\d{1,20}$/.test(String(id)) ? START + "?placeId=" + id : START;
-  };
-
-  const flagScript = () => {
-    const json = JSON.stringify(FLAGS).replace(/</g, "\\u003c");
-    return "<script data-webblox>(function(){var o=" + json + ";var d=window.__wasmDevSettings=window.__wasmDevSettings||{};var prev=d.getFlagOverrides;d.getFlagOverrides=function(){var p={};try{if(prev)p=prev()||{};}catch(e){}return Object.assign({},p,o);};})()<\/script>";
-  };
-  // WebTransport is missing inside workers of the proxied page, but the engine opens its game connection from a pthread worker.
-  // workerPrelude runs at the top of every worker and defines a WebTransport that forwards to the real one on the page's main thread
-  // (mainBridge, below) over a MessagePort. Both functions are injected as source text, so keep them free of outside references.
-  function workerPrelude() {
-    if (typeof self.WebTransport !== "undefined") return;
-    var port = null, queue = [], nextId = 1, nextRid = 1, conns = {}, rpcs = {};
-    function send(m, t) { if (port) port.postMessage(m, t || []); else queue.push([m, t || []]); }
-    function rpc(m, t) { return new Promise(function (res, rej) { var rid = nextRid++; rpcs[rid] = [res, rej]; m.rid = rid; send(m, t); }); }
-    function copy(x) { return (ArrayBuffer.isView(x) ? new Uint8Array(x.buffer, x.byteOffset, x.byteLength) : new Uint8Array(x)).slice().buffer; }
-    addEventListener("message", function (e) {
-      var d = e.data;
-      if (d && d.__wbwt === 1) {
-        e.stopImmediatePropagation();
-        port = d.port; port.onmessage = onMain;
-        var q = queue; queue = [];
-        q.forEach(function (x) { port.postMessage(x[0], x[1]); });
-      }
-    });
-    function onMain(e) {
-      var m = e.data, c = conns[m.id];
-      if (m.t === "ack") { var r = rpcs[m.rid]; if (r) { delete rpcs[m.rid]; if (m.error) r[1](new Error(m.error)); else r[0](m); } return; }
-      if (!c) return;
-      var s;
-      switch (m.t) {
-        case "ready": c.datagrams.maxDatagramSize = m.max || 0; c.resolveReady(); break;
-        case "readyfail": c.rejectReady(new Error(m.error)); try { c.dgCtrl.close(); c.inCtrl.close(); } catch (x) {} break;
-        case "closed": c.resolveClosed(m.info || {}); try { c.dgCtrl.close(); } catch (x) {} try { c.inCtrl.close(); } catch (x) {} break;
-        case "closedfail": c.rejectClosed(new Error(m.error)); break;
-        case "dg": try { c.dgCtrl.enqueue(new Uint8Array(m.buf)); } catch (x) {} break;
-        case "instream":
-          s = new ReadableStream({ start: function (ctrl) { c.ins[m.sid] = ctrl; }, cancel: function () { send({ t: "incancel", id: m.id, sid: m.sid }); } });
-          try { c.inCtrl.enqueue(s); } catch (x) {}
-          break;
-        case "indata": if (c.ins[m.sid]) try { c.ins[m.sid].enqueue(new Uint8Array(m.buf)); } catch (x) {} break;
-        case "inend": if (c.ins[m.sid]) { try { c.ins[m.sid].close(); } catch (x) {} delete c.ins[m.sid]; } break;
-        case "inerr": if (c.ins[m.sid]) { try { c.ins[m.sid].error(new Error(m.error)); } catch (x) {} delete c.ins[m.sid]; } break;
-      }
-    }
-    function WT(url, opts) {
-      var id = nextId++, c = conns[id] = { ins: {} };
-      this._id = id;
-      this.ready = new Promise(function (res, rej) { c.resolveReady = res; c.rejectReady = rej; });
-      this.closed = new Promise(function (res, rej) { c.resolveClosed = res; c.rejectClosed = rej; });
-      this.ready.catch(function () {}); this.closed.catch(function () {});
-      this.datagrams = c.datagrams = {
-        maxDatagramSize: 0,
-        readable: new ReadableStream({ start: function (ctrl) { c.dgCtrl = ctrl; } }),
-        writable: new WritableStream({ write: function (chunk) { var b = copy(chunk); return rpc({ t: "dgw", id: id, buf: b }, [b]); } })
-      };
-      this.incomingUnidirectionalStreams = new ReadableStream({ start: function (ctrl) { c.inCtrl = ctrl; } });
-      var hashes = ((opts && opts.serverCertificateHashes) || []).map(function (h) { return { algorithm: h.algorithm, value: new Uint8Array(h.value) }; });
-      send({ t: "new", id: id, url: String(url), hashes: hashes });
-    }
-    WT.prototype.createUnidirectionalStream = function () {
-      var id = this._id;
-      return rpc({ t: "newout", id: id }).then(function (a) {
-        var sid = a.sid;
-        return new WritableStream({
-          write: function (chunk) { var b = copy(chunk); return rpc({ t: "outw", id: id, sid: sid, buf: b }, [b]); },
-          close: function () { return rpc({ t: "outc", id: id, sid: sid }); },
-          abort: function () { return rpc({ t: "outa", id: id, sid: sid }); }
-        });
+  // 1. Pin to a commit: the launcher passes the one it already got from the GitHub API (?v=), otherwise ask the API here.
+  const latestSha = async () => {
+    const c = new AbortController(), t = setTimeout(() => c.abort(), 5000);
+    try {
+      const r = await fetch("https://api.github.com/repos/" + REPO + "/commits/" + BRANCH, {
+        cache: "no-store", signal: c.signal, headers: { Accept: "application/vnd.github.sha" },
       });
-    };
-    WT.prototype.close = function (info) { send({ t: "close", id: this._id, info: info || {} }); };
-    WT.__wbBridge = true;
-    self.WebTransport = WT;
-    try { console.warn("[webblox] worker shim active"); } catch (x) {}
+      if (!r.ok) throw new Error("GitHub API " + r.status);
+      const sha = (await r.text()).trim();
+      if (!isSha(sha)) throw new Error("bad sha");
+      try { localStorage.setItem("wb-sha", sha); } catch {}
+      return sha;
+    } finally { clearTimeout(t); }
+  };
+  let sha = new URLSearchParams(location.search).get("v");
+  if (!isSha(sha)) {
+    say("Checking for the latest WebBlox…");
+    sha = null;
+    try { sha = await latestSha(); }
+    catch (e) {
+      console.warn("[pin] GitHub API failed:", e && e.message);
+      try { sha = localStorage.getItem("wb-sha"); } catch {}
+    }
   }
+  if (!isSha(sha)) sha = null;
+  window.WB_SHA = sha || String(Date.now());
+  const v = window.WB_SHA.slice(0, 12);
+  const CDN = sha ? "https://cdn.jsdelivr.net/gh/" + REPO + "@" + sha + "/" + DIR : null;
+  console.log("[pin] using", window.WB_SHA);
 
-  function mainBridge(PRELUDE) {
-    var w = window, L = function (m) { console.warn("[webblox] " + m); };
-    // This script runs inside the sandstone sandbox, where window.Worker / window.URL are its fakes (FakeWorker spawns the real
-    // workers itself). Wrapping the fake made it spawn itself forever (hundreds of workers), so take the native constructors from
-    // the real global's property descriptors instead and patch those: the real workers sandstone creates then go through us.
-    var dW = Object.getOwnPropertyDescriptor(w, "Worker"), dU = Object.getOwnPropertyDescriptor(w, "URL");
-    var NW0 = dW && dW.value, U0 = dU && dU.value;
-    if (!NW0 || NW0.__wbwt || !U0 || !U0.createObjectURL) { L("worker bridge not installed: native Worker/URL not reachable"); return; }
-    var CU = U0.createObjectURL, blobs = {}, order = [], nWrapped = 0, nPlain = 0;
-    U0.createObjectURL = function (o) {
-      var u = CU.apply(U0, arguments);
-      try { if (o instanceof Blob) { blobs[u] = o; order.push(u); if (order.length > 400) delete blobs[order.shift()]; } } catch (x) {}
-      return u;
-    };
-    function serve(port) {
-      var conns = {};
-      function post(m, t) { try { port.postMessage(m, t || []); } catch (x) {} }
-      function ack(rid, err) { post({ t: "ack", rid: rid, error: err ? String((err && err.message) || err) : undefined }); }
-      function readDatagrams(c, id) {
-        var rd; try { rd = c.wt.datagrams.readable.getReader(); } catch (x) { return; }
-        (function loop() { rd.read().then(function (r) { if (r.done) return; var b = new Uint8Array(r.value).slice().buffer; post({ t: "dg", id: id, buf: b }, [b]); loop(); }, function () {}); })();
+  // 2. Core pack: jsDelivr pinned to the commit, then this site (pinned query), then raw GitHub pinned.
+  const nativeFetch = window.fetch.bind(window);
+  const packSources = [
+    ...(CDN ? [CDN + "Assets/core.pack.gz"] : []),
+    new URL("Assets/core.pack.gz?v=" + v, document.baseURI).href,
+    ...(sha ? ["https://raw.githubusercontent.com/" + REPO + "/" + sha + "/" + DIR + "Assets/core.pack.gz"] : []),
+  ];
+  window.fetch = async function (input, init) {
+    const url = typeof input === "string" ? input : input instanceof URL ? input.href : input && input.url;
+    if (url && /\/core\.pack\.gz(\?|$)/.test(url) && !packSources.includes(url)) {
+      let last;
+      for (const src of packSources) {
+        try {
+          const r = await nativeFetch(src, { credentials: "omit" });
+          if (r.ok) return r;
+          last = r;
+          console.warn("[pin] core pack", r.status, src);
+        } catch (e) { console.warn("[pin] core pack failed", src, e && e.message); }
       }
-      function readStream(id, sid, rs) {
-        var rd = rs.getReader(); c_streams[id + ":" + sid] = rd;
-        (function loop() {
-          rd.read().then(function (r) {
-            if (r.done) { post({ t: "inend", id: id, sid: sid }); return; }
-            var b = new Uint8Array(r.value).slice().buffer; post({ t: "indata", id: id, sid: sid, buf: b }, [b]); loop();
-          }, function (err) { post({ t: "inerr", id: id, sid: sid, error: String((err && err.message) || err) }); });
-        })();
-      }
-      var c_streams = {};
-      function readIncoming(c, id) {
-        var rd; try { rd = c.wt.incomingUnidirectionalStreams.getReader(); } catch (x) { return; }
-        (function loop() { rd.read().then(function (r) { if (r.done) return; var sid = c.nextIn++; post({ t: "instream", id: id, sid: sid }); readStream(id, sid, r.value); loop(); }, function () {}); })();
-      }
-      function open(m) {
-        var opts = m.hashes && m.hashes.length ? { serverCertificateHashes: m.hashes.map(function (h) { return { algorithm: h.algorithm, value: h.value }; }) } : undefined, wt;
-        try { wt = opts ? new w.WebTransport(m.url, opts) : new w.WebTransport(m.url); }
-        catch (err) { post({ t: "readyfail", id: m.id, error: String((err && err.message) || err) }); return; }
-        var c = conns[m.id] = { wt: wt, outs: {}, nextOut: 1, nextIn: 1, dgw: null };
-        L("bridge: opening WebTransport " + m.url + " hashes=" + ((m.hashes && m.hashes.length) || 0) + (m.hashes && m.hashes[0] ? " alg=" + m.hashes[0].algorithm + " len=" + (m.hashes[0].value && m.hashes[0].value.length) : ""));
-        wt.ready.then(function () {
-          L("bridge: WebTransport ready");
-          post({ t: "ready", id: m.id, max: (wt.datagrams && wt.datagrams.maxDatagramSize) || 0 });
-          readDatagrams(c, m.id); readIncoming(c, m.id);
-        }, function (err) { L("bridge: WebTransport ready failed: " + ((err && err.message) || err)); post({ t: "readyfail", id: m.id, error: String((err && err.message) || err) }); });
-        wt.closed.then(function (i) { post({ t: "closed", id: m.id, info: { closeCode: i && i.closeCode, reason: i && i.reason } }); },
-          function (err) { post({ t: "closedfail", id: m.id, error: String((err && err.message) || err) }); });
-      }
-      port.onmessage = function (e) {
-        var m = e.data, c = m && conns[m.id];
-        if (!m) return;
-        if (m.t === "new") return open(m);
-        if (!c) { if (m.rid) ack(m.rid, "no connection"); return; }
-        switch (m.t) {
-          case "close": try { c.wt.close(m.info); } catch (x) {} break;
-          case "dgw":
-            try { if (!c.dgw) c.dgw = c.wt.datagrams.writable.getWriter(); c.dgw.write(new Uint8Array(m.buf)).then(function () { ack(m.rid); }, function (er) { ack(m.rid, er); }); } catch (er) { ack(m.rid, er); }
-            break;
-          case "newout":
-            c.wt.createUnidirectionalStream().then(function (ws) { var sid = c.nextOut++; c.outs[sid] = ws.getWriter(); post({ t: "ack", rid: m.rid, sid: sid }); }, function (er) { ack(m.rid, er); });
-            break;
-          case "outw": if (c.outs[m.sid]) c.outs[m.sid].write(new Uint8Array(m.buf)).then(function () { ack(m.rid); }, function (er) { ack(m.rid, er); }); else ack(m.rid, "no stream"); break;
-          case "outc": if (c.outs[m.sid]) c.outs[m.sid].close().then(function () { ack(m.rid); }, function (er) { ack(m.rid, er); }); else ack(m.rid, "no stream"); break;
-          case "outa": if (c.outs[m.sid]) c.outs[m.sid].abort().then(function () { ack(m.rid); }, function (er) { ack(m.rid, er); }); else ack(m.rid, "no stream"); break;
-          case "incancel": try { var rd = c_streams[m.id + ":" + m.sid]; if (rd) rd.cancel(); } catch (x) {} break;
-        }
-      };
+      return last || nativeFetch(input, init);
     }
-    function wrap(NW) {
-    function W(url, opts) {
-      var b = blobs[String(url)], nw;
-      // sandstone always starts its real workers from a blob URL it just made; prepend the shim to a copy of that blob.
-      if (!b) { if (nPlain++ < 2) L("worker not wrapped (not a known blob): " + String(url).slice(0, 80)); return new NW(url, opts); }
-      try { nw = new NW(CU.call(U0, new Blob([PRELUDE, ";\n", b], { type: "text/javascript" })), opts); }
-      catch (e) { L("worker wrap failed, using plain worker: " + e); return new NW(url, opts); }
-      if (nWrapped++ < 2) L("wrapped worker #" + nWrapped + (opts && opts.type ? " (" + opts.type + ")" : ""));
-      try { var mc = new MessageChannel(); nw.postMessage({ __wbwt: 1, port: mc.port2 }, [mc.port2]); serve(mc.port1); } catch (e) { L("worker bridge failed: " + e); }
-      return nw;
-    }
-    W.prototype = NW.prototype; W.__wbwt = 1;
-    return W;
-    }
-    // The proxy's client script may assign its own window.Worker after this script ran, which would silently drop our wrapper.
-    // Keep Worker behind an accessor so any later assignment gets re-wrapped.
-    var cur = wrap(NW0);
-    try {
-      Object.defineProperty(w, "Worker", { configurable: true, enumerable: false,
-        get: function () { return cur; },
-        set: function (v) { cur = (v && !v.__wbwt) ? wrap(v) : v; L("window.Worker was reassigned, re-wrapped"); } });
-    } catch (e) { w.Worker = cur; L("Worker accessor failed: " + e); }
-    L("worker WebTransport bridge installed");
-  }
-
-  const PROBE = [
-    "(function(){try{var w=window,L=function(m){console.warn('[webblox] '+m)};",
-    "L('frame probe: WebTransport='+typeof w.WebTransport+' isolated='+w.crossOriginIsolated+' SAB='+typeof w.SharedArrayBuffer+' origin='+location.origin);",
-    "if(typeof w.WebTransport==='undefined'){try{var P=(w.parent&&w.parent.WebTransport)||(w.top&&w.top.WebTransport);if(P){w.WebTransport=P;L('WebTransport restored from parent window')}}catch(e){L('restore failed '+e)}}",
-    "try{var k=new Worker(URL.createObjectURL(new Blob(['postMessage(typeof WebTransport)'],{type:'text/javascript'})));k.onmessage=function(e){L('worker probe: WebTransport='+e.data);k.terminate()};k.onerror=function(){L('worker probe failed')}}catch(e){L('worker probe error '+e)}",
-    "var N=w.WebTransport;if(N&&!N.__wb){var T=function(u,o){L('new WebTransport '+u+' hashes='+((o&&o.serverCertificateHashes)||[]).length);var t=new N(u,o);t.ready.then(function(){L('WebTransport ready')},function(e){L('WebTransport ready failed: '+(e&&e.message||e))});t.closed.then(function(i){L('WebTransport closed '+JSON.stringify(i))},function(e){L('WebTransport closed error: '+(e&&e.message||e))});return t};T.prototype=N.prototype;T.__wb=1;w.WebTransport=T}",
-    "}catch(e){console.warn('[webblox] probe error '+e)}})();"
-  ].join("");
-  const probeScript = () => "<script data-webblox>;(" + mainBridge.toString() + ")(" + JSON.stringify("(" + workerPrelude.toString() + ")();") + ");" + PROBE + "<\/script>";
-  const injectFlags = (html) => {
-    if (typeof html !== "string") return html;
-    const extra = flagScript() + probeScript();
-    const m = /<head[^>]*>/i.exec(html);
-    return m ? html.slice(0, m.index + m[0].length) + extra + html.slice(m.index + m[0].length) : extra + html;
+    return nativeFetch(input, init);
   };
 
-  // Engine failures: the Chat send-channel error climbs the patch ladder; anything else asks the hub for another wisp.
-  function createWatchdog({ hub, relaunch, chat, wt, max = 2 }) {
-    let used = 0, busy = false, lastSig = null, shared = false;
-    return async (text) => {
-      if (typeof text !== "string" || !/\[LoadingScreen\]\s*Engine failure/i.test(text)) return;
-      if (chat && CHAT_FAIL_RE.test(text) && (await chat())) return;
-      if (wt && wt(text)) return;
-      if (busy || used >= max || shared) return;
-      const msg = /"message"\s*:\s*"((?:[^"\\]|\\.)*)"/.exec(text);
-      const code = /"errorCode"\s*:\s*(-?\d+)/.exec(text);
-      const sig = (code ? code[1] : "") + "|" + (msg ? msg[1] : "");
-      warn("engine failure detail: code=" + (code ? code[1] : "?") + " message=" + (msg ? msg[1] : ""));
-      if (lastSig !== null && sig === lastSig) { shared = true; warn("same engine failure on " + (used + 1) + " servers, not server-specific; not retrying"); return; }
-      busy = true; used++;
-      try {
-        const failed = hub.wisp ? hub.wisp() : null;
-        warn("engine failed on " + failed + ", asking the net hub for another wisp (" + used + "/" + max + ")");
-        const next = await hub.rotate(failed, false);
-        if (!next || next === failed) { warn("no other server available"); return; }
-        await relaunch();
-        lastSig = sig;
-      } catch (e) { warn("recovery failed: " + ((e && e.message) || e)); }
-      finally { busy = false; }
-    };
-  }
-
-  let booted = null;
-  async function boot() {
-    if (!window.crossOriginIsolated) warn("page is not cross-origin isolated; the proxied frame has to provide it");
-    say("Connecting to net hub…");
-    const hub = await waitHub(120000);
-    for (let i = 0; i < 6; i++) {
-      try { await withTimeout(hub.ready(), 40000, "net hub"); break; } catch (e) { say("Waiting for the net hub…"); if (i === 5) throw e; await sleep(2000); }
-    }
-    say("Loading proxy…");
-    const sandstone = await withTimeout(hub.sandstone(), 90000, "proxy");
-    const frame = new sandstone.controller.ProxyFrame();
-    Object.assign(frame.iframe.style, { position: "fixed", inset: "0", width: "100%", height: "100%", border: "0", background: "#fff" });
-    try { await withTimeout(frame.wait_for_libcurl(), 20000, "libcurl"); } catch (e) { warn(String((e && e.message) || e)); }
-
-    let chatLevel = initialChatLevel(pageLocation().search), chatBusy = false, chatAt = 0;
-    applyChatLevel(chatLevel);
-    console.log("[webblox] chat patch level:", chatLevel, "wisp:", hub.wisp && hub.wisp());
-    let chatReported = false;
-    const chatEscalate = async () => {
-      if (chatReported) return true;
-      chatReported = true;
-      warn("send channel Chat failed (engine could not open its game connection); not relaunching, each relaunch leaks another 2GB wasm instance");
-      post("blox:failed", { text: "WebBlox: the engine couldn’t open its game connection (Chat send channel, code 256). Check the log for the [webblox] probe lines." });
-      return true;
-    };
-    // WebTransport is QUIC/UDP straight from the browser to the game server; a wisp can't carry it, so rotating wisps and
-    // relaunching (another 2GB wasm instance) can't help when its handshake fails.
-    let wtFail = null, wtReported = false;
-    const wtEscalate = (text) => {
-      if (!wtFail || !/Failed to connect to the Game/i.test(text)) return false;
-      if (!wtReported) {
-        wtReported = true;
-        warn("game connection failed: the browser's WebTransport handshake to the game server failed (" + wtFail + "); not relaunching");
-        udpProbe().then((r) => { if (r && r.ok) warn("the wisp allows UDP, so a QUIC tunnel is possible"); else warn("the wisp does not carry UDP (" + (r && r.reason) + "); a QUIC tunnel needs a UDP-capable wisp or a relay"); }).catch(() => {});
-        post("blox:failed", { text: "WebBlox: the browser couldn’t open a WebTransport (QUIC/UDP) connection to the Roblox game server. This network or browser may be blocking UDP." });
-      }
-      return true;
-    };
-    const watchdog = createWatchdog({ hub, chat: chatEscalate, wt: wtEscalate, relaunch: () => frame.navigate_to(startUrl()) });
-    const send = frame.send_page;
-    frame.send_page = (page) => send.call(frame, { ...page, html: injectFlags(page.html) });
-    frame.on_console = (batch) => {
-      try { globalThis.__wbConsole && globalThis.__wbConsole.frame(batch); } catch {}
-      try { for (const item of batch || []) { const t = item && item[1]; if (typeof t === "string" && /bridge: WebTransport ready failed:/.test(t)) wtFail = t.replace(/^.*ready failed:\s*/, "").slice(0, 120); } } catch {}
-      try { for (const item of batch || []) watchdog(item && item[1]); } catch {}
-    };
-    frame.on_info = ({ title }) => { if (title) document.title = title; };
-    frame.on_progress = (_, text) => say(text || "Loading…");
-    document.body.replaceChildren(frame.iframe);
-    Object.assign(globalThis, { sandstone, webblox: { frame, hub } });
-    await frame.navigate_to(startUrl());
-    post("blox:live");
-    return frame;
-  }
-
-  // Place ID prompt for standalone use (embedded in kstuff, the Singularity loading screen asks and sends the ID). Nothing starts until one is entered.
-  const form = document.getElementById("wb-form"), placeInput = document.getElementById("wb-place");
-  let askPending = null;
-  const parsePlace = (v) => {
-    const t = String(v || "").trim();
-    const m = /roblox\.com\/(?:[a-z-]+\/)?games\/(\d{1,20})/i.exec(t) || /^(\d{1,20})$/.exec(t);
-    return m ? m[1] : "";
-  };
-  const showForm = (prefill) => {
-    if (askPending) { if (prefill) placeInput.value = prefill; return askPending; }
-    askPending = new Promise((resolve) => {
-      const done = () => {
-        const id = parsePlace(placeInput.value);
-        if (!id) { say("Enter a numeric Place ID"); placeInput.focus(); return; }
-        form.classList.remove("show"); form.onsubmit = null; askPending = null;
-        say("Starting…");
-        resolve(id);
-      };
-      form.onsubmit = (e) => { e.preventDefault(); done(); };
-      placeInput.value = prefill || "";
-      form.classList.add("show");
-      say("Enter the Place ID of the game to join");
-      setTimeout(() => { try { placeInput.focus(); placeInput.select(); } catch {} }, 0);
-    });
-    return askPending;
-  };
-  const defaultPlace = () => parsePlace(window.__BLOX_PLACE) || parsePlace(new URLSearchParams(pageLocation().search).get("placeId")) || "";
-
-  const launch = (id) => {
-    if (id && /^\d{1,20}$/.test(String(id))) place = String(id);
-    if (!booted) {
-      booted = boot().catch((e) => { booted = null; say("Failed: " + ((e && e.message) || e)); console.error(e); if (!embedded) showForm(place || defaultPlace()).then(launch); post("blox:failed", { text: "Couldn’t start WebBlox: " + ((e && e.message) || e) }); });
-      return booted;
-    }
-    return booted.then((f) => { if (f && f.navigate_to) return f.navigate_to(startUrl()).then(() => post("blox:live")); });
-  };
-
-  window.addEventListener("message", (e) => {
-    if (embedded && e.source !== window.parent) return;
-    const d = e.data;
-    if (!d || typeof d !== "object" || typeof d.type !== "string") return;
-    if (d.type === "blox:launch") {
-      const id = parsePlace(d.game && d.game.id);
-      if (id) launch(id);
-    }
-    if (d.type === "blox:console") { try { globalThis.__wbConsole && globalThis.__wbConsole.open(); } catch {} }
+  // 3. Scripts: jsDelivr at the pinned commit first, same-origin copy as the fallback.
+  const inject = (src) => new Promise((resolve, reject) => {
+    const s = document.createElement("script");
+    s.src = src;
+    s.onload = resolve;
+    s.onerror = () => { s.remove(); reject(new Error("Could not load " + src)); };
+    document.body.appendChild(s);
   });
-
-  if (embedded) post("blox:ready"); else showForm(defaultPlace()).then(launch);
+  const load = async (path) => {
+    if (CDN) { try { return await inject(CDN + path); } catch (e) { console.warn("[pin]", e.message); } }
+    return inject(path + "?v=" + v);
+  };
+  try {
+    await load("Assets/js/proxy-transport.js");
+    say("Connecting to the proxy…");
+    await window.proxyTransport.start(say);
+    say("Loading WebBlox");
+    await load("Assets/games/webblox/signin.js");
+    await load("Assets/games/webblox/boot.js");
+  } catch (e) {
+    console.error(e);
+    msg.innerHTML = "";
+    msg.append((e && e.message) || "WebBlox failed to start.");
+    const b = document.createElement("div");
+    b.innerHTML = "<button type=button>Try again</button>";
+    b.firstChild.onclick = () => location.reload();
+    msg.append(b);
+  }
 })();
 </script>
-</body>
-</html>
+</body></html>
