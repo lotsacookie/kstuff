@@ -261,9 +261,16 @@
       }).then(function (p) {
         return new Promise(function (resolve, reject) {
           var id = 'n' + (++nseq) + '-' + Date.now();
-          var onAbort = function () { delete npend[id]; post({ type: 'kstuff-net:abort', id: id }); reject(new DOMException('Aborted', 'AbortError')); };
+          var onAbort = function () { clearTimeout(tm); delete npend[id]; post({ type: 'kstuff-net:abort', id: id }); reject(new DOMException('Aborted', 'AbortError')); };
           if (sig) sig.addEventListener('abort', onAbort, { once: true });
+          // guard: a reply lost on the way (frame reloaded, hub restarted) must fail, not hang forever
+          var tm = setTimeout(function () {
+            delete npend[id]; post({ type: 'kstuff-net:abort', id: id });
+            if (sig) sig.removeEventListener('abort', onAbort);
+            reject(new TypeError('net hub timed out (no reply from parent)'));
+          }, 120000);
           npend[id] = function (d) {
+            clearTimeout(tm);
             if (sig) sig.removeEventListener('abort', onAbort);
             if (!d.ok) return reject(new TypeError(d.error || 'network error'));
             var st = d.status, res;
