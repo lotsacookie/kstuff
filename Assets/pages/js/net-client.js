@@ -145,10 +145,10 @@
     available: available,
     waitAvailable: waitAvailable,
     fetch: function (url, init) { return getDirect() ? directFetch(url, init) : fetchViaHub(url, init); },
-    rotate: function (bad, soft) {
+    rotate: function (bad, soft, manual) {
       var d = getDirect();
-      if (d) return Promise.resolve(d.rotate(bad, soft)).catch(function () {});
-      return call({ type: 'kstuff-net:rotate', bad: bad, soft: !!soft }, null, 20000).catch(function () {});
+      if (d) return Promise.resolve(d.rotate(bad, soft, manual)).catch(function () {});
+      return call({ type: 'kstuff-net:rotate', bad: bad, soft: !!soft, manual: !!manual }, null, 20000).catch(function () {});
     },
     ready: function () {
       var d = getDirect();

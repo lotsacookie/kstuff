@@ -24,6 +24,7 @@ export function init(K) {
   const FAIL_ROTATE = 4;
   const GOOD_SAVE_EVERY = 60000;
   const BOOT_PROBE_MS = 3000;
+  const BOOT_MAINS = 6;
   const STRIKE_BASE = 30000;
   const STRIKE_MAX = 1800000;
   const EPOXY_POOL = 3;
@@ -124,7 +125,11 @@ export function init(K) {
       const g = readGood();
       if (g && Date.now() - g.ts < LAST_TTL) add(g.url);
     }
-    return out;
+    // A remembered backup must never outrank a main wisp that also worked before.
+    const rank = new Map();
+    tiers().forEach((tier, n) => tier.forEach(u => { if (!rank.has(u)) rank.set(u, n); }));
+    const rankOf = u => (rank.has(u) ? rank.get(u) : 3);
+    return out.map((u, i) => ({ u, i })).sort((a, b) => rankOf(a.u) - rankOf(b.u) || a.i - b.i).map(x => x.u);
   };
   const freshGood = () => {
     const good = readGood();
@@ -282,11 +287,11 @@ export function init(K) {
     return [primary, korona, backup];
   };
 
-  async function choose(exclude) {
+  async function choose(exclude, fresh) {
     const skip = new Set(exclude);
     const mains = new Set(tiers()[0]);
     aliveFallback = null;
-    const known = goodCandidates(skip).slice(0, GOOD_TRY);
+    const known = fresh ? [] : goodCandidates(skip).slice(0, GOOD_TRY);
     if (known.length) {
       const kp = await Promise.all(known.map(u => probe(u, 2500, !mains.has(u))));
       for (let i = 0; i < known.length; i++) {
@@ -610,11 +615,24 @@ export function init(K) {
       let url = null;
       let probed = false;
       const mainsNow = tiers()[0];
-      const known = goodCandidates(new Set()).slice(0, GOOD_TRY);
+      const isMain = u => mainsNow.includes(u);
+      const knownAll = goodCandidates(new Set());
+      // Main wisps get probed on every load; remembered backups only win when no main answers.
+      const known = [...new Set([
+        ...knownAll.filter(isMain),
+        ...mainsNow.filter(u => !isBad(u)).slice(0, BOOT_MAINS),
+        ...knownAll.filter(u => !isMain(u)).slice(0, GOOD_TRY),
+      ])];
       if (known.length) {
-        const bp = await Promise.all(known.map(u => probe(u, BOOT_PROBE_MS, !mainsNow.includes(u))));
+        const bp = await Promise.all(known.map(u => probe(u, BOOT_PROBE_MS, !isMain(u))));
         known.forEach((u, i) => { if (bp[i] === null) markBad(u); });
-        const at = bp.findIndex(p => p !== null);
+        let at = -1;
+        known.forEach((u, i) => {
+          if (bp[i] === null) return;
+          if (at < 0) { at = i; return; }
+          const curMain = isMain(known[at]);
+          if (isMain(u) && (!curMain || bp[i] < bp[at])) at = i;
+        });
         if (at >= 0) { url = known[at]; lastPing[url] = bp[at]; probed = true; }
       }
       if (!url && window.kWispP && window.kWispP.then) await Promise.race([window.kWispP.catch(() => {}), delay(6000)]);
@@ -631,7 +649,7 @@ export function init(K) {
   }
   K.netHubBoot = boot;
 
-  async function rotate(bad, auto) {
+  async function rotate(bad, auto, manual) {
     if (rotating) return rotating;
     rotating = (async () => {
       await boot();
@@ -650,8 +668,13 @@ export function init(K) {
         }
       }
       const from = bad || current;
+      if (manual) {
+        // Pressing Update starts clean: forget earlier strikes so every main wisp is tried again, mains first.
+        Object.keys(badMem).forEach(k => delete badMem[k]);
+        Object.keys(strikes).forEach(k => delete strikes[k]);
+      }
       if (from) markBad(from, auto ? VERIFY_BAD_TTL : SOFT_TTL);
-      const hit = await choose(from ? [from] : []);
+      const hit = await choose(from ? [from] : [], manual);
       const flat = tiers().flat();
       const next = hit || aliveFallback || flat.find(u => u !== from && !isBad(u)) || flat.find(u => u !== from) || flat[0] || FALLBACK;
       if (next && next !== current) applyWisp(next);
@@ -777,7 +800,7 @@ export function init(K) {
   window.kNetDirect = {
     fetch: (url, init) => core(String(url), Object.assign({ redirect: 'follow' }, init || {})),
     ready: () => boot().then(() => current),
-    rotate: (bad, soft) => rotate(bad ? toWss(bad) : null, !!soft),
+    rotate: (bad, soft, manual) => rotate(bad ? toWss(bad) : null, !!soft, !!manual),
     sandstone: () => boot(),
     libcurl: () => boot().then(sg => sg.libcurl),
     websocket: async (url, protocols) => {
@@ -909,7 +932,7 @@ export function init(K) {
       if (st) st.textContent = 'Testing other wisps, this can take a little while.';
       const from = current;
       try {
-        await rotate(from, false);
+        await rotate(from, false, true);
         if (st) {
           if (current && current !== from) st.textContent = 'Switched to ' + hostOf(current) + (verified ? '' : ' (not verified yet)');
           else st.textContent = 'No other wisp could be reached, staying on ' + hostOf(current);
@@ -949,7 +972,7 @@ export function init(K) {
     const reply = (m, t) => { try { src.postMessage(m, '*', t || []); } catch {} };
     if (d.type === 'kstuff-net:hello') { dropOwned(src); reply({ type: 'kstuff-net:hello-ack', wisp: current }); return; }
     if (d.type === 'kstuff-net:ready') { boot().then(() => reply({ type: 'kstuff-net:ready-ack', id: d.id, wisp: current }), er => reply({ type: 'kstuff-net:ready-ack', id: d.id, error: String(er && er.message || er) })); return; }
-    if (d.type === 'kstuff-net:rotate') { rotate(d.bad ? toWss(d.bad) : null, !!d.soft).then(w => reply({ type: 'kstuff-net:rotate-ack', id: d.id, wisp: w }), () => reply({ type: 'kstuff-net:rotate-ack', id: d.id })); return; }
+    if (d.type === 'kstuff-net:rotate') { rotate(d.bad ? toWss(d.bad) : null, !!d.soft, !!d.manual).then(w => reply({ type: 'kstuff-net:rotate-ack', id: d.id, wisp: w }), () => reply({ type: 'kstuff-net:rotate-ack', id: d.id })); return; }
     if (d.type === 'kstuff-net:abort') { const c = live.get(d.id); if (c) c.abort(); return; }
     if (d.type === 'kstuff-net:fetch' && typeof d.url === 'string' && /^https?:\/\//i.test(d.url)) {
       d.key = d.id;
@@ -989,7 +1012,7 @@ function initProxied(K) {
         if (st) st.textContent = 'Testing other wisps, this can take a little while.';
         const from = net().wisp();
         try {
-          await net().rotate(from, false);
+          await net().rotate(from, false, true);
           if (st) st.textContent = net().wisp() && net().wisp() !== from ? 'Switched to ' + hostOf(net().wisp()) : 'No other wisp could be reached, staying on ' + hostOf(net().wisp());
         } catch { if (st) st.textContent = 'Switch failed, try again.'; }
         btn.disabled = false;
