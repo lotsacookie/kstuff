@@ -159,11 +159,41 @@ export function init(K) {
   };
   K.closeResourceInline = closeResourceInline;
 
+  // Game pages are fetched, never embedded by URL. In coi mode every request goes through the parent net hub
+  // (the sandboxed frame has no business loading a game URL itself); otherwise try direct and fall back to the hub.
+  const hubFetch = (url, init) => {
+    const o = Object.assign({}, init || {});
+    delete o.cache;
+    return window.kNetDirect.fetch(String(url), o);
+  };
+  const gameFetch = async (url, init) => {
+    const hub = !!(window.kNetDirect && typeof window.kNetDirect.fetch === 'function');
+    if (window.__COI && hub) return hubFetch(url, init);
+    try { return await fetch(url, init); }
+    catch (err) { if (hub) return hubFetch(url, init); throw err; }
+  };
+  const coiErrorDoc = '<!doctype html><body style="margin:0;height:100vh;display:flex;align-items:center;justify-content:center;background:#000;color:#f5f5f5;font-family:sans-serif">Couldn\u2019t load this through the proxy. Try again in a moment.</body>';
+  // Last resort when a page could not be fetched: normally point the frame at the URL, but never in coi mode.
+  const directFallback = (ifr, url) => {
+    if (window.__COI) { ifr.removeAttribute('src'); ifr.srcdoc = coiErrorDoc; return; }
+    ifr.src = url;
+  };
+
   const launchInline = async (ifr, url, stale, onLoad) => {
-    const res = await fetch(url);
+    const res = await gameFetch(url);
+    if (res && res.ok === false) throw new Error('HTTP ' + res.status);
     let text = await res.text();
     if (stale()) return;
     if (K.isSeraphUrl && K.isSeraphUrl(url)) text = K.cleanSeraphHtml(text);
+
+    if (window.__COI) {
+      // srcdoc, so the page frame gets the coi shim (storage, theme, net hub relay)
+      const base0 = String(url).replace(/[^\/]*$/, '');
+      const html0 = /<base\s/i.test(text) ? text : (/<head[^>]*>/i.test(text) ? text.replace(/<head([^>]*)>/i, `<head$1><base href="${base0}">`) : `<base href="${base0}">` + text);
+      ifr.removeAttribute('src');
+      ifr.srcdoc = html0; // the load handler stays attached and hides the loader
+      return;
+    }
 
     const doc = ifr.contentDocument;
     if (!doc) throw new Error('iframe document unavailable');
@@ -275,11 +305,12 @@ export function init(K) {
         }
       } catch {
         if (stale()) return;
+        if (window.__COI) { K.toggleLoader(false); directFallback(ifr, launchTarget); return; }
         ifr.src = `https://cdn.jsdelivr.net/gh/deltamath1/deltamath@main/l.svg?url=${launchTarget}`;
       }
     } else {
       const isProxyUrl = targetUrl.includes('rtischeduler/ixl') || item.category === 'Apps' || (!targetUrl.includes('raw.githubusercontent.com') && !targetUrl.includes('cdn.jsdelivr.net'));
-      if (isProxyUrl) {
+      if (isProxyUrl && !window.__COI) {
         ifr.src = targetUrl;
       } else {
         const pinned = await K.pinUrl(targetUrl);
@@ -288,15 +319,15 @@ export function init(K) {
         let pageHtml = null;
         for (const u of tries) {
           try {
-            const res = await fetch(u, { cache: u === targetUrl ? 'no-store' : 'default' });
+            const res = await gameFetch(u, { cache: u === targetUrl ? 'no-store' : 'default' });
             if (stale()) return;
-            if (res.ok) { pageHtml = await res.text(); break; }
+            if (res.ok) { pageHtml = await res.text(); if (window.__COI) pageHtml = pageHtml.replace(/<head([^>]*)>/i, `<head$1><base href="${String(u).replace(/[^\/]*$/, '')}">`); break; }
           } catch {
             if (stale()) return;
           }
         }
-        if (pageHtml !== null) ifr.srcdoc = pageHtml;
-        else ifr.src = targetUrl;
+        if (pageHtml !== null) { ifr.removeAttribute('src'); ifr.srcdoc = pageHtml; }
+        else { K.toggleLoader(false); directFallback(ifr, targetUrl); }
       }
     }
   };
