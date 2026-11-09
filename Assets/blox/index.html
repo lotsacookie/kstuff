@@ -138,9 +138,28 @@
     s.onerror = () => { s.remove(); reject(new Error("Could not load " + src)); };
     document.body.appendChild(s);
   });
+  // raw.githubusercontent.com serves text/plain + nosniff, so it cannot be used as a <script src>: fetch it and run it from a blob.
+  const injectText = async (src) => {
+    const r = await nativeFetch(src, { credentials: "omit" });
+    if (!r.ok) throw new Error(r.status + " " + src);
+    const url = URL.createObjectURL(new Blob([await r.text()], { type: "text/javascript" }));
+    try { await inject(url); } finally { URL.revokeObjectURL(url); }
+  };
+  // Independent sources, in order. A brand-new commit is often not on jsDelivr yet (it 404s and caches the miss), and the
+  // srcdoc <base> points at that same jsDelivr URL, so a relative fallback is NOT independent: every source here is absolute.
+  const sources = (path) => [
+    ...(sha ? [() => inject("https://cdn.jsdelivr.net/gh/" + REPO + "@" + sha + "/" + DIR + path)] : []),
+    ...(sha ? [() => injectText("https://raw.githubusercontent.com/" + REPO + "/" + sha + "/" + DIR + path)] : []),
+    () => inject("https://cdn.jsdelivr.net/gh/" + REPO + "@" + BRANCH + "/" + DIR + path + "?v=" + v),
+    () => injectText("https://raw.githubusercontent.com/" + REPO + "/" + BRANCH + "/" + DIR + path),
+    ...(location.protocol !== "about:" ? [() => inject(path + "?v=" + v)] : []),
+  ];
   const load = async (path) => {
-    if (CDN) { try { return await inject(CDN + path); } catch (e) { console.warn("[pin]", e.message); } }
-    return inject(path + "?v=" + v);
+    const errs = [];
+    for (const attempt of sources(path)) {
+      try { return await attempt(); } catch (e) { errs.push(e && e.message); console.warn("[pin]", e && e.message); }
+    }
+    throw new Error("Could not load " + path + " (tried " + errs.length + " sources: " + errs.join("; ") + ")");
   };
   try {
     await load("Assets/js/proxy-transport.js");
