@@ -1475,14 +1475,17 @@ self.__wbBoot((() => {
     return sources;
   };
   const preludes = new Map();
-  const workerScript = path => {
-    if (!preludes.has(path)) {
+  const workerScript = (path, href) => {
+    const cacheKey = path + '|' + (href || '');
+    if (!preludes.has(cacheKey)) {
       const js = __WBURL.protocol === 'file:' ? {} : allScripts();
       const config = { page: PAGE, script: path, js, src: scriptSources(path) };
-      const source = `self.__wbConfig=${JSON.stringify(config)};\n${PRELUDE}\nimportScripts(${JSON.stringify(path)});\n`;
-      preludes.set(path, URL.createObjectURL(new Blob([source], { type: 'text/javascript' })));
+      // Keep the worker's original URL (incl. ?src=...) visible as self.location: a blob worker would otherwise lose the query string (engine/stub.js reads it).
+      const loc = href ? `try{Object.defineProperty(self,'location',{configurable:true,value:new URL(${JSON.stringify(href)})});}catch(e){}\n` : '';
+      const source = `self.__wbConfig=${JSON.stringify(config)};\n${loc}${PRELUDE}\nimportScripts(${JSON.stringify(path)});\n`;
+      preludes.set(cacheKey, URL.createObjectURL(new Blob([source], { type: 'text/javascript' })));
     }
-    return preludes.get(path);
+    return preludes.get(cacheKey);
   };
 
   const NativeWorker = window.Worker;
@@ -1496,7 +1499,7 @@ self.__wbBoot((() => {
           super(file >= 0 ? blobUrl(file) : url, options);
           return;
         }
-        super(workerScript(FILES[file][0]), options);
+        super(workerScript(FILES[file][0], (parse(url) || {}).href), options);
         const channel = new MessageChannel();
         serveWorker(channel.port1);
         NativeWorker.prototype.postMessage.call(this, { __wbBridge: channel.port2 }, [channel.port2]);
