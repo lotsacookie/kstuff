@@ -143,6 +143,43 @@ export function init(K) {
     if (id && /^\d{1,20}$/.test(id)) return '?placeId=' + id;
     return params.get('launcher') === 'roblox' ? '?launcher=roblox' : '';
   };
+  // The client runs in a srcdoc frame, so its console never reaches the kstuff on-screen console by itself.
+  // This runs first inside that frame and forwards console output, uncaught errors, rejections and failed loads to the parent.
+  function forwardConsole() {
+    var p = window.parent;
+    if (!p || p === window || window.__wbFwd) return;
+    window.__wbFwd = true;
+    var LV = ['log', 'info', 'warn', 'error', 'debug'];
+    var fmt = function (a) {
+      try {
+        if (typeof a === 'string') return a;
+        if (a instanceof Error) return a.stack || a.message;
+        if (a && typeof a === 'object') { try { return JSON.stringify(a); } catch (e) { return Object.prototype.toString.call(a); } }
+        return String(a);
+      } catch (e) { return '[unprintable]'; }
+    };
+    var send = function (level, text) {
+      try { p.postMessage({ sgConsole: true, level: level, src: 'blox', text: String(text).slice(0, 3000) }, '*'); } catch (e) {}
+    };
+    var hook = function (m) {
+      var o = console[m];
+      if (typeof o !== 'function' || o.__wbf) return;
+      var w = function () {
+        try { send(m, Array.prototype.map.call(arguments, fmt).join(' ')); } catch (e) {}
+        return o.apply(console, arguments);
+      };
+      w.__wbf = 1;
+      console[m] = w;
+    };
+    var ensure = function () { LV.forEach(hook); };
+    ensure();
+    setInterval(ensure, 1000);
+    addEventListener('error', function (e) {
+      if (e.target && e.target !== window) { var u = e.target.src || e.target.href; if (u) send('error', 'Failed to load ' + u); return; }
+      send('error', '[error] ' + (e.message || 'Error') + (e.filename ? ' (' + String(e.filename).split('/').pop() + ':' + e.lineno + ':' + e.colno + ')' : '') + (e.error && e.error.stack ? '\n' + e.error.stack : ''));
+    }, true);
+    addEventListener('unhandledrejection', function (e) { send('error', '[unhandled] ' + fmt(e.reason)); });
+  }
   function mountFrame(search) {
     ensureHost();
     ensureStyle();
@@ -152,7 +189,7 @@ export function init(K) {
       setStatus('Loading the WebBlox client ' + (sha ? sha.slice(0, 7) : 'main') + '…');
       const html = await clientHtml(sha, base);
       const page = base + 'index.html' + (search || '');
-      const boot = `<base href="${base}"><script>window.__WB_PAGE=${JSON.stringify(page)};window.__WB_SHA=${JSON.stringify(sha || '')};window.__WB_EMBED=true;<\/script>`;
+      const boot = `<base href="${base}"><script>(${forwardConsole.toString()})()<\/script><script>window.__WB_PAGE=${JSON.stringify(page)};window.__WB_SHA=${JSON.stringify(sha || '')};window.__WB_EMBED=true;<\/script>`;
       const doc = /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, m => m + boot) : boot + html;
       if (frame) frame.remove();
       frame = document.createElement('iframe');
