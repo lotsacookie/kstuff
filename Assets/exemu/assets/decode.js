@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { readCompressedMesh, decodeCompressedMesh } from './packed.js';
 
 const BPP = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 4, 7: 2, 13: 2, 14: 4 };
 const BLOCK = { 10: 8, 12: 16 };
@@ -402,7 +403,11 @@ export function findPtr(project, file, o, start, classID) {
   return null;
 }
 
-function parseMeshLayout(file, o, opt) {
+function skipPackedMesh(r) {
+  readCompressedMesh(r, 0);
+}
+
+function parseMeshLayout(file, o, opt, project) {
   try {
     const r = file.reader(o);
     const name = r.astr();
@@ -448,24 +453,65 @@ function parseMeshLayout(file, o, opt) {
     const compression = r.u8();
     r.pos += 3;
     r.align(4);
-    if (compression !== 0) return null;
-    r.i32();
+    let hint = 0;
+    if (opt.ifmt) {
+      hint = r.i32();
+      if (hint !== 0 && hint !== 1) return null;
+    }
     const ilen = r.i32();
     if (ilen < 0 || ilen > r.left) return null;
     const ibuf = r.bytes(ilen);
     r.align(4);
     if (opt.cc) r.u32();
     const vc = r.u32();
-    if (vc < 1 || vc > 8000000) return null;
+    if (vc > 8000000) return null;
     const chN = r.i32();
-    if (chN < 1 || chN > 32) return null;
+    if (chN < 0 || chN > 32) return null;
     const ch = [];
     for (let i = 0; i < chN; i++) {
       ch.push({ stream: r.u8(), offset: r.u8(), format: r.u8(), dim: r.u8() & 15 });
     }
     const dlen = r.i32();
     if (dlen < 0 || dlen > r.left) return null;
-    const vbuf = r.bytes(dlen);
+    let vbuf = r.bytes(dlen);
+    r.align(4);
+
+    if (compression !== 0) {
+      if (vc !== 0 || dlen !== 0) return null;
+      const dec = decodeCompressedMesh(readCompressedMesh(r, 0));
+      if (!dec) return null;
+      const isz = hint === 1 ? 4 : 2;
+      for (const s of subs) {
+        if (s.firstVertex + s.vertexCount > dec.vc) return null;
+        if (s.firstByte / isz + s.indexCount > dec.indices.length) return null;
+      }
+      return { name, subs, isz, dec, vc: dec.vc, kind: 'compressed' };
+    }
+
+    if (vc < 1 || chN < 1) return null;
+    let kind = 'raw';
+    if (dlen === 0) {
+      if (!project || !file.atLeast(2018, 3)) return null;
+      skipPackedMesh(r);
+      r.pos += 24;
+      r.i32();
+      for (let k = 0; k < 2; k++) {
+        const n = r.i32();
+        if (n < 0 || n > r.left) return null;
+        r.pos += n;
+        r.align(4);
+      }
+      if (file.atLeast(2018, 2)) r.pos += 8;
+      r.align(4);
+      const off = file.version >= 22 || file.ver[0] >= 2020 ? r.i64() : r.u32();
+      const size = r.u32();
+      const path = r.astr();
+      if (!size || !path) return null;
+      vbuf = project.stream(path, off, size);
+      if (!vbuf || vbuf.length < size) return null;
+      kind = 'streamed';
+    }
+    const dlenUsed = vbuf.length;
     let end2 = 0;
     let end4 = 0;
     for (const s of subs) {
@@ -476,6 +522,8 @@ function parseMeshLayout(file, o, opt) {
     let isz;
     if (ilen >= end2 && ilen - end2 <= 3) isz = 2;
     else if (ilen >= end4 && ilen - end4 <= 3) isz = 4;
+    else if (hint === 1 && ilen >= end4) isz = 4;
+    else if (opt.ifmt && hint === 0 && ilen >= end2) isz = 2;
     else return null;
     const newFmt = file.atLeast(2019, 1);
     const stride = [0, 0, 0, 0];
@@ -492,25 +540,40 @@ function parseMeshLayout(file, o, opt) {
     for (let s = 0; s < 4; s++) {
       start[s] = run;
       run += vc * stride[s];
-      if (stride[s] > 0 && run > dlen) return null;
+      if (stride[s] > 0 && run > dlenUsed) return null;
       run = (run + 15) & ~15;
     }
-    return { name, subs, isz, ibuf, vc, ch, vbuf, stride, start, newFmt };
+    return { name, subs, isz, ibuf, vc, ch, vbuf, stride, start, newFmt, kind };
   } catch {
     return null;
   }
 }
 
-export function readMesh(file, o) {
+export function readMesh(file, o, project) {
+  const st = file._meshState || (file._meshState = { opt: null, miss: 0 });
+  if (st.opt) {
+    const m = parseMeshLayout(file, o, st.opt, project);
+    if (m) return m;
+    // once the layout is known, don't burn time brute forcing every broken mesh
+    if (st.miss++ > 40) return null;
+  }
   const bvOrder = file.atLeast(2017, 3) ? [true, false] : [false, true];
   const shOrder = file.atLeast(2017, 1) ? [4, 2] : [2, 4];
+  const bnOrder = file.atLeast(2019, 1) ? [2, 1, 0] : [1, 0, 2];
   const ccOrder = file.atLeast(2018, 1) ? [false, true] : [true, false];
+  const ifOrder = file.atLeast(2017, 4) ? [true, false] : [false, true];
   for (const bv of bvOrder) {
     for (const sh of shOrder) {
-      for (const bones of [2, 1, 0]) {
+      for (const bones of bnOrder) {
         for (const cc of ccOrder) {
-          const m = parseMeshLayout(file, o, { bv, sh, bones, cc });
-          if (m) return m;
+          for (const ifmt of ifOrder) {
+            const opt = { bv, sh, bones, cc, ifmt };
+            const m = parseMeshLayout(file, o, opt, project);
+            if (m) {
+              if (!st.opt && m.vc >= 3) st.opt = opt;
+              return m;
+            }
+          }
         }
       }
     }
@@ -554,11 +617,17 @@ function readChannel(m, c, itemSize) {
 
 export function buildGeometry(file, m) {
   const newOrder = file.atLeast(2018, 0);
-  const positions = readChannel(m, m.ch[0], 3);
-  const normals = readChannel(m, m.ch[1], 3);
-  const uvs = readChannel(m, m.ch[newOrder ? 4 : 3], 2);
-  const dv = new DataView(m.ibuf.buffer, m.ibuf.byteOffset, m.ibuf.byteLength);
-  const get = (i) => (m.isz === 2 ? dv.getUint16(i * 2, true) : dv.getUint32(i * 4, true));
+  const positions = m.dec ? m.dec.positions : readChannel(m, m.ch[0], 3);
+  const normals = m.dec ? m.dec.normals : readChannel(m, m.ch[1], 3);
+  const uvs = m.dec ? m.dec.uvs : readChannel(m, m.ch[newOrder ? 4 : 3], 2);
+  let get;
+  if (m.dec) {
+    const ind = m.dec.indices;
+    get = (i) => ind[i];
+  } else {
+    const dv = new DataView(m.ibuf.buffer, m.ibuf.byteOffset, m.ibuf.byteLength);
+    get = (i) => (m.isz === 2 ? dv.getUint16(i * 2, true) : dv.getUint32(i * 4, true));
+  }
   const index = [];
   const groups = [];
   for (let si = 0; si < m.subs.length; si++) {
@@ -605,13 +674,22 @@ export function buildGeometry(file, m) {
 export function getGeometry(project, res) {
   const key = 'g' + res.file.id + ':' + res.obj.pathID;
   if (project.assets.has(key)) return project.assets.get(key);
+  const st = project.meshStats || (project.meshStats = { raw: 0, compressed: 0, streamed: 0, failed: 0 });
   let geo = null;
   try {
-    const m = readMesh(res.file, res.obj);
-    if (m) geo = buildGeometry(res.file, m);
-    else project.messages.push('mesh layout not recognised or compressed (object ' + res.obj.pathID + ')');
+    const m = readMesh(res.file, res.obj, project);
+    if (m) {
+      geo = buildGeometry(res.file, m);
+      st[m.kind]++;
+    } else {
+      st.failed++;
+      if (st.failed <= 5) {
+        project.messages.push('mesh layout not recognised (Unity ' + res.file.unityVersion + ', object ' + res.obj.pathID + ', ' + res.obj.size + ' bytes)');
+      }
+    }
   } catch (e) {
-    project.messages.push('mesh failed: ' + e.message);
+    st.failed++;
+    if (st.failed <= 5) project.messages.push('mesh failed: ' + e.message);
   }
   project.assets.set(key, geo);
   return geo;
