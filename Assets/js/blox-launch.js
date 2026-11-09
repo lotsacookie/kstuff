@@ -224,11 +224,9 @@ export function init(K) {
     ui.load.classList.remove('hidden', 'failed'); ui.cancel.hidden = false; ui.back.hidden = true;
     setProg(0.02);
     try {
-      const id = await askPlace();
-      if (my !== token) return;
       setStatus('Loading the WebBlox client…'); setProg(0.05);
-      wanted = { id, title: item.bloxName || item.title || 'WebBlox' };
-      await mountFrame(id);
+      wanted = { id: '', title: item.bloxName || item.title || 'WebBlox' };
+      await mountFrame('');
       if (my !== token) return;
       // the client draws its own loading and sign-in screens, so hand it the screen right away
       showFrame(true, true); ui?.load.classList.add('hidden'); focusFrame(); setTimeout(focusFrame, 300);
