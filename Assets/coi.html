@@ -444,38 +444,54 @@ async function legacy(){
     <script id="coi-footer">(function(){var s=window.origin==="null",i=window.crossOriginIsolated===true,ok=s&&i,b=document.getElementById("coi-indicator"),t=document.getElementById("coi-text");if(!b||!t)return;t.textContent="COI: "+(ok?"Yes":"No");b.setAttribute("data-state",ok?"on":"off");b.title="Cross-origin isolated: "+(i?"yes":"no")+" | Sandboxed: "+(s?"yes":"no");})();</script>
     <script>
 (()=>{
-  const f=document.querySelector('.learning-footer'); if(!f) return;
   const tip=document.createElement('div'); tip.className='footer-tip'; document.body.appendChild(tip);
-  let timer=0;
-  f.querySelectorAll('.footer-btn[title]').forEach(b=>{ if(!b.getAttribute('aria-label')) b.setAttribute('aria-label',b.title); b.removeAttribute('title'); });
-  const labelOf=el=>{ const s=el.querySelector('span'); return ((s?s.textContent:el.textContent)||el.getAttribute('aria-label')||'').trim(); };
-  const isHidden=el=>{
+  let cur=null, timer=0;
+  const strip=el=>{
+    const t=el.getAttribute('title'); if(t===null) return;
+    el.removeAttribute('title');
+    if(!t.trim()) return;
+    el.setAttribute('data-tip',t);
+    if(!el.hasAttribute('aria-label')&&!el.textContent.trim()) el.setAttribute('aria-label',t);
+  };
+  const scan=n=>{ if(n.nodeType!==1) return; if(n.hasAttribute('title')) strip(n); n.querySelectorAll('[title]').forEach(strip); };
+  scan(document.documentElement);
+  new MutationObserver(ms=>{ for(const m of ms){ if(m.type==='attributes') strip(m.target); else m.addedNodes.forEach(scan); } })
+    .observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['title']});
+  const place=(x,y)=>{
+    const t=tip.getBoundingClientRect();
+    const px=Math.max(6,Math.min(innerWidth-t.width-6,x+14));
+    let py=y+18; if(py+t.height>innerHeight-6) py=y-t.height-12;
+    tip.style.left=px+'px'; tip.style.top=Math.max(6,py)+'px';
+  };
+  const hide=()=>{ clearTimeout(timer); cur=null; tip.classList.remove('show'); };
+  const labelOf=el=>{ const s=el.querySelector('span'); return ((s?s.textContent:el.textContent)||'').trim(); };
+  const clipped=el=>{
     const s=el.querySelector('span');
     if(s){ if(getComputedStyle(s).display==='none') return true; if(s.scrollWidth>s.clientWidth+1) return true; }
     const p=el.parentElement.getBoundingClientRect(), r=el.getBoundingClientRect();
     return r.left<p.left-1||r.right>p.right+1;
   };
-  let cur=null;
-  const place=(x,y)=>{ const t=tip.getBoundingClientRect(); tip.style.left=Math.max(6,Math.min(innerWidth-t.width-6,x+14))+'px'; tip.style.top=Math.max(6,Math.min(innerHeight-t.height-6,y-t.height-12))+'px'; };
-  const hide=()=>{ clearTimeout(timer); cur=null; tip.classList.remove('show'); };
-  const show=(el,e)=>{
-    if(!isHidden(el)) return hide();
-    const text=labelOf(el); if(!text) return hide();
-    tip.textContent=text;
-    cur=el;
-    if(e&&e.pointerType!=='touch'&&e.clientX!=null) place(e.clientX,e.clientY);
-    else { const r=el.getBoundingClientRect(), t=tip.getBoundingClientRect(); place(r.left+r.width/2-14-t.width/2,r.top+t.height+4); }
-    tip.classList.add('show');
+  const textFor=el=>{
+    if(el.dataset.tip) return el.dataset.tip;
+    return (el.classList.contains('footer-item')&&clipped(el))?labelOf(el):'';
   };
-  const itemOf=e=>e.target.closest&&e.target.closest('.footer-item');
-  f.addEventListener('mouseover',e=>{ const it=itemOf(e); if(it) show(it,e); });
-  f.addEventListener('mousemove',e=>{ if(cur&&tip.classList.contains('show')) place(e.clientX,e.clientY); });
-  f.addEventListener('mouseout',e=>{ if(itemOf(e)) hide(); });
-  f.addEventListener('focusin',e=>{ const it=itemOf(e); if(it) show(it); });
-  f.addEventListener('focusout',hide);
-  f.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse') return; const it=itemOf(e); if(it){ show(it,e); clearTimeout(timer); timer=setTimeout(hide,1800); } });
-  f.addEventListener('scroll',hide,true);
-  f.addEventListener('wheel',e=>{
+  const targetOf=e=>e.target.closest&&e.target.closest('[data-tip],.footer-item');
+  const show=(el,e)=>{
+    const text=textFor(el); if(!text) return hide();
+    cur=el; tip.textContent=text; tip.classList.add('show');
+    if(e&&e.clientX!=null) place(e.clientX,e.clientY);
+    else { const r=el.getBoundingClientRect(); place(r.left+r.width/2-14,r.top-18); }
+  };
+  document.addEventListener('mouseover',e=>{ const el=targetOf(e); if(el) show(el,e); else hide(); });
+  document.addEventListener('mousemove',e=>{ if(cur) place(e.clientX,e.clientY); });
+  document.addEventListener('mouseleave',hide);
+  document.addEventListener('mousedown',hide);
+  document.addEventListener('focusin',e=>{ const el=targetOf(e); if(el) show(el); });
+  document.addEventListener('focusout',hide);
+  document.addEventListener('scroll',hide,true);
+  document.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse') return; const el=targetOf(e); if(el){ show(el,e); clearTimeout(timer); timer=setTimeout(hide,1800); } });
+  const f=document.querySelector('.learning-footer');
+  if(f) f.addEventListener('wheel',e=>{
     const box=e.target.closest('.footer-left,.footer-right');
     if(!box||box.scrollWidth<=box.clientWidth||Math.abs(e.deltaX)>Math.abs(e.deltaY)) return;
     box.scrollLeft+=e.deltaY; e.preventDefault();
