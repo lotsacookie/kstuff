@@ -1,5 +1,5 @@
 import { ctx, proxy_function, unwrap_this } from "../context.mjs";
-import { describe_data, normalize_post_message_args, origin_of_window } from "./cross_origin.mjs";
+import { describe_data, normalize_post_message_args, origin_of_window, post_counts } from "./cross_origin.mjs";
 
 const IN_WORKER = typeof importScripts === "function";
 
@@ -80,7 +80,7 @@ function schedule_stats() {
     let report = (label) => {
       try {
         if (!stats.sent && !stats.received && !stats.self) return;
-        trace("message stats " + label + " sent=" + stats.sent + " self=" + stats.self + " received=" + stats.received + " origin_overrides=" + stats.overridden + " origin_unresolved=" + stats.unresolved);
+        trace("message stats " + label + " sent=" + stats.sent + " self=" + stats.self + " received=" + stats.received + " origin_overrides=" + stats.overridden + " origin_unresolved=" + stats.unresolved + " to_parent=" + post_counts.to_parent + " to_child=" + post_counts.to_child + " to_other=" + post_counts.to_other);
       }
       catch {}
     };

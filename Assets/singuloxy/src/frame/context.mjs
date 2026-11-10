@@ -233,7 +233,10 @@ function safe_frame(real, owner) {
   let own_keys = {
     history: () => owner.history,
     location: () => owner.location,
-    document: () => owner.document,
+    document: () => {
+      if (intercept.cross_origin.parent_document_blocked()) throw intercept.cross_origin.security_error();
+      return owner.document;
+    },
     parent: () => proxy,
     top: () => proxy,
     self: () => proxy,

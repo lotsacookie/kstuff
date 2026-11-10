@@ -18,6 +18,8 @@ let parent_factory = null;
 let doc_reads = 0;
 let post_traces = 0;
 
+export const post_counts = {to_parent: 0, to_child: 0, to_other: 0};
+
 function log(text) {
   try {
     console.warn("sandstone: " + text);
@@ -57,12 +59,57 @@ function describe_target(value) {
   }
 }
 
-function log_doc_read() {
+function own_origin() {
+  try {
+    let origin = globalThis.__sandstone_origin__;
+    return typeof origin === "string" ? origin : "null";
+  }
+  catch {
+    return "null";
+  }
+}
+
+export function security_error() {
+  return new DOMException("Blocked a frame with origin \"" + own_origin() + "\" from accessing a cross-origin frame.", "SecurityError");
+}
+
+export function parent_document_blocked() {
+  let own = own_origin();
+  return !!parent_origin && own !== "null" && own !== parent_origin;
+}
+
+function classify_window(real) {
+  let tags = [];
+  try {
+    if (real === globalThis) tags.push("self");
+  }
+  catch {}
+  try {
+    if (real === globalThis.parent) tags.push("parent");
+  }
+  catch {}
+  try {
+    if (real === globalThis.top) tags.push("top");
+  }
+  catch {}
+  try {
+    if (real === globalThis.opener) tags.push("opener");
+  }
+  catch {}
+  try {
+    let known = origin_of_window(real);
+    if (known) tags.push("known-origin=" + known);
+  }
+  catch {}
+  return tags.length ? tags.join(",") : "unknown";
+}
+
+function log_doc_read(real) {
   if (doc_reads >= 5) return;
   doc_reads++;
   try {
     let stack = String(new Error().stack).split("\n").slice(2, 6).map((line) => line.trim().replace(/^at /, "").replace(/blob:[^\s)]*:(\d+:\d+)/, "blob:$1")).join(" < ");
-    log(".document read on cross-origin window (blocked, throwing SecurityError) from " + stack);
+    log(".document read on cross-origin window [" + classify_window(real) + "] (blocked, throwing SecurityError) from " + stack);
   }
   catch {}
 }
@@ -97,6 +144,17 @@ function is_real_parent(real) {
   catch {
     return false;
   }
+}
+
+function is_child_window(real) {
+  if (!native_content_window) return false;
+  for (let element of child_frames.keys()) {
+    try {
+      if (native_content_window.call(element) === real) return true;
+    }
+    catch {}
+  }
+  return false;
 }
 
 export function origin_of_window(value) {
@@ -136,9 +194,14 @@ export function make_post_message(real, label) {
   return function postMessage(...args) {
     let next = normalize_post_message_args(args);
     let internal = args[0] !== null && typeof args[0] === "object" && typeof args[0].type === "string" && typeof args[0].id === "string";
-    if (!internal && post_traces < 40) {
-      post_traces++;
-      log("postMessage " + label + " target=" + describe_target(args[1]) + (next === args ? "" : " (rewritten to *)") + " data=" + describe_data(args[0]));
+    if (!internal) {
+      if (is_real_parent(real)) post_counts.to_parent++;
+      else if (is_child_window(real)) post_counts.to_child++;
+      else post_counts.to_other++;
+      if (post_traces < 40) {
+        post_traces++;
+        log("postMessage " + label + " [" + classify_window(real) + "] target=" + describe_target(args[1]) + (next === args ? "" : " (rewritten to *)") + " data=" + describe_data(args[0]));
+      }
     }
     return Reflect.apply(real.postMessage, real, next);
   };
@@ -164,8 +227,8 @@ export function wrap_window(real) {
     get(_, key) {
       let target = real;
       if (key === "document") {
-        log_doc_read();
-        throw new DOMException("Blocked a frame from accessing a cross-origin frame.", "SecurityError");
+        log_doc_read(real);
+        throw security_error();
       }
       if (key === "postMessage") return post_message;
       try {
