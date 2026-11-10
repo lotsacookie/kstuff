@@ -80,7 +80,13 @@ function install_console() {
           if (target) console_push("error", "Failed to load " + target);
           return;
         }
-        console_push("error", (event.message || "Error") + (event.filename ? ` (${event.filename}:${event.lineno}:${event.colno})` : ""));
+        let stack = "";
+        try {
+          if (event.error && event.error.name === "SecurityError" && event.error.stack)
+            stack = "\n" + String(event.error.stack).split("\n").slice(0, 6).join("\n");
+        }
+        catch {}
+        console_push("error", (event.message || "Error") + (event.filename ? ` (${event.filename}:${event.lineno}:${event.colno})` : "") + stack);
       }
       catch {}
     }, true);

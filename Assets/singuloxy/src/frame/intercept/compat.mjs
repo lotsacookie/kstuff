@@ -1,3 +1,5 @@
+import { wrap_window } from "./cross_origin.mjs";
+
 function indexeddb_denied() {
   try {
     if (typeof indexedDB === "undefined" || !indexedDB) return true;
@@ -898,33 +900,7 @@ function install_blank_iframe_access() {
     get: function() {
       let real = descriptor.get.call(this);
       if (!real) return real;
-      try {
-        if (real.document) return real;
-      }
-      catch {}
-      if (wrappers.has(real)) return wrappers.get(real);
-      let wrapper = new Proxy(real, {
-        get(target, key) {
-          if (key === "document") return null;
-          try {
-            let value = Reflect.get(target, key);
-            return typeof value === "function" ? value.bind(target) : value;
-          }
-          catch {
-            return undefined;
-          }
-        },
-        set(target, key, value) {
-          try {
-            return Reflect.set(target, key, value);
-          }
-          catch {
-            return true;
-          }
-        }
-      });
-      wrappers.set(real, wrapper);
-      return wrapper;
+      return wrap_window(real);
     }
   });
 }

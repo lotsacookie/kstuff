@@ -3,6 +3,7 @@ import * as polyfill from "./polyfill/index.mjs";
 import * as intercept from "./intercept/index.mjs";
 import * as parser from "./parser.mjs";
 import * as loader from "./loader.mjs";
+import { wrap_window } from "./intercept/cross_origin.mjs";
 
 export const is_worker = typeof importScripts === "function";
 export const ctx_vars = [];
@@ -291,7 +292,7 @@ export class CustomCTX {
       }
       catch {}
     }
-    return Reflect.apply(globalThis.open, globalThis, [url, target, features]);
+    return wrap_window(Reflect.apply(globalThis.open, globalThis, [url, target, features]));
   }
 
   eval(js) {
