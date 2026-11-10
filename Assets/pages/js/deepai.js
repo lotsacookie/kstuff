@@ -1305,8 +1305,9 @@
     let preRetries = 0;
     let reply = "";
     let sessionUuid = options.sessionUuid;
-    const persist = extra => {
-      const saved = extra ? cleanMessages(options.messages).concat([{ role: "assistant", content: extra }]) : cleanMessages(options.messages);
+    const persist = (extra, bare) => {
+      let saved = extra ? cleanMessages(options.messages).concat([{ role: "assistant", content: extra }]) : cleanMessages(options.messages);
+      if (bare) saved = saved.map(m => { const c = Object.assign({}, m); delete c.attachment_uuids; return c; });
       const id = sessionUuid;
       const task = saveQueue.catch(() => {}).then(async () => {
         for (let i = 0; i < 2; i++) {
@@ -1346,8 +1347,8 @@
       ? [
         // the real page saves the chat (with chat_model) BEFORE sending when there are
         // attachments; otherwise the server picks a default turbo model that can't see images
-        { pre: true, fresh: false, drop: false },
         { pre: false, fresh: false, drop: false },
+        { pre: true, fresh: false, drop: false, bare: true },
         { pre: true, fresh: true, drop: false },
         { pre: false, fresh: true, drop: true }
       ]
@@ -1370,7 +1371,7 @@
         }
         if (step.pre) {
           if (savedFor !== sessionUuid) {
-            await persist();
+            await persist(null, step.bare);
             savedFor = sessionUuid;
           }
           await delay(600 + preRetries * 1200);
@@ -1416,7 +1417,7 @@
           continue;
         }
         // saved session not visible yet: wait longer and resend on the SAME saved session
-        if (!emitted && error && error.status === 404 && plan[Math.min(attempt, plan.length - 1)].pre && preRetries < 3) {
+        if (!emitted && error && error.status === 404 && plan[Math.min(attempt, plan.length - 1)].pre && preRetries < 1) {
           preRetries++;
           attempt--;
           continue;
