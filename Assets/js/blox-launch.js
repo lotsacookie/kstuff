@@ -4,7 +4,7 @@
 // The client is fetched from jsDelivr at the latest commit (K.getRefSha) and cached in localStorage by commit, so it stays current
 // without waiting for the singularity.js rebuild; the copy packed into singularity.js is the offline fallback.
 export function init(K) {
-  console.log('[blox] launcher rev 5 (console bridge survives document.open)');
+  console.log('[blox] launcher rev 6 (portrait rotates the client to landscape)');
   const $ = id => document.getElementById(id);
   const REPO = K.MAIN_REPO || 'lotsacookie/kstuff';
   const DIR = 'Assets/blox/';
@@ -219,9 +219,20 @@ export function init(K) {
   function fit() {
     if (!frame || !host) return;
     if (!frame.classList.contains('on')) {
-      ['position', 'inset', 'left', 'top', 'width', 'height', 'z-index', 'visibility'].forEach(k => frame.style.removeProperty(k));
+      ['position', 'inset', 'left', 'top', 'width', 'height', 'z-index', 'visibility', 'transform', 'transform-origin', 'min-width', 'min-height'].forEach(k => frame.style.removeProperty(k));
       return;
     }
+    if (window.innerHeight > window.innerWidth) {
+      const vw = window.innerWidth, vh = window.innerHeight, rs = frame.style;
+      rs.setProperty('position', 'fixed'); rs.setProperty('inset', 'auto');
+      rs.setProperty('left', '0'); rs.setProperty('top', '0');
+      rs.setProperty('width', vh + 'px', 'important'); rs.setProperty('height', vw + 'px', 'important');
+      rs.setProperty('min-width', '0', 'important'); rs.setProperty('min-height', '0', 'important');
+      rs.setProperty('transform-origin', '0 0'); rs.setProperty('transform', 'translateX(' + vw + 'px) rotate(90deg)');
+      rs.setProperty('z-index', '70', 'important');
+      return;
+    }
+    ['transform', 'transform-origin', 'min-width', 'min-height', 'z-index'].forEach(k => frame.style.removeProperty(k));
     const r = host.getBoundingClientRect();
     const small = r.height < 300 || r.width < 320;
     const st = frame.style;
@@ -237,12 +248,17 @@ export function init(K) {
     }
   }
   window.addEventListener('resize', () => fit());
+  window.addEventListener('orientationchange', () => { fit(); setTimeout(fit, 300); });
   document.addEventListener('fullscreenchange', () => fit());
 
   function showFrame(on, withUi) {
     if (!frame) return;
     frame.classList.toggle('on', !!on);
     frame.classList.toggle('ui', !!withUi);
+    try {
+      if (on) screen.orientation?.lock?.('landscape').catch(() => {});
+      else screen.orientation?.unlock?.();
+    } catch {}
     fit();
     // the exit button sits above the client while it needs the screen (sign-in, ads, settings), so there is always a way out
     ui?.x?.classList.toggle('on', !!on && !live);
