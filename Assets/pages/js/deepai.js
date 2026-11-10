@@ -81,7 +81,7 @@
   // Login details and chat sessions must survive reloads, cleared iframe storage and
   // storage partitioning, so the important keys are mirrored to this window's
   // localStorage, the parent page's localStorage and a long-lived cookie.
-  const DURABLE = [CRED_KEY, USER_KEY, GUEST_KEY, COOKIE_KEY, "DAIS", "DAIO"];
+  const DURABLE = [CRED_KEY, USER_KEY, GUEST_KEY, COOKIE_KEY, MODEL_KEY, "DAIS", "DAIO"];
   const COOKIE_PREFIX = "kdai_";
   const COOKIE_AGE = 60 * 60 * 24 * 400;
 
@@ -1184,7 +1184,14 @@
     const chat = _getChat(_aiCurrentChatId);
     chat.provider = "deepai";
     chat.sessionUuid = chat.sessionUuid || uuid();
-    if (owns(_aiSelectedModel)) chat.model = _aiSelectedModel;
+    const sel = document.getElementById("aiModelSelect");
+    const shown = sel && sel.value;
+    if (owns(shown) && catalog().some(m => m.value === shown)) _aiSelectedModel = shown;
+    if (owns(_aiSelectedModel)) {
+      chat.model = _aiSelectedModel;
+      rememberModel(_aiSelectedModel);
+    }
+    console.log("[deepai] model", { dropdown: shown, selected: _aiSelectedModel, chat: chat.model, available: catalog().map(m => m.value) });
     return chat;
   }
 
@@ -1254,10 +1261,19 @@
     throw new DeepAIError("DeepAI took too long to answer");
   }
 
+  // The next unlocked model that is likely to accept images, skipping ones already tried.
+  function visionModel(tried) {
+    const likely = /gemma|gpt-?4|gpt-?5|gemini|claude|vision|llava|pixtral|qwen.*vl|llama-?(3\.2|4)|genius/i;
+    return state.models.find(m => !m.locked && !tried.includes(m.id) && likely.test(m.id + " " + m.label)) || null;
+  }
+
   async function stream(options, handlers) {
     await ready();
     const value = String(options.model);
     const modelValue = owns(value) ? value : PREFIX + value;
+    let modelId = modelValue.slice(PREFIX.length);
+    const triedModels = [modelId];
+    let visionRetries = 0;
     // Like the site, send every attachment uuid of the conversation, not only the new ones.
     const attachments = [];
     const addAttachment = v => {
@@ -1286,7 +1302,7 @@
         for (let i = 0; i < 2; i++) {
           try {
             console.log("[deepai] save session", id, saved.length, "messages");
-            const result = await state.client.saveSession({ uuid: id, model: modelValue.slice(PREFIX.length), messages: saved });
+            const result = await state.client.saveSession({ uuid: id, model: modelId, messages: saved });
             console.log("[deepai] save session ok", JSON.stringify(result));
             rememberSession(id);
             if (extra) syncSessions();
@@ -1345,7 +1361,7 @@
           await delay(600);
         }
         for await (const part of state.client.chat({
-          model: modelValue.slice(PREFIX.length),
+          model: modelId,
           messages: withContext(cleanMessages(options.messages), games),
           attachments: sendIds,
           sessionUuid,
@@ -1367,6 +1383,23 @@
       } catch (error) {
         if (error && error.name === "AbortError" && reply) persist(reply);
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
+        if (!emitted && error && error.status === 400 && /does not support image/i.test(String(error.message || "")) && sendIds.length && visionRetries < 5) {
+          const next = visionModel(triedModels);
+          visionRetries++;
+          if (next) {
+            console.warn("[deepai] " + modelId + " can't read images, switching to " + next.id + " (" + next.label + ")");
+            triedModels.push(next.id);
+            modelId = next.id;
+            if (options.onModel) options.onModel(PREFIX + next.id);
+            attempt--;
+            continue;
+          }
+          attachments.forEach(id => badAttachments.add(id));
+          sendIds = [];
+          handlers.content("(No available model can read images, so this reply can't see the attachment.)\n\n");
+          attempt--;
+          continue;
+        }
         if (!emitted && error && error.status === 404 && attempt < plan.length - 1) continue;
         if (attempt === 0 && !emitted && error && error.code === "anonymous try it exceeded" && await signIn()) continue;
         if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
@@ -1437,6 +1470,13 @@
         sessionUuid: chat.sessionUuid,
         onSession: id => {
           chat.sessionUuid = id;
+        },
+        onModel: value => {
+          chat.model = value;
+          _aiSelectedModel = value;
+          rememberModel(value);
+          if (typeof _persistChat === "function") _persistChat(chat);
+          rerender();
         },
         webAccess: _aiWebSearchEnabled,
         signal: state.abort.signal

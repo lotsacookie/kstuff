@@ -174,9 +174,11 @@ function _renderModelSelect() {
     sel.appendChild(option);
   });
   const current = _aiCurrentChatId ? _aiChats.find(c => c.id === _aiCurrentChatId) : null;
-  if (current && deep && deep.owns(current.model) && models.some(m => m.value === current.model)) {
+  if (_aiSelectedModel && models.some(m => m.value === _aiSelectedModel)) {
+    // keep what the user picked; re-rendering must never reset it to the chat's old model
+  } else if (current && deep && deep.owns(current.model) && models.some(m => m.value === current.model)) {
     _aiSelectedModel = current.model;
-  } else if (!_aiSelectedModel || !models.some(m => m.value === _aiSelectedModel)) {
+  } else {
     _aiSelectedModel = deep ? deep.defaultModel() : null;
   }
   sel.value = _aiSelectedModel || '';
