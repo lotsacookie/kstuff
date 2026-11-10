@@ -75,7 +75,14 @@ export function document_base() {
 }
 
 export function unwrap_this(value) {
-  if (value === ctx.__proxy__) return globalThis;
+  let ctx_proxy;
+  try {
+    ctx_proxy = ctx.__proxy__;
+  }
+  catch {
+    return value;
+  }
+  if (value === ctx_proxy) return globalThis;
   let doc = intercept.document;
   if (doc && doc.__proxy__ && value === doc.__proxy__) return doc.__target__;
   return value;

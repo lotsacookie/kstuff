@@ -135,7 +135,8 @@ export function normalize_post_message_args(args) {
 export function make_post_message(real, label) {
   return function postMessage(...args) {
     let next = normalize_post_message_args(args);
-    if (post_traces < 40) {
+    let internal = args[0] !== null && typeof args[0] === "object" && typeof args[0].type === "string" && typeof args[0].id === "string";
+    if (!internal && post_traces < 40) {
       post_traces++;
       log("postMessage " + label + " target=" + describe_target(args[1]) + (next === args ? "" : " (rewritten to *)") + " data=" + describe_data(args[0]));
     }

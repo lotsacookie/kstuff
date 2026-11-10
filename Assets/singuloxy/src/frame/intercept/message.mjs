@@ -62,6 +62,7 @@ function install_trace() {
       catch {}
       if (is_internal(event.data)) return;
       stats.received++;
+      schedule_stats();
       if (received_traces >= 40) return;
       received_traces++;
       trace("message received origin=" + from + " data=" + describe_data(event.data));
@@ -70,16 +71,23 @@ function install_trace() {
   catch {}
 }
 
-function install_stats_report() {
-  let report = (label) => {
-    try {
-      if (!stats.sent && !stats.received && !stats.self) return;
-      trace("message stats " + label + " sent=" + stats.sent + " self=" + stats.self + " received=" + stats.received + " origin_overrides=" + stats.overridden + " origin_unresolved=" + stats.unresolved);
-    }
-    catch {}
-  };
-  setTimeout(() => report("6s"), 6000);
-  setTimeout(() => report("25s"), 25000);
+let stats_scheduled = false;
+
+function schedule_stats() {
+  if (stats_scheduled) return;
+  stats_scheduled = true;
+  try {
+    let report = (label) => {
+      try {
+        if (!stats.sent && !stats.received && !stats.self) return;
+        trace("message stats " + label + " sent=" + stats.sent + " self=" + stats.self + " received=" + stats.received + " origin_overrides=" + stats.overridden + " origin_unresolved=" + stats.unresolved);
+      }
+      catch {}
+    };
+    setTimeout(() => report("6s"), 6000);
+    setTimeout(() => report("25s"), 25000);
+  }
+  catch {}
 }
 
 function install_post_message() {
@@ -96,6 +104,7 @@ function install_post_message() {
         }
         else {
           stats.sent++;
+          schedule_stats();
           if (sent_traces < 40) {
             sent_traces++;
             let target = args[1] && args[1].targetOrigin || args[1];
@@ -161,5 +170,4 @@ if (!IN_WORKER && typeof window !== "undefined") {
   install_post_message();
   install_event_origin();
   install_trace();
-  install_stats_report();
 }
