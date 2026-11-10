@@ -222,4 +222,3 @@ addFlashcardMainBtn.addEventListener('click', () => openExamModal('', '', addFla
     render();
 })();
 
-document.querySelectorAll('.home-tile').forEach(t => t.addEventListener('click', () => window.parent.postMessage('nav: ' + t.dataset.nav, '*')));
