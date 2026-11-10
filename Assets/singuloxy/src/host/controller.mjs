@@ -34,6 +34,7 @@ function build_frame_html(theme) {
   <!DOCTYPE html>
   <head>
     <meta charset="utf-8">
+    <script>(function(){function r(m,s){try{parent.postMessage({__sandstone_boot_error:String(m)+(s?" | "+String(s).split("\n").slice(0,4).join(" < "):"")},"*")}catch(e){}}addEventListener("error",function(e){r(e.message+" @"+e.filename+":"+e.lineno,e.error&&e.error.stack)});addEventListener("unhandledrejection",function(e){r("unhandled rejection: "+(e.reason&&e.reason.message||e.reason),e.reason&&e.reason.stack)})})();</script>
     <script>${frame_js}</script>
     <style>
       html {
@@ -154,6 +155,17 @@ function ensure_libcurl() {
 
 if (typeof window !== "undefined") ensure_libcurl().catch(() => {});
 
+let boot_error_reports = 0;
+if (typeof window !== "undefined") {
+  window.addEventListener("message", (event) => {
+    let data = event.data;
+    if (!data || typeof data !== "object" || typeof data.__sandstone_boot_error !== "string") return;
+    if (boot_error_reports >= 10) return;
+    boot_error_reports++;
+    console.warn("sandstone page frame boot error:", data.__sandstone_boot_error);
+  });
+}
+
 export class ProxyFrame {
   constructor() {
     this.url = null;
@@ -267,7 +279,8 @@ export class ProxyFrame {
         this.emit_progress(0.4, "Restarting page frame (" + (attempt + 1) + ")");
         await this.load_frame_document();
       }
-      if (await rpc.wait_on_frame(this.iframe, FRAME_PING_TIMEOUT_MS)) return true;
+      let ping_timeout = this.same_origin_host && attempt === 0 ? 3000 : FRAME_PING_TIMEOUT_MS;
+      if (await rpc.wait_on_frame(this.iframe, ping_timeout)) return true;
     }
     return false;
   }
