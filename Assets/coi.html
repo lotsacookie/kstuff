@@ -204,6 +204,7 @@ async function legacy(){
         </nav>
 
         <header class="learning-header">
+            <button class="study-nav-btn" id="hdr-home-btn" data-go="mathworksheets" title="Home" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg></button>
             <button class="study-nav-btn" id="study-back-btn" disabled>
                 <svg viewBox="0 0 24 24"><path d="M15.41 16.59L10.83 12l4.58-4.59L14 6l-6 6 6 6 1.41-1.41z"/></svg>
             </button>
@@ -431,6 +432,9 @@ async function legacy(){
             </div>
         </div>
         <div class="footer-right">
+            <button class="footer-item footer-btn" data-go="homeworkhelper" title="Settings"><i class="ph ph-gear"></i><span>Settings</span></button>
+            <button class="footer-item footer-btn" data-go="profile" title="Profile"><i class="ph ph-user"></i><span>Profile</span></button>
+            <button class="footer-item footer-btn" data-go="changelog" title="Changelog"><i class="ph ph-list-bullets"></i><span>Changelog</span></button>
             <div class="footer-item clock-item" id="clock-indicator">
                 <i class="ph ph-clock"></i>
                 <span id="clock-text">12:00:00 AM</span>
@@ -499,5 +503,6 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
   Promise.all([wait,Promise.all(['index.html','os.css','os.js'].map(get))]).then(enter).catch(err=>{console.error(err);window.__osLaunching=false;f.classList.remove('on');setTimeout(()=>f.remove(),800)});
 },true);
 })();</script>
+<script>document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;const n=document.querySelector('.nav-btn[data-target="'+b.dataset.go+'"]');if(n)n.click();});</script>
 </body>
 </html>
