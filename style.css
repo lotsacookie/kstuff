@@ -131,7 +131,7 @@ body.size-large.text-hide {
     position: fixed;
     bottom: 0;
     left: 0;
-    font-size: 0.8rem;
+    font-size: 0.7rem;
     color: var(--text-color);
 }
 
@@ -155,8 +155,23 @@ body.size-large.text-hide {
 .footer-right {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 10px;
+    flex: 0 1 auto;
+    min-width: 0;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
 }
+
+.footer-left::-webkit-scrollbar,
+.footer-right::-webkit-scrollbar {
+    display: none;
+}
+
+.footer-left { margin-right: 10px; }
 
 .footer-item {
     display: flex;
@@ -164,12 +179,22 @@ body.size-large.text-hide {
     gap: 6px;
     background: var(--card-bg);
     border: 1px solid var(--hairline);
-    padding: 4px 10px;
+    padding: 3px 8px;
     border-radius: 10px;
     opacity: 0.9;
     font-weight: 600;
     font-family: inherit;
+    font-size: inherit;
+    flex: 0 0 auto;
+    white-space: nowrap;
     transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.footer-item span {
+    max-width: 16ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .footer-item:hover {
@@ -178,7 +203,8 @@ body.size-large.text-hide {
 }
 
 .footer-item i {
-    font-size: 0.95rem;
+    font-size: 0.85rem;
+    flex: none;
 }
 
 .conn-item i,
@@ -3301,4 +3327,40 @@ body.floating-on .sg-tabbar .sg-newtab {
     border-color: var(--text-color) !important;
     box-shadow: 0 0 0 1px var(--ring), 0 0 16px var(--glow), 0 6px 16px rgba(0, 0, 0, 0.18) !important;
     opacity: 1 !important;
+}
+
+
+/* footer: collapse button labels on narrow screens (shown via tooltip) */
+@media (max-width: 640px) {
+    .learning-footer { padding: 0 8px; }
+    .footer-btn span { display: none; }
+    .footer-btn { padding: 3px 7px; }
+}
+
+.footer-tip {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100000;
+    max-width: min(280px, 90vw);
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: var(--nav-bg);
+    border: 1px solid var(--hairline);
+    color: var(--text-color);
+    font-size: 0.7rem;
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: normal;
+    pointer-events: none;
+    opacity: 0;
+    transform: translateY(3px);
+    transition: opacity 0.15s ease, transform 0.15s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.footer-tip.show {
+    opacity: 1;
+    transform: translateY(0);
 }
