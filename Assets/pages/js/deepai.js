@@ -78,25 +78,89 @@
     }
   }
 
+  // Login details and chat sessions must survive reloads, cleared iframe storage and
+  // storage partitioning, so the important keys are mirrored to this window's
+  // localStorage, the parent page's localStorage and a long-lived cookie.
+  const DURABLE = [CRED_KEY, USER_KEY, GUEST_KEY, COOKIE_KEY, "DAIS", "DAIO"];
+  const COOKIE_PREFIX = "kdai_";
+  const COOKIE_AGE = 60 * 60 * 24 * 400;
+
+  const storeTargets = () => {
+    const list = [];
+    try {
+      if (window.localStorage) list.push(window.localStorage);
+    } catch (e) {}
+    try {
+      const parent = window.parent && window.parent !== window ? window.parent : null;
+      if (parent && parent.localStorage) list.push(parent.localStorage);
+    } catch (e) {}
+    return list;
+  };
+
+  const cookieGet = key => {
+    try {
+      const wanted = COOKIE_PREFIX + key + "=";
+      const part = document.cookie.split("; ").find(c => c.indexOf(wanted) === 0);
+      return part ? decodeURIComponent(part.slice(wanted.length)) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const cookieSet = (key, raw) => {
+    try {
+      if (raw === null) document.cookie = COOKIE_PREFIX + key + "=; max-age=0; path=/; SameSite=Lax";
+      else if (raw.length < 3500) document.cookie = COOKIE_PREFIX + key + "=" + encodeURIComponent(raw) + "; max-age=" + COOKIE_AGE + "; path=/; SameSite=Lax";
+    } catch (e) {}
+  };
+
   const store = {
+    raw(key) {
+      for (const target of storeTargets()) {
+        try {
+          const value = target.getItem(key);
+          if (value !== null && value !== undefined && value !== "") return value;
+        } catch (e) {}
+      }
+      return DURABLE.includes(key) ? cookieGet(key) : null;
+    },
     get(key) {
+      const raw = this.raw(key);
+      if (raw === null) return null;
       try {
-        return JSON.parse(localStorage.getItem(key));
+        const value = JSON.parse(raw);
+        // heal: make sure every copy has it again
+        if (DURABLE.includes(key)) this.write(key, raw);
+        return value;
       } catch (e) {
         return null;
       }
     },
+    write(key, raw) {
+      storeTargets().forEach(target => {
+        try {
+          if (target.getItem(key) !== raw) target.setItem(key, raw);
+        } catch (e) {}
+      });
+      if (DURABLE.includes(key) && cookieGet(key) !== raw) cookieSet(key, raw);
+    },
     set(key, value) {
       try {
-        localStorage.setItem(key, JSON.stringify(value));
+        this.write(key, JSON.stringify(value));
       } catch (e) {}
     },
     del(key) {
-      try {
-        localStorage.removeItem(key);
-      } catch (e) {}
+      storeTargets().forEach(target => {
+        try {
+          target.removeItem(key);
+        } catch (e) {}
+      });
+      if (DURABLE.includes(key)) cookieSet(key, null);
     }
   };
+
+  try {
+    if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  } catch (e) {}
 
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -592,18 +656,10 @@
 
   const SESS_KEY = "DAIS";
   const readSessions = () => {
-    try {
-      const list = JSON.parse(localStorage.getItem(SESS_KEY) || "[]");
-      return Array.isArray(list) ? list : [];
-    } catch (e) {
-      return [];
-    }
+    const list = store.get(SESS_KEY);
+    return Array.isArray(list) ? list : [];
   };
-  const writeSessions = list => {
-    try {
-      localStorage.setItem(SESS_KEY, JSON.stringify(list));
-    } catch (e) {}
-  };
+  const writeSessions = list => store.set(SESS_KEY, list);
   const rememberSession = id => {
     const list = readSessions();
     if (id && !list.includes(id)) {
@@ -654,7 +710,7 @@
     }
   }
 
-  const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [], games: "", lastSign: 0 };
+  const state = { client: null, models: [], user: null, booting: null, abort: null, wisp: "", skip: [], games: "", lastSign: 0, checkedAt: 0 };
   const cachedModels = store.get(MODELS_KEY);
   if (Array.isArray(cachedModels) && cachedModels.length) state.models = cachedModels;
 
@@ -742,6 +798,25 @@
     return credsFor(name) ? name : "";
   }
 
+  // Every account this browser ever made, the remembered one first. There is only
+  // ever one "home" account; the others are only fallbacks to log back into.
+  function knownNames() {
+    const order = [];
+    const add = name => {
+      if (name && typeof name === "string" && !order.includes(name) && credsFor(name)) order.push(name);
+    };
+    add(savedName());
+    add(store.get(GUEST_KEY));
+    add(kstuffUsername());
+    Object.keys(store.get(CRED_KEY) || {}).forEach(add);
+    return order;
+  }
+
+  function currentEmail() {
+    const email = store.get(USER_KEY);
+    return typeof email === "string" ? email : "";
+  }
+
   async function registerAccount(client, name) {
     const email = name + "@" + DOMAIN;
     const creds = store.get(CRED_KEY) || {};
@@ -749,7 +824,10 @@
     creds[name] = password;
     store.set(CRED_KEY, creds);
     const user = await client.register(email, password);
-    if (user) store.set(USER_KEY, email);
+    if (user) {
+      store.set(USER_KEY, email);
+      store.set(GUEST_KEY, name);
+    }
     return user;
   }
 
@@ -765,56 +843,78 @@
       }
     } catch (error) {
       if (!(error instanceof DeepAIError) || ![400, 401, 403].includes(error.status)) throw error;
-      console.warn("[deepai] login failed for", name, error && error.message);
+      console.warn("[deepai] login rejected for", name, error.status, error && error.message);
+      // the site answers 400 when this session is in fact already logged in
+      const already = await client.me().catch(() => null);
+      if (already) {
+        store.set(USER_KEY, email);
+        return already;
+      }
     }
     return null;
   }
 
-  async function createAccount(client, name) {
-    const first = name || guestName();
-    if (!credsFor(first)) {
+  const NEW_ACCOUNT_KEY = "DAIN";
+  const NEW_ACCOUNT_COOLDOWN = 10 * 60 * 1000;
+
+  async function createAccount(client) {
+    const last = Number(store.get(NEW_ACCOUNT_KEY)) || 0;
+    if (Date.now() - last < NEW_ACCOUNT_COOLDOWN) {
+      throw new DeepAIError("Account was just created, waiting before trying again", { code: "account_cooldown" });
+    }
+    const wanted = kstuffUsername();
+    const tries = [];
+    if (wanted && !credsFor(wanted)) tries.push(wanted);
+    tries.push("guest" + randomText(8));
+    tries.push("guest" + randomText(8));
+    let lastError = null;
+    for (const name of tries) {
       try {
-        const user = await registerAccount(client, first);
-        if (user) return user;
+        const user = await registerAccount(client, name);
+        if (user) {
+          store.set(NEW_ACCOUNT_KEY, Date.now());
+          console.log("[deepai] created the one account for this browser:", name);
+          return user;
+        }
       } catch (error) {
-        console.warn("[deepai] register failed for", first, error && error.message);
-      }
-    } else {
-      const type = await client.userLoginType(first + "@" + DOMAIN).catch(() => null);
-      if (type && !type.user_exists) {
-        const user = await registerAccount(client, first);
-        if (user) return user;
+        lastError = error;
+        console.warn("[deepai] register failed for", name, error && error.message);
+        // forget the password of an account that was never created
+        const creds = store.get(CRED_KEY) || {};
+        delete creds[name];
+        store.set(CRED_KEY, creds);
       }
     }
-    const fresh = "guest" + randomText(8);
-    const user = await registerAccount(client, fresh);
-    if (user) store.set(GUEST_KEY, fresh);
-    return user;
+    throw lastError || new DeepAIError("Could not create an account");
   }
 
   async function resolveAccount(client) {
-    const wanted = kstuffUsername();
-    const saved = savedName();
     const current = await client.me();
-    if (current) {
-      if (!wanted || !saved || saved === wanted) return current;
-      if (credsFor(wanted)) {
-        await client.logout();
-        const switched = await loginAccount(client, wanted);
-        if (switched) return switched;
-        return (await loginAccount(client, saved)) || (await client.me());
+    if (current) return current;
+    const names = knownNames();
+    let existing = false;
+    for (const name of names) {
+      // a network failure here throws, which is right: never create an account
+      // just because DeepAI could not be reached
+      const type = await client.userLoginType(name + "@" + DOMAIN);
+      if (type && type.user_exists === false) {
+        try {
+          const user = await registerAccount(client, name);
+          if (user) return user;
+        } catch (error) {
+          console.warn("[deepai] re-register failed for", name, error && error.message);
+        }
+        continue;
       }
-      return current;
+      existing = true;
+      for (let i = 0; i < 3; i++) {
+        const user = await loginAccount(client, name);
+        if (user) return user;
+        await delay(400 * (i + 1));
+      }
     }
-    const order = [];
-    [wanted, saved, store.get(GUEST_KEY)].forEach(name => {
-      if (name && typeof name === "string" && !order.includes(name) && credsFor(name)) order.push(name);
-    });
-    for (const name of order) {
-      const user = await loginAccount(client, name);
-      if (user) return user;
-    }
-    return createAccount(client, wanted && !credsFor(wanted) ? wanted : order[0] || "");
+    if (existing) console.warn("[deepai] saved account would not log in, making a replacement");
+    return createAccount(client);
   }
 
   let accountFlight = null;
@@ -832,6 +932,7 @@
     console.log("[deepai] sign in start");
     try {
       state.user = await ensureAccount(state.client);
+      state.checkedAt = Date.now();
       console.log("[deepai] sign in ok", state.user && (state.user.username || state.user.email || "user"));
       if (state.user) syncSessions();
     } catch (e) {
@@ -848,15 +949,48 @@
     return signIn();
   }
 
+  // Called before every upload and message: if the login cookie went missing, log back
+  // into the one saved account instead of making a new one.
+  async function ensureSession(force) {
+    if (!state.client) return false;
+    if (!force && state.user && Date.now() - state.checkedAt < 60000) return true;
+    const me = await state.client.me().catch(() => null);
+    if (me) {
+      state.user = me;
+      state.checkedAt = Date.now();
+      return true;
+    }
+    state.user = null;
+    state.lastSign = 0;
+    return signIn();
+  }
+
+  // Which account an attachment was uploaded under: only that account can use it.
+  const OWNER_KEY = "DAIO";
+  function rememberOwner(id) {
+    if (!id) return;
+    const map = store.get(OWNER_KEY) || {};
+    map[id] = currentEmail();
+    const keys = Object.keys(map);
+    if (keys.length > 300) keys.slice(0, keys.length - 300).forEach(k => delete map[k]);
+    store.set(OWNER_KEY, map);
+  }
+  function ownerOk(id) {
+    const map = store.get(OWNER_KEY) || {};
+    return !map[id] || !currentEmail() || map[id] === currentEmail();
+  }
+
   function buildHistory(messages) {
     const history = [];
     const files = [];
     messages.forEach(m => {
       if (m.role !== "user" && m.role !== "assistant") return;
       const ids = m.role === "user" && m.attachments ? m.attachments.map(a => a.uuid).filter(Boolean) : [];
+      const texts = m.role === "user" && m.attachments ? m.attachments.filter(a => a && a.uuid && a.text).map(a => ({ uuid: a.uuid, name: a.name || "file", text: a.text })) : [];
       const content = m.content || (ids.length ? "Please look at the attached file." : "");
       if (!content) return;
       const entry = { role: m.role, content };
+      if (texts.length) entry._files = texts;
       if (ids.length) {
         entry.attachment_uuids = ids;
         ids.forEach(id => {
@@ -1067,14 +1201,28 @@
   }
 
   const badAttachments = new Set();
+  const isBad = id => badAttachments.has(id) || !ownerOk(id);
 
+  // Drops attachment ids the server can't use, but keeps their content in the message
+  // (for text files) so the conversation never loses what the file said.
   function cleanMessages(messages) {
     return (messages || []).map(m => {
-      if (!m.attachment_uuids || !m.attachment_uuids.length) return m;
-      const kept = m.attachment_uuids.filter(id => !badAttachments.has(id));
+      const files = m._files;
+      const hasIds = m.attachment_uuids && m.attachment_uuids.length;
+      if (!hasIds && !files) return m;
       const copy = Object.assign({}, m);
-      if (kept.length) copy.attachment_uuids = kept;
-      else delete copy.attachment_uuids;
+      delete copy._files;
+      if (hasIds) {
+        const kept = m.attachment_uuids.filter(id => !isBad(id));
+        if (kept.length) copy.attachment_uuids = kept;
+        else delete copy.attachment_uuids;
+      }
+      if (files && files.length) {
+        const lost = files.filter(f => isBad(f.uuid));
+        if (lost.length) {
+          copy.content = String(copy.content || "") + lost.map(f => "\n\n[Attached file: " + f.name + "]\n```\n" + f.text + "\n```").join("");
+        }
+      }
       return copy;
     });
   }
@@ -1126,7 +1274,8 @@
       const id = typeof v === "string" ? v : v && v.uuid;
       if (id && !newest.includes(id)) newest.push(id);
     });
-    let sendIds = attachments.filter(id => !badAttachments.has(id));
+    await ensureSession();
+    let sendIds = attachments.filter(id => !isBad(id));
     let level = 0;
     let emitted = false;
     let reply = "";
@@ -1153,7 +1302,6 @@
       return task;
     };
     console.log("[deepai] stream", { model: value, session: options.sessionUuid, messages: (options.messages || []).length, all: attachments, newest });
-    await autoSignIn();
     const games = wantsGames(options.messages) ? await loadGames() : "";
     const wrapped = {
       thinking: delta => {
@@ -1166,7 +1314,7 @@
         handlers.content(delta);
       }
     };
-    for (let attempt = 0; attempt < 5; attempt++) {
+    for (let attempt = 0; attempt < 7; attempt++) {
       try {
         if (attachments.length) await persist();
         for await (const part of state.client.chat({
@@ -1193,31 +1341,37 @@
         if (error && error.name === "AbortError" && reply) persist(reply);
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
         if (!emitted && error && error.status === 404) {
-          if (level === 0) {
-            level = 1;
-            console.warn("[deepai] 404 ladder level 1: fresh session");
-            sessionUuid = uuid();
-            if (options.onSession) options.onSession(sessionUuid);
-            continue;
-          }
-          if (level === 1) {
-            level = 2;
-            if (sendIds.length && newest.length && sendIds.length !== newest.length) {
-              console.warn("[deepai] 404 ladder level 2: only newest attachments", newest);
-              sendIds = newest.filter(id => !badAttachments.has(id));
-              continue;
+          // Walk the ladder from the least destructive fix to the most:
+          // 0 log in again, 1 fresh server session (history is sent in full, so no
+          // context is lost), 2 newest attachments only, 3 drop attachments.
+          let again = false;
+          while (level < 4 && !again) {
+            const step = level++;
+            if (step === 0) {
+              console.warn("[deepai] 404 ladder 0: re-checking the login");
+              await ensureSession(true);
+              again = true;
+            } else if (step === 1) {
+              console.warn("[deepai] 404 ladder 1: fresh session");
+              sessionUuid = uuid();
+              if (options.onSession) options.onSession(sessionUuid);
+              again = true;
+            } else if (step === 2) {
+              if (sendIds.length && newest.length && sendIds.length !== newest.length) {
+                console.warn("[deepai] 404 ladder 2: only newest attachments", newest);
+                sendIds = newest.filter(id => !isBad(id));
+                again = true;
+              }
+            } else if (step === 3 && sendIds.length) {
+              console.warn("[deepai] 404 ladder 3: dropping attachments", attachments);
+              attachments.forEach(id => badAttachments.add(id));
+              sendIds = [];
+              sessionUuid = uuid();
+              if (options.onSession) options.onSession(sessionUuid);
+              again = true;
             }
           }
-          if (level === 2 && sendIds.length) {
-            level = 3;
-            console.warn("[deepai] 404 ladder level 3: dropping attachments", attachments);
-            attachments.forEach(id => badAttachments.add(id));
-            sendIds = [];
-            handlers.content("(DeepAI rejected the attachment, so this reply can't see it.)\n\n");
-            sessionUuid = uuid();
-            if (options.onSession) options.onSession(sessionUuid);
-            continue;
-          }
+          if (again) continue;
         }
         if (attempt === 0 && !emitted && error && error.code === "anonymous try it exceeded" && await signIn()) continue;
         if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
@@ -1226,19 +1380,32 @@
     }
   }
 
-  async function uploadFile(file) {
-    const session = state.user ? await state.client.me().catch(() => null) : null;
-    if (!session) {
-      state.user = null;
-      await signIn();
-    }
+  const TEXT_EXT = /\.(txt|md|markdown|json|csv|tsv|log|xml|yml|yaml|toml|ini|cfg|html?|css|js|mjs|jsx|ts|tsx|py|java|c|h|cpp|hpp|cs|go|rs|rb|php|sh|bat|sql|lua|kt|swift)$/i;
+
+  async function readLocalText(file) {
     try {
-      return await state.client.upload(file);
+      const textual = /^text\//i.test(file.type || "") || /json|xml|javascript|yaml/i.test(file.type || "") || TEXT_EXT.test(file.name || "");
+      if (!textual || !file.size || file.size > 150000) return "";
+      return await file.text();
+    } catch (e) {
+      return "";
+    }
+  }
+
+  async function uploadFile(file) {
+    await ensureSession();
+    const localText = await readLocalText(file);
+    const done = attachment => {
+      rememberOwner(attachment && attachment.uuid);
+      if (attachment && localText) attachment.localText = localText;
+      return attachment;
+    };
+    try {
+      return done(await state.client.upload(file));
     } catch (error) {
-      if (!(error && error.status === 404)) throw error;
-      state.user = null;
-      await signIn();
-      return state.client.upload(file);
+      if (!(error && (error.status === 404 || error.status === 401 || error.status === 403))) throw error;
+      await ensureSession(true);
+      return done(await state.client.upload(file));
     }
   }
 
@@ -1257,7 +1424,14 @@
     if (pending && attachments && attachments.length) {
       const stored = chat.messages.find(m => m.id === pending.id);
       if (stored) stored.attachments = attachments;
+      if (typeof _persistChat === "function") _persistChat(chat);
     }
+    // A server session only exists under the account that made it. History is always
+    // sent in full, so starting a new session for another account loses nothing.
+    await ensureSession();
+    const owner = currentEmail();
+    if (chat.sessionOwner && owner && chat.sessionOwner !== owner) chat.sessionUuid = uuid();
+    if (owner) chat.sessionOwner = owner;
     const built = buildHistory(chat.messages);
     state.abort = new AbortController();
     try {
@@ -1297,7 +1471,7 @@
         }
       }
       console.log("[deepai] attachment", ready && ready.uuid);
-      attachments.push({ uuid: ready.uuid, name: file.name });
+      attachments.push({ uuid: ready.uuid, name: file.name, text: ready.localText || undefined });
     }
     await run(attachments);
   }
