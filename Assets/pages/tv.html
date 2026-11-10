@@ -132,13 +132,25 @@ svg { display: block; flex-shrink: 0; }
 .message .pill { margin-top: 14px; }
 
 .spinner {
-    width: 34px;
-    height: 34px;
-    border-radius: 50%;
-    border: 3px solid var(--hover-strong);
-    border-top-color: var(--text);
-    animation: spin 0.9s linear infinite;
+    position: relative;
+    width: 110px;
+    height: 3px;
+    border-radius: 0;
+    overflow: hidden;
+    background: var(--hover-strong);
 }
+.spinner::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 40%;
+    border-radius: 0;
+    background: var(--text);
+    animation: bar-bounce 1s ease-in-out infinite alternate;
+}
+@keyframes bar-bounce { from { transform: translateX(0); } to { transform: translateX(150%); } }
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes pulse { 50% { opacity: 0.45; } }
 
