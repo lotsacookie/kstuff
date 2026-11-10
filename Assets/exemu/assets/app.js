@@ -102,7 +102,7 @@ function loop() {
 }
 loop();
 
-let sceneInfo = { meshes: 0, skipped: 0 };
+let sceneInfo = { meshes: 0, skipped: 0, noMesh: 0, noNode: 0 };
 function updateStats() {
   if (!$('statsBox').hidden) {
     const i = renderer.info;
@@ -131,8 +131,9 @@ function disposeRoot() {
 
 async function buildScene(file) {
   disposeRoot();
-  sceneInfo = { meshes: 0, skipped: 0 };
+  sceneInfo = { meshes: 0, skipped: 0, noMesh: 0, noNode: 0 };
   project.messages.length = 0;
+  project.meshWhy = null;
   busy('Building ' + file.name + '…');
   await tick();
   const gos = new Map();
@@ -187,6 +188,8 @@ async function buildScene(file) {
   for (const j of jobs) {
     const node = goNode.get(j.go);
     if (!node || !j.mesh) {
+      if (node) sceneInfo.noMesh++;
+      else sceneInfo.noNode++;
       sceneInfo.skipped++;
       continue;
     }
@@ -265,6 +268,8 @@ async function buildScene(file) {
   for (const m of project.messages.slice(0, 12)) log(m, 'warn');
   if (project.messages.length > 12) log('…and ' + (project.messages.length - 12) + ' more warnings', 'warn');
   log('Scene ' + file.name + ': ' + sceneInfo.meshes + ' meshes, ' + sceneInfo.skipped + ' skipped');
+  if (sceneInfo.noMesh || sceneInfo.noNode) log('Skipped without a mesh reference: ' + sceneInfo.noMesh + ' · without a node: ' + sceneInfo.noNode, 'warn');
+  if (project.meshWhy) for (const [k, n] of project.meshWhy) log('Meshes not read: ' + k + ' ×' + n, 'warn');
   $('statsBox').hidden = false;
   busy('');
 }
