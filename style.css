@@ -3247,3 +3247,10 @@ html.sg-flip body {
 .ld-word{font-size:.8rem!important;letter-spacing:.5em!important;text-transform:uppercase;font-weight:600!important;margin-right:-.5em}
 .ld-bar{width:min(240px,60vw)!important;height:1px!important}
 .ld-status{font-size:.65rem!important;letter-spacing:.3em;text-transform:uppercase;opacity:.5}
+
+/* ===== No navbar: home holds the page buttons, header has Home, footer has Settings/Profile/Changelog ===== */
+:root,html,body,body[class]{--nav-width:0px!important}
+#teachertouchbar{display:none!important}
+#hdr-home-btn{order:-1}
+.footer-btn{background:transparent;border:0;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0 10px;height:100%;opacity:.7;transition:background .15s,opacity .15s;text-transform:uppercase;letter-spacing:.08em;font-size:.65rem}
+.footer-btn:hover{background:var(--tint);opacity:1}

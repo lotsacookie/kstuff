@@ -221,3 +221,5 @@ addFlashcardMainBtn.addEventListener('click', () => openExamModal('', '', addFla
     document.addEventListener('click', () => { wrap.classList.remove('open'); trig.setAttribute('aria-expanded', 'false'); });
     render();
 })();
+
+document.querySelectorAll('.home-tile').forEach(t => t.addEventListener('click', () => window.parent.postMessage('nav: ' + t.dataset.nav, '*')));
