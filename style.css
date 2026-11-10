@@ -3287,7 +3287,7 @@ body.floating-on .learning-footer .footer-item:hover{background:var(--tint)!impo
 .learning-footer .footer-btn{padding:0 12px;gap:0}
 .learning-footer .footer-btn span{display:none}
 .learning-footer .footer-btn i{font-size:1rem}
-@media(max-width:640px){#ping-indicator span,#weather-text,#conn-text{display:none}}
+@media(max-width:640px){#ping-indicator span,#weather-text,#conn-text,#clock-text,#coi-text{display:none}}
 
 /* ===== Buttons: theme-matched inverse on hover/focus, icons and text flip to the background colour (image tiles excluded) ===== */
 button:not(:disabled):not(.nav-fav):not(.fav-tile):hover,
