@@ -66,7 +66,7 @@ let listener_errors = 0;
 
 function describe_listener(fn) {
   try {
-    return String(Function.prototype.toString.call(fn)).replace(/\s+/g, " ").slice(0, 180);
+    return String(Function.prototype.toString.call(fn)).replace(/\s+/g, " ").slice(0, 500);
   }
   catch {
     return "?";
@@ -90,6 +90,7 @@ function logged_listener(type, fn) {
         }
         catch {}
       }
+      if (e && e.name === "SecurityError") return undefined;
       throw e;
     }
   };

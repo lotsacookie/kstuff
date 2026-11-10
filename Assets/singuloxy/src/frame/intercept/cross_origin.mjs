@@ -26,8 +26,9 @@ export function wrap_window(real) {
   if (!real || (typeof real !== "object" && typeof real !== "function")) return real;
   if (!is_cross_origin(real)) return real;
   if (wrappers.has(real)) return wrappers.get(real);
-  let wrapper = new Proxy(real, {
-    get(target, key) {
+  let wrapper = new Proxy({}, {
+    get(_, key) {
+      let target = real;
       if (key === "document") {
         log_doc_read();
         return null;
@@ -40,18 +41,18 @@ export function wrap_window(real) {
         return undefined;
       }
     },
-    set(target, key, value) {
+    set(_, key, value) {
       try {
-        return Reflect.set(target, key, value);
+        return Reflect.set(real, key, value);
       }
       catch {
         return true;
       }
     },
-    has(target, key) {
+    has(_, key) {
       if (key === "document") return true;
       try {
-        return Reflect.has(target, key);
+        return Reflect.has(real, key);
       }
       catch {
         return false;

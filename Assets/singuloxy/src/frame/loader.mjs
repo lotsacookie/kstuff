@@ -82,8 +82,13 @@ function install_console() {
         }
         let stack = "";
         try {
-          if (event.error && /^(SecurityError|RuntimeError|CompileError|LinkError)$/.test(event.error.name) && event.error.stack)
-            stack = "\n" + String(event.error.stack).split("\n").slice(0, 6).join("\n");
+          let err = event.error;
+          if (err && /^(SecurityError|RuntimeError|CompileError|LinkError)$/.test(err.name) && err.stack) {
+            let lines = String(err.stack).split("\n").slice(1).map((line) => line.trim().replace(/blob:[^\s)]*:(\d+:\d+)/, "blob:$1"));
+            let wasm = lines.filter((line) => line.includes("wasm://")).slice(0, 2);
+            let js = lines.filter((line) => !line.includes("wasm://")).slice(0, 8);
+            stack = "\n" + (err.name === "RuntimeError" ? wasm.concat(js) : lines.slice(0, 6)).join("\n");
+          }
         }
         catch {}
         console_push("error", (event.message || "Error") + (event.filename ? ` (${event.filename}:${event.lineno}:${event.colno})` : "") + stack);
