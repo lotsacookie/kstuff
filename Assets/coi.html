@@ -444,6 +444,43 @@ async function legacy(){
     <script id="coi-footer">(function(){var s=window.origin==="null",i=window.crossOriginIsolated===true,ok=s&&i,b=document.getElementById("coi-indicator"),t=document.getElementById("coi-text");if(!b||!t)return;t.textContent="COI: "+(ok?"Yes":"No");b.setAttribute("data-state",ok?"on":"off");b.title="Cross-origin isolated: "+(i?"yes":"no")+" | Sandboxed: "+(s?"yes":"no");})();</script>
     <script>
 (()=>{
+  const f=document.querySelector('.learning-footer'); if(!f) return;
+  const tip=document.createElement('div'); tip.className='footer-tip'; document.body.appendChild(tip);
+  let timer=0;
+  f.querySelectorAll('.footer-btn[title]').forEach(b=>{ if(!b.getAttribute('aria-label')) b.setAttribute('aria-label',b.title); b.removeAttribute('title'); });
+  const labelOf=el=>{ const s=el.querySelector('span'); return ((s?s.textContent:el.textContent)||el.getAttribute('aria-label')||'').trim(); };
+  const isHidden=el=>{
+    const s=el.querySelector('span');
+    if(s){ if(getComputedStyle(s).display==='none') return true; if(s.scrollWidth>s.clientWidth+1) return true; }
+    const p=el.parentElement.getBoundingClientRect(), r=el.getBoundingClientRect();
+    return r.left<p.left-1||r.right>p.right+1;
+  };
+  const hide=()=>{ clearTimeout(timer); tip.classList.remove('show'); };
+  const show=el=>{
+    if(!isHidden(el)) return hide();
+    const text=labelOf(el); if(!text) return hide();
+    tip.textContent=text;
+    const r=el.getBoundingClientRect(), t=tip.getBoundingClientRect();
+    const x=Math.max(6,Math.min(innerWidth-t.width-6,r.left+r.width/2-t.width/2));
+    tip.style.left=x+'px'; tip.style.top=Math.max(6,r.top-t.height-8)+'px';
+    tip.classList.add('show');
+  };
+  const itemOf=e=>e.target.closest&&e.target.closest('.footer-item');
+  f.addEventListener('mouseover',e=>{ const it=itemOf(e); if(it) show(it); });
+  f.addEventListener('mouseout',e=>{ if(itemOf(e)) hide(); });
+  f.addEventListener('focusin',e=>{ const it=itemOf(e); if(it) show(it); });
+  f.addEventListener('focusout',hide);
+  f.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse') return; const it=itemOf(e); if(it){ show(it); clearTimeout(timer); timer=setTimeout(hide,1800); } });
+  f.addEventListener('scroll',hide,true);
+  f.addEventListener('wheel',e=>{
+    const box=e.target.closest('.footer-left,.footer-right');
+    if(!box||box.scrollWidth<=box.clientWidth||Math.abs(e.deltaX)>Math.abs(e.deltaY)) return;
+    box.scrollLeft+=e.deltaY; e.preventDefault();
+  },{passive:false});
+})();
+    </script>
+    <script>
+(()=>{
 const root=document.documentElement,area=document.getElementById('studymaterial-area');
 const fsBtn=document.getElementById('study-fullscreen-btn'),fitBtn=document.getElementById('study-fit-btn'),exitBtn=document.getElementById('screen-exit-btn');
 if(!area||!fsBtn||!fitBtn)return;
