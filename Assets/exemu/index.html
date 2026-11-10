@@ -2,10 +2,8 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<base href="https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/exemu/">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EXEmu</title>
-<link rel="stylesheet" href="assets/style.css">
 <script type="importmap">
 {
   "imports": {
@@ -20,6 +18,7 @@
   <aside id="panel">
     <h1>EXEmu</h1>
     <p class="sub">Unity game player for the browser</p>
+    <p class="sub" id="build">Build: checking…</p>
     <label id="drop" for="file">
       <input type="file" id="file" accept=".zip,application/zip" hidden>
       <span id="dropText">Drop a game .zip here or click to choose</span>
@@ -48,6 +47,42 @@
     <div id="busy" hidden></div>
   </main>
 </div>
-<script type="module" src="assets/app.js"></script>
+<script type="module">
+const REPO = 'lotsacookie/kstuff';
+const BRANCH = 'main';
+const DIR = 'Assets/exemu/';
+const isSha = (v) => /^[0-9a-f]{40}$/.test(v || '');
+const label = document.getElementById('build');
+let sha = null;
+try {
+  const c = new AbortController();
+  const t = setTimeout(() => c.abort(), 6000);
+  try {
+    const r = await fetch('https://api.github.com/repos/' + REPO + '/commits/' + BRANCH, {
+      cache: 'no-store',
+      signal: c.signal,
+      headers: { Accept: 'application/vnd.github.sha' },
+    });
+    if (!r.ok) throw new Error('GitHub API ' + r.status);
+    sha = (await r.text()).trim();
+    if (!isSha(sha)) throw new Error('bad sha');
+    try { localStorage.setItem('exemu-sha', sha); } catch {}
+  } finally {
+    clearTimeout(t);
+  }
+} catch (e) {
+  console.warn('[exemu] GitHub API failed:', e && e.message);
+  try { sha = localStorage.getItem('exemu-sha'); } catch {}
+}
+if (!isSha(sha)) sha = null;
+const base = 'https://cdn.jsdelivr.net/gh/' + REPO + '@' + (sha || BRANCH) + '/' + DIR;
+window.EXEMU_BUILD = sha || 'unpinned';
+label.textContent = 'Build: ' + (sha ? sha.slice(0, 7) : 'unpinned (GitHub API unreachable)');
+const css = document.createElement('link');
+css.rel = 'stylesheet';
+css.href = base + 'assets/style.css';
+document.head.appendChild(css);
+await import(base + 'assets/app.js');
+</script>
 </body>
 </html>
