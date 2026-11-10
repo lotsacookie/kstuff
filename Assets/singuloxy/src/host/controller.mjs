@@ -139,6 +139,7 @@ let libcurl_loading = null;
 
 const BASE_SANDBOX = "allow-scripts allow-forms allow-modals allow-pointer-lock";
 const DRM_HOSTS = [/(^|\.)spotify\.com$/i];
+const sandbox_fallback_hosts = new Set();
 
 function ensure_libcurl() {
   if (libcurl.ready) return Promise.resolve();
@@ -234,7 +235,8 @@ export class ProxyFrame {
   }
 
   apply_sandbox(hostname) {
-    let drm = DRM_HOSTS.some((pattern) => pattern.test(hostname));
+    let drm = DRM_HOSTS.some((pattern) => pattern.test(hostname)) && !sandbox_fallback_hosts.has(hostname);
+    this.same_origin_host = drm ? hostname : null;
     let flags = drm ? BASE_SANDBOX + " allow-same-origin" : BASE_SANDBOX;
     if (this.iframe.getAttribute("sandbox") !== flags) this.iframe.setAttribute("sandbox", flags);
   }
@@ -257,6 +259,11 @@ export class ProxyFrame {
   async connect_frame() {
     for (let attempt = 0; attempt < FRAME_START_ATTEMPTS; attempt++) {
       if (attempt > 0) {
+        if (this.same_origin_host) {
+          console.warn("page frame did not answer with allow-same-origin on " + this.same_origin_host + ", falling back to the opaque sandbox (DRM playback will be unavailable)");
+          sandbox_fallback_hosts.add(this.same_origin_host);
+          this.apply_sandbox(this.same_origin_host);
+        }
         this.emit_progress(0.4, "Restarting page frame (" + (attempt + 1) + ")");
         await this.load_frame_document();
       }
