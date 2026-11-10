@@ -209,6 +209,8 @@ export function create_obj_proxy(obj, ctx_vars, target) {
   });
 }
 
+const safe_frame_cache = new WeakMap();
+
 function safe_frame(real, owner) {
   if (!real) return owner.__proxy__;
   try {
@@ -216,6 +218,10 @@ function safe_frame(real, owner) {
     return real;
   }
   catch {}
+
+  if (safe_frame_cache.has(real)) return safe_frame_cache.get(real);
+
+  let post_message = intercept.cross_origin.make_post_message(real, "to cross-origin parent/opener");
 
   let own_keys = {
     history: () => owner.history,
@@ -234,9 +240,7 @@ function safe_frame(real, owner) {
   let proxy = new Proxy({}, {
     get(target, key) {
       if (typeof key === "string" && key in own_keys) return own_keys[key]();
-      if (key === "postMessage") {
-        return (...args) => real.postMessage(...args);
-      }
+      if (key === "postMessage") return post_message;
       try {
         let value = real[key];
         return typeof value === "function" ? value.bind(real) : value;
@@ -252,6 +256,8 @@ function safe_frame(real, owner) {
       return typeof key === "string" && key in own_keys;
     }
   });
+  safe_frame_cache.set(real, proxy);
+  intercept.cross_origin.register_proxy_target(proxy, real);
   return proxy;
 }
 

@@ -9,6 +9,7 @@ import { pending_scripts, script_state, execute_script, wait_for_prewarms } from
 import { pending_modules } from "./rewrite/module.mjs";
 import { install_form_handler, patch_form_submit } from "./rewrite/form.mjs";
 import { set_ready_state } from "./intercept/document.mjs";
+import { set_parent_origin, set_parent_factory } from "./intercept/cross_origin.mjs";
 
 const navigate_rpc = rpc.create_rpc_wrapper(rpc.host, "navigate");
 export const local_storage = rpc.create_rpc_wrapper(rpc.host, "local_storage");
@@ -21,6 +22,7 @@ const console_rpc = rpc.create_rpc_wrapper(rpc.host, "console");
 let console_queue = [];
 let console_timer = null;
 let console_installed = false;
+let console_tag = "";
 
 function console_format(value) {
   try {
@@ -48,14 +50,14 @@ function console_flush() {
   let batch = console_queue;
   console_queue = [];
   try {
-    console_rpc(frame_id, batch);
+    console_rpc(parent_frame_id || frame_id, batch);
   }
   catch {}
 }
 
 function console_push(level, text) {
   if (console_queue.length >= 200) return;
-  console_queue.push([level, String(text).slice(0, 4000)]);
+  console_queue.push([level, (console_tag + String(text)).slice(0, 4000)]);
   if (!console_timer) console_timer = setTimeout(console_flush, 250);
 }
 
@@ -163,6 +165,7 @@ export let frame_html;
 export let version;
 export let is_loaded = false;
 export let is_iframe = false;
+export let parent_frame_id = null;
 export let site_settings = {};
 export let default_settings = {};
 
@@ -381,6 +384,7 @@ function settle() {
 async function load_html(options) {
   version = options.version;
   is_iframe = options.is_iframe || false;
+  parent_frame_id = options.parent_frame_id || null;
   default_settings = options.default_settings;
   site_settings = {...default_settings, ...options.settings};
   network.known_urls[location.href] = options.url;
@@ -388,10 +392,25 @@ async function load_html(options) {
 
   set_url(options.url);
   set_frame_id(options.frame_id);
+  if (is_iframe) {
+    try {
+      console_tag = "[iframe " + new URL(options.url).host + "] ";
+    }
+    catch {}
+  }
   install_console();
   get_frame_html();
   update_ctx();
   patch_form_submit();
+
+  if (is_iframe) {
+    set_parent_origin(options.parent_origin);
+    set_parent_factory(() => ctx.parent);
+    try {
+      console.log("iframe context: url=" + options.url + " origin=" + ctx.location.origin + " parent_origin=" + options.parent_origin + " real_origin=" + String(globalThis.origin) + " same_origin_parent=" + (() => { try { void globalThis.parent.document; return true; } catch { return false; } })());
+    }
+    catch {}
+  }
 
   globalThis.__dynamic_import__ = rewrite.module_dynamic_import;
 

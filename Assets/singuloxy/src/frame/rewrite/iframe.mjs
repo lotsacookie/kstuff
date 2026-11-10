@@ -3,6 +3,7 @@ import * as network from "../network.mjs";
 import * as loader from "../loader.mjs";
 import * as util from "../../util.mjs";
 import * as rpc from "../../rpc.mjs";
+import { register_child_frame } from "../intercept/cross_origin.mjs";
 
 export function rewrite_iframe(iframe_element) {
   let iframe_src = iframe_element.src;
@@ -30,6 +31,9 @@ export function rewrite_iframe(iframe_element) {
     let send_page = rpc.create_rpc_wrapper(rpc_target, "html");
 
     let iframe_origin = new URL(final_url).origin;
+    register_child_frame(iframe_element, iframe_origin);
+    let parent_origin = ctx.location.origin;
+    let parent_frame_id = loader.parent_frame_id || loader.frame_id;
     let local_storage;
     let cookies;
     if (iframe_origin === ctx.location.origin) {
@@ -49,11 +53,14 @@ export function rewrite_iframe(iframe_element) {
         settings: {},
         default_settings: loader.default_settings,
         version: loader.version,
-        is_iframe: true
+        is_iframe: true,
+        parent_origin: parent_origin,
+        parent_frame_id: parent_frame_id
       });
     }
     catch (send_error) {
       let error_msg = util.format_error(send_error);
+      console.warn("iframe send_page failed", iframe_origin, error_msg);
       await send_page({
         url: final_url,
         html: html, 
@@ -64,12 +71,14 @@ export function rewrite_iframe(iframe_element) {
         settings: {},
         default_settings: loader.default_settings,
         version: loader.version,
-        is_iframe: true
+        is_iframe: true,
+        parent_origin: parent_origin,
+        parent_frame_id: parent_frame_id
       });
     }
 
     try {
-      console.log("iframe load dispatched", new URL(final_url).origin);
+      console.log("iframe load dispatched", new URL(final_url).origin, "parent origin", parent_origin);
     }
     catch {}
     iframe_element.dispatchEvent(new Event("load"));
@@ -82,10 +91,12 @@ export function rewrite_iframe(iframe_element) {
     let final_url = iframe_url;
     let error;
     let html;
+    let started = Date.now();
     try {
       let response = await network.fetch(iframe_url);
       html = await response.text();
       final_url = response.url || iframe_url;
+      console.log("iframe fetched", iframe_url, "status", response.status, "final", final_url, "bytes", html.length, "in", Date.now() - started, "ms");
       try {
         let wanted = new URL(iframe_url).hash;
         let final = new URL(final_url);
@@ -98,6 +109,7 @@ export function rewrite_iframe(iframe_element) {
     }
     catch (e) {
       error = util.format_error(e);
+      console.warn("iframe fetch failed", iframe_url, "after", Date.now() - started, "ms:", error);
     }
 
     await load_frame(final_url, html, error);

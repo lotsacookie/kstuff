@@ -1,9 +1,15 @@
 import { ctx, proxy_function, unwrap_this } from "../context.mjs";
+import { describe_data, normalize_post_message_args, origin_of_window } from "./cross_origin.mjs";
 
 const IN_WORKER = typeof importScripts === "function";
 
 const ORIGIN_KEY = "__sandstone_origin__";
 const HTTP_ORIGIN = /^https?:\/\//i;
+
+const stats = {sent: 0, self: 0, received: 0, overridden: 0, unresolved: 0};
+let sent_traces = 0;
+let received_traces = 0;
+let origin_traces = 0;
 
 function is_same_origin_window(target) {
   if (target === undefined || target === null) return true;
@@ -14,23 +20,6 @@ function is_same_origin_window(target) {
   catch {
     return false;
   }
-}
-
-function needs_rewrite(origin) {
-  return typeof origin === "string" && origin !== "*" && origin !== "/";
-}
-
-function normalize_arguments(args) {
-  if (args.length < 2) return args;
-  let second = args[1];
-  if (typeof second === "string") {
-    if (!needs_rewrite(second)) return args;
-    return [args[0], "*", ...args.slice(2)];
-  }
-  if (second !== null && typeof second === "object" && needs_rewrite(second.targetOrigin)) {
-    return [args[0], {...second, targetOrigin: "*"}, ...args.slice(2)];
-  }
-  return args;
 }
 
 function install_origin_marker() {
@@ -52,11 +41,7 @@ function install_origin_marker() {
   catch {}
 }
 
-let trace_count = 0;
-
 function trace(text) {
-  if (trace_count >= 60) return;
-  trace_count++;
   try {
     console.warn("sandstone: " + text);
   }
@@ -65,20 +50,6 @@ function trace(text) {
 
 function is_internal(data) {
   return data !== null && typeof data === "object" && typeof data.type === "string" && typeof data.id === "string";
-}
-
-function describe_data(data) {
-  if (data === null || data === undefined) return String(data);
-  if (typeof data === "string") return "string(" + data.length + ")";
-  if (typeof data === "object") {
-    try {
-      return "object{" + Object.keys(data).slice(0, 8).join(",") + "}";
-    }
-    catch {
-      return "object";
-    }
-  }
-  return typeof data;
 }
 
 function install_trace() {
@@ -90,10 +61,25 @@ function install_trace() {
       }
       catch {}
       if (is_internal(event.data)) return;
+      stats.received++;
+      if (received_traces >= 40) return;
+      received_traces++;
       trace("message received origin=" + from + " data=" + describe_data(event.data));
     }, true);
   }
   catch {}
+}
+
+function install_stats_report() {
+  let report = (label) => {
+    try {
+      if (!stats.sent && !stats.received && !stats.self) return;
+      trace("message stats " + label + " sent=" + stats.sent + " self=" + stats.self + " received=" + stats.received + " origin_overrides=" + stats.overridden + " origin_unresolved=" + stats.unresolved);
+    }
+    catch {}
+  };
+  setTimeout(() => report("6s"), 6000);
+  setTimeout(() => report("25s"), 25000);
 }
 
 function install_post_message() {
@@ -101,9 +87,22 @@ function install_post_message() {
   try {
     proxy_function(globalThis, "postMessage", (func, this_arg, args) => {
       let receiver = unwrap_this(this_arg);
+      let is_self = receiver === globalThis || receiver === undefined || receiver === null;
       let same = is_same_origin_window(receiver);
-      let next = same ? normalize_arguments(args) : args;
-      if (!is_internal(args[0])) trace("postMessage target=" + String(args[1] && args[1].targetOrigin || args[1]) + (same ? "" : " cross-origin") + " data=" + describe_data(args[0]));
+      let next = same ? normalize_post_message_args(args) : args;
+      if (!is_internal(args[0])) {
+        if (is_self) {
+          stats.self++;
+        }
+        else {
+          stats.sent++;
+          if (sent_traces < 40) {
+            sent_traces++;
+            let target = args[1] && args[1].targetOrigin || args[1];
+            trace("postMessage target=" + String(target) + (same ? "" : " cross-origin") + (next === args ? "" : " (rewritten to *)") + " data=" + describe_data(args[0]));
+          }
+        }
+      }
       return Reflect.apply(func, receiver, next);
     });
   }
@@ -128,8 +127,25 @@ function install_event_origin() {
         try {
           let source = read_source.call(this);
           if (!source) return real;
+          let known = origin_of_window(source);
+          if (known) {
+            stats.overridden++;
+            if (origin_traces < 20) {
+              origin_traces++;
+              trace("message origin " + real + " -> " + known);
+            }
+            return known;
+          }
           let fake = source[ORIGIN_KEY];
-          return typeof fake === "string" && HTTP_ORIGIN.test(fake) ? fake : real;
+          if (typeof fake === "string" && HTTP_ORIGIN.test(fake)) return fake;
+          if (real === "null") {
+            stats.unresolved++;
+            if (origin_traces < 20) {
+              origin_traces++;
+              trace("message origin stayed null (source not recognised)");
+            }
+          }
+          return real;
         }
         catch {
           return real;
@@ -145,4 +161,5 @@ if (!IN_WORKER && typeof window !== "undefined") {
   install_post_message();
   install_event_origin();
   install_trace();
+  install_stats_report();
 }
