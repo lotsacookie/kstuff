@@ -1127,24 +1127,24 @@ html:not(.ready) body * {
 }
 </style>
 <style id="mono-restyle">
-:root{--bg:#000;--text:#fff;--card:#000;--nav:#000;--radius:0px}
+:root{--radius:0px}
 *,*::before,*::after{border-radius:0!important}
-.library-search-container{background:#000!important;border:1px solid rgba(255,255,255,.3)!important;box-shadow:none!important;backdrop-filter:none!important;padding:0 0 0 0!important;max-width:560px!important;align-items:stretch!important;z-index:5}
-.library-search-container:focus-within{border-color:#fff!important}
+.library-search-container{background:var(--bg)!important;border:1px solid var(--line-strong)!important;box-shadow:none!important;backdrop-filter:none!important;padding:0!important;max-width:560px!important;align-items:stretch!important;z-index:5}
+.library-search-container:focus-within{border-color:var(--text)!important}
 .library-search-container::before{display:none!important}
 .library-search-input{padding:14px 16px!important}
-.library-search-btn{background:#fff!important;color:#000!important;border:0!important;width:52px;margin:0!important}
-.library-search-btn svg{fill:#000!important}
-.se-menu{position:relative;display:flex;border-right:1px solid rgba(255,255,255,.2)}
-.se-trigger{display:flex;align-items:center;gap:10px;background:#000;color:#fff;border:0;padding:0 14px;font-family:inherit;font-weight:600;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background .15s}
-.se-trigger:hover,.se-menu.open .se-trigger{background:#fff;color:#000}
+.library-search-btn{background:var(--text)!important;border:0!important;width:52px;margin:0!important}
+.library-search-btn svg{fill:var(--bg)!important}
+.se-menu{position:relative;display:flex;border-right:1px solid var(--line)}
+.se-trigger{display:flex;align-items:center;gap:10px;background:transparent;color:var(--text);border:0;padding:0 14px;font-family:inherit;font-weight:600;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.se-trigger:hover,.se-menu.open .se-trigger{background:var(--text);color:var(--bg)}
 .se-trigger svg{transition:transform .2s}
 .se-menu.open .se-trigger svg{transform:rotate(180deg)}
-.se-list{position:absolute;top:calc(100% + 1px);left:-1px;min-width:100%;background:#000;border:1px solid #fff;display:none;z-index:20;box-shadow:0 16px 32px rgba(0,0,0,.8)}
+.se-list{position:absolute;top:calc(100% + 1px);left:-1px;min-width:100%;background:var(--bg);border:1px solid var(--text);display:none;z-index:20}
 .se-menu.open .se-list{display:block}
-.se-opt{padding:11px 14px;font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#fff;cursor:pointer;border-left:2px solid transparent;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
-.se-opt:hover{background:rgba(255,255,255,.1)}
-.se-opt.sel{background:#fff;color:#000}
+.se-opt{padding:11px 14px;font-size:.7rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--text);cursor:pointer;border-bottom:1px solid var(--line);white-space:nowrap}
+.se-opt:hover{background:var(--card)}
+.se-opt.sel{background:var(--text);color:var(--bg)}
 @media(max-width:520px){.se-trigger{padding:0 9px;font-size:.62rem}}
 </style>
 </head>
