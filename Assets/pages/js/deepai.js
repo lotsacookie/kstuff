@@ -1301,6 +1301,8 @@
     await ensureSession();
     let sendIds = attachments.filter(id => !isBad(id));
     let emitted = false;
+    let savedFor = null;
+    let preRetries = 0;
     let reply = "";
     let sessionUuid = options.sessionUuid;
     const persist = extra => {
@@ -1367,8 +1369,11 @@
           handlers.content("(DeepAI rejected the attachment, so this reply can't see it.)\n\n");
         }
         if (step.pre) {
-          await persist();
-          await delay(600);
+          if (savedFor !== sessionUuid) {
+            await persist();
+            savedFor = sessionUuid;
+          }
+          await delay(600 + preRetries * 1200);
         }
         for await (const part of state.client.chat({
           model: modelId,
@@ -1407,6 +1412,12 @@
           attachments.forEach(id => badAttachments.add(id));
           sendIds = [];
           handlers.content("(DeepAI refused the image for every model this account can use, so this reply can't see it.)\n\n");
+          attempt--;
+          continue;
+        }
+        // saved session not visible yet: wait longer and resend on the SAME saved session
+        if (!emitted && error && error.status === 404 && plan[Math.min(attempt, plan.length - 1)].pre && preRetries < 3) {
+          preRetries++;
           attempt--;
           continue;
         }
