@@ -99,6 +99,19 @@ function classify_window(real) {
   }
   catch {}
   try {
+    for (let i = 0; i < globalThis.length; i++) {
+      if (globalThis[i] === real) tags.push("child-frame[" + i + "]");
+    }
+  }
+  catch {}
+  try {
+    let siblings = globalThis.parent && globalThis.parent !== globalThis ? globalThis.parent.length : 0;
+    for (let i = 0; i < siblings; i++) {
+      if (globalThis.parent[i] === real) tags.push("sibling[" + i + "/" + siblings + "]");
+    }
+  }
+  catch {}
+  try {
     let known = origin_of_window(real);
     if (known) tags.push("known-origin=" + known);
   }

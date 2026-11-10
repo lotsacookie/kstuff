@@ -10,6 +10,7 @@ export function rewrite_iframe(iframe_element) {
   let iframe_url = "";
 
   let load_frame = async (final_url, html, error) => {
+    Reflect.apply(Element.prototype.setAttribute, iframe_element, ["sandbox", "allow-scripts allow-forms allow-modals allow-pointer-lock"]);
     let loader_blob = new Blob([loader.frame_html], {type: "text/html"});
     iframe_element.src = network.create_blob_url(loader_blob);
     await new Promise((resolve) => {

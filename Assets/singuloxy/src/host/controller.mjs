@@ -137,6 +137,9 @@ function extract_set_cookies(response) {
 
 let libcurl_loading = null;
 
+const BASE_SANDBOX = "allow-scripts allow-forms allow-modals allow-pointer-lock";
+const DRM_HOSTS = [/(^|\.)spotify\.com$/i];
+
 function ensure_libcurl() {
   if (libcurl.ready) return Promise.resolve();
   if (!libcurl_loading) {
@@ -155,7 +158,7 @@ export class ProxyFrame {
     this.url = null;
     this.id = Math.random() + "";
     this.iframe = document.createElement("iframe");
-    this.iframe.sandbox = "allow-scripts allow-forms allow-modals allow-pointer-lock";
+    this.iframe.setAttribute("sandbox", BASE_SANDBOX);
     this.iframe.allowFullscreen = true;
     this.iframe.allow = "cross-origin-isolated; fullscreen; pointer-lock; keyboard-map; clipboard-read; screen-wake-lock; encrypted-media; autoplay; picture-in-picture; clipboard-write; web-share; gamepad; accelerometer; gyroscope; magnetometer";    this.iframe.setAttribute("frame-id", this.id);
 
@@ -230,6 +233,12 @@ export class ProxyFrame {
     await ensure_libcurl();
   }
 
+  apply_sandbox(hostname) {
+    let drm = DRM_HOSTS.some((pattern) => pattern.test(hostname));
+    let flags = drm ? BASE_SANDBOX + " allow-same-origin" : BASE_SANDBOX;
+    if (this.iframe.getAttribute("sandbox") !== flags) this.iframe.setAttribute("sandbox", flags);
+  }
+
   load_frame_document() {
     return new Promise((resolve) => {
       let done = false;
@@ -276,6 +285,7 @@ export class ProxyFrame {
     let old_ports = [this.rpc_target.target, ...this.rpc_target.extra_targets].filter(Boolean);
     network.end_streams_for(old_ports);
 
+    this.apply_sandbox(this.url.hostname);
     let frame_loaded = this.load_frame_document();
     network.clean_ws_connections(this.id);
 
