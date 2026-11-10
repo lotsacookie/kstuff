@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { unzipSync } from 'fflate';
 import { Project, parseBundle } from './unity.js';
-import { readGameObject, readTransform, findMaterials, findPtr, getGeometry, getMaterial } from './decode.js';
+import { readGameObject, readTransform, findMaterials, findPtr, getGeometry, getMaterial, readStaticBatch } from './decode.js';
 
 const $ = (id) => document.getElementById(id);
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -199,10 +199,35 @@ async function buildScene(file) {
     }
     const mats = info.mats.map((m) => getMaterial(project, m, cache.fallback));
     if (!mats.length) mats.push(cache.fallback);
-    const groupCount = geo.groups.length;
+    const batch = j.rend.classID === 23 ? readStaticBatch(file, j.rend, info.end, geo.groups.length) : null;
+    let useGeo = geo;
+    if (batch) {
+      const bkey = 'sb' + geo.uuid + ':' + batch.join(',');
+      useGeo = project.assets.get(bkey);
+      if (!useGeo) {
+        useGeo = new THREE.BufferGeometry();
+        useGeo.attributes = geo.attributes;
+        useGeo.index = geo.index;
+        useGeo.boundingSphere = geo.boundingSphere;
+        batch.forEach((si, k) => {
+          const gr = geo.groups[si];
+          if (gr) useGeo.addGroup(gr.start, gr.count, k);
+        });
+        project.assets.set(bkey, useGeo);
+      }
+    }
+    const groupCount = useGeo.groups.length;
     const list = [];
     for (let i = 0; i < groupCount; i++) list.push(mats[Math.min(i, mats.length - 1)]);
-    node.add(new THREE.Mesh(geo, list));
+    const mesh = new THREE.Mesh(useGeo, list);
+    if (batch) {
+      let vis = true;
+      for (let n = node; n && n !== root; n = n.parent) vis = vis && n.visible;
+      mesh.visible = vis;
+      root.add(mesh);
+    } else {
+      node.add(mesh);
+    }
     sceneInfo.meshes++;
     if (++done % 25 === 0) {
       busy('Building ' + file.name + ' · ' + done + '/' + jobs.length);

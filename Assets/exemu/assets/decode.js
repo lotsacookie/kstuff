@@ -616,3 +616,26 @@ export function getGeometry(project, res) {
   project.assets.set(key, geo);
   return geo;
 }
+
+export function readStaticBatch(file, o, end, subCount) {
+  if (end + 4 > o.size || subCount < 1) return null;
+  const dv = new DataView(file.buf.buffer, file.buf.byteOffset + o.start, o.size);
+  const le = file.little;
+  if (file.atLeast(5, 5)) {
+    const first = dv.getUint16(end, le);
+    const count = dv.getUint16(end + 2, le);
+    if (count < 1 || first + count > subCount) return null;
+    const list = [];
+    for (let i = 0; i < count; i++) list.push(first + i);
+    return list;
+  }
+  const n = dv.getInt32(end, le);
+  if (n < 1 || n > subCount || end + 4 + n * 4 > o.size) return null;
+  const list = [];
+  for (let i = 0; i < n; i++) {
+    const v = dv.getUint32(end + 4 + i * 4, le);
+    if (v >= subCount) return null;
+    list.push(v);
+  }
+  return list;
+}
