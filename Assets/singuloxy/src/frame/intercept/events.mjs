@@ -38,11 +38,15 @@ function strip_signal(options) {
 
 function install_unwrap() {
   if (typeof EventTarget !== "undefined") {
-    for (let key of ["removeEventListener", "dispatchEvent"]) {
-      proxy_function(EventTarget.prototype, key, (func, this_arg, args) => {
-        return Reflect.apply(func, unwrap_this(this_arg), args);
-      });
-    }
+    proxy_function(EventTarget.prototype, "removeEventListener", (func, this_arg, args) => {
+      if (typeof args[1] === "function" && listener_wrappers.has(args[1])) {
+        args = [args[0], listener_wrappers.get(args[1]), ...args.slice(2)];
+      }
+      return Reflect.apply(func, unwrap_this(this_arg), args);
+    });
+    proxy_function(EventTarget.prototype, "dispatchEvent", (func, this_arg, args) => {
+      return Reflect.apply(func, unwrap_this(this_arg), args);
+    });
   }
 
   for (let key of GLOBAL_METHODS) {
@@ -56,11 +60,51 @@ function install_unwrap() {
   }
 }
 
+const LOGGED_TYPES = new Set(["readystatechange", "DOMContentLoaded", "load", "pageshow"]);
+const listener_wrappers = new WeakMap();
+let listener_errors = 0;
+
+function describe_listener(fn) {
+  try {
+    return String(Function.prototype.toString.call(fn)).replace(/\s+/g, " ").slice(0, 180);
+  }
+  catch {
+    return "?";
+  }
+}
+
+function logged_listener(type, fn) {
+  if (typeof fn !== "function") return fn;
+  let wrapper = listener_wrappers.get(fn);
+  if (wrapper) return wrapper;
+  wrapper = function(...args) {
+    try {
+      return Reflect.apply(fn, this, args);
+    }
+    catch (e) {
+      if (listener_errors < 6) {
+        listener_errors++;
+        try {
+          let stack = String(e && e.stack).split("\n").slice(0, 4).map((line) => line.trim().replace(/blob:[^\s)]*:(\d+:\d+)/, "blob:$1")).join(" < ");
+          console.warn("sandstone: " + type + " listener threw " + (e && e.name) + " | fn=" + describe_listener(fn) + " | " + stack);
+        }
+        catch {}
+      }
+      throw e;
+    }
+  };
+  listener_wrappers.set(fn, wrapper);
+  return wrapper;
+}
+
 function install_add_listener() {
   if (typeof EventTarget === "undefined") return;
 
   proxy_function(EventTarget.prototype, "addEventListener", (func, this_arg, args) => {
     let receiver = unwrap_this(this_arg);
+    if (typeof args[0] === "string" && LOGGED_TYPES.has(args[0]) && typeof args[1] === "function") {
+      args = [args[0], logged_listener(args[0], args[1]), ...args.slice(2)];
+    }
     try {
       return Reflect.apply(func, receiver, args);
     }

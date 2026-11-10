@@ -160,6 +160,31 @@ export function create_obj_proxy(obj, ctx_vars, target) {
 
   return new Proxy(target, {
     get: (_, key) => {
+      if (target === globalThis && typeof key === "string") {
+        if (/^\d+$/.test(key)) {
+          try {
+            return intercept.cross_origin.wrap_window(globalThis[key]);
+          }
+          catch {}
+        }
+        else if (key === "frames" && !is_worker) {
+          if (!proxies.has("frames")) {
+            let inner = obj.__proxy__ || globalThis;
+            proxies.set("frames", new Proxy(inner, {
+              get(base, k) {
+                if (typeof k === "string" && /^\d+$/.test(k)) {
+                  try {
+                    return intercept.cross_origin.wrap_window(globalThis[k]);
+                  }
+                  catch {}
+                }
+                return Reflect.get(base, k);
+              }
+            }));
+          }
+          return proxies.get("frames");
+        }
+      }
       if (!INHERITED_OBJECT_KEYS.has(key) && typeof obj[key] !== "undefined")
         return obj[key];
       if (typeof target[key] === "function" && !target[key].prototype) {

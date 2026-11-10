@@ -1,4 +1,15 @@
 const wrappers = new WeakMap();
+let doc_reads = 0;
+
+function log_doc_read() {
+  if (doc_reads >= 5) return;
+  doc_reads++;
+  try {
+    let stack = String(new Error().stack).split("\n").slice(2, 6).map((line) => line.trim().replace(/^at /, "").replace(/blob:[^\s)]*:(\d+:\d+)/, "blob:$1")).join(" < ");
+    console.warn("sandstone: .document read on cross-origin window (blocked) from " + stack);
+  }
+  catch {}
+}
 
 export function is_cross_origin(real) {
   if (!real) return false;
@@ -17,7 +28,10 @@ export function wrap_window(real) {
   if (wrappers.has(real)) return wrappers.get(real);
   let wrapper = new Proxy(real, {
     get(target, key) {
-      if (key === "document") return null;
+      if (key === "document") {
+        log_doc_read();
+        return null;
+      }
       try {
         let value = Reflect.get(target, key);
         return typeof value === "function" ? value.bind(target) : value;
