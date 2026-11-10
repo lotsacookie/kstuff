@@ -613,14 +613,9 @@
         const fields = {
           chat_style: "chat",
           language: "en",
-          // attachment ids go in the top-level attachment_uuids field only; the server
-          // is documented to expect them "never inside a message"
-          chatHistory: JSON.stringify(options.messages.map(m => {
-            if (!m || !m.attachment_uuids) return m;
-            const copy = Object.assign({}, m);
-            delete copy.attachment_uuids;
-            return copy;
-          })),
+          // like the real DeepAI chat page: each message keeps its own attachment_uuids
+          // inside chatHistory, and the top-level attachment_uuids lists them all
+          chatHistory: JSON.stringify(options.messages),
           model: options.model,
           session_uuid: options.sessionUuid,
           sensitivity_request_id: uuid(),
@@ -1268,10 +1263,14 @@
     throw new DeepAIError("DeepAI took too long to answer");
   }
 
-  // The next unlocked model that is likely to accept images, skipping ones already tried.
+  // Models the real DeepAI chat page marks as vision capable (visionCapableModelValues).
+  const VISION_MODELS = ["standard", "genius", "supergenius", "claude-haiku-5-5", "gemma-4", "gpt-4.1", "gpt-6.1-sol", "gpt-6-astra", "gpt-6-luna", "gemini-4-argon", "gemini-3.8-flash", "claude-opus-5-5", "claude-fable-5", "glm-5.3-flash", "qwen3.8-flash", "llama-4-scout", "gpt-5.2", "chatgpt-4o-latest"];
+  function canSeeImages(id) {
+    return VISION_MODELS.includes(String(id));
+  }
+  // The next unlocked vision model, skipping ones already tried.
   function visionModel(tried) {
-    const likely = /gemma|gpt-?4|gpt-?5|gemini|claude|vision|llava|pixtral|qwen.*vl|llama-?(3\.2|4)|genius/i;
-    return state.models.find(m => !m.locked && !tried.includes(m.id) && likely.test(m.id + " " + m.label)) || null;
+    return state.models.find(m => !m.locked && !tried.includes(m.id) && canSeeImages(m.id)) || null;
   }
 
   async function stream(options, handlers) {
@@ -1390,7 +1389,7 @@
       } catch (error) {
         if (error && error.name === "AbortError" && reply) persist(reply);
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
-        if (!emitted && error && error.status === 400 && /does not support image/i.test(String(error.message || "")) && sendIds.length && visionRetries < 5) {
+        if (!emitted && error && error.status === 400 && /does not support image/i.test(String(error.message || "")) && sendIds.length && visionRetries < 5 && !canSeeImages(modelId)) {
           const next = visionModel(triedModels);
           visionRetries++;
           if (next) {
