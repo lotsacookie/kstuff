@@ -3020,7 +3020,8 @@ body {
 }
 
 .learning-header .hdr-more { order: 100; }
-.learning-header .textbook-bar-container { min-width: 120px; }
+/* the address/search bar keeps a comfortable width; when the header is narrow everything but Home moves into the overflow menu instead of squishing it */
+.learning-header .textbook-bar-container { min-width: 200px; }
 
 .learning-header.hdr-slim .mini-player-text { display: none; }
 
@@ -3037,7 +3038,7 @@ body {
 }
 
 .learning-header.hdr-tight .textbook-bar-container {
-    min-width: 80px;
+    min-width: 160px;
     padding-left: 12px;
 }
 
