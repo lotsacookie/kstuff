@@ -1151,6 +1151,23 @@ button.fav-tile:not(:disabled):hover span,button.fav-tile:not(:disabled):focus-v
 .fav-tile:hover .fav-art img,.fav-tile:focus-visible .fav-art img,.flashcard-card:hover .flashcard-icon img{filter:invert(1)}
 button.add-flashcard-btn:not(:disabled):hover,button.add-flashcard-btn:not(:disabled):focus-visible{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border:1.5px solid var(--text)!important;box-shadow:none!important}
 button.add-flashcard-btn:not(:disabled):hover span{color:var(--bg)!important}
+/* search bar: soft card look matching the shortcut buttons */
+.library-search-container{background:var(--card)!important;border:1px solid var(--line)!important;border-radius:var(--radius)!important;box-shadow:none!important;overflow:visible!important}
+.library-search-container:focus-within{border-color:var(--line-strong)!important}
+.library-search-input{background:transparent!important;color:var(--text)!important}
+.se-menu{border-right:1px solid var(--line)}
+.se-trigger{background:transparent!important;color:var(--text)!important;border-radius:var(--radius) 0 0 var(--radius)!important}
+.se-menu .se-trigger:not(:disabled):hover,.se-menu .se-trigger:not(:disabled):focus-visible,.se-menu.open .se-trigger{background:color-mix(in srgb,var(--text) 14%,transparent)!important;background-color:color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;border-color:transparent!important}
+.se-menu .se-trigger:not(:disabled):hover svg,.se-menu.open .se-trigger svg{fill:var(--text)!important;color:var(--text)!important}
+.se-list{top:calc(100% + 6px)!important;left:0!important;background:color-mix(in srgb,var(--text) 8%,var(--bg))!important;border:1px solid var(--line-strong)!important;border-radius:var(--radius)!important;overflow:hidden}
+.se-opt{color:var(--text)!important;border-bottom:1px solid var(--line)!important}
+.se-opt:last-child{border-bottom:0!important}
+.se-opt:hover{background:color-mix(in srgb,var(--text) 12%,transparent)!important}
+.se-opt.sel{background:color-mix(in srgb,var(--text) 20%,transparent)!important;color:var(--text)!important}
+.library-search-btn{background:transparent!important;border:0!important;border-left:1px solid var(--line)!important;border-radius:0 var(--radius) var(--radius) 0!important;color:var(--text)!important}
+.library-search-btn svg{fill:var(--text)!important}
+.library-search-btn:not(:disabled):hover,.library-search-btn:not(:disabled):focus-visible{background:color-mix(in srgb,var(--text) 14%,transparent)!important;background-color:color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;border-color:var(--line)!important;filter:none!important}
+.library-search-btn:hover svg,.library-search-btn:focus-visible svg{fill:var(--text)!important;color:var(--text)!important}
 </style>
 </head>
 <body>
