@@ -1,8 +1,6 @@
-name: Sync EXEmu
+name: Build EXEmu bundle
 
 on:
-  schedule:
-    - cron: '*/30 * * * *'
   push:
     branches: [main]
     paths:
@@ -26,18 +24,6 @@ jobs:
         with:
           node-version: 20
 
-      - name: Pull rtischeduler/EXEmu into Assets/exemu
-        run: |
-          rm -rf "$RUNNER_TEMP/exemu"
-          git clone --depth 1 https://github.com/rtischeduler/EXEmu.git "$RUNNER_TEMP/exemu"
-          rm -rf "$RUNNER_TEMP/exemu/.git" "$RUNNER_TEMP/exemu/.github"
-          rm -rf Assets/exemu
-          mkdir -p Assets/exemu
-          cp -r "$RUNNER_TEMP/exemu/." Assets/exemu/
-          if ! grep -qi '<base[ >]' Assets/exemu/index.html; then
-            sed -i '0,/<meta charset="utf-8">/s||<meta charset="utf-8">\n<base href="https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/exemu/">|' Assets/exemu/index.html
-          fi
-
       - name: Install build deps
         run: npm install --no-save --no-audit --no-fund esbuild html-minifier-terser
 
@@ -54,7 +40,7 @@ jobs:
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          git commit -m "sync: EXEmu and singularity bundle"
+          git commit -m "build: EXEmu and singularity bundle"
           for i in 1 2 3 4; do
             git pull --rebase -X theirs origin main && git push && break
             echo "push attempt $i failed, retrying"; sleep $((i*3))
