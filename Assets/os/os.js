@@ -166,3 +166,5 @@
   $('power').addEventListener('click',powerOff);$('signout').addEventListener('click',powerOff);
   boot();
 })();
+
+;(()=>{const f=e=>{const i=e.target||e;i.style.setProperty("--v",((i.value-i.min)/(i.max-i.min)*100)+"%")};["bright","vol"].forEach(id=>{const i=document.getElementById(id);if(i){f(i);i.addEventListener("input",f)}})})();
