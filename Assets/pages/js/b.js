@@ -37,6 +37,18 @@ function addFlashcard(name, url) {
     renderFlashcards();
 }
 
+const ENGINES = {
+    duckduckgo: { name: 'DuckDuckGo', url: 'https://duckduckgo.com/?q=%s' },
+    google: { name: 'Google', url: 'https://www.google.com/search?q=%s' },
+    bing: { name: 'Bing', url: 'https://www.bing.com/search?q=%s' },
+    brave: { name: 'Brave', url: 'https://search.brave.com/search?q=%s' },
+    startpage: { name: 'Startpage', url: 'https://www.startpage.com/sp/search?query=%s' },
+    ecosia: { name: 'Ecosia', url: 'https://www.ecosia.org/search?q=%s' },
+    yahoo: { name: 'Yahoo', url: 'https://search.yahoo.com/search?p=%s' }
+};
+function engineKey() { try { const k = localStorage.getItem('kstuff_search_engine'); if (ENGINES[k]) return k; } catch (e) {} return 'duckduckgo'; }
+function getEngine() { return ENGINES[engineKey()]; }
+
 function formatUrl(rawUrl, allowSearch = false) {
     let validUrl = rawUrl.trim();
     if (!validUrl) return '';
@@ -44,7 +56,7 @@ function formatUrl(rawUrl, allowSearch = false) {
     if (validUrl.startsWith('http://') || validUrl.startsWith('https://')) return validUrl;
     
     if (allowSearch && (!validUrl.includes('.') || validUrl.includes(' '))) {
-        return 'https://duckduckgo.com/?q=' + encodeURIComponent(validUrl);
+        return getEngine().url.replace('%s', encodeURIComponent(validUrl));
     }
     return 'https://' + validUrl;
 }
@@ -179,3 +191,33 @@ librarySearchInput.addEventListener('keypress', (e) => {
 });
 
 addFlashcardMainBtn.addEventListener('click', () => openExamModal('', '', addFlashcard));
+
+
+(function initEngineMenu() {
+    const box = document.querySelector('.library-search-container');
+    if (!box) return;
+    const wrap = document.createElement('div');
+    wrap.className = 'se-menu';
+    wrap.innerHTML = '<button type="button" class="se-trigger" aria-haspopup="listbox" aria-expanded="false"><span class="se-label"></span><svg viewBox="0 0 10 6" width="9" height="6"><path d="M0 0l5 6 5-6z" fill="currentColor"/></svg></button><div class="se-list" role="listbox"></div>';
+    box.insertBefore(wrap, box.firstChild);
+    const trig = wrap.querySelector('.se-trigger'), label = wrap.querySelector('.se-label'), list = wrap.querySelector('.se-list');
+    const render = () => {
+        label.textContent = getEngine().name;
+        list.innerHTML = '';
+        Object.keys(ENGINES).forEach(k => {
+            const o = document.createElement('div');
+            o.className = 'se-opt' + (k === engineKey() ? ' sel' : '');
+            o.setAttribute('role', 'option');
+            o.textContent = ENGINES[k].name;
+            o.addEventListener('click', () => {
+                try { localStorage.setItem('kstuff_search_engine', k); } catch (e) {}
+                try { window.parent.localStorage.setItem('kstuff_search_engine', k); } catch (e) {}
+                wrap.classList.remove('open'); trig.setAttribute('aria-expanded', 'false'); render();
+            });
+            list.appendChild(o);
+        });
+    };
+    trig.addEventListener('click', e => { e.stopPropagation(); const o = wrap.classList.toggle('open'); trig.setAttribute('aria-expanded', o); });
+    document.addEventListener('click', () => { wrap.classList.remove('open'); trig.setAttribute('aria-expanded', 'false'); });
+    render();
+})();
