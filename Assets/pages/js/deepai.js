@@ -613,7 +613,14 @@
         const fields = {
           chat_style: "chat",
           language: "en",
-          chatHistory: JSON.stringify(options.messages),
+          // attachment ids go in the top-level attachment_uuids field only; the server
+          // is documented to expect them "never inside a message"
+          chatHistory: JSON.stringify(options.messages.map(m => {
+            if (!m || !m.attachment_uuids) return m;
+            const copy = Object.assign({}, m);
+            delete copy.attachment_uuids;
+            return copy;
+          })),
           model: options.model,
           session_uuid: options.sessionUuid,
           sensitivity_request_id: uuid(),
@@ -1396,7 +1403,7 @@
           }
           attachments.forEach(id => badAttachments.add(id));
           sendIds = [];
-          handlers.content("(No available model can read images, so this reply can't see the attachment.)\n\n");
+          handlers.content("(DeepAI refused the image for every model this account can use, so this reply can't see it.)\n\n");
           attempt--;
           continue;
         }
