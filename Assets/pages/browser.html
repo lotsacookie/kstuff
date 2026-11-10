@@ -1155,9 +1155,10 @@ button:not(:disabled):hover svg,button:not(:disabled):focus-visible svg,.library
 .fav-tile:hover,.fav-tile:active,.flashcard-card:hover,.flashcard-card:active,.add-flashcard-btn:hover,.add-flashcard-btn:active,.remove-flashcard-btn:hover{transform:none!important}
 button.fav-tile:not(:disabled):hover,button.fav-tile:not(:disabled):focus-visible{background:transparent!important;background-color:transparent!important;color:var(--text)!important;border-color:transparent!important}
 button.fav-tile:not(:disabled):hover span,button.fav-tile:not(:disabled):focus-visible span{color:var(--text)!important}
-.fav-tile:hover .fav-art{background-color:color-mix(in srgb,var(--text) 14%,var(--card))}
-button.add-flashcard-btn:not(:disabled):hover,button.add-flashcard-btn:not(:disabled):focus-visible{background:color-mix(in srgb,var(--text) 14%,var(--card))!important;background-color:color-mix(in srgb,var(--text) 14%,var(--card))!important;color:var(--text)!important;border-color:var(--text)!important}
-button.add-flashcard-btn:not(:disabled):hover span{color:var(--text)!important}
+.fav-tile:hover .fav-art,.fav-tile:focus-visible .fav-art,.flashcard-card:hover .flashcard-icon{background-color:var(--text)!important;border-color:var(--text)!important;color:var(--bg)!important;box-shadow:0 0 0 1px var(--text),0 0 22px color-mix(in srgb,var(--text) 55%,transparent)!important}
+.fav-tile:hover .fav-art img,.fav-tile:focus-visible .fav-art img,.flashcard-card:hover .flashcard-icon img{filter:invert(1)}
+button.add-flashcard-btn:not(:disabled):hover,button.add-flashcard-btn:not(:disabled):focus-visible{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border:1.5px solid var(--text)!important;box-shadow:0 0 0 1px var(--text),0 0 22px color-mix(in srgb,var(--text) 55%,transparent)!important}
+button.add-flashcard-btn:not(:disabled):hover span{color:var(--bg)!important}
 </style>
 </head>
 <body>
