@@ -87,16 +87,16 @@ async function legacy(){
     <style>
         *,body{font-family: var(--font, "Comfortaa", sans-serif) !important;}
         body{background:var(--bg-color);color:var(--text-color);height:100vh;overflow:hidden;transition:background var(--transition-speed) ease,color var(--transition-speed) ease,font-family var(--transition-speed) ease;font-weight:600}
-        #loading-screen{position:fixed;inset:0;width:100vw;height:100vh;background-color:var(--bg-color,#000000);background-image:radial-gradient(ellipse 80% 60% at 50% -10%,color-mix(in srgb,var(--text-color,#ffffff) 7%,transparent),transparent 70%),linear-gradient(to right,color-mix(in srgb,var(--text-color,#ffffff) 13%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in srgb,var(--text-color,#ffffff) 13%,transparent) 1px,transparent 1px);background-size:100% 100%,44px 44px,44px 44px;background-position:0 0;color:var(--text-color,#ffffff);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.1rem;z-index:999999;transition:opacity .5s ease,visibility .5s ease}
+        #loading-screen{position:fixed;inset:0;width:100vw;height:100vh;background-color:var(--bg-color,#000000);background-image:linear-gradient(to right,color-mix(in srgb,var(--text-color,#ffffff) 14%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in srgb,var(--text-color,#ffffff) 14%,transparent) 1px,transparent 1px);background-size:56px 56px;color:var(--text-color,#ffffff);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.4rem;z-index:999999;transition:opacity .5s ease,visibility .5s ease}
         #loading-screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
-        .ld-logo{width:5.5rem;height:5.5rem;overflow:visible;filter:drop-shadow(0 0 8px color-mix(in srgb,var(--text-color,#ffffff) 50%,transparent))}
+        .ld-logo{width:5.5rem;height:5.5rem;overflow:visible}
         .ld-arms{opacity:.8;transform-origin:50px 50px;stroke-dasharray:1;animation:ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both,ld-spin 14s linear 1.2s infinite}
         .ld-core{transform-origin:50px 50px;animation:ld-pulse 2.8s ease-in-out infinite}
-        .ld-word{font-size:1.15rem;font-weight:900!important;letter-spacing:.06em}
-        .ld-bar{width:min(200px,60vw);height:3px;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--text-color,#ffffff) 14%,transparent)}
+        .ld-word{font-size:.8rem;font-weight:600!important;letter-spacing:.5em;text-transform:uppercase;margin-right:-.5em}
+        .ld-bar{width:min(240px,60vw);height:1px;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--text-color,#ffffff) 14%,transparent)}
         .ld-fill{position:relative;width:100%;height:100%;transform:scaleX(0);transform-origin:left;background:var(--text-color,#ffffff);transition:transform .5s cubic-bezier(.22,1,.36,1)}
         .ld-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--bg-color,#000000) 55%,transparent),transparent);animation:ld-sheen 1.5s ease-in-out infinite}
-        .ld-status{font-size:.8rem;opacity:.6;min-height:1.2em;font-variant-numeric:tabular-nums}
+        .ld-status{font-size:.65rem;letter-spacing:.3em;text-transform:uppercase;opacity:.5;min-height:1.2em;font-variant-numeric:tabular-nums}
         @keyframes ld-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
         @keyframes ld-spin{to{transform:rotate(360deg)}}
         @keyframes ld-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
