@@ -1,4 +1,6 @@
 const wrappers = new WeakMap();
+const blank_wrappers = new WeakMap();
+const INTRINSICS = new Set(["JSON", "Object", "Array", "Function", "String", "Number", "Boolean", "Symbol", "Math", "Date", "RegExp", "Error", "TypeError", "RangeError", "Promise", "Map", "Set", "WeakMap", "WeakSet", "Reflect", "Proxy", "ArrayBuffer", "Uint8Array", "Int32Array", "Float64Array", "DataView", "parseInt", "parseFloat", "isNaN", "isFinite", "encodeURIComponent", "decodeURIComponent", "encodeURI", "decodeURI", "escape", "unescape", "eval"]);
 const wrapper_targets = new WeakMap();
 const child_frames = new Map();
 
@@ -218,10 +220,11 @@ export function is_cross_origin(real) {
   }
 }
 
-export function wrap_window(real) {
+export function wrap_window(real, blank) {
   if (!real || (typeof real !== "object" && typeof real !== "function")) return real;
   if (!is_cross_origin(real)) return real;
-  if (wrappers.has(real)) return wrappers.get(real);
+  let cache = blank ? blank_wrappers : wrappers;
+  if (cache.has(real)) return cache.get(real);
   let post_message = make_post_message(real, "to cross-origin window");
   let wrapper = new Proxy({}, {
     get(_, key) {
@@ -236,6 +239,7 @@ export function wrap_window(real) {
         return typeof value === "function" ? value.bind(target) : value;
       }
       catch {
+        if (blank && typeof key === "string" && INTRINSICS.has(key)) return globalThis[key];
         return undefined;
       }
     },
@@ -257,7 +261,7 @@ export function wrap_window(real) {
       }
     }
   });
-  wrappers.set(real, wrapper);
+  cache.set(real, wrapper);
   wrapper_targets.set(wrapper, real);
   return wrapper;
 }

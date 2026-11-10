@@ -900,7 +900,7 @@ function install_blank_iframe_access() {
     get: function() {
       let real = descriptor.get.call(this);
       if (!real) return real;
-      return wrap_window(real);
+      return wrap_window(real, is_blank(this));
     }
   });
 }
