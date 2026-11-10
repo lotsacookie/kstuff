@@ -1,6 +1,6 @@
 {
   "source": "Assets/singuloxy",
-  "commit": "b0e705ee7e35639ea1b19cbda66cb90dc4f00916",
-  "built": "2026-11-10T20:47:08Z",
+  "commit": "decba169a3c68696bcbb877fc0d101dee2f49414",
+  "built": "2026-11-10T20:57:49Z",
   "files": ["sandstone.js","sandstone.mjs","sandstone_frame.js","singuloxy.html"]
 }
