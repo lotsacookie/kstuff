@@ -3364,3 +3364,38 @@ body.floating-on .sg-tabbar .sg-newtab {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* Filter-bar category dropdown: the wrapper pill already supplies the border,
+   padding and height, so the custom trigger inside it must be flat and match
+   the search input (no nested box, no uppercase, same font and size). */
+.filter-bar .modern-select-wrapper .custom-select-trigger,
+.filter-bar .modern-select-wrapper .custom-select-trigger:hover,
+.filter-bar .modern-select-wrapper .custom-select-trigger.open {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    outline: none;
+    padding: 0.25rem 0.5rem !important;
+    font-size: 1.05rem !important;
+    font-weight: 900 !important;
+    letter-spacing: normal !important;
+    text-transform: none !important;
+    line-height: normal;
+    min-height: 0;
+}
+.filter-bar .modern-select-wrapper .custom-select-trigger > span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    text-align: left;
+}
+.filter-bar .modern-select-wrapper .custom-select-trigger i {
+    margin: 0 0 0 0.5rem;
+}
+.filter-bar .modern-select-wrapper .custom-select-option {
+    font-size: 0.95rem !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
+}
