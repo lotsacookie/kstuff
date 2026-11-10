@@ -33,9 +33,9 @@ linear-gradient(135deg,var(--t-nav),var(--t-bg) 55%,color-mix(in srgb,var(--t-bg
 .sapp::after{content:"";position:absolute;bottom:2px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--on);opacity:0;transform:scale(.4);transition:.15s}
 .sapp.run::after{opacity:.9;transform:none}
 .sapp.act::after{width:14px;margin-left:-7px;border-radius:3px;background:var(--acc);opacity:1}
-#tray{height:42px;padding:0 16px;display:flex;align-items:center;gap:14px;border-radius:20px;background:var(--hover);font-size:.82rem;font-weight:500;cursor:pointer;user-select:none;transition:background .15s}
+#tray{height:40px;padding:0 14px;display:flex;align-items:center;gap:10px;border-radius:20px;background:var(--hover);font-size:.82rem;font-weight:500;cursor:pointer;user-select:none;transition:background .15s}
 #tray:hover,#tray.open{background:color-mix(in srgb,var(--acc) 30%,transparent)}
-#tray svg{width:21px;height:21px;flex:none}
+#tray svg{width:22px;height:22px;flex:none;opacity:.95}#tray #clock{margin-left:2px;letter-spacing:.01em}
 /* launcher bubble */
 #launcher-panel{position:absolute;left:8px;bottom:64px;width:min(520px,94vw);height:min(500px,72vh);background:var(--panel);backdrop-filter:blur(30px);border-radius:28px;padding:16px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transform:translateY(14px) scale(.98);transform-origin:bottom left;transition:opacity .18s,transform .18s;z-index:19;display:flex;flex-direction:column}
 #launcher-panel.open{opacity:1;pointer-events:all;transform:none}

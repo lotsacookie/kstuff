@@ -150,7 +150,7 @@
     sm.textContent=k==='net'?(on?'Connected':'Off'):on?'On':'Off';
     if(k==='net')$('net').style.opacity=on?1:.35;if(k==='night')$('night').classList.toggle('on',on)});
   $('bright').addEventListener('input',e=>{$('dim').style.opacity=(100-e.target.value)/100*.75});
-  const batt=()=>{try{navigator.getBattery().then(b=>{const u=()=>{$('batt').textContent=Math.round(b.level*100)+'%'+(b.charging?' · charging':'')};u();b.onlevelchange=b.onchargingchange=u})}catch(_){$('batt').textContent='100%'}};
+  const batt=()=>{try{navigator.getBattery().then(b=>{const u=()=>{$('batt').textContent=Math.round(b.level*100)+'%'+(b.charging?' · charging':'');$('battfill').setAttribute('width',Math.max(1.5,14.8*b.level))};u();b.onlevelchange=b.onchargingchange=u})}catch(_){$('batt').textContent='100%'}};
   batt();
   const userName=()=>{try{const u=JSON.parse(localStorage.getItem('kstuff_user'));return String(u&&u.username||'').trim()||'Singularity'}catch(_){return 'Singularity'}};
   const nm=userName();$('lk-name').textContent=nm;$('lk-av').textContent=nm[0].toUpperCase();
