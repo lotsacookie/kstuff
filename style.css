@@ -3263,15 +3263,26 @@ body.floating-on .learning-footer .footer-item:hover{background:var(--tint)!impo
 .learning-footer .footer-btn i{font-size:1rem}
 @media(max-width:640px){#ping-indicator span,#weather-text,#conn-text{display:none}}
 
-/* ===== Buttons: white background on hover/focus, icons and text flip to black (image tiles excluded) ===== */
+/* ===== Buttons: theme-matched inverse on hover/focus, icons and text flip to the background colour (image tiles excluded) ===== */
 button:not(:disabled):not(.nav-fav):not(.fav-tile):hover,
 button:not(:disabled):not(.nav-fav):not(.fav-tile):focus-visible,
 .modal-actions button:hover,
-.modal-actions button[id$="close-btn"]:hover{background:#fff!important;background-color:#fff!important;color:#000!important;border-color:#fff!important;opacity:1!important;transform:none!important}
+.modal-actions button[id$="close-btn"]:hover{background:var(--text-color)!important;background-color:var(--text-color)!important;color:var(--bg-color)!important;border-color:var(--text-color)!important;opacity:1!important;transform:none!important}
 button:not(:disabled):hover i,button:not(:disabled):focus-visible i,
-button:not(:disabled):hover span,button:not(:disabled):focus-visible span{color:#000!important}
+button:not(:disabled):hover span,button:not(:disabled):focus-visible span{color:var(--bg-color)!important}
 button:not(:disabled):not(.nav-fav):not(.fav-tile):hover svg,
-button:not(:disabled):not(.nav-fav):not(.fav-tile):focus-visible svg{color:#000!important;fill:#000!important}
+button:not(:disabled):not(.nav-fav):not(.fav-tile):focus-visible svg{color:var(--bg-color)!important;fill:var(--bg-color)!important}
 button:not(:disabled):hover svg[fill="none"],button:not(:disabled):hover svg.sg-ico,
-.sg-ico:not(:disabled):hover svg,.sg-ico:not(:disabled):focus-visible svg{fill:none!important;stroke:#000!important}
+.sg-ico:not(:disabled):hover svg,.sg-ico:not(:disabled):focus-visible svg{fill:none!important;stroke:var(--bg-color)!important}
 .modal-actions button:hover i,.exam-modal-close:hover i{transform:none!important}
+
+/* ===== Bigger footer: taller bar, larger icons, text and buttons ===== */
+:root,body.floating-on{--footer-height:46px!important;--footer-space:46px!important}
+.learning-footer{font-size:.95rem}
+.learning-footer .footer-item{font-size:.95rem;gap:8px;padding:0 16px}
+.learning-footer .footer-item i{font-size:1.3rem}
+.learning-footer .footer-btn{padding:0 18px;min-width:52px;justify-content:center}
+.learning-footer .footer-btn i{font-size:1.35rem}
+.learning-footer .clock-item,.learning-footer #clock-indicator{font-size:1rem;letter-spacing:.04em}
+.learning-footer .footer-left,.learning-footer .footer-right{height:calc(var(--footer-height) - 12px)}
+body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:100%}

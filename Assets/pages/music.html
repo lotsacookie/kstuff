@@ -1142,7 +1142,16 @@ body {
 .shelf-row { gap: 12px; padding: 10px 6px 16px; margin: 0 -6px; }
 .results-list { gap: 12px; }
 </style>
-<script>try{if(top!==self)document.documentElement.classList.add('sg-embedded')}catch(e){document.documentElement.classList.add('sg-embedded')}</script><style>html.sg-embedded,html.sg-embedded body{background:transparent!important;background-image:none!important}</style></head>
+<script>try{if(top!==self)document.documentElement.classList.add('sg-embedded')}catch(e){document.documentElement.classList.add('sg-embedded')}</script><style>html.sg-embedded,html.sg-embedded body{background:transparent!important;background-image:none!important}</style><style id="mono-restyle">
+:root{--radius:0px;--lift:none;--ring:none}
+*,*::before,*::after{border-radius:0!important}
+button:not(:disabled):not(.fav-tile):hover,button:not(:disabled):not(.fav-tile):focus-visible{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important;opacity:1!important;filter:none!important;box-shadow:none!important}
+button:not(:disabled):not(.fav-tile):hover i,button:not(:disabled):not(.fav-tile):hover span,button:not(:disabled):not(.fav-tile):focus-visible i,button:not(:disabled):not(.fav-tile):focus-visible span{color:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg,button:not(:disabled):not(.fav-tile):focus-visible svg{color:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg:not([fill="none"]),button:not(:disabled):not(.fav-tile):focus-visible svg:not([fill="none"]){fill:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg[fill="none"],button:not(:disabled):not(.fav-tile):focus-visible svg[fill="none"]{stroke:var(--bg)!important}
+</style>
+</head>
 <body>
 <script>document.body.classList.toggle('mobile', window.matchMedia('(max-width: 760px)').matches);</script>
 

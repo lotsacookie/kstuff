@@ -110,6 +110,16 @@ body.embed input:focus{border-color:var(--e-text)}
 body.embed input::placeholder{color:var(--e-dim)}
 body.embed button.primary{background:var(--e-text);color:var(--e-bg);border:0;border-radius:12px;font-weight:800;padding:13px 18px}
 </style>
+<style id="mono-restyle">
+:root{--radius:0px;--lift:none;--ring:none}
+*,*::before,*::after{border-radius:0!important}
+button:not(:disabled):not(.fav-tile):hover,button:not(:disabled):not(.fav-tile):focus-visible{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important;opacity:1!important;filter:none!important;box-shadow:none!important}
+button:not(:disabled):not(.fav-tile):hover i,button:not(:disabled):not(.fav-tile):hover span,button:not(:disabled):not(.fav-tile):focus-visible i,button:not(:disabled):not(.fav-tile):focus-visible span{color:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg,button:not(:disabled):not(.fav-tile):focus-visible svg{color:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg:not([fill="none"]),button:not(:disabled):not(.fav-tile):focus-visible svg:not([fill="none"]){fill:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg[fill="none"],button:not(:disabled):not(.fav-tile):focus-visible svg[fill="none"]{stroke:var(--bg)!important}
+#ptools .sf-btn:hover:not(:disabled),#ptools .sf-btn:focus-visible{background:var(--text)!important;color:var(--bg)!important}
+</style>
 </head>
 <body>
 <header>

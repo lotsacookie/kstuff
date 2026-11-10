@@ -1014,6 +1014,15 @@ body {
 @media (max-width: 480px) { .ai-brand .ld-word { display: none; } }
 @media (prefers-reduced-motion: reduce) { .ai-brand .ld-arms, .ai-brand .ld-core { animation: none; } }
 </style>
+<style id="mono-restyle">
+:root{--radius:0px;--lift:none;--ring:none}
+*,*::before,*::after{border-radius:0!important}
+button:not(:disabled):not(.fav-tile):hover,button:not(:disabled):not(.fav-tile):focus-visible{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important;opacity:1!important;filter:none!important;box-shadow:none!important}
+button:not(:disabled):not(.fav-tile):hover i,button:not(:disabled):not(.fav-tile):hover span,button:not(:disabled):not(.fav-tile):focus-visible i,button:not(:disabled):not(.fav-tile):focus-visible span{color:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg,button:not(:disabled):not(.fav-tile):focus-visible svg{color:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg:not([fill="none"]),button:not(:disabled):not(.fav-tile):focus-visible svg:not([fill="none"]){fill:var(--bg)!important}
+button:not(:disabled):not(.fav-tile):hover svg[fill="none"],button:not(:disabled):not(.fav-tile):focus-visible svg[fill="none"]{stroke:var(--bg)!important}
+</style>
 </head>
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
