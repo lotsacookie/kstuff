@@ -1301,13 +1301,10 @@
     await ensureSession();
     let sendIds = attachments.filter(id => !isBad(id));
     let emitted = false;
-    let savedFor = null;
-    let preRetries = 0;
     let reply = "";
     let sessionUuid = options.sessionUuid;
-    const persist = (extra, bare) => {
-      let saved = extra ? cleanMessages(options.messages).concat([{ role: "assistant", content: extra }]) : cleanMessages(options.messages);
-      if (bare) saved = saved.map(m => { const c = Object.assign({}, m); delete c.attachment_uuids; return c; });
+    const persist = extra => {
+      const saved = extra ? cleanMessages(options.messages).concat([{ role: "assistant", content: extra }]) : cleanMessages(options.messages);
       const id = sessionUuid;
       const task = saveQueue.catch(() => {}).then(async () => {
         for (let i = 0; i < 2; i++) {
@@ -1345,11 +1342,9 @@
     // text) is tried first and the other ways only if the server rejects it.
     const plan = attachments.length
       ? [
-        // the real page saves the chat (with chat_model) BEFORE sending when there are
-        // attachments; otherwise the server picks a default turbo model that can't see images
         { pre: false, fresh: false, drop: false },
-        { pre: true, fresh: false, drop: false, bare: true },
-        { pre: true, fresh: true, drop: false },
+        { pre: true, fresh: false, drop: false },
+        { pre: false, fresh: true, drop: false },
         { pre: false, fresh: true, drop: true }
       ]
       : [
@@ -1370,11 +1365,8 @@
           handlers.content("(DeepAI rejected the attachment, so this reply can't see it.)\n\n");
         }
         if (step.pre) {
-          if (savedFor !== sessionUuid) {
-            await persist(null, step.bare);
-            savedFor = sessionUuid;
-          }
-          await delay(600 + preRetries * 1200);
+          await persist();
+          await delay(600);
         }
         for await (const part of state.client.chat({
           model: modelId,
@@ -1416,14 +1408,7 @@
           attempt--;
           continue;
         }
-        // saved session not visible yet: wait longer and resend on the SAME saved session
-        if (!emitted && error && error.status === 404 && plan[Math.min(attempt, plan.length - 1)].pre && preRetries < 1) {
-          preRetries++;
-          attempt--;
-          continue;
-        }
         if (!emitted && error && error.status === 404 && attempt < plan.length - 1) continue;
-        if (!emitted && error && error.status === 400 && /does not support image/i.test(String(error.message || "")) && canSeeImages(modelId) && attempt < plan.length - 1) continue;
         if (attempt === 0 && !emitted && error && error.code === "anonymous try it exceeded" && await signIn()) continue;
         if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
         throw error;
