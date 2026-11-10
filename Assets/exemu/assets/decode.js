@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { readPacked, unpackInts, unpackFloats, decodeNormals } from './packed.js';
 
 const BPP = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 4, 7: 2, 13: 2, 14: 4 };
 const BLOCK = { 10: 8, 12: 16 };
@@ -403,81 +402,12 @@ export function findPtr(project, file, o, start, classID) {
   return null;
 }
 
-function decodeCompressed(file, r, subs, name, fail) {
-  try {
-    const verts = readPacked(r, true);
-    const uv = readPacked(r, true);
-    if (file.ver[0] < 5) readPacked(r, true);
-    const normals = readPacked(r, true);
-    readPacked(r, true);
-    readPacked(r, false);
-    const nsigns = readPacked(r, false);
-    readPacked(r, false);
-    if (file.atLeast(5, 6)) readPacked(r, true);
-    else if (file.ver[0] >= 5) readPacked(r, false);
-    readPacked(r, false);
-    const tris = readPacked(r, false);
-    const uvInfo = file.ver[0] >= 5 ? r.u32() : 0;
-    if (verts.numItems < 3 || verts.numItems % 3 || verts.numItems > 24000000) return fail(5, 'compressed mesh decode');
-    const vc = verts.numItems / 3;
-    let total = 0;
-    for (const s of subs) total += s.indexCount;
-    if (tris.numItems < total || total < 3) return fail(5, 'compressed mesh decode');
-    const positions = unpackFloats(verts);
-    const ti = unpackInts(tris);
-    for (let i = 0; i < total; i++) if (ti[i] >= vc) return fail(5, 'compressed mesh decode');
-    let nrm = null;
-    if (normals.numItems >= vc * 2 && nsigns.numItems >= vc) nrm = decodeNormals(unpackFloats(normals), unpackInts(nsigns), vc);
-    let uvs = null;
-    let dim = 2;
-    let hasUv = uv.numItems >= vc * 2;
-    if (uvInfo !== 0) {
-      const bits = uvInfo & 15;
-      hasUv = (bits & 4) !== 0;
-      dim = (bits & 3) + 1;
-    }
-    if (hasUv && uv.numItems >= vc * dim) {
-      const uf = unpackFloats(uv);
-      uvs = new Float32Array(vc * 2);
-      for (let i = 0; i < vc; i++) {
-        uvs[i * 2] = uf[i * dim];
-        uvs[i * 2 + 1] = dim > 1 ? uf[i * dim + 1] : 0;
-      }
-    }
-    let c = 0;
-    const out = subs.map((s) => {
-      const t = { ...s, firstByte: c * 4, baseVertex: 0 };
-      c += s.indexCount;
-      return t;
-    });
-    return {
-      name,
-      subs: out,
-      isz: 4,
-      ibuf: new Uint8Array(ti.buffer, 0, total * 4),
-      vc,
-      ch: [],
-      pre: { positions, normals: nrm, uvs },
-    };
-  } catch {
-    return fail(5, 'compressed mesh decode');
-  }
-}
-
 function parseMeshLayout(file, o, opt) {
-  const diag = opt.diag;
-  const fail = (stage, why) => {
-    if (stage > diag.stage) {
-      diag.stage = stage;
-      diag.reason = why;
-    }
-    return null;
-  };
   try {
     const r = file.reader(o);
     const name = r.astr();
     const sn = r.i32();
-    if (sn < 1 || sn > 4096) return fail(1, 'submesh table');
+    if (sn < 1 || sn > 4096) return null;
     const subs = [];
     for (let i = 0; i < sn; i++) {
       const firstByte = r.u32();
@@ -487,7 +417,7 @@ function parseMeshLayout(file, o, opt) {
       const firstVertex = r.u32();
       const vertexCount = r.u32();
       r.pos += 24;
-      if (topology < 0 || topology > 5) return fail(1, 'submesh table');
+      if (topology < 0 || topology > 5) return null;
       subs.push({ firstByte, indexCount, topology, baseVertex, firstVertex, vertexCount });
     }
     const skipArray = (stride) => {
@@ -498,17 +428,17 @@ function parseMeshLayout(file, o, opt) {
     if (opt.sh === 4) {
       skipArray(40);
       const sc = r.i32();
-      if (sc < 0 || sc * 12 > r.left) return fail(2, 'mesh header');
+      if (sc < 0 || sc * 12 > r.left) return null;
       r.pos += sc * 12;
       const cc = r.i32();
-      if (cc < 0 || cc > r.left) return fail(2, 'mesh header');
+      if (cc < 0 || cc > r.left) return null;
       for (let i = 0; i < cc; i++) {
         r.astr();
         r.pos += 12;
       }
       skipArray(4);
     } else if (r.i32() !== 0 || r.i32() !== 0) {
-      return fail(2, 'mesh header');
+      return null;
     }
     skipArray(64);
     skipArray(4);
@@ -518,90 +448,74 @@ function parseMeshLayout(file, o, opt) {
     const compression = r.u8();
     r.pos += 3;
     r.align(4);
+    if (compression !== 0) return null;
     r.i32();
     const ilen = r.i32();
-    if (ilen < 0 || ilen > r.left) return fail(3, 'index buffer');
+    if (ilen < 0 || ilen > r.left) return null;
     const ibuf = r.bytes(ilen);
     r.align(4);
     if (opt.cc) r.u32();
     const vc = r.u32();
+    if (vc < 1 || vc > 8000000) return null;
     const chN = r.i32();
-    if (compression !== 0) {
-      if (vc > 8000000 || chN < 0 || chN > 32 || chN * 4 > r.left) return fail(4, 'compressed mesh header');
-      r.pos += chN * 4;
-      const dl = r.i32();
-      if (dl < 0 || dl > r.left) return fail(4, 'compressed mesh header');
-      r.pos += dl;
-      r.align(4);
-      return decodeCompressed(file, r, subs, name, fail);
-    }
-    if (vc < 1 || vc > 8000000) return fail(6, 'vertex count');
-    if (chN < 1 || chN > 32) return fail(7, 'vertex channels');
+    if (chN < 1 || chN > 32) return null;
     const ch = [];
     for (let i = 0; i < chN; i++) {
       ch.push({ stream: r.u8(), offset: r.u8(), format: r.u8(), dim: r.u8() & 15 });
     }
     const dlen = r.i32();
-    if (dlen < 0 || dlen > r.left) return fail(8, 'vertex data size');
+    if (dlen < 0 || dlen > r.left) return null;
     const vbuf = r.bytes(dlen);
     let end2 = 0;
     let end4 = 0;
     for (const s of subs) {
       end2 = Math.max(end2, s.firstByte + s.indexCount * 2);
       end4 = Math.max(end4, s.firstByte + s.indexCount * 4);
-      if (s.firstVertex + s.vertexCount > vc) return fail(8, 'submesh vertex range');
+      if (s.firstVertex + s.vertexCount > vc) return null;
     }
     let isz;
     if (ilen >= end2 && ilen - end2 <= 3) isz = 2;
     else if (ilen >= end4 && ilen - end4 <= 3) isz = 4;
-    else return fail(9, 'index buffer size');
+    else return null;
     const newFmt = file.atLeast(2019, 1);
     const stride = [0, 0, 0, 0];
     for (const c of ch) {
       if (c.dim === 0) continue;
-      if (c.stream > 3 || c.dim > 4) return fail(10, 'vertex layout');
+      if (c.stream > 3 || c.dim > 4) return null;
       const f = newFmt ? c.format : OLD_FMT[c.format];
-      if (f === undefined || f >= FMT_SIZE.length) return fail(10, 'vertex layout (format ' + c.format + ')');
+      if (f === undefined || f >= FMT_SIZE.length) return null;
       stride[c.stream] = Math.max(stride[c.stream], c.offset + c.dim * FMT_SIZE[f]);
     }
-    if (opt.al) for (let s = 0; s < 4; s++) stride[s] = (stride[s] + 3) & ~3;
-    if (ch[0].dim < 3) return fail(10, 'vertex layout');
+    if (ch[0].dim < 3) return null;
     const start = [0, 0, 0, 0];
     let run = 0;
     for (let s = 0; s < 4; s++) {
       start[s] = run;
       run += vc * stride[s];
-      if (stride[s] > 0 && run > dlen) return fail(10, 'vertex data size');
+      if (stride[s] > 0 && run > dlen) return null;
       run = (run + 15) & ~15;
     }
-    return { name, subs, isz, ibuf, vc, ch, vbuf, stride, start, newFmt, exact: run === dlen };
+    return { name, subs, isz, ibuf, vc, ch, vbuf, stride, start, newFmt };
   } catch {
-    return fail(2, 'mesh header');
+    return null;
   }
 }
 
-export function readMesh(file, o, diag = { stage: 0, reason: '' }) {
-  diag.stage = 0;
-  diag.reason = '';
+export function readMesh(file, o) {
   const bvOrder = file.atLeast(2017, 3) ? [true, false] : [false, true];
   const shOrder = file.atLeast(2017, 1) ? [4, 2] : [2, 4];
   const ccOrder = file.atLeast(2018, 1) ? [false, true] : [true, false];
-  let fallback = null;
   for (const bv of bvOrder) {
     for (const sh of shOrder) {
       for (const bones of [2, 1, 0]) {
         for (const cc of ccOrder) {
-          for (const al of [false, true]) {
-            const m = parseMeshLayout(file, o, { bv, sh, bones, cc, al, diag });
-            if (!m) continue;
-            if (m.exact !== false) return m;
-            if (!fallback) fallback = m;
-          }
+          const m = parseMeshLayout(file, o, { bv, sh, bones, cc });
+          if (m) return m;
         }
       }
     }
   }
-  return fallback;
+  return null;
 }
 
 function readChannel(m, c, itemSize) {
@@ -640,9 +554,9 @@ function readChannel(m, c, itemSize) {
 
 export function buildGeometry(file, m) {
   const newOrder = file.atLeast(2018, 0);
-  const positions = m.pre ? m.pre.positions : readChannel(m, m.ch[0], 3);
-  const normals = m.pre ? m.pre.normals : readChannel(m, m.ch[1], 3);
-  const uvs = m.pre ? m.pre.uvs : readChannel(m, m.ch[newOrder ? 4 : 3], 2);
+  const positions = readChannel(m, m.ch[0], 3);
+  const normals = readChannel(m, m.ch[1], 3);
+  const uvs = readChannel(m, m.ch[newOrder ? 4 : 3], 2);
   const dv = new DataView(m.ibuf.buffer, m.ibuf.byteOffset, m.ibuf.byteLength);
   const get = (i) => (m.isz === 2 ? dv.getUint16(i * 2, true) : dv.getUint32(i * 4, true));
   const index = [];
@@ -693,41 +607,12 @@ export function getGeometry(project, res) {
   if (project.assets.has(key)) return project.assets.get(key);
   let geo = null;
   try {
-    const diag = { stage: 0, reason: '' };
-    const m = readMesh(res.file, res.obj, diag);
+    const m = readMesh(res.file, res.obj);
     if (m) geo = buildGeometry(res.file, m);
-    else {
-      const why = (diag.reason || 'layout') + ' · Unity ' + res.file.unityVersion;
-      if (!project.meshWhy) project.meshWhy = new Map();
-      project.meshWhy.set(why, (project.meshWhy.get(why) || 0) + 1);
-      project.messages.push('mesh not read: ' + why + ' (object ' + res.obj.pathID + ')');
-    }
+    else project.messages.push('mesh layout not recognised or compressed (object ' + res.obj.pathID + ')');
   } catch (e) {
     project.messages.push('mesh failed: ' + e.message);
   }
   project.assets.set(key, geo);
   return geo;
-}
-
-export function readStaticBatch(file, o, end, subCount) {
-  if (end + 4 > o.size || subCount < 1) return null;
-  const dv = new DataView(file.buf.buffer, file.buf.byteOffset + o.start, o.size);
-  const le = file.little;
-  if (file.atLeast(5, 5)) {
-    const first = dv.getUint16(end, le);
-    const count = dv.getUint16(end + 2, le);
-    if (count < 1 || first + count > subCount) return null;
-    const list = [];
-    for (let i = 0; i < count; i++) list.push(first + i);
-    return list;
-  }
-  const n = dv.getInt32(end, le);
-  if (n < 1 || n > subCount || end + 4 + n * 4 > o.size) return null;
-  const list = [];
-  for (let i = 0; i < n; i++) {
-    const v = dv.getUint32(end + 4 + i * 4, le);
-    if (v >= subCount) return null;
-    list.push(v);
-  }
-  return list;
 }

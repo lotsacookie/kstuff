@@ -14,4 +14,4 @@ Open `index.html` through any static host (GitHub Pages works) and drop the zip 
 
 ## Limits
 
-The `.exe` is not executed. C# scripts (Mono and IL2CPP), physics, audio, UI, lightmaps, skinning and shaders are not supported, so you get the static world rather than a playable game. LZMA bundles and ETC/ASTC/BC7/crunched textures are not decoded yet.
+The `.exe` is not executed. C# scripts (Mono and IL2CPP), physics, audio, UI, lightmaps, skinning, shaders and compressed meshes are not supported, so you get the static world rather than a playable game. LZMA bundles and ETC/ASTC/BC7/crunched textures are not decoded yet.

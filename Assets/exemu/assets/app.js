@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { unzipSync } from 'fflate';
 import { Project, parseBundle } from './unity.js';
-import { readGameObject, readTransform, findMaterials, findPtr, getGeometry, getMaterial, readStaticBatch } from './decode.js';
+import { readGameObject, readTransform, findMaterials, findPtr, getGeometry, getMaterial } from './decode.js';
 
 const $ = (id) => document.getElementById(id);
 const tick = () => new Promise((r) => setTimeout(r, 0));
@@ -102,7 +102,7 @@ function loop() {
 }
 loop();
 
-let sceneInfo = { meshes: 0, skipped: 0, noMesh: 0, noNode: 0 };
+let sceneInfo = { meshes: 0, skipped: 0 };
 function updateStats() {
   if (!$('statsBox').hidden) {
     const i = renderer.info;
@@ -131,9 +131,8 @@ function disposeRoot() {
 
 async function buildScene(file) {
   disposeRoot();
-  sceneInfo = { meshes: 0, skipped: 0, noMesh: 0, noNode: 0 };
+  sceneInfo = { meshes: 0, skipped: 0 };
   project.messages.length = 0;
-  project.meshWhy = null;
   busy('Building ' + file.name + '…');
   await tick();
   const gos = new Map();
@@ -188,8 +187,6 @@ async function buildScene(file) {
   for (const j of jobs) {
     const node = goNode.get(j.go);
     if (!node || !j.mesh) {
-      if (node) sceneInfo.noMesh++;
-      else sceneInfo.noNode++;
       sceneInfo.skipped++;
       continue;
     }
@@ -202,35 +199,10 @@ async function buildScene(file) {
     }
     const mats = info.mats.map((m) => getMaterial(project, m, cache.fallback));
     if (!mats.length) mats.push(cache.fallback);
-    const batch = j.rend.classID === 23 ? readStaticBatch(file, j.rend, info.end, geo.groups.length) : null;
-    let useGeo = geo;
-    if (batch) {
-      const bkey = 'sb' + geo.uuid + ':' + batch.join(',');
-      useGeo = project.assets.get(bkey);
-      if (!useGeo) {
-        useGeo = new THREE.BufferGeometry();
-        useGeo.attributes = geo.attributes;
-        useGeo.index = geo.index;
-        useGeo.boundingSphere = geo.boundingSphere;
-        batch.forEach((si, k) => {
-          const gr = geo.groups[si];
-          if (gr) useGeo.addGroup(gr.start, gr.count, k);
-        });
-        project.assets.set(bkey, useGeo);
-      }
-    }
-    const groupCount = useGeo.groups.length;
+    const groupCount = geo.groups.length;
     const list = [];
     for (let i = 0; i < groupCount; i++) list.push(mats[Math.min(i, mats.length - 1)]);
-    const mesh = new THREE.Mesh(useGeo, list);
-    if (batch) {
-      let vis = true;
-      for (let n = node; n && n !== root; n = n.parent) vis = vis && n.visible;
-      mesh.visible = vis;
-      root.add(mesh);
-    } else {
-      node.add(mesh);
-    }
+    node.add(new THREE.Mesh(geo, list));
     sceneInfo.meshes++;
     if (++done % 25 === 0) {
       busy('Building ' + file.name + ' · ' + done + '/' + jobs.length);
@@ -268,8 +240,6 @@ async function buildScene(file) {
   for (const m of project.messages.slice(0, 12)) log(m, 'warn');
   if (project.messages.length > 12) log('…and ' + (project.messages.length - 12) + ' more warnings', 'warn');
   log('Scene ' + file.name + ': ' + sceneInfo.meshes + ' meshes, ' + sceneInfo.skipped + ' skipped');
-  if (sceneInfo.noMesh || sceneInfo.noNode) log('Skipped without a mesh reference: ' + sceneInfo.noMesh + ' · without a node: ' + sceneInfo.noNode, 'warn');
-  if (project.meshWhy) for (const [k, n] of project.meshWhy) log('Meshes not read: ' + k + ' ×' + n, 'warn');
   $('statsBox').hidden = false;
   busy('');
 }
