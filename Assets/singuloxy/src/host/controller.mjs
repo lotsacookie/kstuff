@@ -18,6 +18,8 @@ const CACHE_RELOAD_BYPASS_MS = 10 * 1000;
 const FRAME_LOAD_TIMEOUT_MS = 8000;
 const FRAME_PING_TIMEOUT_MS = 5000;
 const FRAME_START_ATTEMPTS = 3;
+let last_navigation = 0;
+let navigation_count = 0;
 
 function safe_css(value, fallback) {
   if (typeof value !== "string") return fallback;
@@ -261,7 +263,10 @@ export class ProxyFrame {
       throw TypeError("Invalid URL");
     }
 
-    console.log("navigating to", url);
+    let since = last_navigation ? Math.round((Date.now() - last_navigation) / 1000) + "s since last" : "first";
+    last_navigation = Date.now();
+    navigation_count++;
+    console.log("navigating to", url, "(#" + navigation_count + ", " + since + (referrer ? ", referrer " + referrer : "") + ")");
     this.url = new URL(url);
     
     this.iframe.style.backgroundColor = "transparent";

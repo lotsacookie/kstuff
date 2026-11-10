@@ -82,7 +82,7 @@ function install_console() {
         }
         let stack = "";
         try {
-          if (event.error && event.error.name === "SecurityError" && event.error.stack)
+          if (event.error && /^(SecurityError|RuntimeError|CompileError|LinkError)$/.test(event.error.name) && event.error.stack)
             stack = "\n" + String(event.error.stack).split("\n").slice(0, 6).join("\n");
         }
         catch {}
@@ -174,8 +174,26 @@ export function flush_state() {
   catch {}
 }
 
+let nav_count = 0;
+
+function short_stack(skip) {
+  try {
+    return String(new Error().stack).split("\n").slice(skip, skip + 5).map((line) => {
+      return line.trim().replace(/^at /, "").replace(/blob:[^\s)]*:(\d+:\d+)/, "blob:$1");
+    }).join(" < ");
+  }
+  catch {
+    return "";
+  }
+}
+
 export function navigate(...args) {
   flush_state();
+  try {
+    nav_count++;
+    console.warn("nav#" + nav_count + " -> " + args[1] + (args[2] === false ? " (no reload)" : "") + (args[3] ? " (form)" : "") + " t=" + Math.round(performance.now() / 1000) + "s from " + short_stack(2));
+  }
+  catch {}
   return navigate_rpc(...args);
 }
 
@@ -430,6 +448,25 @@ async function load_html(options) {
   }
 
   console.log("done downloading page");
+  let t_start = performance.now();
+  let stage = "parsed";
+  let health = (label) => {
+    try {
+      let body = document.body;
+      let size = body ? body.children.length : -1;
+      let text = body ? (body.innerText || "").length : -1;
+      console.log("health " + label + ": stage=" + stage + " phase=" + script_state.phase + " pending=" + pending_scripts.length + " loaded=" + is_loaded + " opacity=" + (document.documentElement.style.opacity || "-") + " body=" + size + " text=" + text + " canvas=" + document.getElementsByTagName("canvas").length + " iframes=" + document.getElementsByTagName("iframe").length + " scripts=" + document.getElementsByTagName("script").length);
+    }
+    catch (e) {
+      console.log("health " + label + " failed: " + e);
+    }
+  };
+  for (let seconds of [4, 12, 30, 60]) setTimeout(() => health(seconds + "s"), seconds * 1000);
+  try {
+    window.addEventListener("pagehide", () => console.log("pagehide stage=" + stage));
+  }
+  catch {}
+  let elapsed = () => Math.round(performance.now() - t_start) + "ms";
   let root = html.documentElement;
   document.documentElement.replaceWith(root);
   let previous_opacity = root.style.opacity;
@@ -447,8 +484,13 @@ async function load_html(options) {
   report(0.85, "Running scripts");
   try {
     if (site_settings.allow_js) {
+      stage = "scripts";
       await evaluate_scripts();
+      console.log("scripts evaluated at " + elapsed());
+      stage = "modules";
       await evaluate_modules();
+      console.log("modules evaluated at " + elapsed());
+      stage = "settling";
       if (is_iframe) console.log("iframe scripts evaluated");
     }
     report(0.93, "Finishing up");
@@ -467,7 +509,10 @@ async function load_html(options) {
     await Promise.race([settled, new Promise((resolve) => setTimeout(resolve, 2500))]);
     report(1, "Ready");
     reveal();
+    console.log("revealed at " + elapsed());
     await settled;
+    stage = "complete";
+    console.log("load complete at " + elapsed());
 
     set_ready_state("complete");
     fire_document_event("readystatechange");
