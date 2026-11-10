@@ -186,16 +186,9 @@ body.size-large.text-hide {
     transition: color 0.2s ease;
 }
 
-.conn-item[data-state="on"] i {
-    color: #34d399;
-}
-
-.conn-item[data-state="off"] i {
-    color: #f87171;
-}
-
-.conn-item[data-state="idle"] i {
-    color: #fbbf24;
+.conn-item i,
+.conn-item[data-state] i {
+    color: #fff;
 }
 
 .clock-item {
@@ -3254,3 +3247,18 @@ html.sg-flip body {
 #hdr-home-btn{order:-1}
 .footer-btn{background:transparent;border:0;color:inherit;font:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;padding:0 10px;height:100%;opacity:.7;transition:background .15s,opacity .15s;text-transform:uppercase;letter-spacing:.08em;font-size:.65rem}
 .footer-btn:hover{background:var(--tint);opacity:1}
+
+/* ===== Footer declutter: one quiet bar per side, flat items with hairline dividers, icon-only buttons ===== */
+.learning-footer .footer-left,
+.learning-footer .footer-right{gap:0;align-items:stretch;height:calc(var(--footer-height) - 12px);border:1px solid var(--hairline);border-radius:10px;background:transparent;overflow:hidden}
+body.floating-on .learning-footer .footer-left,
+body.floating-on .learning-footer .footer-right{height:100%;pointer-events:auto;background:color-mix(in srgb,var(--nav-bg) 40%,transparent);box-shadow:0 4px 12px rgba(0,0,0,.2)}
+.learning-footer .footer-item,
+body.floating-on .learning-footer .footer-item{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0 12px;height:100%;align-items:center;opacity:.85}
+.learning-footer .footer-item:hover,
+body.floating-on .learning-footer .footer-item:hover{background:var(--tint)!important;opacity:1}
+.learning-footer .footer-item+.footer-item{border-left:1px solid var(--hairline)!important}
+.learning-footer .footer-btn{padding:0 12px;gap:0}
+.learning-footer .footer-btn span{display:none}
+.learning-footer .footer-btn i{font-size:1rem}
+@media(max-width:640px){#ping-indicator span,#weather-text,#conn-text{display:none}}

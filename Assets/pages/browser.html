@@ -455,7 +455,7 @@ html:not(.ready) body * {
     opacity: 0.75;
 }
 
-.favs-head svg { fill: #ffc83d; }
+.favs-head svg { fill: #fff; }
 
 .favs-row {
     display: flex;
@@ -1133,8 +1133,11 @@ html:not(.ready) body * {
 .library-search-container:focus-within{border-color:var(--text)!important}
 .library-search-container::before{display:none!important}
 .library-search-input{padding:14px 16px!important}
-.library-search-btn{background:var(--text)!important;border:0!important;width:52px;margin:0!important}
-.library-search-btn svg{fill:var(--bg)!important}
+.library-search-input{height:auto!important;min-height:48px;box-sizing:border-box}
+.library-search-btn{background:var(--text)!important;border:0!important;width:52px;height:auto!important;min-height:48px;align-self:stretch;margin:0!important;padding:0!important;opacity:1!important;transform:none!important;display:flex;align-items:center;justify-content:center;flex:0 0 52px}
+.library-search-btn:hover{background:var(--text)!important;color:inherit;filter:brightness(1.15);transform:none!important}
+.library-search-btn svg{width:20px;height:20px;fill:var(--bg)!important}
+@media(max-width:520px){.library-search-btn{width:46px;flex-basis:46px}}
 .se-menu{position:relative;display:flex;border-right:1px solid var(--line)}
 .se-trigger{display:flex;align-items:center;gap:10px;background:transparent;color:var(--text);border:0;padding:0 14px;font-family:inherit;font-weight:600;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
 .se-trigger:hover,.se-menu.open .se-trigger{background:var(--text);color:var(--bg)}
@@ -1146,7 +1149,7 @@ html:not(.ready) body * {
 .se-opt:hover{background:var(--card)}
 .se-opt.sel{background:var(--text);color:var(--bg)}
 @media(max-width:520px){.se-trigger{padding:0 9px;font-size:.62rem}}
-@media(max-width:520px){</style>
+</style>
 </head>
 <body>
 
