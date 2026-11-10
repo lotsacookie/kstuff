@@ -449,22 +449,25 @@ async function legacy(){
     const p=el.parentElement.getBoundingClientRect(), r=el.getBoundingClientRect();
     return r.left<p.left-1||r.right>p.right+1;
   };
-  const hide=()=>{ clearTimeout(timer); tip.classList.remove('show'); };
-  const show=el=>{
+  let cur=null;
+  const place=(x,y)=>{ const t=tip.getBoundingClientRect(); tip.style.left=Math.max(6,Math.min(innerWidth-t.width-6,x+14))+'px'; tip.style.top=Math.max(6,Math.min(innerHeight-t.height-6,y-t.height-12))+'px'; };
+  const hide=()=>{ clearTimeout(timer); cur=null; tip.classList.remove('show'); };
+  const show=(el,e)=>{
     if(!isHidden(el)) return hide();
     const text=labelOf(el); if(!text) return hide();
     tip.textContent=text;
-    const r=el.getBoundingClientRect(), t=tip.getBoundingClientRect();
-    const x=Math.max(6,Math.min(innerWidth-t.width-6,r.left+r.width/2-t.width/2));
-    tip.style.left=x+'px'; tip.style.top=Math.max(6,r.top-t.height-8)+'px';
+    cur=el;
+    if(e&&e.pointerType!=='touch'&&e.clientX!=null) place(e.clientX,e.clientY);
+    else { const r=el.getBoundingClientRect(), t=tip.getBoundingClientRect(); place(r.left+r.width/2-14-t.width/2,r.top+t.height+4); }
     tip.classList.add('show');
   };
   const itemOf=e=>e.target.closest&&e.target.closest('.footer-item');
-  f.addEventListener('mouseover',e=>{ const it=itemOf(e); if(it) show(it); });
+  f.addEventListener('mouseover',e=>{ const it=itemOf(e); if(it) show(it,e); });
+  f.addEventListener('mousemove',e=>{ if(cur&&tip.classList.contains('show')) place(e.clientX,e.clientY); });
   f.addEventListener('mouseout',e=>{ if(itemOf(e)) hide(); });
   f.addEventListener('focusin',e=>{ const it=itemOf(e); if(it) show(it); });
   f.addEventListener('focusout',hide);
-  f.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse') return; const it=itemOf(e); if(it){ show(it); clearTimeout(timer); timer=setTimeout(hide,1800); } });
+  f.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse') return; const it=itemOf(e); if(it){ show(it,e); clearTimeout(timer); timer=setTimeout(hide,1800); } });
   f.addEventListener('scroll',hide,true);
   f.addEventListener('wheel',e=>{
     const box=e.target.closest('.footer-left,.footer-right');

@@ -1168,6 +1168,10 @@ button.add-flashcard-btn:not(:disabled):hover span{color:var(--bg)!important}
 .library-search-btn svg{fill:var(--text)!important}
 .library-search-btn:not(:disabled):hover,.library-search-btn:not(:disabled):focus-visible{background:color-mix(in srgb,var(--text) 14%,transparent)!important;background-color:color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;border-color:var(--line)!important;filter:none!important}
 .library-search-btn:hover svg,.library-search-btn:focus-visible svg{fill:var(--text)!important;color:var(--text)!important}
+/* shortcut names: single tooltip that follows the cursor (see b.js) */
+.flashcard-name{display:none!important}
+.cursor-tip{position:fixed;top:0;left:0;z-index:100000;max-width:min(260px,90vw);padding:3px 8px;border-radius:6px;background:var(--nav);border:1px solid var(--line-strong);color:var(--text);font-size:.75rem;line-height:1.3;white-space:normal;pointer-events:none;opacity:0;transition:opacity .15s ease}
+.cursor-tip.show{opacity:1}
 </style>
 </head>
 <body>

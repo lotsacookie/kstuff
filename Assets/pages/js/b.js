@@ -222,3 +222,33 @@ addFlashcardMainBtn.addEventListener('click', () => openExamModal('', '', addFla
     render();
 })();
 
+
+
+(function initCursorTip() {
+    const tip = document.createElement('div');
+    tip.className = 'cursor-tip';
+    document.body.appendChild(tip);
+    const root = document.getElementById('flashcards-container');
+    if (!root) return;
+    let cur = null;
+    const place = (x, y) => {
+        const t = tip.getBoundingClientRect();
+        tip.style.left = Math.max(6, Math.min(innerWidth - t.width - 6, x + 14)) + 'px';
+        tip.style.top = Math.max(6, Math.min(innerHeight - t.height - 6, y + 18)) + 'px';
+    };
+    const hide = () => { cur = null; tip.classList.remove('show'); };
+    root.addEventListener('mouseover', e => {
+        const card = e.target.closest('.flashcard-card');
+        if (!card || e.target.closest('.remove-flashcard-btn')) return hide();
+        const n = card.querySelector('.flashcard-name');
+        const text = n ? n.textContent.trim() : '';
+        if (!text) return hide();
+        cur = card;
+        tip.textContent = text;
+        place(e.clientX, e.clientY);
+        tip.classList.add('show');
+    });
+    root.addEventListener('mousemove', e => { if (cur) place(e.clientX, e.clientY); });
+    root.addEventListener('mouseleave', hide);
+    root.addEventListener('click', hide);
+})();
