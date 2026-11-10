@@ -405,23 +405,99 @@ function install_storage_getters() {
   }
 }
 
+const NativeRequestClass = globalThis.Request;
+
+function cache_key(request) {
+  let raw = typeof request === "string" ? request : request && typeof request.url === "string" ? request.url : String(request);
+  try {
+    return new URL(raw, ctx.location.href).href;
+  }
+  catch {
+    return raw;
+  }
+}
+
+class MemCache {
+  #entries = new Map();
+
+  async match(request) {
+    let hit = this.#entries.get(cache_key(request));
+    return hit ? hit.clone() : undefined;
+  }
+
+  async matchAll(request) {
+    if (request === undefined) return Array.from(this.#entries.values()).map((response) => response.clone());
+    let hit = this.#entries.get(cache_key(request));
+    return hit ? [hit.clone()] : [];
+  }
+
+  async put(request, response) {
+    this.#entries.set(cache_key(request), response.clone());
+  }
+
+  async add(request) {
+    let response = await polyfill.fetch(request);
+    if (!response.ok) throw new TypeError("Request failed");
+    await this.put(request, response);
+  }
+
+  async addAll(requests) {
+    for (let request of requests) await this.add(request);
+  }
+
+  async delete(request) {
+    return this.#entries.delete(cache_key(request));
+  }
+
+  async keys(request) {
+    let urls = request === undefined ? Array.from(this.#entries.keys()) : this.#entries.has(cache_key(request)) ? [cache_key(request)] : [];
+    return urls.map((url) => new NativeRequestClass(url));
+  }
+
+  get [Symbol.toStringTag]() {return "Cache"}
+}
+
+class MemCacheStorage {
+  #caches = new Map();
+
+  async open(name) {
+    name = String(name);
+    if (!this.#caches.has(name)) this.#caches.set(name, new MemCache());
+    return this.#caches.get(name);
+  }
+
+  async has(name) {
+    return this.#caches.has(String(name));
+  }
+
+  async delete(name) {
+    return this.#caches.delete(String(name));
+  }
+
+  async keys() {
+    return Array.from(this.#caches.keys());
+  }
+
+  async match(request, options) {
+    let name = options && options.cacheName !== undefined ? String(options.cacheName) : null;
+    for (let [key, cache] of this.#caches) {
+      if (name !== null && key !== name) continue;
+      let hit = await cache.match(request);
+      if (hit) return hit;
+    }
+    return undefined;
+  }
+
+  get [Symbol.toStringTag]() {return "CacheStorage"}
+}
+
 function install_cache_stub() {
-  let cache = {
-    match: async () => undefined,
-    matchAll: async () => [],
-    add: async () => {},
-    addAll: async () => {},
-    put: async () => {},
-    delete: async () => false,
-    keys: async () => []
-  };
-  let storage = {
-    open: async () => cache,
-    has: async () => false,
-    delete: async () => false,
-    keys: async () => [],
-    match: async () => undefined
-  };
+  let storage = new MemCacheStorage();
+  try {
+    Object.defineProperty(globalThis, "Cache", {configurable: true, writable: true, enumerable: false, value: MemCache});
+    Object.defineProperty(globalThis, "CacheStorage", {configurable: true, writable: true, enumerable: false, value: MemCacheStorage});
+  }
+  catch {}
   try {
     Object.defineProperty(globalThis, "caches", {
       configurable: true,
