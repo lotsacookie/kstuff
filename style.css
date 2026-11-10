@@ -3286,3 +3286,19 @@ button:not(:disabled):hover svg[fill="none"],button:not(:disabled):hover svg.sg-
 .learning-footer .clock-item,.learning-footer #clock-indicator{font-size:1rem;letter-spacing:.04em}
 .learning-footer .footer-left,.learning-footer .footer-right{height:calc(var(--footer-height) - 12px)}
 body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:100%}
+
+.sg-tabbar .sg-newtab,
+body.floating-on .sg-tabbar .sg-newtab {
+    align-self: center !important;
+    margin: 0 6px !important;
+    flex: 0 0 34px !important;
+}
+
+.nav-btn:hover,
+.nav-os-btn:hover,
+.nav-btn.active:hover {
+    background: var(--tint-strong) !important;
+    border-color: var(--text-color) !important;
+    box-shadow: 0 0 0 1px var(--ring), 0 0 16px var(--glow), 0 6px 16px rgba(0, 0, 0, 0.18) !important;
+    opacity: 1 !important;
+}
