@@ -88,6 +88,10 @@ function install_console() {
             let wasm = lines.filter((line) => line.includes("wasm://")).slice(0, 2);
             let js = lines.filter((line) => !line.includes("wasm://")).slice(0, 8);
             stack = "\n" + (err.name === "RuntimeError" ? wasm.concat(js) : lines.slice(0, 6)).join("\n");
+            if (err.name === "RuntimeError" && typeof globalThis.__sandstone_wasm_describe === "function") {
+              let ring = globalThis.__sandstone_wasm_describe();
+              if (ring) stack += "\nlast wasm imports called:\n" + ring;
+            }
           }
         }
         catch {}
