@@ -1276,7 +1276,6 @@
     });
     await ensureSession();
     let sendIds = attachments.filter(id => !isBad(id));
-    let level = 0;
     let emitted = false;
     let reply = "";
     let sessionUuid = options.sessionUuid;
@@ -1290,7 +1289,7 @@
             const result = await state.client.saveSession({ uuid: id, model: modelValue.slice(PREFIX.length), messages: saved });
             console.log("[deepai] save session ok", JSON.stringify(result));
             rememberSession(id);
-            syncSessions();
+            if (extra) syncSessions();
             return true;
           } catch (e) {
             console.warn("[deepai] save session failed", i, e && e.status, e && e.message, JSON.stringify(e && e.body));
@@ -1314,9 +1313,37 @@
         handlers.content(delta);
       }
     };
-    for (let attempt = 0; attempt < 7; attempt++) {
+    // DeepAI answers 404 "Chat not found" when a session it just saved gets looked up
+    // again too early, so the plain way (no save before the chat, like the site does for
+    // text) is tried first and the other ways only if the server rejects it.
+    const plan = attachments.length
+      ? [
+        { pre: false, fresh: false, drop: false },
+        { pre: true, fresh: false, drop: false },
+        { pre: false, fresh: true, drop: false },
+        { pre: false, fresh: true, drop: true }
+      ]
+      : [
+        { pre: false, fresh: false, drop: false },
+        { pre: false, fresh: true, drop: false }
+      ];
+    for (let attempt = 0; attempt < plan.length + 1; attempt++) {
+      const step = plan[Math.min(attempt, plan.length - 1)];
       try {
-        if (attachments.length) await persist();
+        if (attempt > 0 && !emitted) console.warn("[deepai] retry", attempt, JSON.stringify(step));
+        if (step.fresh && attempt > 0) {
+          sessionUuid = uuid();
+          if (options.onSession) options.onSession(sessionUuid);
+        }
+        if (step.drop && sendIds.length) {
+          attachments.forEach(id => badAttachments.add(id));
+          sendIds = [];
+          handlers.content("(DeepAI rejected the attachment, so this reply can't see it.)\n\n");
+        }
+        if (step.pre) {
+          await persist();
+          await delay(600);
+        }
         for await (const part of state.client.chat({
           model: modelValue.slice(PREFIX.length),
           messages: withContext(cleanMessages(options.messages), games),
@@ -1334,45 +1361,13 @@
             wrapped.content(typeof body === "string" ? body : body.answer_text || body.output || JSON.stringify(body));
           }
         }
-        console.log("[deepai] stream finished", reply.length, "chars");
+        console.log("[deepai] stream finished", reply.length, "chars", JSON.stringify(step));
         if (reply) persist(reply);
         return;
       } catch (error) {
         if (error && error.name === "AbortError" && reply) persist(reply);
         console.error("[deepai] stream error", attempt, error && error.name, error && error.status, error && error.code, error && error.message, error && error.body);
-        if (!emitted && error && error.status === 404) {
-          // Walk the ladder from the least destructive fix to the most:
-          // 0 log in again, 1 fresh server session (history is sent in full, so no
-          // context is lost), 2 newest attachments only, 3 drop attachments.
-          let again = false;
-          while (level < 4 && !again) {
-            const step = level++;
-            if (step === 0) {
-              console.warn("[deepai] 404 ladder 0: re-checking the login");
-              await ensureSession(true);
-              again = true;
-            } else if (step === 1) {
-              console.warn("[deepai] 404 ladder 1: fresh session");
-              sessionUuid = uuid();
-              if (options.onSession) options.onSession(sessionUuid);
-              again = true;
-            } else if (step === 2) {
-              if (sendIds.length && newest.length && sendIds.length !== newest.length) {
-                console.warn("[deepai] 404 ladder 2: only newest attachments", newest);
-                sendIds = newest.filter(id => !isBad(id));
-                again = true;
-              }
-            } else if (step === 3 && sendIds.length) {
-              console.warn("[deepai] 404 ladder 3: dropping attachments", attachments);
-              attachments.forEach(id => badAttachments.add(id));
-              sendIds = [];
-              sessionUuid = uuid();
-              if (options.onSession) options.onSession(sessionUuid);
-              again = true;
-            }
-          }
-          if (again) continue;
-        }
+        if (!emitted && error && error.status === 404 && attempt < plan.length - 1) continue;
         if (attempt === 0 && !emitted && error && error.code === "anonymous try it exceeded" && await signIn()) continue;
         if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
         throw error;
