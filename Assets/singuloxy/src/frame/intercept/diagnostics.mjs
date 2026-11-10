@@ -37,6 +37,25 @@ function wasm_log(text) {
   catch {}
 }
 
+function describe_result(result) {
+  try {
+    let instance = result && result.instance ? result.instance : result;
+    if (instance && instance.exports) return "exports=" + Object.keys(instance.exports).slice(0, 10).join(",");
+  }
+  catch {}
+  return "";
+}
+
+function describe_imports(imports) {
+  try {
+    if (!imports) return "-";
+    return Object.keys(imports).map((ns) => ns + "(" + Object.keys(imports[ns] || {}).length + ")").join(",").slice(0, 100);
+  }
+  catch {
+    return "?";
+  }
+}
+
 function install_wasm_log() {
   if (typeof WebAssembly === "undefined") return;
   for (let name of ["instantiate", "compile"]) {
@@ -51,7 +70,7 @@ function install_wasm_log() {
         catch {}
         let result = Reflect.apply(original, this, arguments);
         try {
-          Promise.resolve(result).then(() => wasm_log(name + " ok (" + size + " bytes, imports=" + (imports ? Object.keys(imports).join(",").slice(0, 80) : "-") + ")"), (e) => wasm_log(name + " failed (" + size + " bytes): " + (e && e.message)));
+          Promise.resolve(result).then((value) => wasm_log(name + " ok (" + size + " bytes) imports=" + describe_imports(imports) + " " + describe_result(value)), (e) => wasm_log(name + " failed (" + size + " bytes): " + (e && e.message)));
         }
         catch {}
         return result;
@@ -63,9 +82,16 @@ function install_wasm_log() {
   if (typeof streaming === "function") {
     try {
       WebAssembly.instantiateStreaming = function(source, imports) {
+        let url = "";
+        Promise.resolve(source).then((response) => {
+          try {
+            url = response && response.url ? String(response.url).replace(/^https?:\/\//, "").slice(0, 120) : "";
+          }
+          catch {}
+        }, () => {});
         let result = Reflect.apply(streaming, this, arguments);
         try {
-          Promise.resolve(result).then(() => wasm_log("instantiateStreaming ok"), (e) => wasm_log("instantiateStreaming failed: " + (e && e.message)));
+          Promise.resolve(result).then((value) => wasm_log("instantiateStreaming ok " + url + " imports=" + describe_imports(imports) + " " + describe_result(value)), (e) => wasm_log("instantiateStreaming failed " + url + ": " + (e && e.message)));
         }
         catch {}
         return result;

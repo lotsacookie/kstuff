@@ -460,7 +460,7 @@ async function load_html(options) {
       let body = document.body;
       let size = body ? body.children.length : -1;
       let text = body ? (body.innerText || "").length : -1;
-      console.log("health " + label + ": stage=" + stage + " phase=" + script_state.phase + " pending=" + pending_scripts.length + " loaded=" + is_loaded + " opacity=" + (document.documentElement.style.opacity || "-") + " body=" + size + " text=" + text + " canvas=" + document.getElementsByTagName("canvas").length + " iframes=" + document.getElementsByTagName("iframe").length + " scripts=" + document.getElementsByTagName("script").length);
+      console.log("health " + label + ": stage=" + stage + " phase=" + script_state.phase + " pending=" + pending_scripts.length + " loaded=" + is_loaded + " opacity=" + (document.documentElement.style.opacity || "-") + " body=" + size + " text=" + text + " canvas=" + document.getElementsByTagName("canvas").length + " kids=" + (body ? Array.from(body.children).slice(0, 5).map((el) => el.tagName.toLowerCase() + (el.id ? "#" + el.id : "")).join(",") : "-") + " iframes=" + document.getElementsByTagName("iframe").length + " scripts=" + document.getElementsByTagName("script").length);
     }
     catch (e) {
       console.log("health " + label + " failed: " + e);

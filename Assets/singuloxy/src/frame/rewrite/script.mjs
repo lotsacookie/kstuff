@@ -43,7 +43,9 @@ export function execute_script(script_element, script_text) {
   script.__rewritten__ = true;
   try {
     let label = script_element.getAttribute("__src") || "";
-    script.textContent = parser.rewrite_js(script_text, false, label);
+    let rewritten = parser.rewrite_js(script_text, false, label);
+    if (/^https?:\/\//i.test(label) && !/[\r\n]/.test(label)) rewritten += "\n//# sourceURL=" + label;
+    script.textContent = rewritten;
     (document.body || document.documentElement).append(script);
   }
   catch (e) {

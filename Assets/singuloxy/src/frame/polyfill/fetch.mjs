@@ -19,6 +19,33 @@ function has_content_type(headers) {
   return Object.keys(headers).some((name) => name.toLowerCase() === "content-type");
 }
 
+let fetch_logs = 0;
+
+function short_url(url) {
+  return String(url).replace(/^https?:\/\//, "").slice(0, 110);
+}
+
+function track(url, method, promise) {
+  promise.then((response) => {
+    if (response && response.ok === false && fetch_logs < 15) {
+      fetch_logs++;
+      try {
+        console.log("fetch " + (method || "GET") + " " + short_url(url) + " -> " + response.status);
+      }
+      catch {}
+    }
+  }, (e) => {
+    if (fetch_logs < 15) {
+      fetch_logs++;
+      try {
+        console.log("fetch " + (method || "GET") + " " + short_url(url) + " failed: " + (e && e.message));
+      }
+      catch {}
+    }
+  });
+  return promise;
+}
+
 export async function fetch(resource, init={}) {
   let params = {...init};
   let url = resource;
@@ -61,7 +88,7 @@ export async function fetch(resource, init={}) {
     params.headers = headers;
   }
 
-  let request = network.fetch(url, params);
+  let request = track(url, params.method, network.fetch(url, params));
   if (!signal || typeof signal.addEventListener !== "function") return await request;
 
   return await new Promise((resolve, reject) => {
