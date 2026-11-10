@@ -228,27 +228,45 @@ addFlashcardMainBtn.addEventListener('click', () => openExamModal('', '', addFla
     const tip = document.createElement('div');
     tip.className = 'cursor-tip';
     document.body.appendChild(tip);
-    const root = document.getElementById('flashcards-container');
-    if (!root) return;
-    let cur = null;
-    const place = (x, y) => {
-        const t = tip.getBoundingClientRect();
-        tip.style.left = Math.max(6, Math.min(innerWidth - t.width - 6, x + 14)) + 'px';
-        tip.style.top = Math.max(6, Math.min(innerHeight - t.height - 6, y + 18)) + 'px';
+    let cur=null, timer=0;
+    const strip=el=>{
+      const t=el.getAttribute('title'); if(t===null) return;
+      el.removeAttribute('title');
+      if(!t.trim()) return;
+      el.setAttribute('data-tip',t);
+      if(!el.hasAttribute('aria-label')&&!el.textContent.trim()) el.setAttribute('aria-label',t);
     };
-    const hide = () => { cur = null; tip.classList.remove('show'); };
-    root.addEventListener('mouseover', e => {
-        const card = e.target.closest('.flashcard-card');
-        if (!card || e.target.closest('.remove-flashcard-btn')) return hide();
-        const n = card.querySelector('.flashcard-name');
-        const text = n ? n.textContent.trim() : '';
+    const scan=n=>{ if(n.nodeType!==1) return; if(n.hasAttribute('title')) strip(n); n.querySelectorAll('[title]').forEach(strip); };
+    scan(document.documentElement);
+    new MutationObserver(ms=>{ for(const m of ms){ if(m.type==='attributes') strip(m.target); else m.addedNodes.forEach(scan); } })
+      .observe(document.documentElement,{subtree:true,childList:true,attributes:true,attributeFilter:['title']});
+    const place=(x,y)=>{
+      const t=tip.getBoundingClientRect();
+      const px=Math.max(6,Math.min(innerWidth-t.width-6,x+14));
+      let py=y+18; if(py+t.height>innerHeight-6) py=y-t.height-12;
+      tip.style.left=px+'px'; tip.style.top=Math.max(6,py)+'px';
+    };
+    const hide=()=>{ clearTimeout(timer); cur=null; tip.classList.remove('show'); };
+    const textFor = el => {
+        if (el.dataset.tip) return el.dataset.tip;
+        const n = el.querySelector('.flashcard-name');
+        return n ? n.textContent.trim() : '';
+    };
+    const show = (el, e) => {
+        const text = textFor(el);
         if (!text) return hide();
-        cur = card;
-        tip.textContent = text;
+        cur = el; tip.textContent = text; tip.classList.add('show');
         place(e.clientX, e.clientY);
-        tip.classList.add('show');
+    };
+    const targetOf = e => e.target.closest && e.target.closest('[data-tip], .flashcard-card');
+    document.addEventListener('mouseover', e => { const el = targetOf(e); if (el) show(el, e); else hide(); });
+    document.addEventListener('mousemove', e => { if (cur) place(e.clientX, e.clientY); });
+    document.addEventListener('mouseleave', hide);
+    document.addEventListener('mousedown', hide);
+    document.addEventListener('scroll', hide, true);
+    document.addEventListener('pointerdown', e => {
+        if (e.pointerType === 'mouse') return;
+        const el = targetOf(e);
+        if (el) { show(el, e); clearTimeout(timer); timer = setTimeout(hide, 1800); }
     });
-    root.addEventListener('mousemove', e => { if (cur) place(e.clientX, e.clientY); });
-    root.addEventListener('mouseleave', hide);
-    root.addEventListener('click', hide);
 })();
