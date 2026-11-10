@@ -102,7 +102,7 @@ function loop() {
 }
 loop();
 
-let sceneInfo = { meshes: 0, skipped: 0, noMesh: 0, noNode: 0 };
+let sceneInfo = { meshes: 0, skipped: 0, noMesh: 0, noNode: 0, readErr: 0, geoNull: 0 };
 function updateStats() {
   if (!$('statsBox').hidden) {
     const i = renderer.info;
@@ -131,7 +131,7 @@ function disposeRoot() {
 
 async function buildScene(file) {
   disposeRoot();
-  sceneInfo = { meshes: 0, skipped: 0, noMesh: 0, noNode: 0 };
+  sceneInfo = { meshes: 0, skipped: 0, noMesh: 0, noNode: 0, readErr: 0, geoNull: 0 };
   project.messages.length = 0;
   project.meshWhy = null;
   busy('Building ' + file.name + '…');
@@ -150,8 +150,10 @@ async function buildScene(file) {
         const r = file.reader(o);
         filters.push({ go: file.ptr(r), mesh: file.ptr(r) });
       } else if (o.classID === 20) cameras.push(file.ptr(file.reader(o)).pathID);
-    } catch {
+    } catch (e) {
       sceneInfo.skipped++;
+      sceneInfo.readErr++;
+      if (sceneInfo.readErr <= 3) project.messages.push('object read failed (class ' + o.classID + '): ' + e.message);
     }
   }
   const nodes = new Map();
@@ -199,6 +201,7 @@ async function buildScene(file) {
     if (!info.enabled) continue;
     const geo = getGeometry(project, j.mesh);
     if (!geo) {
+      sceneInfo.geoNull++;
       sceneInfo.skipped++;
       continue;
     }
@@ -270,6 +273,7 @@ async function buildScene(file) {
   for (const m of project.messages.slice(0, 40)) log(m, 'warn');
   if (project.messages.length > 40) log('…and ' + (project.messages.length - 40) + ' more warnings', 'warn');
   log('Scene ' + file.name + ': ' + sceneInfo.meshes + ' meshes, ' + sceneInfo.skipped + ' skipped');
+  log('Skipped breakdown: read errors ' + sceneInfo.readErr + ' · no mesh reference ' + sceneInfo.noMesh + ' · no node ' + sceneInfo.noNode + ' · mesh unreadable ' + sceneInfo.geoNull, 'warn');
   if (sceneInfo.noMesh || sceneInfo.noNode) log('Skipped without a mesh reference: ' + sceneInfo.noMesh + ' · without a node: ' + sceneInfo.noNode, 'warn');
   if (project.meshWhy) for (const [k, n] of project.meshWhy) log('Meshes not read: ' + k + ' ×' + n, 'warn');
   $('statsBox').hidden = false;
