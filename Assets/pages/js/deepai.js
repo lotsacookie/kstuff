@@ -624,6 +624,8 @@
           hacker_is_stinky: "very_stinky",
           enabled_tools: JSON.stringify(["image_generator", "image_editor"])
         };
+        // the real page sends thinking_support for these models
+        if (["supergenius", "gpt-6.1-sol", "gpt-6-astra", "gpt-oss-120b", "gemini-4-argon", "claude-opus-5-5", "claude-fable-5", "glm-5.3-flash", "grok-4.3", "gpt-5.2"].includes(options.model)) fields.thinking_support = "1";
         if (options.webAccess !== undefined) fields.web_access_enabled = options.webAccess ? "true" : "false";
         if (options.attachments && options.attachments.length) fields.attachment_uuids = JSON.stringify(options.attachments);
         const packed = await multipart(fields);
