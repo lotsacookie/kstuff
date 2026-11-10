@@ -1342,9 +1342,11 @@
     // text) is tried first and the other ways only if the server rejects it.
     const plan = attachments.length
       ? [
-        { pre: false, fresh: false, drop: false },
+        // the real page saves the chat (with chat_model) BEFORE sending when there are
+        // attachments; otherwise the server picks a default turbo model that can't see images
         { pre: true, fresh: false, drop: false },
-        { pre: false, fresh: true, drop: false },
+        { pre: false, fresh: false, drop: false },
+        { pre: true, fresh: true, drop: false },
         { pre: false, fresh: true, drop: true }
       ]
       : [
@@ -1409,6 +1411,7 @@
           continue;
         }
         if (!emitted && error && error.status === 404 && attempt < plan.length - 1) continue;
+        if (!emitted && error && error.status === 400 && /does not support image/i.test(String(error.message || "")) && canSeeImages(modelId) && attempt < plan.length - 1) continue;
         if (attempt === 0 && !emitted && error && error.code === "anonymous try it exceeded" && await signIn()) continue;
         if (!(error instanceof DeepAIError) && !(error && error.name === "AbortError")) dropConnection();
         throw error;
