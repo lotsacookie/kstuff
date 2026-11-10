@@ -1216,6 +1216,19 @@
 
   // Drops attachment ids the server can't use, but keeps their content in the message
   // (for text files) so the conversation never loses what the file said.
+  // When the image could not be sent, tell the model so it does not guess what the picture shows.
+  function noteDropped(messages, dropped) {
+    if (!dropped) return messages;
+    const copy = messages.slice();
+    for (let i = copy.length - 1; i >= 0; i--) {
+      if (copy[i].role === "user") {
+        copy[i] = Object.assign({}, copy[i], { content: String(copy[i].content || "") + "\n\n[System note: the user attached an image but it could not be delivered, so you cannot see it. Do not guess or describe it. Say you could not view the image and answer only from the text.]" });
+        break;
+      }
+    }
+    return copy;
+  }
+
   function cleanMessages(messages) {
     return (messages || []).map(m => {
       const files = m._files;
@@ -1301,6 +1314,7 @@
     await ensureSession();
     let sendIds = attachments.filter(id => !isBad(id));
     let emitted = false;
+    let imageDropped = false;
     let reply = "";
     let sessionUuid = options.sessionUuid;
     const persist = extra => {
@@ -1362,6 +1376,7 @@
         if (step.drop && sendIds.length) {
           attachments.forEach(id => badAttachments.add(id));
           sendIds = [];
+          imageDropped = true;
           handlers.content("(DeepAI rejected the attachment, so this reply can't see it.)\n\n");
         }
         if (step.pre) {
@@ -1370,7 +1385,7 @@
         }
         for await (const part of state.client.chat({
           model: modelId,
-          messages: withContext(cleanMessages(options.messages), games),
+          messages: withContext(noteDropped(cleanMessages(options.messages), imageDropped), games),
           attachments: sendIds,
           sessionUuid,
           webAccess: options.webAccess,
@@ -1404,6 +1419,7 @@
           }
           attachments.forEach(id => badAttachments.add(id));
           sendIds = [];
+          imageDropped = true;
           handlers.content("(DeepAI refused the image for every model this account can use, so this reply can't see it.)\n\n");
           attempt--;
           continue;
