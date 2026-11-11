@@ -565,6 +565,5 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
   Promise.all([wait,Promise.all(['index.html','os.css','os.js'].map(get))]).then(enter).catch(err=>{console.error(err);window.__osLaunching=false;f.classList.remove('on');setTimeout(()=>f.remove(),800)});
 },true);
 })();</script>
-<script>document.addEventListener('click',e=>{const b=e.target.closest('[data-go]');if(!b)return;window.K&&K.navTo&&K.navTo(b.dataset.go);});</script>
 </body>
 </html>

@@ -251,6 +251,15 @@ export function init(K) {
   };
   K.navTo = navTo;
 
+  // [data-go] buttons (header Home, footer Settings/Profile/Changelog) route through navTo.
+  // Handled here because K is module-scoped, so an inline script in index.html can't reach it.
+  document.addEventListener('click', e => {
+    const b = e.target.closest && e.target.closest('[data-go]');
+    if (!b) return;
+    e.preventDefault();
+    navTo(b.dataset.go);
+  });
+
   window.addEventListener('message', event => {
     if (K.isActiveSource && !K.isActiveSource(event.source)) return;
     if (typeof event.data === 'string' && event.data.startsWith('nav: ')) {
