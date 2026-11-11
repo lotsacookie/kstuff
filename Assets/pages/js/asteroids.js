@@ -31,31 +31,26 @@
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     }
 
-    function themeRGB() {
-        var raw = '';
-        try {
-            raw = getComputedStyle(document.documentElement).getPropertyValue('--text').trim();
-        } catch (e) {}
+    var probe = document.createElement('span');
+    probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:0;height:0;pointer-events:none;color:var(--text);';
+    host.appendChild(probe);
+    var theme = [255, 255, 255];
+    var lastThemeRead = 0;
+
+    function readTheme(now) {
+        lastThemeRead = now;
         var m;
-        if ((m = /^#([0-9a-f]{6})$/i.exec(raw))) {
-            return [parseInt(m[1].slice(0, 2), 16), parseInt(m[1].slice(2, 4), 16), parseInt(m[1].slice(4, 6), 16)];
+        try {
+            m = /rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)/i.exec(getComputedStyle(probe).color);
+        } catch (e) {
+            m = null;
         }
-        if ((m = /^#([0-9a-f]{3})$/i.exec(raw))) {
-            return [parseInt(m[1][0] + m[1][0], 16), parseInt(m[1][1] + m[1][1], 16), parseInt(m[1][2] + m[1][2], 16)];
-        }
-        if ((m = /rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(raw))) {
-            return [+m[1], +m[2], +m[3]];
-        }
-        return [255, 255, 255];
+        if (m) theme = [Math.round(+m[1]), Math.round(+m[2]), Math.round(+m[3])];
     }
 
-    function mix(a, b, t) {
-        return [
-            Math.round(a[0] + (b[0] - a[0]) * t),
-            Math.round(a[1] + (b[1] - a[1]) * t),
-            Math.round(a[2] + (b[2] - a[2]) * t)
-        ];
-    }
+    window.addEventListener('message', function (e) {
+        if (e.data === 'theme-updated') setTimeout(function () { readTheme(performance.now()); }, 60);
+    });
 
     function makeShape(radius) {
         var n = 8 + Math.floor(Math.random() * 5);
@@ -69,9 +64,6 @@
     }
 
     function spawn() {
-        var theme = themeRGB();
-        var tint = Math.random() < 0.5 ? 0 : 0.35 + Math.random() * 0.45;
-        var color = mix([255, 255, 255], theme, tint);
         var radius = 5 + Math.random() * 15;
         var speed = 55 + Math.random() * 110;
         var angle = (Math.random() * 40 - 20) * Math.PI / 180;
@@ -85,7 +77,6 @@
             spin: (Math.random() - 0.5) * 1.4,
             radius: radius,
             shape: makeShape(radius),
-            color: color,
             alpha: 0.22 + Math.random() * 0.3,
             burns: burns,
             burnY: H * (0.2 + Math.random() * 0.6),
@@ -107,8 +98,7 @@
                 vy: Math.sin(a) * s * 0.6 - 10,
                 life: 0,
                 max: 0.5 + Math.random() * 0.7,
-                size: 0.8 + Math.random() * 1.8,
-                color: r.color
+                size: 0.8 + Math.random() * 1.8
             });
         }
     }
@@ -122,7 +112,7 @@
         var tx = -r.vx / speed;
         var ty = -r.vy / speed;
         var len = r.tail * (r.burning ? 1 + r.burn * 1.6 : 1);
-        var c = r.color;
+        var c = theme;
 
         var g = ctx.createLinearGradient(r.x, r.y, r.x + tx * len, r.y + ty * len);
         g.addColorStop(0, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a * 0.55).toFixed(3) + ')');
@@ -166,7 +156,7 @@
 
         if (r.burning) {
             var glow = ctx.createRadialGradient(r.x, r.y, 0, r.x, r.y, r.radius * (1.6 + r.burn));
-            glow.addColorStop(0, 'rgba(255,255,255,' + (a * 0.5).toFixed(3) + ')');
+            glow.addColorStop(0, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a * 0.5).toFixed(3) + ')');
             glow.addColorStop(1, 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',0)');
             ctx.fillStyle = glow;
             ctx.beginPath();
@@ -180,6 +170,7 @@
         if (!last) last = ts;
         var dt = Math.min((ts - last) / 1000, 0.05);
         last = ts;
+        if (ts - lastThemeRead > 1000) readTheme(ts);
 
         if (ts - lastSpawn > nextGap && rocks.length < MAX_ROCKS) {
             spawn();
@@ -227,7 +218,7 @@
             s.y += s.vy * dt;
             s.vy += 30 * dt;
             var k = 1 - s.life / s.max;
-            ctx.fillStyle = 'rgba(' + s.color[0] + ',' + s.color[1] + ',' + s.color[2] + ',' + (k * 0.5).toFixed(3) + ')';
+            ctx.fillStyle = 'rgba(' + theme[0] + ',' + theme[1] + ',' + theme[2] + ',' + (k * 0.5).toFixed(3) + ')';
             ctx.beginPath();
             ctx.arc(s.x, s.y, s.size * (0.5 + k * 0.5), 0, Math.PI * 2);
             ctx.fill();
@@ -248,5 +239,6 @@
 
     window.addEventListener('resize', resize);
     resize();
+    readTheme(performance.now());
     requestAnimationFrame(step);
 })();
