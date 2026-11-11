@@ -3446,3 +3446,11 @@ html:not(.sg-dev) .sg-cookies {
 .section-loader.proxy-loading .ld-progress-bar {
     display: none !important;
 }
+
+.pref-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.pref-switch{position:relative;display:inline-block;width:46px;height:26px;flex:none}
+.pref-switch input{opacity:0;width:0;height:0;position:absolute}
+.pref-slider{position:absolute;inset:0;border-radius:26px;background:rgba(128,128,128,.35);cursor:pointer;transition:background .2s}
+.pref-slider::before{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
+.pref-switch input:checked+.pref-slider{background:var(--accent-color,#4f8cff)}
+.pref-switch input:checked+.pref-slider::before{transform:translateX(20px)}

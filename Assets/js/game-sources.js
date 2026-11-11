@@ -401,7 +401,9 @@ export function init(K) {
     })().finally(() => { moonBusy = null; });
     return moonBusy;
   }
+  K.moonEnabled = () => { try { return localStorage.getItem('kstuff_cloudmoon') === 'on'; } catch { return false; } };
   async function fetchMoon() {
+    if (!K.moonEnabled()) return [];
     let c = readMoon();
     const stale = !c || Date.now() - (c.at || 0) > MOON_TTL;
     if (stale) {
@@ -410,7 +412,7 @@ export function init(K) {
     }
     return (c ? c.games : []).filter(r => !moonIsApp(r)).map(r => ({ source: 'moon', moonId: r[0], name: r[1], cover: [r[2], K.gameFallbackIcon(r[1])].filter(Boolean) }));
   }
-  K.moonApps = () => (readMoon()?.games || []).filter(moonIsApp).map(r => ({ title: `${r[1]} (Moon)`, image: r[2] || K.gameFallbackIcon(r[1]), url: '', category: 'CloudMoon', description: '', moonId: r[0], moonName: r[1] }));
+  K.moonApps = () => !K.moonEnabled() ? [] : (readMoon()?.games || []).filter(moonIsApp).map(r => ({ title: `${r[1]} (Moon)`, image: r[2] || K.gameFallbackIcon(r[1]), url: '', category: 'CloudMoon', description: '', moonId: r[0], moonName: r[1] }));
 
   // WebBlox: Roblox in the browser through the net hub (Assets/blox/index.html, launched by blox-launch.js).
   async function fetchBlox() {

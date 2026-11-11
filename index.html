@@ -334,6 +334,7 @@ async function legacy(){
                             <button class="settings-tab active" role="tab" data-panel="settings-panel-appearance"><i class="ph ph-palette"></i><span>Appearance</span></button>
                             <button class="settings-tab" role="tab" data-panel="settings-panel-search"><i class="ph ph-magnifying-glass"></i><span>Search</span></button>
                             <button class="settings-tab" role="tab" data-panel="settings-panel-proxy"><i class="ph ph-globe"></i><span>Proxy</span></button>
+                            <button class="settings-tab" role="tab" data-panel="settings-panel-preferences"><i class="ph ph-sliders-horizontal"></i><span>Preferences</span></button>
                             <button class="settings-tab" role="tab" data-panel="settings-panel-data"><i class="ph ph-database"></i><span>Data</span></button>
                             <button class="settings-tab" role="tab" data-panel="settings-panel-about"><i class="ph ph-info"></i><span>About</span></button>
                             <div class="settings-nav-indicator"></div>
@@ -369,6 +370,9 @@ async function legacy(){
                                     <p style="display: none; margin:12px 0 0;opacity:.8;font-weight:600;">Clears the whole page and shows a single sandboxed, cross-origin frame. Its page is fetched through the proxy (sandstone/Singuloxy), not embedded by URL, and it talks to this page over postMessage while the proxy, wisp and Singuloxy keep running in the background. Add <b>?coi=off</b> to the URL to turn it off if you get stuck.</p>
                                     <p id="coi-isolate-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
                                 </div>
+                            </div>
+                            <div class="settings-panel settings-grid" id="settings-panel-preferences" role="tabpanel" data-title="Preferences">
+                                <div class="setting-group pref-row"><label for="pref-cloudmoon"><i class="ph ph-cloud"></i> CloudMoon</label><label class="pref-switch"><input type="checkbox" id="pref-cloudmoon"><span class="pref-slider"></span></label></div>
                             </div>
                             <div class="settings-panel" id="settings-panel-data" role="tabpanel" data-title="Data">Coming Soon</div>
                             <div class="settings-panel" id="settings-panel-about" role="tabpanel" data-title="About">

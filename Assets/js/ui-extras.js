@@ -1,6 +1,16 @@
 export function init(K) {
   const byId = id => document.getElementById(id);
 
+  const cloudMoonCb = byId('pref-cloudmoon');
+  if (cloudMoonCb) {
+    try { cloudMoonCb.checked = localStorage.getItem('kstuff_cloudmoon') === 'on'; } catch {}
+    cloudMoonCb.addEventListener('change', async () => {
+      try { localStorage.setItem('kstuff_cloudmoon', cloudMoonCb.checked ? 'on' : 'off'); } catch {}
+      await K.hardRefreshGrid?.('readingcorner');
+      await K.hardRefreshGrid?.('sciencequiz');
+    });
+  }
+
   // Only one modal at a time: when one opens, the others fade out via their normal close transition.
   new MutationObserver(muts => {
     for (const m of muts) {
@@ -628,3 +638,4 @@ export function init(K) {
     });
   })();
 }
+
