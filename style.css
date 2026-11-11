@@ -1329,9 +1329,9 @@ body.expand-on.nav-bottom .nav-os-btn {
     flex-direction: column;
     overflow: hidden;
     box-shadow: 0 32px 80px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.2);
-    transform: translateY(16px) scale(0.97);
+    transform: perspective(1400px) translate3d(var(--mo-dx, 0px), var(--mo-dy, 40px), 0) rotateX(50deg) scale(0.2);
     opacity: 0;
-    transition: transform 0.35s var(--ease), opacity 0.25s ease;
+    transition: transform 0.38s cubic-bezier(0.5, 0, 0.75, 0), opacity 0.25s ease;
     font-weight: 600;
 }
 
@@ -2642,6 +2642,10 @@ body.floating-on .learning-footer .footer-item {
     animation: k-pop 0.28s var(--ease);
 }
 
+.modal-overlay.active > .modal-content {
+    animation: k-modal-in 0.62s cubic-bezier(0.3, 1.25, 0.4, 1) backwards;
+}
+
 @keyframes k-sheen {
     from { transform: translateX(-120%); }
     to { transform: translateX(120%); }
@@ -2657,8 +2661,13 @@ body.floating-on .learning-footer .footer-item {
     to { opacity: 1; transform: none; }
 }
 
+@keyframes k-modal-in {
+    from { opacity: 0; transform: perspective(1400px) translate3d(var(--mo-dx, 0px), var(--mo-dy, 40px), 0) rotateX(58deg) scale(0.1); }
+    to { opacity: 1; transform: perspective(1400px) translate3d(0, 0, 0) rotateX(0deg) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
-    .round-btn.card-in, .page.active, .modal-overlay.active > * { animation: none; }
+    .round-btn.card-in, .page.active, .modal-overlay.active > *, .modal-overlay.active > .modal-content { animation: none; }
     .round-btn > img { transition: none; }
 }
 
@@ -3290,7 +3299,8 @@ body.floating-on .learning-footer .footer-item{background:transparent!important;
 .learning-footer .footer-item:hover,
 body.floating-on .learning-footer .footer-item:hover{background:var(--tint)!important;opacity:1}
 .learning-footer .footer-item+.footer-item{border-left:1px solid var(--hairline)!important}
-.learning-footer .footer-btn{padding:0 12px;gap:0}
+.learning-footer .footer-item.footer-btn,
+body.floating-on .learning-footer .footer-item.footer-btn{padding:0;gap:0;justify-content:center;flex:none;height:100%;width:auto;aspect-ratio:1/1}
 .learning-footer .footer-btn span{display:none}
 .learning-footer .footer-btn i{font-size:1rem}
 @media(max-width:640px){#ping-indicator span,#weather-text,#conn-text,#clock-text,#coi-text{display:none}}

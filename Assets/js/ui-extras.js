@@ -14,6 +14,33 @@ export function init(K) {
       });
     }
   }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+
+  let modalOrigin = null;
+  const rememberOrigin = e => {
+    let x = e.clientX, y = e.clientY;
+    if (!x && !y && e.target && e.target.getBoundingClientRect) {
+      const r = e.target.getBoundingClientRect();
+      x = r.left + r.width / 2;
+      y = r.top + r.height / 2;
+    }
+    modalOrigin = { x, y, t: performance.now() };
+  };
+  document.addEventListener('pointerdown', rememberOrigin, true);
+  document.addEventListener('click', rememberOrigin, true);
+  new MutationObserver(muts => {
+    for (const m of muts) {
+      const el = m.target;
+      if (!el.classList || !el.classList.contains('modal-overlay') || !el.classList.contains('active')) continue;
+      if ((m.oldValue || '').split(/\s+/).includes('active')) continue;
+      const box = el.getBoundingClientRect();
+      const fresh = modalOrigin && performance.now() - modalOrigin.t < 1500;
+      const dx = fresh ? modalOrigin.x - (box.left + box.width / 2) : 0;
+      const dy = fresh ? modalOrigin.y - (box.top + box.height / 2) : 48;
+      el.style.setProperty('--mo-dx', Math.round(dx) + 'px');
+      el.style.setProperty('--mo-dy', Math.round(dy) + 'px');
+    }
+  }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+
   const clockEl = byId('clock-text');
   const pingEl = byId('ping-text');
   const weatherText = byId('weather-text');
