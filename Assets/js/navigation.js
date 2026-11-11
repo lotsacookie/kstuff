@@ -3,7 +3,10 @@ export function init(K) {
   tooltipEl.style.cssText = 'position:fixed;left:0;top:0;display:none;padding:6px 10px;background:rgba(0,0,0,0.85);color:#fff;font-size:0.75rem;border-radius:6px;pointer-events:none;z-index:999999;white-space:nowrap;will-change:transform;';
   K.tooltipEl = tooltipEl;
 
-  document.head.appendChild(K.el('style', {
+  const early = window.__kEarlyCursor;
+  if (early) early.stop();
+  if (!document.getElementById('kstuff-cursor-style')) document.head.appendChild(K.el('style', {
+    id: 'kstuff-cursor-style',
     textContent: `
       html.kstuff-cursor-active, html.kstuff-cursor-active *{cursor:none !important;}
       .kstuff-cursor{position:fixed;top:0;left:0;width:${K.CURSOR_SIZE}px;height:${K.CURSOR_SIZE}px;pointer-events:none;z-index:2147483647;color:var(--text-color, inherit);opacity:0;transition:opacity .1s ease;will-change:transform;contain:layout style;}
@@ -15,7 +18,9 @@ export function init(K) {
     `
   }));
 
-  const cursorEl = K.body.appendChild(K.el('div', { className: 'kstuff-cursor', innerHTML: K.CURSOR_SVG_MARKUP }));
+  const adopted = early && early.el && early.el.isConnected ? early.el : null;
+  const cursorEl = adopted || K.body.appendChild(K.el('div', { className: 'kstuff-cursor', innerHTML: K.CURSOR_SVG_MARKUP }));
+  if (adopted) cursorEl.classList.remove('pointer');
   document.documentElement.classList.add('kstuff-cursor-active');
 
   let cursorSuppressed = false, cursorShown = false;
