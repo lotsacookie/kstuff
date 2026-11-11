@@ -213,8 +213,9 @@ body.size-large.text-hide {
 }
 
 .conn-item i,
-.conn-item[data-state] i {
-    color: #fff;
+.conn-item[data-state] i,
+.conn-item span {
+    color: var(--text-color);
 }
 
 .clock-item {
