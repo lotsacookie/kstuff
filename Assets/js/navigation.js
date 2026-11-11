@@ -445,7 +445,7 @@ export function init(K) {
     if (K.isActiveSource && !K.isActiveSource(event.source)) return;
     if (typeof event.data === 'string' && event.data.startsWith('nav: ')) {
       const pageName = event.data.replace('nav: ', '').trim().toLowerCase();
-      const targetMap = { 'home': 'mathworksheets', 'games': 'readingcorner', 'apps': 'sciencequiz', 'music': 'gradebook', 'ai': 'lessonplanner', 'vms': 'vms', 'cloud': 'cloud', 'chat': 'studyhall' };
+      const targetMap = { 'home': 'mathworksheets', 'games': 'readingcorner', 'apps': 'sciencequiz', 'music': 'gradebook', 'tv': 'civics', 'ai': 'lessonplanner', 'vms': 'vms', 'cloud': 'cloud', 'chat': 'studyhall' };
       const targetId = targetMap[pageName] || pageName;
       const targetBtn = K.findNavBtn(targetId);
       if (targetBtn) targetBtn.click();
