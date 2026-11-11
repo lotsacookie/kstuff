@@ -16,6 +16,14 @@ export function init(K) {
   }).observe(document.body, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
 
   let modalOrigin = null;
+  const placeModals = (x, y) => {
+    modalOrigin = { x, y, t: performance.now() };
+    document.querySelectorAll('.modal-overlay:not(.active)').forEach(o => {
+      const b = o.getBoundingClientRect();
+      o.style.setProperty('--mo-dx', Math.round(x - (b.left + b.width / 2)) + 'px');
+      o.style.setProperty('--mo-dy', Math.round(y - (b.top + b.height / 2)) + 'px');
+    });
+  };
   const rememberOrigin = e => {
     let x = e.clientX, y = e.clientY;
     if (!x && !y && e.target && e.target.getBoundingClientRect) {
@@ -23,7 +31,7 @@ export function init(K) {
       x = r.left + r.width / 2;
       y = r.top + r.height / 2;
     }
-    modalOrigin = { x, y, t: performance.now() };
+    placeModals(x, y);
   };
   document.addEventListener('pointerdown', rememberOrigin, true);
   document.addEventListener('click', rememberOrigin, true);

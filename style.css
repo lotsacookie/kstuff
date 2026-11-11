@@ -2643,7 +2643,7 @@ body.floating-on .learning-footer .footer-item {
 }
 
 .modal-overlay.active > .modal-content {
-    animation: k-modal-in 0.62s cubic-bezier(0.3, 1.25, 0.4, 1) backwards;
+    animation: k-modal-in 0.7s cubic-bezier(0.25, 1.12, 0.4, 1) backwards, k-modal-fade 0.1s linear backwards;
 }
 
 @keyframes k-sheen {
@@ -2662,8 +2662,13 @@ body.floating-on .learning-footer .footer-item {
 }
 
 @keyframes k-modal-in {
-    from { opacity: 0; transform: perspective(1400px) translate3d(var(--mo-dx, 0px), var(--mo-dy, 40px), 0) rotateX(58deg) scale(0.1); }
-    to { opacity: 1; transform: perspective(1400px) translate3d(0, 0, 0) rotateX(0deg) scale(1); }
+    from { transform: perspective(1400px) translate3d(var(--mo-dx, 0px), var(--mo-dy, 40px), 0) rotateX(58deg) scale(0.06); }
+    to { transform: perspective(1400px) translate3d(0, 0, 0) rotateX(0deg) scale(1); }
+}
+
+@keyframes k-modal-fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
 }
 
 @media (prefers-reduced-motion: reduce) {
