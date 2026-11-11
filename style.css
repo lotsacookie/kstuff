@@ -3469,3 +3469,10 @@ html .modal-overlay.modal-overlay {
 html .modal-overlay.modal-overlay.active {
     transition: opacity 0.2s ease 0s, visibility 0s linear 0s;
 }
+
+/* ===== Filter bar auto-fit (scale set by script.js) ===== */
+html .filter-bar.filter-bar {
+    transform: translateX(-50%) scale(var(--fb-scale, 1));
+    transform-origin: top center;
+    max-width: none;
+}

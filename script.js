@@ -201,3 +201,36 @@ function genieFrames(W, H, ox, oy, count = 44, rows = 32) {
         }
     }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
 })();
+
+/* ===== Filter bar auto-fit ===== */
+// FIT-START
+function filterBarScale(natural, available, margin = 16, min = 0.4) {
+    if (!natural || !available) return 1;
+    return Math.max(min, Math.min(1, (available - margin * 2) / natural));
+}
+// FIT-END
+(function () {
+    if (typeof document === 'undefined' || !window.ResizeObserver) return;
+    const fit = bar => {
+        const host = bar.parentElement;
+        const natural = bar.offsetWidth; // layout width, unaffected by transform
+        if (!host || !natural) return;
+        bar.style.setProperty('--fb-scale', filterBarScale(natural, host.clientWidth).toFixed(3));
+    };
+    const ro = new ResizeObserver(entries => entries.forEach(e => fit(e.target)));
+    const watch = bar => { if (!bar._fbWatched) { bar._fbWatched = true; ro.observe(bar); ro.observe(bar.parentElement); } };
+    const hostMap = new WeakMap();
+    const init = () => document.querySelectorAll('.filter-bar').forEach(bar => {
+        watch(bar);
+        // re-fit when the parent (page) resizes or becomes visible
+        if (!hostMap.has(bar.parentElement)) {
+            hostMap.set(bar.parentElement, true);
+            new ResizeObserver(() => fit(bar)).observe(bar.parentElement);
+        }
+        fit(bar);
+    });
+    window.addEventListener('resize', init);
+    document.addEventListener('DOMContentLoaded', init);
+    new MutationObserver(init).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+    init();
+})();
