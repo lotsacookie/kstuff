@@ -3454,3 +3454,18 @@ html:not(.sg-dev) .sg-cookies {
 .pref-slider::before{content:"";position:absolute;left:3px;top:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:transform .2s}
 .pref-switch input:checked+.pref-slider{background:var(--accent-color,#4f8cff)}
 .pref-switch input:checked+.pref-slider::before{transform:translateX(20px)}
+
+/* ===== Genie modal animation (driven by script.js) ===== */
+html .modal-overlay.modal-overlay .modal-content.modal-content {
+    transform: none;
+    opacity: 1;
+    transition: none;
+    animation: none;
+    will-change: transform, clip-path;
+}
+html .modal-overlay.modal-overlay {
+    transition: opacity 0.25s ease 0.2s, visibility 0s linear 0.46s;
+}
+html .modal-overlay.modal-overlay.active {
+    transition: opacity 0.2s ease 0s, visibility 0s linear 0s;
+}

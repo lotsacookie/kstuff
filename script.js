@@ -129,3 +129,75 @@ function initApp() {
 }
 
 document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', initApp) : initApp();
+
+/* ===== macOS-style genie modal animation ===== */
+// GENIE-START
+function genieFrames(W, H, ox, oy, count = 44, rows = 32) {
+    const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const smooth = t => t * t * (3 - 2 * t);
+    const inOut = t => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
+    const D = 0.7; // how far the bottom lags behind the leading top edge
+    const frames = [];
+    for (let i = 0; i < count; i++) {
+        const t = i / (count - 1);
+        const T = inOut(t);
+        const E = smooth(clamp(T));
+        const sc = lerp(0.14, 1, E);
+        const ax = lerp(ox, W / 2, E), ay = lerp(oy, H, E);
+        const left = [], right = [];
+        for (let r = 0; r <= rows; r++) {
+            const v = r / rows;
+            const p = clamp(T * (1 + D) - v * D);
+            const ey = smooth(p);
+            const ex = Math.pow(smooth(p), 1.35);
+            const y = lerp(H, v * H, ey);
+            const half = (W / 2) * ex + 1.5 * (1 - ex);
+            left.push(`${(W / 2 - half).toFixed(1)}px ${y.toFixed(1)}px`);
+            right.push(`${(W / 2 + half).toFixed(1)}px ${y.toFixed(1)}px`);
+        }
+        frames.push({
+            transform: `translate(${(ax - sc * W / 2).toFixed(1)}px, ${(ay - sc * H).toFixed(1)}px) scale(${sc.toFixed(4)})`,
+            clipPath: `polygon(${left.concat(right.reverse()).join(',')})`,
+            opacity: clamp(t / 0.12),
+            offset: t
+        });
+    }
+    return frames;
+}
+// GENIE-END
+
+(function () {
+    if (typeof document === 'undefined') return;
+    let last = { x: null, y: null, t: 0 };
+    document.addEventListener('pointerdown', e => {
+        const el = e.target.closest && e.target.closest('button, a, .round-btn, .footer-item, .nav-btn, [onclick]');
+        const r = el && el.getBoundingClientRect();
+        last = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2, t: Date.now() } : { x: e.clientX, y: e.clientY, t: Date.now() };
+    }, true);
+
+    const play = (overlay, opening) => {
+        const box = overlay.querySelector(':scope > .modal-content') || overlay.querySelector('.modal-content');
+        if (!box || !box.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+        box.getAnimations().forEach(a => a.cancel());
+        const W = box.offsetWidth, H = box.offsetHeight;
+        const r = box.getBoundingClientRect();
+        const fresh = last.x != null && Date.now() - last.t < 1000;
+        const ox = fresh ? last.x - r.left : W / 2;
+        const oy = fresh ? last.y - r.top : H + 60;
+        let frames = genieFrames(W, H, ox, oy);
+        if (!opening) frames = frames.reverse().map((f, i, a) => ({ ...f, offset: i / (a.length - 1) }));
+        box.style.transformOrigin = '0 0';
+        box.animate(frames, { duration: opening ? 720 : 440, easing: 'linear', fill: opening ? 'none' : 'forwards' });
+    };
+
+    new MutationObserver(list => {
+        for (const m of list) {
+            const el = m.target;
+            if (!el.classList || !el.classList.contains('modal-overlay')) continue;
+            const was = (m.oldValue || '').split(/\s+/).includes('active');
+            const now = el.classList.contains('active');
+            if (was !== now) play(el, now);
+        }
+    }).observe(document.documentElement, { subtree: true, attributes: true, attributeFilter: ['class'], attributeOldValue: true });
+})();
