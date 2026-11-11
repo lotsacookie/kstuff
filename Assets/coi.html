@@ -6,6 +6,43 @@
     <meta charset="UTF-8">
     <script>try{document.documentElement.style.background=localStorage.getItem('kstuff_bg')||'#000'}catch(e){}</script>
     <script>try{if(localStorage.getItem('kstuff_dev_mode')==='on')document.documentElement.classList.add('sg-dev')}catch(e){}</script>
+    <script id="kstuff-early-cursor">(()=>{
+if(window.__kEarlyCursor)return;
+const SIZE=28,AO=[4*SIZE/24,2.4*SIZE/24],HO=[10.5*SIZE/24,2*SIZE/24];
+const SEL="a[href],button:not(:disabled),[role='button'],[onclick],select,summary,label[for],input[type='button']:not(:disabled),input[type='submit']:not(:disabled),input[type='checkbox'],input[type='radio'],input[type='range'],.round-btn,.nav-btn,.custom-select-trigger,.custom-select-option,.page-btn,[data-act]:not(:disabled),[data-target]";
+const SVG='<svg class="k-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.4 19.8 9.9c.6.3.5 1.1-.1 1.3l-6.6 1.8-2.3 6.4c-.2.6-1 .6-1.3 0L4 2.4z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".7" stroke-linejoin="round"/></svg><svg class="k-hand" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 3.5a1.5 1.5 0 0 1 3 0V10h.5V8.5a1.3 1.3 0 0 1 2.6 0V10h.4V9.4a1.3 1.3 0 0 1 2.6 0V10.5h.3a1.3 1.3 0 0 1 1.3 1.3V15c0 3.3-2.2 6-5.5 6h-1.4c-1.8 0-3-.8-4-2.1L5.3 15.2a1.4 1.4 0 0 1 2.1-1.8L9 15V3.5z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".7" stroke-linejoin="round"/></svg>';
+const root=document.documentElement;
+const st=document.createElement('style');
+st.id='kstuff-cursor-style';
+st.textContent='html.kstuff-cursor-active, html.kstuff-cursor-active *{cursor:none !important;}.kstuff-cursor{position:fixed;top:0;left:0;width:'+SIZE+'px;height:'+SIZE+'px;pointer-events:none;z-index:2147483647;color:var(--text-color, inherit);opacity:0;transition:opacity .1s ease;will-change:transform;contain:layout style;}.kstuff-cursor.visible{opacity:1;}.kstuff-cursor svg{width:100%;height:100%;display:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}.kstuff-cursor .k-arrow{display:block;}.kstuff-cursor.pointer .k-arrow{display:none;}.kstuff-cursor.pointer .k-hand{display:block;}';
+document.head.appendChild(st);
+let el=null,hand=false,lastT=null;
+const xy=(x,y,o)=>root.classList.contains('sg-flip')?'translate('+(innerWidth-x-o[0])+'px, '+(innerHeight-y-o[1])+'px)':'translate('+(x-o[0])+'px, '+(y-o[1])+'px)';
+const api=window.__kEarlyCursor={get el(){return el},stop(){document.removeEventListener('pointermove',onMove);document.removeEventListener('pointerleave',onLeave)}};
+function onMove(e){
+if(!el){
+if(!document.body)return;
+el=document.createElement('div');
+el.className='kstuff-cursor';
+el.innerHTML=SVG;
+document.body.appendChild(el);
+}
+if(!el.isConnected){api.stop();return}
+root.classList.add('kstuff-cursor-active');
+const t=e.target;
+if(t!==lastT){
+lastT=t;
+let h=false;
+try{h=!!(t&&t.closest&&t.closest(SEL))}catch(_){}
+if(h!==hand){hand=h;el.classList.toggle('pointer',h)}
+}
+el.style.transform=xy(e.clientX,e.clientY,hand?HO:AO);
+el.classList.add('visible');
+}
+function onLeave(){if(el)el.classList.remove('visible')}
+document.addEventListener('pointermove',onMove,{passive:true});
+document.addEventListener('pointerleave',onLeave,{passive:true});
+})();</script>
     <script>(()=>{try{if(new Date().getMonth()!==9)return;document.documentElement.classList.add('halloween-season');const c=localStorage.getItem('kstuff_hw_css_v2');if(c){const s=document.createElement('style');s.id='halloween-style';s.textContent=c;document.head.appendChild(s)}}catch(e){}})();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study.com - Math, Language Arts, Science</title>
