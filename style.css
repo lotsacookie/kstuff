@@ -3420,3 +3420,10 @@ body.floating-on .sg-tabbar .sg-newtab {
     text-transform: none !important;
     letter-spacing: normal !important;
 }
+
+html:not(.sg-dev) #study-console-btn,
+html:not(.sg-dev) #study-cookies-btn,
+html:not(.sg-dev) .sg-console,
+html:not(.sg-dev) .sg-cookies {
+    display: none !important;
+}

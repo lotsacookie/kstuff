@@ -66,7 +66,13 @@ export function init(K) {
     ['layout-expand-select', 'kstuff_nav_expand', 'expand', v => { if (v) K.body.classList.add(v); }],
     ['layout-text-select', 'kstuff_text_vis', '', v => { if (v) K.body.classList.toggle('text-hide', v === 'text-hide'); }],
     ['layout-font-select', 'kstuff_font', '', v => { if (v) { document.documentElement.style.setProperty('--font', v); ensureParentFontLoaded(v); } }],
-    ['search-engine-select', 'kstuff_search_engine', '', v => { K.updateSearchEngineExample(v); }]
+    ['search-engine-select', 'kstuff_search_engine', '', v => { K.updateSearchEngineExample(v); }],
+    ['dev-mode-select', 'kstuff_dev_mode', '', v => {
+      const on = v === 'on';
+      document.documentElement.classList.toggle('sg-dev', on);
+      if (!on) document.querySelectorAll('.sg-console.open, .sg-cookies.open').forEach(el => el.classList.remove('open'));
+      window.dispatchEvent(new Event('resize'));
+    }]
   ].forEach(([id, key, prefix, fn]) => {
     const select = K.$(id); if (!select) return;
     const val = K.getStorage(key) || select.value; select.value = val; fn(val);
