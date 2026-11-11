@@ -401,11 +401,13 @@ export function init(K) {
   const ensureLoaderProgress = () => {
     if (loaderBar || !K.loader) return;
     loaderBar = document.createElement('div');
+    loaderBar.className = 'ld-progress-bar';
     loaderBar.style.cssText = 'width:min(200px,60vw);height:3px;border-radius:3px;overflow:hidden;background:color-mix(in srgb,var(--text-color,#fff) 14%,transparent);margin-top:.9rem;display:none';
     loaderFill = document.createElement('div');
     loaderFill.style.cssText = 'width:100%;height:100%;background:var(--text-color,#fff);transform-origin:left;transform:scaleX(0);transition:transform .4s cubic-bezier(.22,1,.36,1)';
     loaderBar.appendChild(loaderFill);
     loaderStatus = document.createElement('div');
+    loaderStatus.className = 'ld-progress-status';
     loaderStatus.style.cssText = 'font-size:.8rem;opacity:.6;min-height:1.2em;margin-top:.5rem;font-variant-numeric:tabular-nums;display:none';
     K.loader.appendChild(loaderBar);
     K.loader.appendChild(loaderStatus);
@@ -426,16 +428,25 @@ export function init(K) {
     loaderFill.style.transform = 'scaleX(0)';
     loaderStatus.textContent = '';
   };
+  let proxyClassTimer = 0;
+  const addProxyClass = () => {
+    clearTimeout(proxyClassTimer);
+    K.loader?.classList.add('proxy-loading');
+  };
+  const dropProxyClass = () => {
+    clearTimeout(proxyClassTimer);
+    proxyClassTimer = setTimeout(() => K.loader?.classList.remove('proxy-loading'), 700);
+  };
   K.proxyHold = false;
   K.holdForProxy = () => {
     K.proxyHold = true;
-    K.loader?.classList.add('proxy-loading');
+    addProxyClass();
     clearTimeout(K.proxyTimer);
     K.proxyTimer = setTimeout(() => K.releaseProxy(), 30000);
   };
   K.releaseProxy = () => {
     K.proxyHold = false;
-    K.loader?.classList.remove('proxy-loading');
+    dropProxyClass();
     clearTimeout(K.proxyTimer);
     K.toggleLoader(false);
   };
@@ -451,10 +462,14 @@ export function init(K) {
     if (!show && K.proxyHold) {
       if (document.querySelector('.page.active')?.id === 'mathworksheets') return;
       K.proxyHold = false;
-      K.loader.classList.remove('proxy-loading');
+      dropProxyClass();
       clearTimeout(K.proxyTimer);
     }
     if (show) {
+      if (!K.proxyHold) {
+        clearTimeout(proxyClassTimer);
+        K.loader.classList.remove('proxy-loading');
+      }
       if (loaderTextEl) loaderTextEl.textContent = mode === 'updating' ? 'Updating' : 'Loading';
       if (loaderShown || loaderTimer) return;
       loaderTimer = setTimeout(() => {

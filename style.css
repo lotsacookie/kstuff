@@ -3429,6 +3429,7 @@ html:not(.sg-dev) .sg-cookies {
     display: none !important;
 }
 
-.section-loader.proxy-loading > :not(.spinner) {
+.section-loader.proxy-loading .loading-text,
+.section-loader.proxy-loading .ld-progress-bar {
     display: none !important;
 }
