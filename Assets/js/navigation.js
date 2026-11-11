@@ -5,6 +5,10 @@ export function init(K) {
 
   const early = window.__kEarlyCursor;
   if (early) early.stop();
+  // Custom cursor is for mouse/trackpad only. Touch-first devices get the normal system behaviour plus the tap-and-hold tooltip below.
+  const touchOnly = !(window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches);
+  K.touchOnly = touchOnly;
+  if (touchOnly && early && early.el) early.el.remove();
   if (!document.getElementById('kstuff-cursor-style')) document.head.appendChild(K.el('style', {
     id: 'kstuff-cursor-style',
     textContent: `
@@ -19,9 +23,10 @@ export function init(K) {
   }));
 
   const adopted = early && early.el && early.el.isConnected ? early.el : null;
-  const cursorEl = adopted || K.body.appendChild(K.el('div', { className: 'kstuff-cursor', innerHTML: K.CURSOR_SVG_MARKUP }));
+  const cursorEl = touchOnly ? document.createElement('div') : adopted || K.body.appendChild(K.el('div', { className: 'kstuff-cursor', innerHTML: K.CURSOR_SVG_MARKUP }));
   if (adopted) cursorEl.classList.remove('pointer');
-  document.documentElement.classList.add('kstuff-cursor-active');
+  if (!touchOnly) document.documentElement.classList.add('kstuff-cursor-active');
+  else document.documentElement.classList.remove('kstuff-cursor-active');
 
   let cursorSuppressed = false, cursorShown = false;
   const showCustomCursor = () => {
@@ -85,6 +90,7 @@ export function init(K) {
   }
 
   document.addEventListener('pointermove', e => {
+    if (touchOnly || e.pointerType === 'touch') return;
     lastPointerEvent = e;
     {
       const o = cursorIsHand ? K.CURSOR_OFFSETS.hand : K.CURSOR_OFFSETS.arrow;
@@ -99,6 +105,52 @@ export function init(K) {
   }, { passive: true });
   document.addEventListener('pointerleave', () => hideCustomCursor(), { passive: true });
   document.addEventListener('pointerenter', () => { if (lastPointerEvent) showCustomCursor(); }, { passive: true });
+
+  // Touch fallback for tooltips: press and hold (~0.45s) any [data-tooltip] / titled button to show its label next to it.
+  if (touchOnly || 'ontouchstart' in window) {
+    const HOLD_MS = 450, SHOW_MS = 2200;
+    let holdTimer = 0, hideTimer = 0, swallowClick = false, startX = 0, startY = 0;
+    const tipSource = t => t && t.closest ? t.closest('[data-tooltip], button[title], [role="button"][title], a[title], [aria-label]:not(input):not(textarea)') : null;
+    const tipText = el => el.dataset.tooltip || el.getAttribute('title') || el.getAttribute('aria-label') || '';
+    const hideTouchTip = () => { clearTimeout(hideTimer); tooltipEl.style.display = 'none'; };
+    const showTouchTip = el => {
+      const text = tipText(el);
+      if (!text) return false;
+      tooltipEl.textContent = text;
+      tooltipEl.style.display = 'block';
+      const r = el.getBoundingClientRect(), w = tooltipEl.offsetWidth, h = tooltipEl.offsetHeight;
+      const x = Math.max(8, Math.min(window.innerWidth - w - 8, r.left + r.width / 2 - w / 2));
+      const y = r.top - h - 10 >= 8 ? r.top - h - 10 : Math.min(window.innerHeight - h - 8, r.bottom + 10);
+      tooltipEl.style.transform = `translate(${x}px, ${y}px)`;
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(hideTouchTip, SHOW_MS);
+      return true;
+    };
+    document.addEventListener('touchstart', e => {
+      hideTouchTip();
+      clearTimeout(holdTimer);
+      const src = tipSource(e.target);
+      if (!src || e.touches.length !== 1) return;
+      startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+      holdTimer = setTimeout(() => { if (showTouchTip(src)) swallowClick = true; }, HOLD_MS);
+    }, { passive: true });
+    document.addEventListener('touchmove', e => {
+      const t = e.touches[0];
+      if (t && (Math.abs(t.clientX - startX) > 10 || Math.abs(t.clientY - startY) > 10)) clearTimeout(holdTimer);
+    }, { passive: true });
+    ['touchend', 'touchcancel'].forEach(n => document.addEventListener(n, () => {
+      clearTimeout(holdTimer);
+      if (swallowClick) setTimeout(() => { swallowClick = false; }, 400);
+    }, { passive: true }));
+    // A hold that revealed a label shouldn't also activate the button on release.
+    document.addEventListener('click', e => {
+      if (!swallowClick) return;
+      swallowClick = false;
+      e.preventDefault();
+      e.stopPropagation();
+    }, true);
+    document.addEventListener('contextmenu', e => { if (tipSource(e.target)) e.preventDefault(); });
+  }
 
   window.addEventListener('message', e => {
     const d = e.data;
