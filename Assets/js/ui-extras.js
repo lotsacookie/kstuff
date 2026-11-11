@@ -275,18 +275,58 @@ export function init(K) {
     });
   }
 
+  const settingsContent = document.querySelector('.settings-content');
+  let spyLockUntil = 0;
+  const panelTop = panel => panel.offsetTop - (parseFloat(getComputedStyle(settingsContent).paddingTop) || 0);
+
+  function setActiveTab(tab) {
+    settingsTabs.forEach(other => {
+      const isActive = other === tab;
+      if (other.classList.contains('active') !== isActive) other.classList.toggle('active', isActive);
+      other.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    moveSettingsIndicator();
+  }
+
+  function fitSettingsSpacer() {
+    if (!settingsContent || !settingsPanels.length) return;
+    const last = settingsPanels[settingsPanels.length - 1];
+    const pad = parseFloat(getComputedStyle(settingsContent).paddingTop) || 0;
+    const need = settingsContent.clientHeight - pad - last.offsetHeight;
+    settingsContent.style.paddingBottom = Math.max(pad, need) + 'px';
+  }
+
+  function syncSettingsSpy() {
+    if (!settingsContent || performance.now() < spyLockUntil) return;
+    const line = settingsContent.scrollTop + 30;
+    let current = settingsPanels[0];
+    for (const panel of settingsPanels) {
+      if (panelTop(panel) <= line) current = panel;
+    }
+    const tab = settingsTabs.find(t => t.dataset.panel === current.id);
+    if (tab && !tab.classList.contains('active')) setActiveTab(tab);
+  }
+
   settingsTabs.forEach(tab => {
     tab.addEventListener('click', () => {
-      settingsTabs.forEach(other => {
-        const isActive = other === tab;
-        other.classList.toggle('active', isActive);
-        other.setAttribute('aria-selected', isActive ? 'true' : 'false');
-      });
-      settingsPanels.forEach(panel => panel.classList.toggle('active', panel.id === tab.dataset.panel));
+      const panel = byId(tab.dataset.panel);
       document.querySelectorAll('.custom-select-options.open').forEach(menu => menu.classList.remove('open'));
-      moveSettingsIndicator();
+      setActiveTab(tab);
+      if (!panel || !settingsContent) return;
+      fitSettingsSpacer();
+      spyLockUntil = performance.now() + 700;
+      settingsContent.scrollTo({ top: panelTop(panel), behavior: 'smooth' });
+      setTimeout(() => { spyLockUntil = 0; }, 720);
     });
   });
+
+  if (settingsContent) {
+    settingsContent.addEventListener('scroll', syncSettingsSpy, { passive: true });
+    if (window.ResizeObserver) new ResizeObserver(fitSettingsSpacer).observe(settingsContent);
+    if (settingsModal) new MutationObserver(() => { fitSettingsSpacer(); syncSettingsSpy(); }).observe(settingsModal, { attributes: true, attributeFilter: ['class'] });
+    fitSettingsSpacer();
+    syncSettingsSpy();
+  }
 
   if (settingsNav) {
     if (window.ResizeObserver) new ResizeObserver(moveSettingsIndicator).observe(settingsNav);

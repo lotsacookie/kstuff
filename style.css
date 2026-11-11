@@ -1660,15 +1660,28 @@ textarea.modal-input {
 
 
 .settings-panel {
-    display: none;
-}
-
-.settings-panel.active {
     display: block;
-    animation: k-page 0.4s var(--ease) both;
+    padding-bottom: 1.5rem;
 }
 
-.settings-panel.settings-grid.active {
+.settings-panel + .settings-panel {
+    border-top: 1px solid rgba(128, 128, 128, 0.2);
+    padding-top: 1.25rem;
+}
+
+.settings-panel::before {
+    content: attr(data-title);
+    display: block;
+    grid-column: 1 / -1;
+    margin-bottom: 1rem;
+    font-size: 0.7rem;
+    font-weight: 900 !important;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    opacity: 0.6;
+}
+
+.settings-panel.settings-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: 1rem;
@@ -1685,7 +1698,7 @@ textarea.modal-input {
 }
 
 @media (max-width: 560px) {
-    .settings-panel.settings-grid.active {
+    .settings-panel.settings-grid {
         grid-template-columns: minmax(0, 1fr);
     }
 }
