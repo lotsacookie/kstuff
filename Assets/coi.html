@@ -340,7 +340,7 @@ async function legacy(){
                             <div class="settings-nav-indicator"></div>
                         </nav>
                         <div class="settings-content">
-                            <div class="settings-panel settings-grid active" id="settings-panel-appearance" role="tabpanel">
+                            <div class="settings-panel settings-grid" id="settings-panel-appearance" role="tabpanel" data-title="Appearance">
                                 <div class="setting-group"><label for="layout-theme-select"><i class="ph ph-palette"></i> Theme</label><select id="layout-theme-select"><option value="theme-pitch-black" selected>Pitch Black</option><option value="theme-sakura">Sakura</option><option value="theme-dark">Dark</option><option value="theme-light">Light</option><option value="theme-ocean">Ocean</option><option value="theme-sunset">Sunset</option><option value="theme-emerald">Emerald</option><option value="theme-midnight">Midnight</option><option value="theme-cyber">Cyber</option><option value="theme-ruby">Ruby</option><option value="theme-latte">Latte</option></select></div>
                                 <div class="setting-group"><label for="layout-font-select"><i class="ph ph-text-aa"></i> Font</label><select id="layout-font-select"><option value="Comfortaa, sans-serif" selected>Comfortaa (Default)</option><option value="Orbitron, sans-serif">Orbitron</option><option value="Poppins, sans-serif">Poppins</option><option value="Roboto, sans-serif">Roboto</option><option value="Inter, sans-serif">Inter</option><option value="Arial, sans-serif">Arial</option><option value="Georgia, serif">Georgia</option><option value="'Times New Roman', serif">Times New Roman</option><option value="'Courier New', monospace">Courier New</option><option value="Verdana, sans-serif">Verdana</option></select></div>
                                 <div class="setting-group"><label for="layout-nav-select"><i class="ph ph-layout"></i> Navbar Position</label><select id="layout-nav-select"><option value="nav-top">Top</option><option value="nav-left" selected>Left</option><option value="nav-right">Right</option><option value="nav-bottom">Bottom</option></select></div>
@@ -351,11 +351,11 @@ async function legacy(){
                                 <div class="setting-group" style="display: none;"><label for="layout-text-select"><i class="ph ph-text-aa"></i> Nav Text Visibility</label><select id="layout-text-select"><option value="text-show">Show</option><option value="text-hide" selected>Hide</option></select></div>
                                 <div class="setting-group"><label for="layout-size-select"><i class="ph ph-bounding-box"></i> Nav Button Size</label><select id="layout-size-select"><option value="size-small" selected>Small</option><option value="size-medium">Medium</option><option value="size-large">Large</option></select></div>
                             </div>
-                            <div class="settings-panel settings-grid" id="settings-panel-search" role="tabpanel">
+                            <div class="settings-panel settings-grid" id="settings-panel-search" role="tabpanel" data-title="Search">
                                 <div class="setting-group"><label for="search-engine-select"><i class="ph ph-magnifying-glass"></i> Search Engine</label><select id="search-engine-select"><option value="duckduckgo" selected>DuckDuckGo</option><option value="google">Google</option><option value="bing">Bing</option><option value="brave">Brave</option><option value="startpage">Startpage</option><option value="ecosia">Ecosia</option><option value="yahoo">Yahoo</option></select></div>
                                 <div class="setting-group full"><label><i class="ph ph-link"></i> Example URL</label><div id="search-engine-example" class="search-engine-example"></div></div>
                             </div>
-                            <div class="settings-panel settings-grid" id="settings-panel-proxy" role="tabpanel">
+                            <div class="settings-panel settings-grid" id="settings-panel-proxy" role="tabpanel" data-title="Proxy">
                                 <div class="setting-group full"><label><i class="ph ph-plugs-connected"></i> Wisp Server</label>
                                     <p id="proxy-wisp-current" style="margin:0 0 12px;opacity:.8;font-weight:600;word-break:break-all;">Not connected yet</p>
                                     <button type="button" id="switch-wisp-btn" class="modal-primary-btn"><i class="ph ph-arrows-clockwise"></i> Switch wisp</button>
@@ -371,8 +371,8 @@ async function legacy(){
                                     <p id="coi-isolate-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
                                 </div>
                             </div>
-                            <div class="settings-panel" id="settings-panel-data" role="tabpanel">Coming Soon</div>
-                            <div class="settings-panel" id="settings-panel-about" role="tabpanel">
+                            <div class="settings-panel" id="settings-panel-data" role="tabpanel" data-title="Data">Coming Soon</div>
+                            <div class="settings-panel" id="settings-panel-about" role="tabpanel" data-title="About">
                                 <div class="setting-group"><label><i class="ph ph-compass"></i> Tutorial</label>
                                     <p style="margin:0 0 12px;opacity:.8;font-weight:600;">New here, or need a refresher? Replay the quick guide to the buttons.</p>
                                     <button type="button" id="take-tour-btn" class="modal-primary-btn" hidden><i class="ph ph-compass"></i> Take the tour</button>
