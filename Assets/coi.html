@@ -5,6 +5,7 @@
     <script id="coi-guard">if(!window.__COI){try{location.replace(new URL("../",location.href).href)}catch(e){location.replace("/")}}</script>
     <meta charset="UTF-8">
     <script>try{document.documentElement.style.background=localStorage.getItem('kstuff_bg')||'#000'}catch(e){}</script>
+    <script>try{if(localStorage.getItem('kstuff_dev_mode')==='on')document.documentElement.classList.add('sg-dev')}catch(e){}</script>
     <script>(()=>{try{if(new Date().getMonth()!==9)return;document.documentElement.classList.add('halloween-season');const c=localStorage.getItem('kstuff_hw_css_v2');if(c){const s=document.createElement('style');s.id='halloween-style';s.textContent=c;document.head.appendChild(s)}}catch(e){}})();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Study.com - Math, Language Arts, Science</title>
@@ -342,6 +343,10 @@ async function legacy(){
                                 <div class="setting-group"><label><i class="ph ph-arrows-clockwise"></i> Update</label>
                                     <p style="margin:0 0 12px;opacity:.8;font-weight:600;">Clear the page and load the latest version of Singularity. Your account and settings are kept.</p>
                                     <button type="button" id="update-site-btn" class="modal-primary-btn"><i class="ph ph-arrows-clockwise"></i> <span>Update Singularity</span></button>
+                                </div>
+                                <div class="setting-group"><label for="dev-mode-select"><i class="ph ph-terminal-window"></i> Dev Mode</label>
+                                    <select id="dev-mode-select"><option value="off" selected>Off</option><option value="on">On</option></select>
+                                    <p style="margin:12px 0 0;opacity:.8;font-weight:600;">Shows the Console and Cookies buttons in the header.</p>
                                 </div>
                             </div>
                         </div>
