@@ -217,10 +217,6 @@ html:not(.ready) body * {
 }
 
 
-.logo-shine-band {
-    transform: translateX(0) skewX(-20deg);
-    display: none;
-}
 
 .logo-core {
     transform-origin: 50px 50px;
@@ -234,14 +230,6 @@ html:not(.ready) body * {
     }
 }
 
-@keyframes logo-shine {
-    0% {
-        transform: translateX(0) skewX(-20deg);
-    }
-    55%, 100% {
-        transform: translateX(210px) skewX(-20deg);
-    }
-}
 
 @keyframes logo-glow {
     0%, 100% {
@@ -285,11 +273,7 @@ html:not(.ready) body * {
     display: inline-block;
     opacity: 0;
     transform: translateX(-60px) translateY(-10px) skewX(10deg);
-    background:
-        linear-gradient(180deg, var(--text) 0%, var(--text) 35%, color-mix(in srgb, var(--text) 60%, var(--bg)) 100%) 0 0 / 100% 100% no-repeat;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
+    color: var(--text);
     animation:
         letter-slide-in 0.55s cubic-bezier(0.16, 1, 0.3, 1) calc(var(--i) * 0.06s + 0.05s) forwards;
 }
@@ -305,14 +289,6 @@ html:not(.ready) body * {
     }
 }
 
-@keyframes letter-shine {
-    0% {
-        background-position: 100% 0, 0 0;
-    }
-    35%, 100% {
-        background-position: 0% 0, 0 0;
-    }
-}
 
 .library-home-quote {
     font-size: 0.92rem;
@@ -496,6 +472,7 @@ html:not(.ready) body * {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    filter: grayscale(1);
     opacity: 0;
     transition: opacity 0.35s ease;
 }
@@ -617,6 +594,7 @@ html:not(.ready) body * {
     height: 32px;
     object-fit: contain;
     border-radius: 6px;
+    filter: grayscale(1);
 }
 
 .flashcard-card:hover .flashcard-icon {
@@ -986,7 +964,6 @@ html:not(.ready) body * {
         opacity: 1;
         transform: none;
     }
-    .logo-shine-band,
     .logo-core,
     .library-search-container::before {
         animation: none;
@@ -1145,7 +1122,7 @@ button:not(:disabled):hover svg,button:not(:disabled):focus-visible svg,.library
 button.fav-tile:not(:disabled):hover,button.fav-tile:not(:disabled):focus-visible{background:transparent!important;background-color:transparent!important;color:var(--text)!important;border-color:transparent!important}
 button.fav-tile:not(:disabled):hover span,button.fav-tile:not(:disabled):focus-visible span{color:var(--text)!important}
 .fav-tile:hover .fav-art,.fav-tile:focus-visible .fav-art,.flashcard-card:hover .flashcard-icon{background-color:var(--text)!important;border-color:var(--text)!important;color:var(--bg)!important;box-shadow:none!important}
-.fav-tile:hover .fav-art img,.fav-tile:focus-visible .fav-art img,.flashcard-card:hover .flashcard-icon img{filter:invert(1)}
+.fav-tile:hover .fav-art img,.fav-tile:focus-visible .fav-art img,.flashcard-card:hover .flashcard-icon img{filter:grayscale(1) invert(1)}
 button.add-flashcard-btn:not(:disabled):hover,button.add-flashcard-btn:not(:disabled):focus-visible{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border:1.5px solid var(--text)!important;box-shadow:none!important}
 button.add-flashcard-btn:not(:disabled):hover span{color:var(--bg)!important}
 /* search bar: soft card look matching the shortcut buttons */
@@ -1179,23 +1156,8 @@ button.add-flashcard-btn:not(:disabled):hover span{color:var(--bg)!important}
             <div class="library-brand">
                 <div class="logo-wrap" id="logo-wrap">
                     <svg class="singularity-logo" viewBox="24 24 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <defs>
-                            <linearGradient id="sing-shine-grad" x1="0" y1="0" x2="1" y2="0">
-                                <stop offset="0" stop-color="#fff" stop-opacity="0"/>
-                                <stop offset="0.5" stop-color="#fff" stop-opacity="1"/>
-                                <stop offset="1" stop-color="#fff" stop-opacity="0"/>
-                            </linearGradient>
-                            <mask id="sing-mask" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
-                                <g class="logo-core">
-                                    <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z" fill="#fff"/>
-                                </g>
-                            </mask>
-                        </defs>
                         <g class="logo-core">
                             <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z" fill="currentColor"/>
-                        </g>
-                        <g mask="url(#sing-mask)">
-                            <rect class="logo-shine-band" x="-80" y="-10" width="34" height="120" fill="url(#sing-shine-grad)"/>
                         </g>
                     </svg>
                 </div>
