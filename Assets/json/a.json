@@ -33,10 +33,6 @@
     "image": "https://play-lh.googleusercontent.com/pdTFc9Tc8qMXBbb0BpL7gwTK0-7te3YvKxPtuYmTfEhx8GgGF7U_gXZa1p9NGvCKpu0"
   },
   {
-    "title": "Kloud",
-    "url": "https://cdn.jsdelivr.net/gh/L0tzie-Bug/Spectra-Cloud@main/kloud.html"
-  },
-  {
     "title": "Spectra V2",
     "url": "https://cdn.jsdelivr.net/gh/lotsacookie/Spectra@main/shell.html"
   },
@@ -46,8 +42,18 @@
     "image": "https://play-lh.googleusercontent.com/0XIdUexS8PBUJCrxOzrsNus5vRC1I72JmeKUivvUvJBqJo1P3MmK7QXRA6cPNUSoBlXoDNWNxUkEjEMLdhgc4Y8"
   },
   {
-    "title": "Iframe",
-    "url": "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@main/Assets/embed/iframe.html",
+    "title": "Discord",
+    "url": "${static}https://discord.com/app",
+    "image": ""
+  },
+  {
+    "title": "Spotify (Fixing)",
+    "url": "${static}https://open.spotify.com",
+    "image": ""
+  },
+  {
+    "title": "Pinterest",
+    "url": "${static}https://pinterest.com",
     "image": ""
   },
   {
