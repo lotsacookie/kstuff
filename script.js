@@ -188,8 +188,26 @@ function genieFrames(W, H, ox, oy, count = 44, rows = 32) {
         let frames = genieFrames(W, H, ox, oy);
         if (!opening) frames = frames.reverse().map((f, i, a) => ({ ...f, offset: i / (a.length - 1) }));
         box.style.transformOrigin = '0 0';
-        box.animate(frames, { duration: opening ? 720 : 440, easing: 'linear', fill: opening ? 'none' : 'forwards' });
+        box.style.visibility = '';
+        const anim = box.animate(frames, { duration: opening ? 720 : 440, easing: 'linear', fill: 'none' });
+        if (!opening) {
+            // hide the box once the close animation ends (no lingering fill that could block later opens)
+            anim.onfinish = () => { if (!overlay.classList.contains('active')) box.style.visibility = 'hidden'; };
+        }
     };
+
+    // After sleep/wake or tab restore, make sure open modals aren't stuck mid-animation or clipped
+    const recover = () => document.querySelectorAll('.modal-overlay').forEach(o => {
+        const box = o.querySelector('.modal-content');
+        if (!box) return;
+        if (o.classList.contains('active')) {
+            box.getAnimations().forEach(a => a.cancel());
+            box.style.visibility = '';
+        }
+    });
+    document.addEventListener('visibilitychange', () => { if (!document.hidden) recover(); });
+    window.addEventListener('pageshow', recover);
+    window.addEventListener('focus', recover);
 
     new MutationObserver(list => {
         for (const m of list) {
