@@ -429,11 +429,13 @@ export function init(K) {
   K.proxyHold = false;
   K.holdForProxy = () => {
     K.proxyHold = true;
+    K.loader?.classList.add('proxy-loading');
     clearTimeout(K.proxyTimer);
     K.proxyTimer = setTimeout(() => K.releaseProxy(), 30000);
   };
   K.releaseProxy = () => {
     K.proxyHold = false;
+    K.loader?.classList.remove('proxy-loading');
     clearTimeout(K.proxyTimer);
     K.toggleLoader(false);
   };
@@ -449,6 +451,7 @@ export function init(K) {
     if (!show && K.proxyHold) {
       if (document.querySelector('.page.active')?.id === 'mathworksheets') return;
       K.proxyHold = false;
+      K.loader.classList.remove('proxy-loading');
       clearTimeout(K.proxyTimer);
     }
     if (show) {

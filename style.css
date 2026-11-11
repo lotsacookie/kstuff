@@ -3428,3 +3428,7 @@ html:not(.sg-dev) .sg-console,
 html:not(.sg-dev) .sg-cookies {
     display: none !important;
 }
+
+.section-loader.proxy-loading > :not(.spinner) {
+    display: none !important;
+}
