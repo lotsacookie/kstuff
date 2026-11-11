@@ -320,15 +320,15 @@ async function legacy(){
                                 <div class="setting-group full"><label><i class="ph ph-plugs-connected"></i> Wisp Server</label>
                                     <p id="proxy-wisp-current" style="margin:0 0 12px;opacity:.8;font-weight:600;word-break:break-all;">Not connected yet</p>
                                     <button type="button" id="switch-wisp-btn" class="modal-primary-btn"><i class="ph ph-arrows-clockwise"></i> Switch wisp</button>
-                                    <p id="proxy-wisp-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
+                                    <p id="proxy-wisp-status" style="margin:12px 0 0;opacity:.7;font-weight:600; display: none;"></p>
                                 </div>
                                 <div class="setting-group full"><label for="proxy-transport-select"><i class="ph ph-swap"></i> Transport</label>
                                     <select id="proxy-transport-select"><option value="libcurl">libcurl</option><option value="epoxy" selected>epoxy</option></select>
-                                    <p id="proxy-transport-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
+                                    <p id="proxy-transport-status" style="margin:12px 0 0;opacity:.7;font-weight:600; display: none;"></p>
                                 </div>
                                 <div class="setting-group full"><label for="coi-isolate-select"><i class="ph ph-shield-check"></i> Sandbox / CrossOrigin isolate</label>
                                     <select id="coi-isolate-select"><option value="off" selected>Off</option><option value="on">On</option></select>
-                                    <p style="margin:12px 0 0;opacity:.8;font-weight:600;">Clears the whole page and shows a single sandboxed, cross-origin frame. Its page is fetched through the proxy (sandstone/Singuloxy), not embedded by URL, and it talks to this page over postMessage while the proxy, wisp and Singuloxy keep running in the background. Add <b>?coi=off</b> to the URL to turn it off if you get stuck.</p>
+                                    <p style="display: none; margin:12px 0 0;opacity:.8;font-weight:600;">Clears the whole page and shows a single sandboxed, cross-origin frame. Its page is fetched through the proxy (sandstone/Singuloxy), not embedded by URL, and it talks to this page over postMessage while the proxy, wisp and Singuloxy keep running in the background. Add <b>?coi=off</b> to the URL to turn it off if you get stuck.</p>
                                     <p id="coi-isolate-status" style="margin:12px 0 0;opacity:.7;font-weight:600;"></p>
                                 </div>
                             </div>
