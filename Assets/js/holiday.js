@@ -88,7 +88,7 @@
     }
 
     function decorate() {
-        ['#nav-logo', '#loading-screen .ld-logo', '#logo-wrap'].forEach(function (sel) {
+        ['#loading-screen .ld-logo', '#logo-wrap'].forEach(function (sel) {
             addPumpkin(document.querySelector(sel));
         });
     }

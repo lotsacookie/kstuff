@@ -165,7 +165,7 @@ export function init(K) {
       const w = homeWin();
       if (!w) return;
       const items = api.list().map(e => ({ page: e.p, title: e.t, image: e.i || '', category: e.c || '' }));
-      const hidden = !!(K.navExpanded && K.navExpanded());
+      const hidden = false;
       try { w.postMessage({ type: 'kstuff-favorites', items, hidden }, '*'); } catch {}
     });
   }

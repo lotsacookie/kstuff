@@ -111,90 +111,6 @@ export function init(K) {
     f.addEventListener('mouseleave', () => setCursorSuppressed(false));
   });
 
-  let indicator = K.navBar?.querySelector('.nav-indicator') || (K.navBar && (K.navBar.prepend(K.el('div', { className: 'nav-indicator' })), K.navBar.querySelector('.nav-indicator')));
-  const updateIndicator = btn => {
-    if (btn && btn.dataset.target === 'cloud') btn = K.findNavBtn('readingcorner') || btn;
-    if (!btn || !indicator || !K.navBar) return;
-    const isVert = K.body.className.includes('nav-left') || K.body.className.includes('nav-right');
-    const nR = K.navBar.getBoundingClientRect(), bR = btn.getBoundingClientRect();
-    indicator.style.cssText = `transition:transform .22s ease,width .22s ease,height .22s ease;` +
-      (isVert ? `width:3px;height:${bR.height}px;transform:translateY(${bR.top - nR.top + K.navBar.scrollTop}px);` : `width:${bR.width}px;height:3px;transform:translateX(${bR.left - nR.left + K.navBar.scrollLeft}px);`);
-  };
-  K.updateIndicator = updateIndicator;
-
-  let indicatorRaf = 0;
-  const scheduleIndicator = () => {
-    if (indicatorRaf) return;
-    indicatorRaf = requestAnimationFrame(() => {
-      indicatorRaf = 0;
-      updateIndicator(document.querySelector('.nav-btn.active'));
-    });
-  };
-
-  if (K.navBar) {
-    new MutationObserver(mutations => {
-      for (const m of mutations) {
-        if (m.target.classList?.contains('nav-btn')) { scheduleIndicator(); return; }
-      }
-    }).observe(K.navBar, { subtree: true, attributes: true, attributeFilter: ['class'] });
-  }
-  if (K.navBar && window.ResizeObserver) {
-    new ResizeObserver(scheduleIndicator).observe(K.navBar);
-  } else {
-    let rs;
-    window.addEventListener('resize', () => { clearTimeout(rs); rs = setTimeout(scheduleIndicator, 120); }, { passive: true });
-  }
-
-  const navLogo = K.$('nav-logo');
-  let lastLogoHome = null;
-  const isHomeView = () => {
-    const value = (K.tbInput?.value || '').trim().toLowerCase().replace(/\/+$/, '');
-    return value === 'singularity://home' && document.querySelector('.page.active')?.id === 'mathworksheets';
-  };
-  const updateLogoState = () => {
-    if (!navLogo) return;
-    const home = isHomeView();
-    if (home === lastLogoHome) return;
-    lastLogoHome = home;
-    navLogo.classList.toggle('is-home', home);
-  };
-  K.updateLogoState = updateLogoState;
-
-  if (typeof K.setAddress === 'function') {
-    const baseSetAddress = K.setAddress;
-    K.setAddress = function (...args) {
-      const result = baseSetAddress.apply(this, args);
-      updateLogoState();
-      return result;
-    };
-  }
-  K.tbInput?.addEventListener('input', updateLogoState);
-
-  if (navLogo) {
-    const burstLogo = () => {
-      navLogo.classList.remove('burst');
-      void navLogo.offsetWidth;
-      navLogo.classList.add('burst');
-    };
-    const activateLogo = () => {
-      tooltipEl.style.display = 'none';
-      burstLogo();
-      K.findNavBtn('mathworksheets')?.click();
-    };
-    navLogo.addEventListener('click', activateLogo);
-    navLogo.addEventListener('keydown', e => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        activateLogo();
-      }
-    });
-    navLogo.addEventListener('animationend', e => {
-      if (e.target === navLogo && e.animationName === 'nl-click') navLogo.classList.remove('burst');
-    });
-    setInterval(() => { if (!document.hidden) updateLogoState(); }, 4000);
-    updateLogoState();
-  }
-
   const loadContent = async (tId, forceReload = false, customSrc = null) => {
     K.firstNavStarted = true;
     K.isNavigating = true;
@@ -250,7 +166,6 @@ export function init(K) {
       targetPage.style.display = 'block';
       targetPage.style.opacity = '1';
       targetPage.classList.add('active');
-      K.updateLogoState?.();
 
       if (K.grids[tId]) {
         K.showResourceGrid(tId, !K.resourceOpenFor[tId]);
@@ -278,168 +193,63 @@ export function init(K) {
   };
   K.loadContent = loadContent;
 
-  const navLabels = new WeakMap();
+  const NAV_PAGES = new Set(['mathworksheets', 'readingcorner', 'sciencequiz', 'gradebook', 'civics', 'lessonplanner', 'cloud', 'vms', 'studyhall', 'changelog', 'homeworkhelper', 'profile']);
+  K.navActive = 'mathworksheets';
 
-  K.navBtns.forEach(btn => {
-    const labelDivs = btn.querySelectorAll('.label-data div');
-
-    const label = labelDivs.length
-      ? Array.from(labelDivs)
-          .map(item => item.textContent)
-          .reverse()
-          .join('')
-      : (btn.title || btn.dataset.target);
-
-    navLabels.set(btn, label);
-    const labelEl = K.el('span', { className: 'nav-label' });
-    labelEl.setAttribute('data-nomask', '');
-    Array.from(label).reverse().forEach(ch => labelEl.appendChild(K.el('div', { textContent: ch })));
-    btn.appendChild(labelEl);
-
-    btn.addEventListener('click', event => {
-      event.preventDefault();
-
-      tooltipEl.style.display = 'none';
-
-      const targetId = btn.dataset.target;
-
-      // Cloud is reachable only through K.openCloudGame (a Cloud game on the Games page); the address bar, "nav:" messages and restored tabs can't open it.
-      if (targetId === 'cloud' && !K.cloudNavAllowed) return;
-
-      if (targetId === 'profile') {
-        if (!K.currentUser) {
-          K.authMod?.classList.add('active');
-        } else {
-          K.updateAuthUI();
-          K.profMod?.classList.add('active');
-        }
-
-        return;
-      }
-
-      if (targetId === 'changelog') {
-        K.openChangelog?.();
-        return;
-      }
-
-      if (targetId === 'homeworkhelper') {
-        K.$('homeworkhelper-modal')?.classList.add('active');
-        return;
-      }
-
-      if (targetId === 'studyhall' && !K.currentUser) {
-        K.authMod?.classList.add('active');
-        return;
-      }
-
-      K.navBtns.forEach(other => {
-        if (!['homeworkhelper', 'profile', 'changelog'].includes(other.dataset.target)) {
-          other.classList.remove('active');
-        }
-      });
-
-      btn.classList.add('active');
-      updateIndicator(btn);
-      K.toggleLoader(true);
-
-      loadContent(targetId).then(() => {
-        const pendingTitle = K.pendingResourceOpen[targetId];
-        if (pendingTitle) {
-          K.pendingResourceOpen[targetId] = null;
-          const grid = K.grids[targetId];
-          if (grid) {
-            const match = (grid.data || []).find(i => K.slugifyTitle(i.title) === pendingTitle)
-              || (grid.data || []).find(i => i.title === pendingTitle)
-              || (grid.data || []).find(i => (i.title || '').toLowerCase() === pendingTitle.toLowerCase());
-            if (match) K.openResource(match, { pageId: targetId, isHistory: true });
-          }
-        }
-      }).catch(error => {
-        console.error(`Navigation to ${targetId} failed:`, error);
-        K.toggleLoader(false);
-      });
-    });
-  });
-
-  const wideMq = window.matchMedia ? window.matchMedia('(min-width: 769px)') : null;
-  const isExpanded = () => K.body.classList.contains('expand-on') && (!wideMq || wideMq.matches);
-  K.navExpanded = isExpanded;
-
-  const NAV_FAV_MAX = 6;
-  const favBox = K.el('div', { className: 'nav-favs', hidden: true });
-  const favList = K.el('div', { className: 'nav-favs-list' });
-  favBox.append(
-    K.el('div', { className: 'nav-favs-head', textContent: 'Bookmarks' }),
-    favList,
-    K.el('p', { className: 'nav-favs-empty', textContent: 'Star a game or app to pin it here.' })
-  );
-  const navCard = K.$('nav-card');
-  if (K.navBar) K.navBar.insertBefore(favBox, navCard && navCard.parentNode === K.navBar ? navCard : null);
-
-  const favTile = e => {
-    const b = K.el('button', { type: 'button', className: 'nav-fav' });
-    b.dataset.page = e.p;
-    b.dataset.title = e.t;
-    b.setAttribute('aria-label', e.t);
-    const art = K.el('span', { className: 'nav-fav-art' });
-    const letter = (e.t.match(/[\p{L}\p{N}]/u) || ['?'])[0].toUpperCase();
-    if (e.i) {
-      const img = K.el('img', { alt: '', decoding: 'async', loading: 'lazy' });
-      img.onerror = () => { img.remove(); art.textContent = letter; };
-      img.src = e.i;
-      art.appendChild(img);
-    } else {
-      art.textContent = letter;
-    }
-    b.append(art, K.el('span', { className: 'nav-fav-name', textContent: e.t }));
-    return b;
-  };
-
-  let favKey = null;
-  const renderNavFavs = () => {
-    const on = isExpanded();
-    favBox.hidden = !on;
-    const list = on && K.favorites ? K.favorites.list().slice(0, NAV_FAV_MAX) : [];
-    const key = list.map(e => e.p + '\u0000' + e.t + '\u0000' + (e.i || '')).join('\n');
-    if (key === favKey) return;
-    favKey = key;
-    favList.textContent = '';
-    const frag = document.createDocumentFragment();
-    list.forEach(e => frag.appendChild(favTile(e)));
-    favList.appendChild(frag);
-  };
-
-  favList.addEventListener('click', event => {
-    const b = event.target.closest('.nav-fav');
-    if (!b) return;
+  const navTo = targetId => {
+    if (!NAV_PAGES.has(targetId)) return;
     tooltipEl.style.display = 'none';
-    const page = b.dataset.page;
-    if (!K.grids?.[page]) return;
-    K.loadBrowserUrl?.(K.pageAddress(page) + '/' + K.slugifyTitle(b.dataset.title));
-  });
 
-  let lastExpanded = null;
-  const applyExpand = () => {
-    const on = isExpanded();
-    if (on !== lastExpanded) {
-      lastExpanded = on;
-      K.navBtns.forEach(b => {
-        if (on) b.removeAttribute('data-tooltip');
-        else if (navLabels.get(b)) b.dataset.tooltip = navLabels.get(b);
-      });
-      tooltipEl.style.display = 'none';
-      lastTarget = null;
-      lastTipEl = null;
-      lastTipText = null;
-      K.favorites?.refreshHome?.();
+    // Cloud is reachable only through K.openCloudGame (a Cloud game on the Games page); the address bar, "nav:" messages and restored tabs can't open it.
+    if (targetId === 'cloud' && !K.cloudNavAllowed) return;
+
+    if (targetId === 'profile') {
+      if (!K.currentUser) {
+        K.authMod?.classList.add('active');
+      } else {
+        K.updateAuthUI();
+        K.profMod?.classList.add('active');
+      }
+
+      return;
     }
-    renderNavFavs();
-    scheduleIndicator();
+
+    if (targetId === 'changelog') {
+      K.openChangelog?.();
+      return;
+    }
+
+    if (targetId === 'homeworkhelper') {
+      K.$('homeworkhelper-modal')?.classList.add('active');
+      return;
+    }
+
+    if (targetId === 'studyhall' && !K.currentUser) {
+      K.authMod?.classList.add('active');
+      return;
+    }
+
+    K.navActive = targetId;
+    K.toggleLoader(true);
+
+    loadContent(targetId).then(() => {
+      const pendingTitle = K.pendingResourceOpen[targetId];
+      if (pendingTitle) {
+        K.pendingResourceOpen[targetId] = null;
+        const grid = K.grids[targetId];
+        if (grid) {
+          const match = (grid.data || []).find(i => K.slugifyTitle(i.title) === pendingTitle)
+            || (grid.data || []).find(i => i.title === pendingTitle)
+            || (grid.data || []).find(i => (i.title || '').toLowerCase() === pendingTitle.toLowerCase());
+          if (match) K.openResource(match, { pageId: targetId, isHistory: true });
+        }
+      }
+    }).catch(error => {
+      console.error(`Navigation to ${targetId} failed:`, error);
+      K.toggleLoader(false);
+    });
   };
-  new MutationObserver(applyExpand).observe(K.body, { attributes: true, attributeFilter: ['class'] });
-  wideMq?.addEventListener?.('change', applyExpand);
-  K.favorites?.onChange(renderNavFavs);
-  applyExpand();
+  K.navTo = navTo;
 
   window.addEventListener('message', event => {
     if (K.isActiveSource && !K.isActiveSource(event.source)) return;
@@ -447,8 +257,7 @@ export function init(K) {
       const pageName = event.data.replace('nav: ', '').trim().toLowerCase();
       const targetMap = { 'home': 'mathworksheets', 'games': 'readingcorner', 'apps': 'sciencequiz', 'music': 'gradebook', 'tv': 'civics', 'ai': 'lessonplanner', 'vms': 'vms', 'cloud': 'cloud', 'chat': 'studyhall' };
       const targetId = targetMap[pageName] || pageName;
-      const targetBtn = K.findNavBtn(targetId);
-      if (targetBtn) targetBtn.click();
+      navTo(targetId);
     }
   });
 
@@ -469,7 +278,7 @@ export function init(K) {
       const pageSeg = (slashIdx === -1 ? rest : rest.slice(0, slashIdx)).toLowerCase();
       const titleSeg = slashIdx === -1 ? '' : K.slugifyTitle(rest.slice(slashIdx + 1));
       const targetId = K.reverseUrlMap[pageSeg] || pageSeg;
-      const btn = K.findNavBtn(targetId);
+      const known = NAV_PAGES.has(targetId);
 
       if (!isHistory && K.history[K.historyIndex] !== targetUrl) {
         K.history = K.history.slice(0, K.historyIndex + 1);
@@ -484,12 +293,12 @@ export function init(K) {
         if (K.grids[targetId] && K.resourceOpenFor[targetId] && document.querySelector('.page.active')?.id === targetId) {
           K.closeResourceInline(targetId);
         }
-        if (btn) btn.click();
+        if (known) navTo(targetId);
         return;
       }
 
       K.pendingResourceOpen[targetId] = titleSeg;
-      if (btn) btn.click();
+      if (known) navTo(targetId);
       return;
     }
 
@@ -683,18 +492,8 @@ export function init(K) {
       let activePage = document.querySelector('.page.active');
 
       if (!activePage) {
-        const defaultHomeButton = K.findNavBtn('mathworksheets');
-
-        if (defaultHomeButton) {
-          K.navBtns.forEach(button => {
-            button.classList.remove('active');
-          });
-
-          defaultHomeButton.classList.add('active');
-          updateIndicator(defaultHomeButton);
-
-          activePage = { id: 'mathworksheets' };
-        }
+        K.navActive = 'mathworksheets';
+        activePage = { id: 'mathworksheets' };
       }
 
       if (activePage) {

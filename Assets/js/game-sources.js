@@ -204,7 +204,7 @@ export function init(K) {
     const w = cloudWin();
     if (w && pendingCloud) { try { w.postMessage({ type: 'singularity:launch', gameId: pendingCloud.id, name: pendingCloud.name }, '*'); } catch {} }
   };
-  const clickNav = target => document.querySelector(`.nav-btn[data-target="${target}"]`)?.click();
+  const clickNav = target => K.navTo?.(target);
   const stopCloudRetry = () => { clearInterval(cloudRetry); cloudRetry = null; };
   const startCloudRetry = () => {
     stopCloudRetry();

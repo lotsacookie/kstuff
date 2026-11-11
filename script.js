@@ -96,9 +96,6 @@ function initApp() {
       loadModule('header-overflow')
         .then(mod => mod.init(K))
         .catch(err => console.warn('header overflow unavailable', err));
-      loadModule('nav-overflow')
-        .then(mod => mod.init(K))
-        .catch(err => console.warn('nav overflow unavailable', err));
       loadModule('cookie-viewer')
         .then(mod => mod.init(K))
         .catch(err => console.warn('cookie viewer unavailable', err));
@@ -171,7 +168,7 @@ function genieFrames(W, H, ox, oy, count = 44, rows = 32) {
     if (typeof document === 'undefined') return;
     let last = { x: null, y: null, t: 0 };
     document.addEventListener('pointerdown', e => {
-        const el = e.target.closest && e.target.closest('button, a, .round-btn, .footer-item, .nav-btn, [onclick]');
+        const el = e.target.closest && e.target.closest('button, a, .round-btn, .footer-item, [onclick]');
         const r = el && el.getBoundingClientRect();
         last = r ? { x: r.left + r.width / 2, y: r.top + r.height / 2, t: Date.now() } : { x: e.clientX, y: e.clientY, t: Date.now() };
     }, true);

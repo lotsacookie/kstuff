@@ -33,10 +33,9 @@ export function init(K) {
     while (K.loader && !K.loader.classList.contains('hidden') && Date.now() - t0 < 3500) await sleep(100);
   };
   const goPage = async id => {
-    const btn = K.findNavBtn && K.findNavBtn(id);
-    if (!btn || btn.classList.contains('active')) return;
+    if (!K.navTo || K.navActive === id) return;
     navigated = true;
-    btn.click();
+    K.navTo(id);
     await loaderDone();
   };
 
@@ -44,8 +43,7 @@ export function init(K) {
   const settingsOpen = () => !!(settingsModal() && settingsModal().classList.contains('active'));
   const openSettings = async () => {
     if (settingsOpen()) return;
-    const btn = (K.findNavBtn && K.findNavBtn('homeworkhelper')) || $q(footerBtn('homeworkhelper'));
-    btn && btn.click();
+    K.navTo && K.navTo('homeworkhelper');
     await sleep(850);
   };
   const closeSettings = async () => {
@@ -151,7 +149,7 @@ export function init(K) {
     { sel: tab('about'), always: true, settings: true, tab: 'about', anchor: SET_MODAL, side: 'bottom', force: true, title: 'About', text: 'Version info, a button to load the latest version, and you can replay this tour from here any time.' },
     { sel: footerBtn('changelog'), title: 'What\u2019s new', text: 'The changelog shows recent updates and new features.' },
     {
-      sel: () => $q(footerBtn('profile')) || $q('.nav-btn[data-target="profile"]'),
+      sel: footerBtn('profile'),
       title: 'Make it yours',
       text: 'Create a free account to save your settings, get a profile and unlock Chat. You can also do it later from this button.',
       last: true

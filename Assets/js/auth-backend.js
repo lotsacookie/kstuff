@@ -37,16 +37,11 @@ export function init(K) {
   K.setAuthBusy = setAuthBusy;
 
   const updateAuthUI = () => {
-    const btn = K.$('profile-nav-btn'); if (!btn) return;
     const pic = K.currentUser?.profilePicture || K.DEFAULT_PIC;
     if (K.currentUser) {
       if (K.$('profile-modal-pic')) K.$('profile-modal-pic').src = pic;
       if (K.$('profile-modal-username')) K.$('profile-modal-username').textContent = K.currentUser.username || "User";
       if (K.$('profile-modal-desc')) K.$('profile-modal-desc').textContent = K.currentUser.description || "No bio.";
-      const newI = K.el('i', { className: 'ph profile-avatar-container', innerHTML: `<img src="${pic}" onerror="this.src='${K.DEFAULT_PIC}'">` });
-      btn.querySelector('i')?.replaceWith(newI);
-    } else {
-      btn.querySelector('i')?.replaceWith(K.el('i', { className: 'ph ph-user', id: 'profile-nav-icon' }));
     }
   };
   K.updateAuthUI = updateAuthUI;

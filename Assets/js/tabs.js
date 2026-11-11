@@ -140,8 +140,7 @@ export function init(K) {
   };
 
   const currentNavTarget = () => {
-    const btn = Array.from(K.navBtns).find(b => b.classList.contains('active') && !['homeworkhelper', 'profile', 'changelog'].includes(b.dataset.target));
-    return btn ? btn.dataset.target : 'mathworksheets';
+    return K.navActive || 'mathworksheets';
   };
 
   const saveOut = tab => {
@@ -185,7 +184,7 @@ export function init(K) {
     K.pendingResourceOpen = {};
     deactivateSections();
     Object.keys(K.grids).forEach(k => { K.clearGridPool(k); K.showResourceGrid?.(k, true); });
-    K.navBtns.forEach(b => { if (!['homeworkhelper', 'profile', 'changelog'].includes(b.dataset.target)) b.classList.remove('active'); });
+    K.navActive = null;
     K.updateBrowserNav?.();
     K.loadBrowserUrl('singularity://home', true);
   };
@@ -206,12 +205,9 @@ export function init(K) {
     }
     tab.frames.forEach(f => { f.style.display = f.dataset.sgDisp || ''; });
     K.setAddress(sn.address);
-    K.navBtns.forEach(b => { if (!['homeworkhelper', 'profile', 'changelog'].includes(b.dataset.target)) b.classList.toggle('active', b.dataset.target === sn.nav); });
-    const btn = K.findNavBtn(sn.nav);
-    if (btn) K.updateIndicator(btn);
+    K.navActive = sn.nav;
     Object.keys(K.grids).forEach(k => { if (k !== sn.page) K.clearGridPool(k); });
     K.updateBrowserNav?.();
-    K.updateLogoState?.();
 
     if (K.grids[sn.page]) {
       K.buildPool(sn.page);

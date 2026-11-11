@@ -94,7 +94,7 @@ export function init(K) {
   style.id = 'gp-nav-style';
   style.textContent = `
 body.gp-active .gp-focus{outline:2px solid var(--text-color,#fff);outline-offset:3px;box-shadow:0 0 0 6px color-mix(in srgb,var(--text-color,#fff) 18%,transparent),0 0 24px color-mix(in srgb,var(--text-color,#fff) 38%,transparent);scale:1.03;transition:box-shadow .15s ease,scale .15s ease,outline-color .15s ease}
-body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-active .study-nav-btn.gp-focus,body.gp-active .page-btn.gp-focus,body.gp-active .custom-select-option.gp-focus,body.gp-active .modal-actions button.gp-focus{background-color:color-mix(in srgb,var(--text-color,#fff) 16%,transparent)}
+body.gp-active .study-nav-btn.gp-focus,body.gp-active .page-btn.gp-focus,body.gp-active .custom-select-option.gp-focus,body.gp-active .modal-actions button.gp-focus{background-color:color-mix(in srgb,var(--text-color,#fff) 16%,transparent)}
 #gp-toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%) translateY(8px);z-index:2147483000;padding:.55rem 1.1rem;border-radius:999px;background:var(--card-bg,#111);color:var(--text-color,#fff);border:1px solid color-mix(in srgb,var(--text-color,#fff) 22%,transparent);box-shadow:0 12px 32px rgba(0,0,0,.35);font-size:.85rem;font-family:var(--font,inherit);opacity:0;pointer-events:none;transition:opacity .2s ease,transform .2s ease;white-space:nowrap;max-width:92vw;overflow:hidden;text-overflow:ellipsis}
 #gp-toast.on{opacity:1;transform:translateX(-50%) translateY(0)}`;
   document.head.appendChild(style);
@@ -114,7 +114,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
   };
 
   const CONTENT_SEL = '.round-btn, button, input:not([type="hidden"]), select, textarea, a[href], .custom-select-trigger, [tabindex]:not([tabindex="-1"])';
-  const ZONES = ['nav', 'header', 'content'];
+  const ZONES = ['header', 'content'];
 
   let raf = 0;
   let cur = null;
@@ -215,7 +215,6 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
   };
 
   const zoneItems = name => {
-    if (name === 'nav') return $$('#teachertouchbar .nav-btn, #teachertouchbar .nav-os-btn').filter(visible);
     if (name === 'header') return $$('.learning-header button, .learning-header input').filter(visible);
     const page = $('.page.active');
     if (!page) return [];
@@ -232,7 +231,6 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
 
   const zoneOf = el => {
     if (!el) return 'content';
-    if (el.closest('#teachertouchbar')) return 'nav';
     if (el.closest('.learning-header')) return 'header';
     return 'content';
   };
@@ -250,7 +248,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
   const setFocus = el => {
     clearMarks(el);
     const a = document.activeElement;
-    if (el && a && a !== el && a !== document.body && a.matches && a.matches('button, .nav-btn, .nav-os-btn')) a.blur();
+    if (el && a && a !== el && a !== document.body && a.matches && a.matches('button')) a.blur();
     cur = el || null;
     if (cur) {
       if (!topLayer()) curZone = zoneOf(cur);
@@ -274,7 +272,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
       setFocus(sel || items[0] || null);
       return;
     }
-    for (const name of ['content', 'nav', 'header']) {
+    for (const name of ['content', 'header']) {
       const items = zoneItems(name);
       if (items.length) { setFocus(preferred(items, name)); return; }
     }
@@ -381,18 +379,16 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
   };
 
   const PAGE_ORDER = ['mathworksheets', 'readingcorner', 'sciencequiz', 'gradebook', 'civics', 'lessonplanner', 'vms', 'studyhall'];
-  const navBtnFor = t => $(`#teachertouchbar > .nav-btn[data-target="${t}"], .nav-menu .nav-btn[data-target="${t}"]`);
   const switchPage = step => {
     const order = PAGE_ORDER.filter(t => {
       if (t === 'studyhall' && !K.currentUser) return false;
-      const b = navBtnFor(t);
-      return !!b && !b.hidden && b.getAttribute('aria-hidden') !== 'true';
+      return true;
     });
-    const activeTarget = order.find(t => navBtnFor(t).classList.contains('active'));
+    const activeTarget = order.find(t => t === K.navActive);
     const base = activeTarget || $('.page.active')?.id;
     const target = nextTarget(order, base, step);
     if (!target) return;
-    navBtnFor(target).click();
+    K.navTo(target);
     afterPageChange();
   };
 
@@ -440,7 +436,7 @@ body.gp-active .nav-btn.gp-focus,body.gp-active .nav-os-btn.gp-focus,body.gp-act
   const toggleSettings = () => {
     const m = topModal();
     if (m && m.id === 'homeworkhelper-modal') { closeLayer({ type: 'modal', el: m }); return; }
-    $('#teachertouchbar .nav-btn[data-target="homeworkhelper"]')?.click();
+    K.navTo('homeworkhelper');
   };
 
   const syncLayers = () => {
