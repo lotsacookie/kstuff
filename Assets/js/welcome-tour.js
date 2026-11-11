@@ -5,25 +5,153 @@ export function init(K) {
   const read = () => { try { return localStorage.getItem(SEEN_KEY); } catch { return '1'; } };
   const markSeen = () => { try { localStorage.setItem(SEEN_KEY, '1'); } catch {} };
 
-  const nav = t => `.nav-btn[data-target="${t}"]`;
+  const $q = sel => document.querySelector(sel);
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  const footerBtn = t => `.footer-btn[data-go="${t}"]`;
+  const portal = () => $q('#classroom-portal-container');
+  const SET_MODAL = '#homeworkhelper-modal .modal-content';
+  const tab = id => `.settings-tab[data-panel="settings-panel-${id}"]`;
+
+  // Bounding box in top-level viewport coordinates (works for elements inside iframes)
+  const rect = el => {
+    const r = el.getBoundingClientRect();
+    let x = r.left, y = r.top, w = el.ownerDocument && el.ownerDocument.defaultView;
+    try {
+      while (w && w.frameElement) {
+        const f = w.frameElement.getBoundingClientRect();
+        x += f.left; y += f.top; w = w.parent;
+      }
+    } catch {}
+    return { left: x, top: y, width: r.width, height: r.height };
+  };
+
+  let busy = false, renderTok = 0, shown = 0, navigated = false;
+
+  const loaderDone = async () => {
+    await sleep(250);
+    const t0 = Date.now();
+    while (K.loader && !K.loader.classList.contains('hidden') && Date.now() - t0 < 3500) await sleep(100);
+  };
+  const goPage = async id => {
+    const btn = K.findNavBtn && K.findNavBtn(id);
+    if (!btn || btn.classList.contains('active')) return;
+    navigated = true;
+    btn.click();
+    await loaderDone();
+  };
+
+  const settingsModal = () => document.getElementById('homeworkhelper-modal');
+  const settingsOpen = () => !!(settingsModal() && settingsModal().classList.contains('active'));
+  const openSettings = async () => {
+    if (settingsOpen()) return;
+    const btn = (K.findNavBtn && K.findNavBtn('homeworkhelper')) || $q(footerBtn('homeworkhelper'));
+    btn && btn.click();
+    await sleep(850);
+  };
+  const closeSettings = async () => {
+    if (!settingsOpen()) return;
+    const c = document.getElementById('homeworkhelper-close-btn');
+    if (c) c.click(); else settingsModal().classList.remove('active');
+    await sleep(500);
+  };
+
+  // --- AI welcome message (typed into the AI page's chat, same-origin iframe) ---
+  const AI_TEXT = 'Hey! I\u2019m SingularityAI. Ask me anything: homework help, code, ideas, or just a chat. You can pick a model from the dropdown, and your past chats will show up in the sidebar.';
+  let aiNode = null, aiTimer = 0, aiHidWelcome = false;
+  const aiDoc = () => { try { const f = document.getElementById('lessonplanner-iframe'); return (f && f.contentDocument) || null; } catch { return null; } };
+  const clearAi = () => {
+    clearTimeout(aiTimer); aiTimer = 0;
+    if (aiNode) { aiNode.remove(); aiNode = null; }
+    const d = aiDoc();
+    const list = d && d.getElementById('aiMessages'), w = d && d.getElementById('aiWelcome');
+    if (aiHidWelcome && w && list && !list.children.length) w.style.display = 'flex';
+    aiHidWelcome = false;
+  };
+  const aiWelcome = async () => {
+    clearAi();
+    let d = null;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 5000) {
+      d = aiDoc();
+      if (d && d.getElementById('aiMessages')) break;
+      d = null; await sleep(150);
+    }
+    if (!d) return;
+    const list = d.getElementById('aiMessages'), w = d.getElementById('aiWelcome');
+    if (!list.children.length && w) { w.style.display = 'none'; aiHidWelcome = true; }
+    const msg = d.createElement('div');
+    msg.className = 'ai-message assistant';
+    msg.setAttribute('data-sg-tour', '1');
+    const dots = d.createElement('div');
+    dots.className = 'ai-thinking-dots';
+    dots.innerHTML = '<span class="ai-typing-dot"></span><span class="ai-typing-dot"></span><span class="ai-typing-dot"></span>';
+    msg.appendChild(dots);
+    list.appendChild(msg);
+    aiNode = msg;
+    await sleep(900);
+    if (aiNode !== msg) return;
+    dots.remove();
+    const text = d.createElement('div');
+    text.className = 'ai-message-text';
+    msg.appendChild(text);
+    let i = 0;
+    const type = () => {
+      if (aiNode !== msg) return;
+      i = Math.min(AI_TEXT.length, i + 2);
+      text.textContent = AI_TEXT.slice(0, i);
+      if (i < AI_TEXT.length) aiTimer = setTimeout(type, 24);
+    };
+    type();
+  };
+
+  // Idempotent per-step setup: opens/closes Settings, navigates, switches tabs, triggers the AI hello
+  const prepare = async step => {
+    if (step.settings) {
+      await openSettings();
+      const t = step.tab && $q(tab(step.tab));
+      if (t && !t.classList.contains('active')) { t.click(); await sleep(250); }
+    } else {
+      await closeSettings();
+    }
+    if (step.page) await goPage(step.page);
+    if (step.id === 'ai') await aiWelcome();
+    else if (aiNode) clearAi();
+  };
+
   const STEPS = [
     {
       title: 'Welcome to Singularity',
-      text: 'Quick tour: I\u2019ll point out the main buttons so you know where everything is. It only takes a few seconds.',
-      center: true
+      text: 'Quick tour: I\u2019ll open pages and Settings for you as we go, so you can see where everything is. It only takes a minute.',
+      center: true,
+      page: 'mathworksheets'
     },
-    { sel: nav('mathworksheets'), title: 'Home', text: 'Your starting point. Click here any time to come back.' },
-    { sel: nav('readingcorner'), title: 'Games', text: 'Browse and search the games library, then click a card to play.' },
-    { sel: nav('sciencequiz'), title: 'Apps', text: 'Web apps and tools, laid out the same way as Games.' },
-    { sel: nav('gradebook'), title: 'Music', text: 'Search for songs and build playlists.' },
-    { sel: nav('civics'), title: 'TV', text: 'Browse movies and shows, search, or watch live TV.' },
-    { sel: nav('lessonplanner'), title: 'AI', text: 'Chat with an AI assistant.' },
-    { sel: nav('vms'), title: 'VMs', text: 'Virtual machines, right in your browser.' },
-    { sel: nav('studyhall'), title: 'Chat', text: 'Message other people and make group chats. You need an account for this one.' },
-    { sel: () => K.tbInput?.parentElement, title: 'Address bar', text: 'Type a search or a web address here, and use the buttons beside it to go back, forward or reload.' },
-    { sel: nav('homeworkhelper'), title: 'Settings', text: 'Change the theme, font, navigation layout and search engine.' },
+    { sel: () => K.tbInput && K.tbInput.parentElement, title: 'Address bar', text: 'Type a search or a web address here, and use the buttons beside it to go back, forward or reload.' },
+    { sel: '.sg-tabbar', title: 'Tabs', text: 'Open several pages and sites at once, just like a normal browser. Use the + button for a new tab.' },
+    { id: 'home', sel: '#hdr-home-btn', always: true, page: 'mathworksheets', title: 'Home', text: 'This is Home, your starting point. The house button up here brings you back any time.' },
+    { id: 'games', sel: portal, always: true, page: 'readingcorner', title: 'Games', text: 'Browse and search the games library, then click a card to play.' },
+    { id: 'apps', sel: portal, always: true, page: 'sciencequiz', title: 'Apps', text: 'Web apps and tools, laid out the same way as Games.' },
+    { id: 'music', sel: portal, always: true, page: 'gradebook', title: 'Music', text: 'Search for songs, queue them up and build your own playlists.' },
+    { id: 'tv', sel: portal, always: true, page: 'civics', title: 'TV', text: 'Browse movies and shows, search, or watch live TV.' },
     {
-      sel: nav('profile'),
+      id: 'ai', sel: () => { const d = aiDoc(); return d && d.getElementById('aiComposer'); }, always: true,
+      page: 'lessonplanner', side: 'top', title: 'AI',
+      text: 'Chat with SingularityAI. Type your question down here, and pick a model from the dropdown. It even said hi!'
+    },
+    { id: 'vms', sel: portal, always: true, page: 'vms', title: 'VMs', text: 'Virtual machines, right in your browser.' },
+    { id: 'chat', sel: portal, always: true, page: 'studyhall', when: () => !!K.currentUser, title: 'Chat', text: 'Message other people and make group chats.' },
+    {
+      id: 'settings', sel: SET_MODAL, always: true, settings: true, title: 'Settings',
+      text: 'I\u2019ve opened Settings for you. It\u2019s split into tabs, and I\u2019ll show you each one.'
+    },
+    { sel: tab('appearance'), always: true, settings: true, tab: 'appearance', anchor: SET_MODAL, side: 'bottom', force: true, title: 'Appearance', text: 'Pick a theme and font, move the navigation bar, and tweak how the interface looks.' },
+    { sel: tab('search'), always: true, settings: true, tab: 'search', anchor: SET_MODAL, side: 'bottom', force: true, title: 'Search', text: 'Choose which search engine the address bar uses.' },
+    { sel: tab('proxy'), always: true, settings: true, tab: 'proxy', anchor: SET_MODAL, side: 'bottom', force: true, title: 'Proxy', text: 'Controls how sites load: the Wisp server, transport and isolation options. Most people never need to touch these.' },
+    { sel: tab('preferences'), always: true, settings: true, tab: 'preferences', anchor: SET_MODAL, side: 'bottom', force: true, title: 'Preferences', text: 'Switches for how Singularity behaves.' },
+    { sel: tab('data'), always: true, settings: true, tab: 'data', anchor: SET_MODAL, side: 'bottom', force: true, title: 'Data', text: 'Data tools will live here. It\u2019s coming soon.' },
+    { sel: tab('about'), always: true, settings: true, tab: 'about', anchor: SET_MODAL, side: 'bottom', force: true, title: 'About', text: 'Version info, a button to load the latest version, and you can replay this tour from here any time.' },
+    { sel: footerBtn('changelog'), title: 'What\u2019s new', text: 'The changelog shows recent updates and new features.' },
+    {
+      sel: () => $q(footerBtn('profile')) || $q('.nav-btn[data-target="profile"]'),
       title: 'Make it yours',
       text: 'Create a free account to save your settings, get a profile and unlock Chat. You can also do it later from this button.',
       last: true
@@ -125,11 +253,11 @@ export function init(K) {
     if (!step.sel) return null;
     const el = typeof step.sel === 'function' ? step.sel() : document.querySelector(step.sel);
     if (!el) return null;
-    const r = el.getBoundingClientRect();
+    const r = rect(el);
     return r.width > 0 && r.height > 0 ? el : null;
   };
 
-  const visibleSteps = () => STEPS.filter(s => s.center || targetFor(s));
+  const visibleSteps = () => STEPS.filter(s => (!s.when || s.when()) && (s.center || s.always || targetFor(s)));
 
   const refreshSteps = () => {
     stepsCache = visibleSteps();
@@ -137,7 +265,7 @@ export function init(K) {
   };
 
   const computeTarget = () => {
-    const step = stepsCache[index];
+    const step = stepsCache[shown] || stepsCache[index];
     if (!step) return null;
     const vw = window.innerWidth, vh = window.innerHeight, m = 12, gap = 16;
     const el = targetFor(step);
@@ -153,22 +281,30 @@ export function init(K) {
       };
     }
 
-    const r = el.getBoundingClientRect();
+    const r = rect(el);
     const pad = 6;
     const sx = r.left - pad, sy = r.top - pad, sw = r.width + pad * 2, sh = r.height + pad * 2;
-    const radius = (parseFloat(getComputedStyle(el).borderTopLeftRadius) || 10) + pad;
+    let radius = 16;
+    try { radius = (parseFloat(el.ownerDocument.defaultView.getComputedStyle(el).borderTopLeftRadius) || 10) + pad; } catch {}
+
+    // Card placement can be anchored to a different element than the spotlight
+    let px = sx, py = sy, pw = sw, ph = sh;
+    const an = step.anchor && document.querySelector(step.anchor);
+    if (an) { const a = rect(an); if (a.width > 0 && a.height > 0) { px = a.left; py = a.top; pw = a.width; ph = a.height; } }
+
     const fits = {
-      right: sx + sw + gap + cw + m <= vw,
-      left: sx - gap - cw - m >= 0,
-      bottom: sy + sh + gap + ch + m <= vh,
-      top: sy - gap - ch - m >= 0
+      right: px + pw + gap + cw + m <= vw,
+      left: px - gap - cw - m >= 0,
+      bottom: py + ph + gap + ch + m <= vh,
+      top: py - gap - ch - m >= 0
     };
-    const side = ['right', 'left', 'bottom', 'top'].find(k => fits[k]) || 'bottom';
+    const order = step.side ? [step.side, ...['right', 'left', 'bottom', 'top'].filter(k => k !== step.side)] : ['right', 'left', 'bottom', 'top'];
+    const side = step.force ? step.side : (order.find(k => fits[k]) || 'bottom');
     let x, y;
-    if (side === 'right') { x = sx + sw + gap; y = sy + sh / 2 - ch / 2; }
-    else if (side === 'left') { x = sx - gap - cw; y = sy + sh / 2 - ch / 2; }
-    else if (side === 'bottom') { x = sx + sw / 2 - cw / 2; y = sy + sh + gap; }
-    else { x = sx + sw / 2 - cw / 2; y = sy - gap - ch; }
+    if (side === 'right') { x = px + pw + gap; y = py + ph / 2 - ch / 2; }
+    else if (side === 'left') { x = px - gap - cw; y = py + ph / 2 - ch / 2; }
+    else if (side === 'bottom') { x = px + pw / 2 - cw / 2; y = py + ph + gap; }
+    else { x = px + pw / 2 - cw / 2; y = py - gap - ch; }
     return { has: true, x: sx, y: sy, w: sw, h: sh, r: radius, cx: clampX(x), cy: clampY(y) };
   };
 
@@ -210,8 +346,10 @@ export function init(K) {
     const steps = stepsCache;
     const step = steps[index];
     const body = card.querySelector('.sg-tour-body');
+    const tok = ++renderTok;
     const apply = () => {
-      if (!active || !root) return;
+      if (!active || !root || tok !== renderTok) return;
+      shown = index;
       card.classList.toggle('big', !!step.center);
       titleEl.textContent = step.title;
       textEl.textContent = step.text;
@@ -226,12 +364,18 @@ export function init(K) {
       body.classList.remove('swap');
       (isLast && !accountBtn.hidden ? accountBtn : nextBtn).focus({ preventScroll: true });
     };
-    if (instant) { apply(); return; }
+    if (instant) { shown = index; apply(); busy = true; prepare(step).catch(() => {}).then(() => { if (tok === renderTok) busy = false; }); return; }
+    busy = true;
     body.classList.add('swap');
-    setTimeout(apply, 140);
+    Promise.all([sleep(140), prepare(step).catch(err => console.warn('tour step failed', err))]).then(() => {
+      if (tok !== renderTok) return;
+      busy = false;
+      apply();
+    });
   };
 
   const go = dir => {
+    if (busy) return;
     const steps = stepsCache.length ? stepsCache : visibleSteps();
     const next = index + dir;
     if (next < 0) return;
@@ -262,14 +406,23 @@ export function init(K) {
   function finish(openAccount) {
     if (!active) return;
     active = false;
+    renderTok++;
+    busy = false;
     markSeen();
     document.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
+    clearAi();
     root.classList.remove('on');
     const closing = root;
     setTimeout(() => { closing.remove(); if (root === closing) root = null; }, 450);
     try { prevFocus?.focus?.({ preventScroll: true }); } catch {}
-    if (openAccount && !K.currentUser) K.authMod?.classList.add('active');
+    (async () => {
+      try {
+        await closeSettings();
+        if (navigated) await goPage('mathworksheets');
+      } catch {}
+      if (openAccount && !K.currentUser) K.authMod?.classList.add('active');
+    })();
   }
 
   const start = () => {
@@ -278,6 +431,8 @@ export function init(K) {
     build();
     active = true;
     index = 0;
+    shown = 0;
+    navigated = false;
     prevFocus = document.activeElement;
     K.tooltipEl && (K.tooltipEl.style.display = 'none');
     document.addEventListener('keydown', onKey, true);
