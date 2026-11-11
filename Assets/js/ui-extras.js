@@ -25,9 +25,11 @@ export function init(K) {
     });
   };
   const rememberOrigin = e => {
+    if (!e.isTrusted) return;
     let x = e.clientX, y = e.clientY;
     if (!x && !y && e.target && e.target.getBoundingClientRect) {
       const r = e.target.getBoundingClientRect();
+      if (!r.width && !r.height) return;
       x = r.left + r.width / 2;
       y = r.top + r.height / 2;
     }
