@@ -90,19 +90,16 @@ async function legacy(){
         #loading-screen{position:fixed;inset:0;width:100vw;height:100vh;background-color:var(--bg-color,#000000);background-image:linear-gradient(to right,color-mix(in srgb,var(--text-color,#ffffff) 14%,transparent) 1px,transparent 1px),linear-gradient(to bottom,color-mix(in srgb,var(--text-color,#ffffff) 14%,transparent) 1px,transparent 1px);background-size:56px 56px;color:var(--text-color,#ffffff);display:flex;flex-direction:column;justify-content:center;align-items:center;gap:1.4rem;z-index:999999;transition:opacity .5s ease,visibility .5s ease}
         #loading-screen.hidden{opacity:0;visibility:hidden;pointer-events:none}
         .ld-logo{width:5.5rem;height:5.5rem;overflow:visible}
-        .ld-arms{opacity:.8;transform-origin:50px 50px;stroke-dasharray:1;animation:ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both,ld-spin 14s linear 1.2s infinite}
         .ld-core{transform-origin:50px 50px;animation:ld-pulse 2.8s ease-in-out infinite}
         .ld-word{font-size:.8rem;font-weight:600!important;letter-spacing:.5em;text-transform:uppercase;margin-right:-.5em}
         .ld-bar{width:min(240px,60vw);height:1px;border-radius:0;overflow:hidden;background:color-mix(in srgb,var(--text-color,#ffffff) 14%,transparent)}
         .ld-fill{position:relative;width:100%;height:100%;transform:scaleX(0);transform-origin:left;background:var(--text-color,#ffffff);transition:transform .5s cubic-bezier(.22,1,.36,1)}
         .ld-fill::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--bg-color,#000000) 55%,transparent),transparent);animation:ld-sheen 1.5s ease-in-out infinite}
         .ld-status{font-size:.65rem;letter-spacing:.3em;text-transform:uppercase;opacity:.5;min-height:1.2em;font-variant-numeric:tabular-nums}
-        @keyframes ld-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}
-        @keyframes ld-spin{to{transform:rotate(360deg)}}
         @keyframes ld-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
         @keyframes ld-sheen{from{transform:translateX(-100%)}to{transform:translateX(100%)}}
         @keyframes ld-glow{0%,100%{filter:drop-shadow(0 0 4px color-mix(in srgb,var(--text-color,#ffffff) 30%,transparent))}50%{filter:drop-shadow(0 0 14px color-mix(in srgb,var(--text-color,#ffffff) 70%,transparent))}}
-        @media (prefers-reduced-motion:reduce){.ld-logo,.ld-arms,.ld-core,.ld-fill::after{animation:none}.ld-arms{stroke-dashoffset:0}}
+        @media (prefers-reduced-motion:reduce){.ld-logo,.ld-core,.ld-fill::after{animation:none}}
         .spinner{position:relative;width:140px;height:3px;border-radius:0;overflow:hidden;background:color-mix(in srgb,var(--text-color,#ffffff) 16%,transparent);margin-bottom:1.5rem}.spinner::after{content:"";position:absolute;top:0;bottom:0;left:0;width:40%;border-radius:0;background:var(--text-color,#ffffff);animation:bar-bounce 1s ease-in-out infinite alternate}@keyframes bar-bounce{from{transform:translateX(0)}to{transform:translateX(150%)}}
         .loading-text{font-size:1.25rem;font-weight:900!important;letter-spacing:.25em;text-transform:uppercase;animation:pulse 1.5s ease-in-out infinite}
         @keyframes spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
@@ -134,18 +131,7 @@ async function legacy(){
     <script>(()=>{let cloudTheme=null,cloudFloating=null;try{const u=JSON.parse(localStorage.getItem('kstuff_user'));cloudTheme=u?.settings?.theme||u?.theme;cloudFloating=u?.settings?.floatingUi;}catch(e){}const chosenTheme=cloudTheme||localStorage.getItem('kstuff_theme')||'theme-pitch-black';const n=localStorage.getItem('kstuff_nav_pos')||'nav-left';const v=localStorage.getItem('kstuff_text_vis')||'text-hide';const s=localStorage.getItem('kstuff_nav_size')||'size-small';const f=cloudFloating||localStorage.getItem('kstuff_floating_ui')||'floating-on';const x=localStorage.getItem('kstuff_nav_expand')||'expand-on';document.body.className=`${chosenTheme} ${n} ${v} ${s} ${f} ${x}`;try{const cachedThemes=localStorage.getItem('kstuff_themes_cache');if(cachedThemes){const themes=JSON.parse(cachedThemes);let css='';themes.forEach(t=>{css+=`.${t.id} { ${Object.entries(t.variables).map(([k,val])=>`${k}:${val};`).join('')} }\n`;});const style=document.createElement('style');style.id='dynamic-themes-style';style.textContent=css;document.head.appendChild(style);}else{document.body.style.setProperty('--bg-color','#000000');document.body.style.setProperty('--text-color','#ffffff');}}catch(e){}})();</script>
     
     <div id="loading-screen">
-        <svg class="ld-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-            <defs>
-                <g id="ld-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
-                    <path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/>
-                    <path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/>
-                </g>
-            </defs>
-            <g class="ld-arms" stroke="currentColor">
-                <use href="#ld-arm"/>
-                <use href="#ld-arm" transform="rotate(120 50 50)"/>
-                <use href="#ld-arm" transform="rotate(240 50 50)"/>
-            </g>
+        <svg class="ld-logo" viewBox="24 24 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
             <g class="ld-core" fill="currentColor">
                 <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/>
             </g>

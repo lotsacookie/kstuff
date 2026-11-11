@@ -94,10 +94,9 @@ body.embed main{width:min(380px,100%);max-width:none;padding:0;margin:0}
 body.embed:not(.need-ui) .emb-brand{display:none}
 body.embed .emb-brand{display:flex;flex-direction:column;align-items:center;gap:1.1rem;margin-bottom:.4rem}
 body.embed .ld-logo{width:5.5rem;height:5.5rem;overflow:visible;color:var(--e-text);filter:drop-shadow(0 0 8px color-mix(in srgb,var(--e-text) 50%,transparent))}
-body.embed .ld-arms{opacity:.8;transform-origin:50px 50px;stroke-dasharray:1;animation:ld-draw 1.2s cubic-bezier(.3,.7,.2,1) both,ld-spin 14s linear 1.2s infinite}
 body.embed .ld-core{transform-origin:50px 50px;animation:ld-pulse 2.8s ease-in-out infinite}
 body.embed .ld-word{font-size:1.15rem;font-weight:900;letter-spacing:.06em}
-@keyframes ld-draw{from{stroke-dashoffset:1}to{stroke-dashoffset:0}}@keyframes ld-spin{to{transform:rotate(360deg)}}@keyframes ld-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@keyframes ld-pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 body.embed .card{background:transparent;border:0;box-shadow:none;backdrop-filter:none;padding:0;margin:0;max-width:none;display:flex;flex-direction:column;align-items:stretch;text-align:center;gap:.9rem}
 body.embed .card h1{font-size:1rem;font-weight:900;letter-spacing:.06em;margin:0}
 body.embed .card label{display:none}
@@ -237,7 +236,7 @@ if (EMBED) {
   document.body.classList.add("embed");
   const brand = document.createElement("div");
   brand.className = "emb-brand";
-  brand.innerHTML = '<svg class="ld-logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><defs><g id="emb-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10"><path pathLength="1" d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/><path pathLength="1" d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/></g></defs><g class="ld-arms" stroke="currentColor"><use href="#emb-arm"/><use href="#emb-arm" transform="rotate(120 50 50)"/><use href="#emb-arm" transform="rotate(240 50 50)"/></g><g class="ld-core" fill="currentColor"><path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/></g></svg><div class="ld-word">Singularity</div>';
+  brand.innerHTML = '<svg class="ld-logo" viewBox="24 24 52 52" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><g class="ld-core" fill="currentColor"><path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/></g></svg><div class="ld-word">Singularity</div>';
   document.querySelector("main").before(brand);
   const syncTheme = () => { try {
     const cs = parent.getComputedStyle(parent.document.body), d = document.documentElement.style, g = (n) => (cs.getPropertyValue(n) || "").trim();

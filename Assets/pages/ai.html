@@ -1007,12 +1007,10 @@ body {
 .ai-brand .ld-logo { width: 1.7rem; height: 1.7rem; overflow: visible; color: var(--text); }
 .ai-brand .ld-word { font-size: 1.05rem; font-weight: 900; letter-spacing: .06em; white-space: nowrap; }
 .ai-brand .ld-word span { font-weight: 400; opacity: .6; }
-.ai-brand .ld-arms { opacity: .8; transform-origin: 50px 50px; animation: ai-ld-spin 14s linear infinite; }
 .ai-brand .ld-core { transform-origin: 50px 50px; animation: ai-ld-pulse 2.8s ease-in-out infinite; }
-@keyframes ai-ld-spin { to { transform: rotate(360deg); } }
 @keyframes ai-ld-pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.12); } }
 @media (max-width: 480px) { .ai-brand .ld-word { display: none; } }
-@media (prefers-reduced-motion: reduce) { .ai-brand .ld-arms, .ai-brand .ld-core { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .ai-brand .ld-core { animation: none; } }
 </style>
 <style id="mono-restyle">
 :root{--radius:0px;--lift:none;--ring:none}
@@ -1027,16 +1025,7 @@ button:not(:disabled):not(.fav-tile):hover svg[fill="none"],button:not(:disabled
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <g id="ld-arm" fill="none" stroke-linecap="butt" stroke-linejoin="miter" stroke-miterlimit="10">
-      <path d="M50 3 L83 13 L92 43 L75 69 L49 73 L35 57" stroke-width="5.5"/>
-      <path d="M50 13 L76 22 L82 44 L70 62 L52 65" stroke-width="2.2" opacity="0.7"/>
-    </g>
-    <symbol id="sc-logo" viewBox="0 0 100 100">
-      <g class="ld-arms" stroke="currentColor">
-        <use href="#ld-arm"/>
-        <use href="#ld-arm" transform="rotate(120 50 50)"/>
-        <use href="#ld-arm" transform="rotate(240 50 50)"/>
-      </g>
+    <symbol id="sc-logo" viewBox="24 24 52 52">
       <g class="ld-core" fill="currentColor">
         <path d="M50.0 29.0 L51.7 45.8 L58.5 41.5 L54.2 48.3 L71.0 50.0 L54.2 51.7 L58.5 58.5 L51.7 54.2 L50.0 71.0 L48.3 54.2 L41.5 58.5 L45.8 51.7 L29.0 50.0 L45.8 48.3 L41.5 41.5 L48.3 45.8 Z"/>
       </g>
