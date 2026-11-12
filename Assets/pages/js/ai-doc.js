@@ -13,6 +13,7 @@
   const RESTYLE = `:root{--bg:#000;--text:#fff;--card:#141414;--nav:#0a0a0a}
 
 body>header,body>footer,#language-banner,#announcement-banner,.language-banner,.announcement-banner,.sidebar-ad,.permanent-announcement-banner,.dyn-content-block,#modelPageProNotice,.model-page-pro-notice{display:none!important}
+ins.adsbygoogle,[id^="google_ads"],[id^="aswift"],[id^="div-gpt-ad"],[data-ad-slot],[data-ad-client],[class*="adsbox" i],[class*="ad-slot" i],[class*="ad-container" i],[class*="ad-wrapper" i],[class*="advert" i],[id*="advert" i],[class*="sponsored" i],[id*="sponsored" i],[id*="koah" i],[class*="koah" i],[id*="zeroclick" i],[class*="zeroclick" i],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],iframe[src*="adservice"],iframe[src*="taboola"],iframe[src*="outbrain"]{display:none!important;visibility:hidden!important;height:0!important;min-height:0!important;pointer-events:none!important}
 #voicePillButton,#websiteBuilderPillButton,#chatMemoryPillButton,#chatMemorySettingsButton,.pro-only-pill,#chat-memory-modal-root,.chat-memory-modal{display:none!important}
 .landing-title-group>h1,.landing-title-group .landing-description-group>h3{display:none!important}
 .chat-model-chip:has(.model-chip-lock),.chat-mode-menu-item.chat-mode-locked,.chat-mode-menu-item:has(.chat-mode-lock-icon),.slash-cmd-item:has(img[src*="lock-icon"]),.cmd-palette-item:has(.cmd-palette-item-lock),.presets-dropdown-item:has(img[src*="lock-icon"]),.attach-dropdown-item:has(img[src*="lock-icon"]),.attach-dropdown-item:has(.pro-lock-icon),.chat-chip:has(img[src*="lock-icon"]){display:none!important}
@@ -206,7 +207,22 @@ function layoutFit() {
     t.classList.add("k-fit");
     if (mo) mo.takeRecords();
   }
-  function queue() { if (!raf) raf = requestAnimationFrame(fit); }
+  var fitTimer = 0;
+  function queue() { if (fitTimer || document.hidden) return; fitTimer = setTimeout(function () { fitTimer = 0; raf = requestAnimationFrame(fit); }, 200); }
+  var AD_SEL = 'ins.adsbygoogle,[id^="google_ads"],[id^="aswift"],[id^="div-gpt-ad"],[data-ad-slot],[data-ad-client],[id*="koah" i],[class*="koah" i],[id*="zeroclick" i],[class*="zeroclick" i],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],iframe[src*="adservice"],iframe[src*="taboola"],iframe[src*="outbrain"]';
+  function sweepAds() {
+    try { document.querySelectorAll(AD_SEL).forEach(function (n) { n.remove(); }); } catch (e) {}
+  }
+  setInterval(function () { if (!document.hidden) sweepAds(); }, 4000);
+  function relevant(recs) {
+    var c = document.querySelector(".persistent-compose-area");
+    for (var i = 0; i < recs.length; i++) {
+      var n = recs[i].target;
+      if (!n || n.nodeType !== 1) continue;
+      if (n === document.body || n.matches(".chat-sidebar,.chat-layout-container,.persistent-compose-area") || (c && n.contains(c))) return true;
+    }
+    return false;
+  }
   window.addEventListener("resize", queue);
   window.addEventListener("load", queue);
   root.style.setProperty("--k-left", (window.innerWidth >= 900 ? Math.round(Math.min(260, Math.max(150, window.innerWidth * 0.3))) + 24 : 0) + "px");
@@ -222,7 +238,7 @@ function layoutFit() {
   }, true);
   function arm() {
     if (!document.body) return setTimeout(arm, 30);
-    mo = new MutationObserver(queue);
+    mo = new MutationObserver(function (recs) { if (relevant(recs)) queue(); });
     mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
     var sb = document.querySelector(".chat-sidebar");
     if (sb && window.ResizeObserver) new ResizeObserver(queue).observe(sb);
@@ -542,7 +558,7 @@ function screenshareBoot() {
     else area.appendChild(btn);
   }
   var raf = 0;
-  function queue() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; place(); }); }
+  function queue() { if (raf || document.hidden) return; raf = setTimeout(function () { raf = 0; place(); }, 250); }
   function arm() {
     if (!document.body) return setTimeout(arm, 30);
     new MutationObserver(queue).observe(document.body, { childList: true, subtree: true });
