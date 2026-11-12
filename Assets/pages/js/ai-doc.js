@@ -199,30 +199,63 @@ function layoutFit() {
 
 function screenshareBoot() {
   var LABEL = "Screenshare", busy = false, btn = null;
+  var stream = null, track = null, pip = null, sharing = false, ui = null, watch = null;
   var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path><path d="M12 13V8M9.5 10.5 12 8l2.5 2.5"></path></svg>';
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function setLabel(t) { if (btn) { var sp = btn.querySelector("span"); if (sp) sp.textContent = t; btn.title = t; } }
+  function live() { return !!(stream && track && track.readyState === "live"); }
+  function status(t) { if (ui && ui.st) ui.st.textContent = t; }
 
-  async function grab() {
-    if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) { var u = new Error("Screen sharing is not supported here"); u.name = "NotSupportedError"; throw u; }
-    var stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+  // ---- screen capture -------------------------------------------------------
+  async function ensureStream(wins) {
+    if (live()) return stream;
+    var lastErr = null;
+    for (var i = 0; i < wins.length; i++) {
+      var md = null;
+      try { md = wins[i] && wins[i].navigator && wins[i].navigator.mediaDevices; } catch (e) {}
+      if (!md || !md.getDisplayMedia) continue;
+      try {
+        var s = await md.getDisplayMedia({ video: true, audio: false });
+        var t = s.getVideoTracks()[0];
+        stream = s; track = t;
+        t.addEventListener("ended", function () { if (track === t) { stream = null; track = null; status("Screen sharing ended"); } });
+        return s;
+      } catch (e) {
+        lastErr = e;
+        if (e && /gesture|activation|policy|disallowed/i.test(String(e.message || ""))) continue;
+        throw e;
+      }
+    }
+    if (lastErr) throw lastErr;
+    var u = new Error("Screen sharing is not supported here"); u.name = "NotSupportedError"; throw u;
+  }
+  function stopStream() {
+    try { if (stream) stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+    stream = null; track = null;
+  }
+  async function frameFile() {
+    var src = null, w = 0, h = 0, vid = null;
     try {
-      var v = document.createElement("video");
-      v.muted = true; v.playsInline = true; v.srcObject = stream;
-      await v.play();
+      if (window.ImageCapture && track) { src = await new ImageCapture(track).grabFrame(); w = src.width; h = src.height; }
+    } catch (e) { src = null; }
+    if (!src) {
+      vid = document.createElement("video");
+      vid.muted = true; vid.playsInline = true; vid.srcObject = stream;
+      await vid.play();
       await new Promise(function (r) {
         var done = false, fin = function () { if (!done) { done = true; r(); } };
-        if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(function () { setTimeout(fin, 120); });
+        if (vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(function () { setTimeout(fin, 120); });
         setTimeout(fin, 900);
       });
-      var w = v.videoWidth, h = v.videoHeight;
+      src = vid; w = vid.videoWidth; h = vid.videoHeight;
+    }
+    try {
       if (!w || !h) throw new Error("No video frame");
       var k = Math.min(1, 2560 / Math.max(w, h)), cw = Math.round(w * k), ch = Math.round(h * k);
       var c = document.createElement("canvas");
       c.width = cw; c.height = ch;
-      c.getContext("2d").drawImage(v, 0, 0, cw, ch);
-      var blob = await new Promise(function (r) { c.toBlob(r, "image/png"); });
-      var name = "screenshot.png";
+      c.getContext("2d").drawImage(src, 0, 0, cw, ch);
+      var blob = await new Promise(function (r) { c.toBlob(r, "image/png"); }), name = "screenshot.png";
       if (!blob || blob.size > 15 * 1024 * 1024) {
         blob = await new Promise(function (r) { c.toBlob(r, "image/jpeg", 0.85); });
         name = "screenshot.jpg";
@@ -230,10 +263,12 @@ function screenshareBoot() {
       if (!blob) throw new Error("Capture failed");
       return new File([blob], name, { type: blob.type, lastModified: Date.now() });
     } finally {
-      try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+      if (vid) { try { vid.srcObject = null; } catch (e) {} }
+      if (src && src.close) { try { src.close(); } catch (e) {} }
     }
   }
 
+  // ---- attach + send through the chat page's own controls ------------------
   function composeArea() { return document.querySelector(".persistent-compose-area") || document.body; }
   function snapshot() {
     var a = composeArea(), up = document.getElementById("upload-successful"), shown = 0;
@@ -300,14 +335,130 @@ function screenshareBoot() {
     });
   }
 
-  async function run() {
+  // ---- latest AI response, mirrored into the PiP ---------------------------
+  function lastReply() {
+    var boxes = document.querySelectorAll(".outputBox");
+    if (boxes.length) return { n: boxes.length, text: (boxes[boxes.length - 1].innerText || boxes[boxes.length - 1].textContent || "").trim() };
+    var cv = document.getElementById("convo"), el = cv && cv.lastElementChild;
+    if (el && !el.querySelector(".chatbox")) return { n: cv.children.length, text: (el.innerText || el.textContent || "").trim() };
+    return { n: 0, text: "" };
+  }
+  function startWatch() {
+    stopWatch();
+    var base = lastReply(), changedAt = 0, last = "", timer = 0;
+    watch = { mo: null, iv: 0 };
+    function tick() {
+      if (!ui || !pip || pip.closed) return;
+      var cur = lastReply(), fresh = cur.n > base.n || (cur.text && cur.text !== base.text);
+      if (!fresh) return;
+      if (cur.text !== last) {
+        last = cur.text; changedAt = Date.now();
+        ui.out.textContent = cur.text;
+        ui.out.scrollTop = ui.out.scrollHeight;
+      }
+    }
+    function sched() { if (!timer) timer = setTimeout(function () { timer = 0; tick(); }, 120); }
+    watch.mo = new MutationObserver(sched);
+    watch.mo.observe(document.body, { childList: true, subtree: true, characterData: true });
+    watch.iv = setInterval(function () {
+      tick();
+      if (!ui || sharing) return;
+      if (!changedAt) status("Thinking…");
+      else status(Date.now() - changedAt < 2000 ? "Answering…" : "Done");
+    }, 400);
+  }
+  function stopWatch() {
+    if (watch) { try { watch.mo.disconnect(); } catch (e) {} clearInterval(watch.iv); watch = null; }
+  }
+
+  // ---- Picture-in-Picture window -------------------------------------------
+  function pipApi() {
+    var cands = [window, window.parent, window.top];
+    for (var i = 0; i < cands.length; i++) {
+      try { if (cands[i] && cands[i].documentPictureInPicture) return cands[i].documentPictureInPicture; } catch (e) {}
+    }
+    return null;
+  }
+  function themeVar(n, d) {
+    try { var v = getComputedStyle(document.documentElement).getPropertyValue(n).trim(); return v || d; } catch (e) { return d; }
+  }
+  function buildPip(win) {
+    var d = win.document;
+    var css = d.createElement("style");
+    css.textContent =
+      ":root{--bg:" + themeVar("--bg", "#000") + ";--text:" + themeVar("--text", "#fff") + ";--card:" + themeVar("--card", "#141414") + "}" +
+      "*{box-sizing:border-box}html,body{height:100%}" +
+      "body{margin:0;display:flex;flex-direction:column;background:var(--bg);color:var(--text);font:700 13px/1.5 Comfortaa,system-ui,sans-serif}" +
+      ".bar{display:flex;align-items:center;gap:8px;padding:10px;border-bottom:1px solid color-mix(in srgb,var(--text) 16%,transparent)}" +
+      "button{display:inline-flex;align-items:center;gap:7px;height:36px;padding:0 14px;font:inherit;cursor:pointer;color:var(--text);background:var(--card);border:1px solid color-mix(in srgb,var(--text) 16%,transparent);transition:background-color .2s,color .2s}" +
+      "button svg{width:16px;height:16px}button:hover:not(:disabled){background:var(--text);color:var(--bg)}button:disabled{opacity:.55;cursor:default}" +
+      "#share{background:var(--text);color:var(--bg)}#share:hover:not(:disabled){opacity:.85;background:var(--text)}" +
+      "#st{margin-left:auto;opacity:.65;font-size:12px;text-align:right}" +
+      "#out{flex:1;overflow:auto;padding:12px;white-space:pre-wrap;overflow-wrap:anywhere;font-weight:600}" +
+      "#out.hint{opacity:.55}";
+    d.head.appendChild(css);
+    var link = d.createElement("link");
+    link.rel = "stylesheet"; link.href = "https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap";
+    d.head.appendChild(link);
+    d.title = "Screenshare";
+    var bar = d.createElement("div"); bar.className = "bar";
+    var share = d.createElement("button"); share.id = "share"; share.type = "button"; share.innerHTML = ICON + "<span>Share</span>";
+    var stop = d.createElement("button"); stop.id = "stop"; stop.type = "button"; stop.textContent = "Stop";
+    var st = d.createElement("span"); st.id = "st"; st.textContent = "Ready";
+    bar.appendChild(share); bar.appendChild(stop); bar.appendChild(st);
+    var out = d.createElement("div"); out.id = "out"; out.className = "hint";
+    out.textContent = "Press Share to send your screen. The answer shows up here.";
+    d.body.appendChild(bar); d.body.appendChild(out);
+    return { win: win, share: share, stop: stop, st: st, out: out };
+  }
+  async function pipShare() {
+    if (sharing || !ui) return;
+    sharing = true; ui.share.disabled = true;
+    try {
+      if (!live()) { status("Pick a screen…"); await ensureStream([pip, window]); }
+      status("Capturing…");
+      var file = await frameFile();
+      status("Attaching…");
+      if (!(await attach(file))) { status("Attach failed"); return; }
+      await sleep(900);
+      ui.out.className = ""; ui.out.textContent = "";
+      startWatch();
+      status("Sending…");
+      await send();
+      status("Thinking…");
+    } catch (e) {
+      try { console.error("screenshare", e); } catch (x) {}
+      var n = e && e.name;
+      status(n === "AbortError" || n === "NotAllowedError" ? "Cancelled" : n === "NotSupportedError" ? "Not supported" : "Failed");
+    } finally {
+      sharing = false;
+      if (ui) ui.share.disabled = false;
+    }
+  }
+  function closePip() {
+    stopWatch(); stopStream();
+    var p = pip; pip = null; ui = null;
+    try { if (p && !p.closed) p.close(); } catch (e) {}
+  }
+  async function openPip(api) {
+    var win = await api.requestWindow({ width: 400, height: 560 });
+    pip = win; ui = buildPip(win);
+    ui.share.addEventListener("click", pipShare);
+    ui.stop.addEventListener("click", function () { stopStream(); status("Screen sharing stopped"); });
+    win.addEventListener("pagehide", function () { if (pip === win) { stopWatch(); stopStream(); pip = null; ui = null; } });
+    win.addEventListener("message", function (e) { if (e.data === "theme-updated") { /* theme is applied on open */ } });
+  }
+
+  // ---- fallback when Picture-in-Picture isn't available --------------------
+  async function runDirect() {
     if (busy) return;
     busy = true; btn.disabled = true; setLabel("Sharing…");
     var msg = LABEL;
     try {
-      var file;
-      try { file = await grab(); } catch (e) { if (e && (e.name === "NotAllowedError" || e.name === "AbortError")) return; throw e; }
+      try { await ensureStream([window]); } catch (e) { if (e && (e.name === "NotAllowedError" || e.name === "AbortError")) return; throw e; }
       setLabel("Attaching…");
+      var file = await frameFile();
+      stopStream();
       if (!(await attach(file))) { msg = "Attach failed"; return; }
       await sleep(900);
       await send();
@@ -315,12 +466,26 @@ function screenshareBoot() {
       try { console.error("screenshare", e); } catch (x) {}
       msg = (e && e.name === "NotSupportedError") ? "Not supported" : "Failed";
     } finally {
+      stopStream();
       setLabel(msg);
       busy = false; btn.disabled = false;
       if (msg !== LABEL) setTimeout(function () { if (!busy) setLabel(LABEL); }, 2500);
     }
   }
+  async function onClick() {
+    if (busy) return;
+    var api = pipApi();
+    if (!api) return runDirect();
+    if (pip && !pip.closed) {
+      try { pip.focus(); } catch (e) {}
+      if (!live()) { try { await ensureStream([window]); status("Screen ready — press Share"); } catch (e) {} }
+      return;
+    }
+    try { await openPip(api); }
+    catch (e) { try { console.error("screenshare pip", e); } catch (x) {} return runDirect(); }
+  }
 
+  // ---- the bar button ------------------------------------------------------
   function place() {
     var plus = document.querySelector(".compose-plus-btn");
     var sub = document.getElementById("chatSubmitButton");
@@ -334,7 +499,7 @@ function screenshareBoot() {
       btn.className = "k-screenshare-btn";
       btn.innerHTML = ICON + "<span>" + LABEL + "</span>";
       btn.title = LABEL;
-      btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); run(); });
+      btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); onClick(); });
     }
     if (plus && plus.parentNode) plus.parentNode.insertBefore(btn, plus.nextSibling);
     else if (sub && sub.parentNode) sub.parentNode.insertBefore(btn, sub);
@@ -349,6 +514,7 @@ function screenshareBoot() {
     setTimeout(queue, 600);
     setTimeout(queue, 2000);
   }
+  window.addEventListener("pagehide", closePip);
   arm();
 }
 
