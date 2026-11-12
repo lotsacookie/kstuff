@@ -256,6 +256,7 @@ function screenshareBoot() {
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function setLabel(t) { if (btn) { var sp = btn.querySelector("span"); if (sp) sp.textContent = t; btn.title = t; } }
   function live() { return !!(stream && track && track.readyState === "live"); }
+  function base() { return live() ? "Share" : LABEL; }
   function status(t) { if (ui && ui.st) ui.st.textContent = t; }
 
   // ---- screen capture -------------------------------------------------------
@@ -270,7 +271,7 @@ function screenshareBoot() {
         var s = await md.getDisplayMedia({ video: true, audio: false });
         var t = s.getVideoTracks()[0];
         stream = s; track = t;
-        t.addEventListener("ended", function () { if (track === t) { stream = null; track = null; status("Screen sharing ended"); } });
+        t.addEventListener("ended", function () { if (track === t) { stream = null; track = null; status("Screen sharing ended"); if (!busy) setLabel(base()); } });
         return s;
       } catch (e) {
         lastErr = e;
@@ -375,16 +376,36 @@ function screenshareBoot() {
     }
     tb.dispatchEvent(new Event("input", { bubbles: true }));
   }
+  async function waitUploaded() {
+    var end = Date.now() + 20000, t0 = Date.now(), last = snapshot(), since = Date.now();
+    while (Date.now() < end) {
+      await sleep(200);
+      var cur = snapshot();
+      if (cur !== last) { last = cur; since = Date.now(); }
+      if (Date.now() - t0 > 400 && cur.charAt(cur.length - 1) === "1") return;
+      if (Date.now() - since > 1500) return;
+    }
+  }
   async function send() {
     var tb = document.getElementById("persistentChatbox");
     if (!tb) throw new Error("Chat box not found");
+    function val() { return String(tb.value !== undefined ? tb.value : tb.textContent || ""); }
+    var base0 = lastReply();
     setText(tb, "Solve");
-    await sleep(250);
-    var sub = document.getElementById("chatSubmitButton");
-    if (sub && !sub.disabled) { sub.click(); return; }
-    ["keydown", "keypress", "keyup"].forEach(function (t) {
-      tb.dispatchEvent(new KeyboardEvent(t, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }));
-    });
+    await sleep(150);
+    for (var i = 0; i < 20; i++) {
+      var cur = lastReply();
+      if (cur.n > base0.n || !val().trim()) return;
+      var sub = document.getElementById("chatSubmitButton");
+      if (sub && !sub.disabled) sub.click();
+      else {
+        tb.focus();
+        ["keydown", "keypress", "keyup"].forEach(function (t) {
+          tb.dispatchEvent(new KeyboardEvent(t, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }));
+        });
+      }
+      await sleep(500);
+    }
   }
 
   // ---- latest AI response, mirrored into the PiP ---------------------------
@@ -472,7 +493,8 @@ function screenshareBoot() {
       var file = await frameFile();
       status("Attaching…");
       if (!(await attach(file))) { status("Attach failed"); return; }
-      await sleep(900);
+      status("Uploading…");
+      await waitUploaded();
       ui.out.className = ""; ui.out.textContent = "";
       startWatch();
       status("Sending…");
@@ -505,36 +527,35 @@ function screenshareBoot() {
   async function runDirect() {
     if (busy) return;
     busy = true; btn.disabled = true; setLabel("Sharing…");
-    var msg = LABEL;
+    var msg = "";
     try {
       try { await ensureStream([window]); } catch (e) { if (e && (e.name === "NotAllowedError" || e.name === "AbortError")) return; throw e; }
-      setLabel("Attaching…");
+      setLabel("Capturing…");
       var file = await frameFile();
-      stopStream();
+      setLabel("Attaching…");
       if (!(await attach(file))) { msg = "Attach failed"; return; }
-      await sleep(900);
+      setLabel("Uploading…");
+      await waitUploaded();
+      if (ui && pip && !pip.closed) { ui.out.className = ""; ui.out.textContent = ""; startWatch(); }
+      setLabel("Sending…");
       await send();
     } catch (e) {
       try { console.error("screenshare", e); } catch (x) {}
       msg = (e && e.name === "NotSupportedError") ? "Not supported" : "Failed";
     } finally {
-      stopStream();
-      setLabel(msg);
       busy = false; btn.disabled = false;
-      if (msg !== LABEL) setTimeout(function () { if (!busy) setLabel(LABEL); }, 2500);
+      setLabel(msg || base());
+      if (msg) setTimeout(function () { if (!busy) setLabel(base()); }, 2500);
     }
   }
-  async function onClick() {
+  async function onClick(e) {
     if (busy) return;
     var api = pipApi();
-    if (!api) return runDirect();
-    if (pip && !pip.closed) {
-      try { pip.focus(); } catch (e) {}
-      if (!live()) { try { await ensureStream([window]); status("Screen ready — press Share"); } catch (e) {} }
+    if (e && e.shiftKey && api && !(pip && !pip.closed)) {
+      try { await openPip(api); } catch (x) { try { console.error("screenshare pip", x); } catch (y) {} }
       return;
     }
-    try { await openPip(api); }
-    catch (e) { try { console.error("screenshare pip", e); } catch (x) {} return runDirect(); }
+    return runDirect();
   }
 
   // ---- the bar button ------------------------------------------------------
@@ -551,7 +572,7 @@ function screenshareBoot() {
       btn.className = "k-screenshare-btn";
       btn.innerHTML = ICON + "<span>" + LABEL + "</span>";
       btn.title = LABEL;
-      btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); onClick(); });
+      btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); onClick(e); });
     }
     if (plus && plus.parentNode) plus.parentNode.insertBefore(btn, plus.nextSibling);
     else if (sub && sub.parentNode) sub.parentNode.insertBefore(btn, sub);
