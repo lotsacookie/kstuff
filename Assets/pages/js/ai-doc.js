@@ -588,14 +588,38 @@ async function buildDocument() {
       var db = await idb();
       await new Promise(function (res) {
         var t = db.transaction(STORE_NAME, "readwrite");
-        t.objectStore(STORE_NAME).put(v, DOC_ID);
+        var os = t.objectStore(STORE_NAME);
+        os.put(v, DOC_ID);
+        var c = os.openCursor();
+        c.onsuccess = function () {
+          var cur = c.result;
+          if (!cur) return;
+          if (typeof cur.key === "string" && cur.key.indexOf("chat-") === 0 && cur.key !== DOC_ID) cur.delete();
+          cur.continue();
+        };
         t.oncomplete = res; t.onerror = res; t.onabort = res;
       });
     } catch (e) {}
   }
+  async function idbGetStale() {
+    try {
+      var db = await idb();
+      return await new Promise(function (res) {
+        var best = null, c = db.transaction(STORE_NAME).objectStore(STORE_NAME).openCursor();
+        c.onsuccess = function () {
+          var cur = c.result;
+          if (!cur) return res(best);
+          var v = cur.value;
+          if (typeof cur.key === "string" && cur.key.indexOf("chat-") === 0 && v && v.html && Date.now() - v.at < 14 * 24 * 3600 * 1000 && (!best || v.at > best.at)) best = v;
+          cur.continue();
+        };
+        c.onerror = function () { res(best); };
+      });
+    } catch (e) { return null; }
+  }
 
   var CODE_VER = (function () {
-    var str = RESTYLE + String(shim) + String(buildDocument), h = 5381;
+    var str = RESTYLE + String(shim) + String(buildDocument) + String(themeSync) + String(layoutFit) + String(cursorBoot), h = 5381;
     for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
     return (h >>> 0).toString(36);
   })();
@@ -609,6 +633,8 @@ async function buildDocument() {
     if (p) return p;
     var rec = await idbGet();
     if (usable(rec)) { store.html = rec.html; store.at = rec.at; return { html: rec.html, at: rec.at }; }
+    var old = await idbGetStale();
+    if (old) return { html: old.html, at: 0, stale: true };
     return null;
   }
   function ensure(force) {

@@ -22,6 +22,8 @@ html, body {
   color: var(--text);
   font: bold 14px/1.5 "Comfortaa", sans-serif;
 }
+#loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; opacity: .6; pointer-events: none; }
+html.ai-live #loading, #loading.off { display: none; }
 #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; pointer-events: none; }
 #app.live { pointer-events: auto; }
 html.ai-live .kstuff-cursor { display: none !important; }
@@ -38,6 +40,7 @@ html.ai-live .kstuff-cursor { display: none !important; }
 </style>
 </head>
 <body>
+<div id="loading">Loading DeepAI…</div>
 <iframe id="app" title="DeepAI" allow="clipboard-read; clipboard-write; microphone; fullscreen"></iframe>
 <div id="err"><span id="err-text"></span><button id="retry" type="button">Retry</button></div>
 <script src="js/net-client.js"></script>
@@ -67,6 +70,7 @@ html.ai-live .kstuff-cursor { display: none !important; }
 
   function show(html) {
     err.classList.remove('on');
+    document.getElementById('loading').classList.remove('off');
     ready = false;
     clearTimeout(liveTimer);
     frame.classList.remove('live');
@@ -77,6 +81,7 @@ html.ai-live .kstuff-cursor { display: none !important; }
   }
 
   function fail(e) {
+    document.getElementById('loading').classList.add('off');
     errText.textContent = 'Could not load DeepAI: ' + ((e && e.message) || e);
     err.classList.add('on');
     signal();
