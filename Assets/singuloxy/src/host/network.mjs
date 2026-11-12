@@ -3,10 +3,8 @@ import * as response_cache from "./cache.mjs";
 import { iframes } from "./controller.mjs";
 import { rpc_handlers } from "../rpc.mjs";
 import { libcurl } from "libcurl.js/bundled";
-import { init_jar } from "./cookie_jar.mjs";
-import { route_session, set_transport_fetch, transport_active } from "./epoxy_transport.mjs";
+import { load_jar, create_jar_saver } from "./jar_store.mjs";
 
-export { set_transport_fetch, transport_active };
 export const ws_connections = {};
 export let session = null;
 
@@ -121,11 +119,7 @@ let last_shrink_log = 0;
 const request_queue = [];
 
 let wisp_pool = [];
-const SESSION_WAIT_MS = 15000;
 let ws_url = null;
-let libcurl_loaded = false;
-let session_started = false;
-let session_wait_timer = null;
 let bulk = null;
 let jar_checked = 0;
 let balanced_installed = false;
@@ -366,11 +360,7 @@ try {
   const original_set_websocket = libcurl.set_websocket.bind(libcurl);
   libcurl.set_websocket = (url) => {
     ws_url = url;
-    let result = original_set_websocket(url);
-    // The session needs the wisp url, so with epoxy as the transport it is created here,
-    // once the hub has set the websocket, rather than on libcurl's load event.
-    if (libcurl_loaded) start_session();
-    return result;
+    return original_set_websocket(url);
   };
 }
 catch (e) {
@@ -386,6 +376,22 @@ function normalize_wisp(url) {
   let trimmed = url.trim();
   if (!/^wss?:\/\//i.test(trimmed)) return null;
   return trimmed.endsWith("/") ? trimmed : trimmed + "/";
+}
+
+let onion_wisp = null;
+
+export function set_onion_wisp(url) {
+  onion_wisp = normalize_wisp(url);
+  return onion_wisp;
+}
+
+export function is_onion_host(host) {
+  return typeof host === "string" && /(^|\.)onion\.?$/i.test(host);
+}
+
+function onion_url(url) {
+  if (typeof url !== "string" || !/^https:\/\/[^/?#]*\.onion\.?(?::\d+)?([/?#]|$)/i.test(url)) return url;
+  return "http://" + url.slice(8).replace(/:443(?=[/?#]|$)/, "");
 }
 
 export function set_wisp_pool(urls) {
@@ -474,7 +480,7 @@ function install_balanced_transport() {
       let host = target.slice(0, target.lastIndexOf(":")).toLowerCase();
       let chosen = default_wisp;
       try {
-        chosen = pick_wisp(host, default_wisp);
+        chosen = is_onion_host(host) && onion_wisp ? onion_wisp : pick_wisp(host, default_wisp);
       }
       catch {}
       super(chosen + target, protocols);
@@ -731,14 +737,30 @@ export async function test_hosts(urls = DEFAULT_TEST_URLS) {
   return results;
 }
 
+let save_jar = () => false;
+
 function make_session() {
+  let created = null;
   try {
-    init_jar();
+    let stored = load_jar(localStorage);
+    try {
+      created = new libcurl.HTTPSession(stored ? {enable_cookies: true, cookie_jar: stored} : {enable_cookies: true});
+    }
+    catch {
+      created = new libcurl.HTTPSession({enable_cookies: true});
+    }
+    save_jar = create_jar_saver(localStorage, () => created.export_cookies?.() || "");
+    setInterval(() => save_jar(), 2000);
+    for (let name of ["pagehide", "beforeunload"]) window.addEventListener(name, () => save_jar());
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "hidden") save_jar();
+    });
+    return created;
   }
   catch (e) {
-    quiet_warn("sandstone host: cookie jar failed to start:", error_message(e));
+    quiet_warn("sandstone host: cookie-enabled session failed, using a plain session:", error_message(e));
+    return new libcurl.HTTPSession();
   }
-  return route_session(new libcurl.HTTPSession());
 }
 
 function rotate_wisp() {
@@ -1077,6 +1099,7 @@ async function fetch_with_retry_inner(url, options, ignore_block = false, use_se
   let method = String(options?.method || "GET").toUpperCase();
   let can_retry = method === "GET" || method === "HEAD";
   let attempt = 0;
+  url = onion_url(url);
   let roblox_cdn = is_roblox_cdn(url);
   let forbidden_retries = 0;
   let csrf_retries = 0;
@@ -1182,6 +1205,7 @@ async function fetch_with_retry_inner(url, options, ignore_block = false, use_se
         }
         quiet_warn(`sandstone host: auth ${response.status} ${method} ${url} sent-csrf=${sent_csrf ? "yes" : "no"} got-csrf=${hv("x-csrf-token") ? "yes" : "no"} challenge=${hv("rblx-challenge-type") || hv("rblx-challenge-id") || "no"} set-cookie=${hv("set-cookie") ? "yes" : "no"} type=${hv("content-type") || ""} body=${detail}${shape}`);
       }
+      if (IDP_DIAG_HOSTS.test(host_of(url))) await log_idp_exchange(method, url, options, response);
       if (response.status >= 400 && /(^|\.)(roblox\.com|rbxcdn\.com)$/i.test(host_of(url))) {
         let status_path = "";
         try {
@@ -1280,6 +1304,55 @@ function reset_wisp_connection() {
     quiet_warn("sandstone host: reset stalled wisp connection", ws_url);
   }
   catch {}
+}
+
+const IDP_DIAG_HOSTS = /(^|\.)(ncedcloud\.org|instructure\.com|identitymgmt\.net)$/i;
+
+function body_shape(body) {
+  let text = body_as_text(body);
+  if (text === null) return body ? Object.prototype.toString.call(body) : "none";
+  try {
+    let parsed = JSON.parse(text);
+    return "json{" + Object.entries(parsed).map(([key, value]) => `${key}:${typeof value === "string" ? value.length : typeof value}`).join(",") + "}";
+  }
+  catch {}
+  if (/^[^=&]+=/.test(text)) return "form{" + text.split("&").map((part) => { let pair = part.split("="); return `${pair[0]}:${(pair[1] || "").length}`; }).join(",") + "}";
+  return `text(${text.length})`;
+}
+
+function jar_summary(url) {
+  let host = host_of(url);
+  let rows = [];
+  for (let line of current_jar().split("\n")) {
+    let fields = line.replace(/^#HttpOnly_/, "").split("\t");
+    if (fields.length < 7) continue;
+    let domain = fields[0].replace(/^\./, "");
+    if (host === domain || host.endsWith("." + domain)) rows.push(`${fields[5]}@${fields[0]}${fields[2]}${fields[3] === "TRUE" ? ";secure" : ""}`);
+  }
+  return rows.join(",") || "none";
+}
+
+async function log_idp_exchange(method, url, options, response) {
+  let type = response.headers.get("content-type") || "";
+  let snippet = "";
+  if (/json|text\/plain|xml/i.test(type) || (response.status >= 400 && /html/i.test(type))) {
+    try {
+      snippet = (await response.clone().text()).replace(/\s+/g, " ").slice(0, 320);
+    }
+    catch {}
+  }
+  let set_cookies = [];
+  try {
+    set_cookies = (response.raw_headers || [])
+      .filter((pair) => Array.isArray(pair) && String(pair[0]).toLowerCase() === "set-cookie")
+      .map((pair) => {
+        let parts = String(pair[1]).split(";").map((part) => part.trim());
+        return parts[0].split("=")[0] + "[" + parts.slice(1).map((attr) => attr.split("=")[0] === "Path" || attr.split("=")[0] === "Domain" || attr.split("=")[0] === "SameSite" ? attr : attr.split("=")[0]).join(";") + "]";
+      });
+  }
+  catch {}
+  let sent = Object.keys(options?.headers || {}).filter((key) => /^(referer|origin|content-type|x-|cookie)/i.test(key)).join(",");
+  quiet_warn(`[idp-diag] ${response.status} ${method} ${url} -> ${response.url || ""} location=${response.headers.get("location") || ""} type=${type} req=${body_shape(options?.body)} sent-hdrs=[${sent}] jar=[${jar_summary(url)}] set-cookie=[${set_cookies.join(" | ")}] body=${snippet}`);
 }
 
 export async function fetch_page(url, options, on_status = null) {
@@ -1394,14 +1467,18 @@ function segment_target(url, options, response) {
 }
 
 function current_jar() {
-  return "";
+  try {
+    return session.export_cookies?.() || "";
+  }
+  catch {
+    return "";
+  }
 }
 
 function create_bulk(jar) {
   try {
-    let created = new libcurl.HTTPSession();
+    let created = new libcurl.HTTPSession(jar ? {enable_cookies: true, cookie_jar: jar} : {enable_cookies: true});
     created.set_connections(BULK_MAX_TOTAL, BULK_CACHE_SIZE, BULK_PER_HOST);
-    route_session(created);
     return {session: created, jar: jar, users: 0, retired: false};
   }
   catch (e) {
@@ -2415,21 +2492,8 @@ export function clean_ws_connections(id_to_clean) {
   }
 }
 
-function start_session() {
-  if (session_started) return;
-  session_started = true;
-  clearTimeout(session_wait_timer);
-  session = make_session();
-  session_ready_resolve();
-}
-
 libcurl.events.addEventListener("libcurl_load", () => {
   console.log(`libcurl.js v${libcurl.version.lib} loaded`);
-  libcurl_loaded = true;
-  if (ws_url) {
-    start_session();
-    return;
-  }
-  // Wait for set_websocket (epoxy hosts set it after libcurl loads); don't hang forever if it never comes.
-  session_wait_timer = setTimeout(start_session, SESSION_WAIT_MS);
+  session = make_session();
+  session_ready_resolve();
 });
