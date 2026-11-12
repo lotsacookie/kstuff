@@ -131,6 +131,11 @@ html .chat-layout-container .chat-main,html .chat-layout-container.sidebar-open 
 .outputBox pre{white-space:pre-wrap!important;word-break:normal;overflow-wrap:anywhere}
 .persistent-compose-area{max-width:100%!important;box-sizing:border-box!important}
 .k-fit{left:var(--k-left,0px)!important;right:0!important;margin-left:auto!important;margin-right:auto!important;transform:none!important;width:min(var(--k-cw,720px),calc(100vw - var(--k-left,0px) - 24px))!important;box-sizing:border-box!important}
+.k-screenshare-btn{display:inline-flex!important;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 14px;margin:0 6px;flex:0 0 auto;background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;font:inherit;font-size:.85rem;cursor:pointer;white-space:nowrap;transition:background-color .25s ease,color .25s ease,border-color .25s ease}
+.k-screenshare-btn svg{width:18px;height:18px;flex:0 0 auto}
+.k-screenshare-btn:hover:not(:disabled),.k-screenshare-btn:focus-visible{background:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
+.k-screenshare-btn:disabled{opacity:.6;cursor:default}
+@media(max-width:560px){.k-screenshare-btn span{display:none}.k-screenshare-btn{padding:0 10px}}
 `;
 
 function themeSync() {
@@ -188,6 +193,158 @@ function layoutFit() {
     queue();
     setTimeout(queue, 500);
     setTimeout(queue, 1500);
+  }
+  arm();
+}
+
+function screenshareBoot() {
+  if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) return;
+  var LABEL = "Screenshare", busy = false, btn = null;
+  var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path><path d="M12 13V8M9.5 10.5 12 8l2.5 2.5"></path></svg>';
+  function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+  function setLabel(t) { if (btn) { var sp = btn.querySelector("span"); if (sp) sp.textContent = t; btn.title = t; } }
+
+  async function grab() {
+    var stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
+    try {
+      var v = document.createElement("video");
+      v.muted = true; v.playsInline = true; v.srcObject = stream;
+      await v.play();
+      await new Promise(function (r) {
+        var done = false, fin = function () { if (!done) { done = true; r(); } };
+        if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(function () { setTimeout(fin, 120); });
+        setTimeout(fin, 900);
+      });
+      var w = v.videoWidth, h = v.videoHeight;
+      if (!w || !h) throw new Error("No video frame");
+      var k = Math.min(1, 2560 / Math.max(w, h)), cw = Math.round(w * k), ch = Math.round(h * k);
+      var c = document.createElement("canvas");
+      c.width = cw; c.height = ch;
+      c.getContext("2d").drawImage(v, 0, 0, cw, ch);
+      var blob = await new Promise(function (r) { c.toBlob(r, "image/png"); });
+      var name = "screenshot.png";
+      if (!blob || blob.size > 15 * 1024 * 1024) {
+        blob = await new Promise(function (r) { c.toBlob(r, "image/jpeg", 0.85); });
+        name = "screenshot.jpg";
+      }
+      if (!blob) throw new Error("Capture failed");
+      return new File([blob], name, { type: blob.type, lastModified: Date.now() });
+    } finally {
+      try { stream.getTracks().forEach(function (t) { t.stop(); }); } catch (e) {}
+    }
+  }
+
+  function composeArea() { return document.querySelector(".persistent-compose-area") || document.body; }
+  function snapshot() {
+    var a = composeArea(), up = document.getElementById("upload-successful"), shown = 0;
+    try { if (up) { var cs = getComputedStyle(up); shown = cs.display !== "none" && cs.visibility !== "hidden" && parseFloat(cs.opacity || "1") > 0.05 ? 1 : 0; } } catch (e) {}
+    return a.querySelectorAll("img,canvas,[class*='attach'],[class*='preview'],[class*='thumb'],[class*='upload']").length + ":" + a.innerHTML.length + ":" + shown;
+  }
+  function findInput() {
+    var list = [].slice.call(document.querySelectorAll("input[type=file]"));
+    for (var i = 0; i < list.length; i++) {
+      var acc = list[i].getAttribute("accept") || "";
+      if (!acc || /image|\*|png|jpe?g/i.test(acc)) return list[i];
+    }
+    return list[0] || null;
+  }
+  async function waitChange(before, ms) {
+    var end = Date.now() + ms;
+    while (Date.now() < end) { await sleep(150); if (snapshot() !== before) return true; }
+    return false;
+  }
+  async function attach(file) {
+    var dt = new DataTransfer(); dt.items.add(file);
+    var before = snapshot(), inp = findInput(), plus = document.querySelector(".compose-plus-btn"), opened = false;
+    if (!inp && plus) { plus.click(); opened = true; await sleep(200); inp = findInput(); }
+    if (inp) {
+      try {
+        inp.files = dt.files;
+        inp.dispatchEvent(new Event("input", { bubbles: true }));
+        inp.dispatchEvent(new Event("change", { bubbles: true }));
+      } catch (e) {}
+    }
+    if (opened && plus && plus.classList.contains("open")) plus.click();
+    if (inp && await waitChange(before, 3000)) return true;
+    var tb = document.getElementById("persistentChatbox") || composeArea();
+    try {
+      tb.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+      if (await waitChange(before, 2500)) return true;
+    } catch (e) {}
+    try {
+      var area = composeArea();
+      ["dragenter", "dragover", "drop"].forEach(function (t) { area.dispatchEvent(new DragEvent(t, { dataTransfer: dt, bubbles: true, cancelable: true })); });
+      if (await waitChange(before, 2500)) return true;
+    } catch (e) {}
+    return false;
+  }
+  function setText(tb, text) {
+    tb.focus();
+    if (tb.tagName === "TEXTAREA" || tb.tagName === "INPUT") {
+      var proto = tb.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, "value").set.call(tb, text);
+    } else {
+      tb.textContent = text;
+    }
+    tb.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+  async function send() {
+    var tb = document.getElementById("persistentChatbox");
+    if (!tb) throw new Error("Chat box not found");
+    setText(tb, "Solve");
+    await sleep(250);
+    var sub = document.getElementById("chatSubmitButton");
+    if (sub && !sub.disabled) { sub.click(); return; }
+    ["keydown", "keypress", "keyup"].forEach(function (t) {
+      tb.dispatchEvent(new KeyboardEvent(t, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }));
+    });
+  }
+
+  async function run() {
+    if (busy) return;
+    busy = true; btn.disabled = true; setLabel("Sharing…");
+    var msg = LABEL;
+    try {
+      var file;
+      try { file = await grab(); } catch (e) { if (e && (e.name === "NotAllowedError" || e.name === "AbortError")) return; throw e; }
+      setLabel("Attaching…");
+      if (!(await attach(file))) { msg = "Attach failed"; return; }
+      await sleep(900);
+      await send();
+    } catch (e) {
+      try { console.error("screenshare", e); } catch (x) {}
+      msg = "Failed";
+    } finally {
+      setLabel(msg);
+      busy = false; btn.disabled = false;
+      if (msg !== LABEL) setTimeout(function () { if (!busy) setLabel(LABEL); }, 2500);
+    }
+  }
+
+  function place() {
+    var plus = document.querySelector(".compose-plus-btn");
+    var area = document.querySelector(".persistent-compose-area");
+    if (!plus && !area) return;
+    if (btn && document.contains(btn) && (plus ? btn.previousElementSibling === plus : btn.parentElement === area)) return;
+    if (!btn) {
+      btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "k-screenshare-btn";
+      btn.innerHTML = ICON + "<span>" + LABEL + "</span>";
+      btn.title = LABEL;
+      btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); run(); });
+    }
+    if (plus && plus.parentNode) plus.parentNode.insertBefore(btn, plus.nextSibling);
+    else area.appendChild(btn);
+  }
+  var raf = 0;
+  function queue() { if (!raf) raf = requestAnimationFrame(function () { raf = 0; place(); }); }
+  function arm() {
+    if (!document.body) return setTimeout(arm, 30);
+    new MutationObserver(queue).observe(document.body, { childList: true, subtree: true });
+    queue();
+    setTimeout(queue, 600);
+    setTimeout(queue, 2000);
   }
   arm();
 }
@@ -560,7 +717,7 @@ async function buildDocument() {
     .replace(/window\.location\.hostname\s*===\s*["']deepai\.org["']/g, "true")
     .replace(/window\.top\.location\.href\s*=\s*window\.location\.href/g, "void 0")
     .replace(/function applyStoredLanguage\(\)\s*\{/, (m) => m + "return false;");
-  html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script><script>(" + themeSync.toString() + ")();<\/script><script>(" + layoutFit.toString() + ")();<\/script>");
+  html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script><script>(" + themeSync.toString() + ")();<\/script><script>(" + layoutFit.toString() + ")();<\/script><script>(" + screenshareBoot.toString() + ")();<\/script>");
   html = html.replace(/<\/head>/i, () => '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap"><style id="px-style">' + RESTYLE + "</style></head>");
   return html;
 }
@@ -619,7 +776,7 @@ async function buildDocument() {
   }
 
   var CODE_VER = (function () {
-    var str = RESTYLE + String(shim) + String(buildDocument) + String(themeSync) + String(layoutFit) + String(cursorBoot), h = 5381;
+    var str = RESTYLE + String(shim) + String(buildDocument) + String(themeSync) + String(layoutFit) + String(screenshareBoot) + String(cursorBoot), h = 5381;
     for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
     return (h >>> 0).toString(36);
   })();
