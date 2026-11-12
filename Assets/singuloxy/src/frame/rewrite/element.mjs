@@ -2,7 +2,10 @@ import * as rewrite from "./index.mjs";
 
 import { parse_css } from "./css.mjs";
 import { strip_urls } from "./placeholder.mjs";
-import { run_script, is_ready, document_base } from "../context.mjs";
+import { ctx, run_script, is_ready, document_base } from "../context.mjs";
+
+// <body>/<frameset> on* attributes for these events are really window handlers (the event never fires on the element).
+const WINDOW_FORWARDED = new Set(["load", "unload", "beforeunload", "pageshow", "pagehide", "hashchange", "popstate", "resize", "message", "storage", "online", "offline", "focus", "blur", "error"]);
 
 function is_stylesheet_link(element) {
   if (!(element instanceof HTMLLinkElement)) return false;
@@ -49,7 +52,8 @@ function rewrite_element_single(element) {
     element.removeAttribute(attribute);
 
     let handler_fn = null;
-    element.addEventListener(event_name, (event) => {
+    let handler_target = (element.tagName === "BODY" || element.tagName === "FRAMESET") && WINDOW_FORWARDED.has(event_name) && ctx.window ? ctx.window : element;
+    handler_target.addEventListener(event_name, (event) => {
       try {
         if (!handler_fn)
           handler_fn = run_script(`(function(event){${handler_script}\n})`);
