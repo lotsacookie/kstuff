@@ -178,6 +178,85 @@ function is_ctx_var(name) {
   return ctx_var_set.has(name);
 }
 
+const FUNCTION_TYPES = new Set(["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"]);
+
+function pattern_binds(pattern, name) {
+  if (!pattern) return false;
+  switch (pattern.type) {
+    case "Identifier": return pattern.name === name;
+    case "AssignmentPattern": return pattern_binds(pattern.left, name);
+    case "RestElement": return pattern_binds(pattern.argument, name);
+    case "ArrayPattern": return pattern.elements.some((element) => pattern_binds(element, name));
+    case "ObjectPattern": return pattern.properties.some((property) => pattern_binds(property.type === "Property" ? property.value : property, name));
+  }
+  return false;
+}
+
+function declaration_binds(declaration, name) {
+  return declaration.declarations.some((declarator) => pattern_binds(declarator.id, name));
+}
+
+function statements_bind(statements, name) {
+  for (let statement of statements) {
+    if (!statement) continue;
+    let target = statement;
+    if ((target.type === "ExportNamedDeclaration" || target.type === "ExportDefaultDeclaration") && target.declaration) target = target.declaration;
+    if (target.type === "VariableDeclaration" && target.kind !== "var" && declaration_binds(target, name)) return true;
+    if ((target.type === "FunctionDeclaration" || target.type === "ClassDeclaration") && target.id?.name === name) return true;
+  }
+  return false;
+}
+
+function hoisted_var_binds(node, name, depth = 0) {
+  if (!node || typeof node !== "object" || depth > 200) return false;
+  if (Array.isArray(node)) return node.some((child) => hoisted_var_binds(child, name, depth + 1));
+  if (typeof node.type !== "string") return false;
+  if (FUNCTION_TYPES.has(node.type)) return false;
+  if (node.type === "VariableDeclaration" && node.kind === "var" && declaration_binds(node, name)) return true;
+  for (let key in node) {
+    if (key === "path" || key === "range" || key === "loc") continue;
+    let child = node[key];
+    if (child && typeof child === "object" && hoisted_var_binds(child, name, depth + 1)) return true;
+  }
+  return false;
+}
+
+function is_locally_bound(node, name) {
+  let current = node.path?.parent;
+  while (current) {
+    if (FUNCTION_TYPES.has(current.type)) {
+      if (current.params.some((param) => pattern_binds(param, name))) return true;
+      if (current.type === "FunctionExpression" && current.id?.name === name) return true;
+      if (current.body?.type === "BlockStatement") {
+        if (statements_bind(current.body.body, name)) return true;
+        if (hoisted_var_binds(current.body.body, name)) return true;
+      }
+    }
+    else if (current.type === "BlockStatement" || current.type === "StaticBlock") {
+      if (statements_bind(current.body, name)) return true;
+    }
+    else if (current.type === "SwitchStatement") {
+      if (current.cases.some((entry) => statements_bind(entry.consequent, name))) return true;
+    }
+    else if (current.type === "CatchClause") {
+      if (pattern_binds(current.param, name)) return true;
+    }
+    else if (current.type === "ForStatement") {
+      if (current.init?.type === "VariableDeclaration" && current.init.kind !== "var" && declaration_binds(current.init, name)) return true;
+    }
+    else if (current.type === "ForInStatement" || current.type === "ForOfStatement") {
+      if (current.left?.type === "VariableDeclaration" && current.left.kind !== "var" && declaration_binds(current.left, name)) return true;
+    }
+    else if (current.type === "ClassExpression" && current.id?.name === name) return true;
+    else if (current.type === "Program") {
+      if (statements_bind(current.body, name)) return true;
+      if (hoisted_var_binds(current.body, name)) return true;
+    }
+    current = current.path?.parent;
+  }
+  return false;
+}
+
 class ASTVisitor {
   constructor(ast) {
     this.ast = ast;
@@ -240,6 +319,8 @@ class ASTVisitor {
     let simple = false;
     if (parent.type === "AssignmentExpression" && parent.left === node) {
       if (node.name !== "location")
+        return;
+      if (is_locally_bound(node, "location"))
         return;
       simple = true;
     }
