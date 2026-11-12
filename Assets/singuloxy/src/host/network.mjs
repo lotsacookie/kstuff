@@ -1355,8 +1355,34 @@ async function log_idp_exchange(method, url, options, response) {
   quiet_warn(`[idp-diag] ${response.status} ${method} ${url} -> ${response.url || ""} location=${response.headers.get("location") || ""} type=${type} req=${body_shape(options?.body)} sent-hdrs=[${sent}] jar=[${jar_summary(url)}] set-cookie=[${set_cookies.join(" | ")}] body=${snippet}`);
 }
 
+const SESSION_WAIT_MS = 25 * 1000;
+
+async function ensure_session() {
+  if (session) return;
+  if (libcurl.ready) {
+    try {
+      session = make_session();
+      session_ready_resolve();
+      return;
+    }
+    catch {}
+  }
+  let timer;
+  let timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      reject(new Error("Request failed with error code 28: network engine did not start (libcurl wasm not loaded)"));
+    }, SESSION_WAIT_MS);
+  });
+  try {
+    await Promise.race([session_ready, timeout]);
+  }
+  finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function fetch_page(url, options, on_status = null) {
-  if (!session) await session_ready;
+  await ensure_session();
   let attempt = 0;
 
   while (true) {

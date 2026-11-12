@@ -358,10 +358,17 @@ export class ProxyFrame {
         }
         else {
           this.emit_progress(0.12, "Fetching page");
-          let response = await network.fetch_page(url, options, (attempt, reason) => {
-            let code = /error code (\d+)/.exec(reason || "");
-            this.emit_progress(0.12, "Retrying (" + (attempt + 1) + ")" + (code ? " error " + code[1] : ""));
-          });
+          let slow_timer = setTimeout(() => this.emit_progress(0.12, "Still connecting to network"), 8000);
+          let response;
+          try {
+            response = await network.fetch_page(url, options, (attempt, reason) => {
+              let code = /error code (\d+)/.exec(reason || "");
+              this.emit_progress(0.12, "Retrying (" + (attempt + 1) + ")" + (code ? " error " + code[1] : ""));
+            });
+          }
+          finally {
+            clearTimeout(slow_timer);
+          }
           html = await response.text();
           this.emit_progress(0.35, "Page downloaded");
           set_cookies = extract_set_cookies(response);
