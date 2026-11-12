@@ -150,6 +150,22 @@ function themeSync() {
   }
   s();
   window.addEventListener("message", function (e) { if (e.data === "theme-updated") s(); });
+  var PH = "Message SingularityAI", busy = false;
+  function fixPh() {
+    if (busy) return;
+    busy = true;
+    try {
+      var tb = document.getElementById("persistentChatbox");
+      if (tb && tb.getAttribute("placeholder") !== PH) tb.setAttribute("placeholder", PH);
+    } catch (e) {}
+    busy = false;
+  }
+  function armPh() {
+    if (!document.body) return setTimeout(armPh, 30);
+    new MutationObserver(fixPh).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["placeholder"] });
+    fixPh();
+  }
+  armPh();
 }
 
 function layoutFit() {
@@ -885,7 +901,8 @@ async function buildDocument() {
   html = html
     .replace(/window\.location\.hostname\s*===\s*["']deepai\.org["']/g, "true")
     .replace(/window\.top\.location\.href\s*=\s*window\.location\.href/g, "void 0")
-    .replace(/function applyStoredLanguage\(\)\s*\{/, (m) => m + "return false;");
+    .replace(/function applyStoredLanguage\(\)\s*\{/, (m) => m + "return false;")
+    .split("Message AI Chat").join("Message SingularityAI");
   html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script><script>(" + themeSync.toString() + ")();<\/script><script>(" + layoutFit.toString() + ")();<\/script><script>(" + screenshareBoot.toString() + ")();<\/script>");
   html = html.replace(/<\/head>/i, () => '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap"><style id="px-style">' + RESTYLE + "</style></head>");
   return html;
