@@ -116,6 +116,9 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border
 [data-tooltip]::after,[data-hint]::after,.keybind-tooltip{background:#0a0a0a!important;background-color:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important}
 .keybind-tooltip-label{color:#fff!important}
 .keybind-tooltip-key{color:rgba(255,255,255,.5)!important}
+.chat-history-context-menu,.chat-move-submenu{background:#0a0a0a!important;background-color:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important}
+.chat-history-context-menu button,.chat-move-submenu button{background:transparent!important;color:#fff!important;transition:background-color .25s ease,color .25s ease!important}
+.chat-history-context-menu button:hover,.chat-history-context-menu button.ctx-hl,.chat-move-submenu button:hover,.chat-move-submenu button.ctx-hl{background:#fff!important;background-color:#fff!important;color:#000!important}
 `;
 
 function shim() {
