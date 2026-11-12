@@ -97,7 +97,7 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:var(--bg)!important;b
 .chat-layout-container .chat-main.has-messages{padding-top:56px!important}
 .chat-layout-container .chat-main{margin-left:284px!important;margin-top:0!important;margin-bottom:0!important;background:transparent!important}
 .chat-main:not(.has-messages){height:100dvh!important}
-.chat-main:not(.has-messages) .persistent-compose-area{position:fixed!important;bottom:10px!important;top:auto!important;left:0!important;right:0!important;margin:0 auto!important;width:calc(min(100vw - 18px,862px))!important;order:0!important}
+.chat-main:not(.has-messages) .persistent-compose-area{position:fixed!important;bottom:10px!important;top:auto!important;left:var(--k-left,0px)!important;right:0!important;margin:0 auto!important;width:min(862px,calc(100vw - var(--k-left,0px) - 24px))!important;max-width:none!important;box-sizing:border-box!important;order:0!important}
 .chat-main:not(.has-messages) .ai-disclaimer{margin-bottom:68px!important}
 .chat-main:not(.has-messages) .attach-dropdown-menu{bottom:calc(100% + 8px)!important;top:auto!important;max-height:calc(75dvh - 170px)!important}
 .chat-main:not(.has-messages) .presets-dropdown-menu{bottom:calc(100% + 8px)!important;top:auto!important;transform:translateX(-50%)!important}
