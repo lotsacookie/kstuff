@@ -108,6 +108,14 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border
 .confirm-button:hover:not(:disabled),#confirm-yes-btn:hover:not(:disabled),#confirm-cancel-btn:hover:not(:disabled){background:#fff!important;background-color:#fff!important;color:#000!important;border-color:#fff!important}
 .history-delete-btn{color:#fff!important}
 .history-delete-btn:hover,.history-delete-btn.ctx-hl{background:#fff!important;color:#000!important}
+.chat-history-item.current-chat,.chat-history-item.current-chat.menu-open,.chat-history-item.current-chat.rename-open,.chat-history-item.current-chat:hover{background:#fff!important;background-color:#fff!important;color:#000!important;border-color:#fff!important}
+.chat-history-item.current-chat *{color:#000!important}
+.chat-history-item.current-chat svg [stroke="white"]{stroke:#000!important}
+.chat-history-item.current-chat svg [fill="white"]{fill:#000!important}
+#chatHistoryList>*:has(.current-chat){opacity:1!important}
+[data-tooltip]::after,[data-hint]::after,.keybind-tooltip{background:#0a0a0a!important;background-color:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important}
+.keybind-tooltip-label{color:#fff!important}
+.keybind-tooltip-key{color:rgba(255,255,255,.5)!important}
 `;
 
 function shim() {
