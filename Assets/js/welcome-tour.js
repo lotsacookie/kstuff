@@ -12,7 +12,6 @@ export function init(K) {
   const SET_MODAL = '#homeworkhelper-modal .modal-content';
   const tab = id => `.settings-tab[data-panel="settings-panel-${id}"]`;
 
-  // Bounding box in top-level viewport coordinates (works for elements inside iframes)
   const rect = el => {
     const r = el.getBoundingClientRect();
     let x = r.left, y = r.top, w = el.ownerDocument && el.ownerDocument.defaultView;
@@ -53,56 +52,44 @@ export function init(K) {
     await sleep(500);
   };
 
-  // --- AI welcome message (typed into the AI page's chat, same-origin iframe) ---
-  const AI_TEXT = 'Hey! I\u2019m SingularityAI. Ask me anything: homework help, code, ideas, or just a chat. You can pick a model from the dropdown, and your past chats will show up in the sidebar.';
-  let aiNode = null, aiTimer = 0, aiHidWelcome = false;
-  const aiDoc = () => { try { const f = document.getElementById('lessonplanner-iframe'); return (f && f.contentDocument) || null; } catch { return null; } };
-  const clearAi = () => {
-    clearTimeout(aiTimer); aiTimer = 0;
-    if (aiNode) { aiNode.remove(); aiNode = null; }
-    const d = aiDoc();
-    const list = d && d.getElementById('aiMessages'), w = d && d.getElementById('aiWelcome');
-    if (aiHidWelcome && w && list && !list.children.length) w.style.display = 'flex';
-    aiHidWelcome = false;
-  };
+  const AI_HELLO = 'Hello! This is my first time using Singularity.';
+  let aiSent = false, aiRun = 0;
+  const aiPage = () => { try { const f = document.getElementById('lessonplanner-iframe'); return (f && f.contentDocument) || null; } catch { return null; } };
+  const aiInner = () => { try { const p = aiPage(), f = p && p.getElementById('app'); return (f && f.contentDocument) || null; } catch { return null; } };
+  const aiReady = d => !!(d && d.getElementById('persistentChatbox') && d.getElementById('chatSubmitButton'));
   const aiWelcome = async () => {
-    clearAi();
-    let d = null;
+    if (aiSent) return;
+    const run = ++aiRun;
     const t0 = Date.now();
-    while (Date.now() - t0 < 5000) {
-      d = aiDoc();
-      if (d && d.getElementById('aiMessages')) break;
-      d = null; await sleep(150);
+    let d = null;
+    while (Date.now() - t0 < 25000 && run === aiRun && active) {
+      d = aiInner();
+      if (aiReady(d)) break;
+      d = null;
+      await sleep(200);
     }
-    if (!d) return;
-    const list = d.getElementById('aiMessages'), w = d.getElementById('aiWelcome');
-    if (!list.children.length && w) { w.style.display = 'none'; aiHidWelcome = true; }
-    const msg = d.createElement('div');
-    msg.className = 'ai-message assistant';
-    msg.setAttribute('data-sg-tour', '1');
-    const dots = d.createElement('div');
-    dots.className = 'ai-thinking-dots';
-    dots.innerHTML = '<span class="ai-typing-dot"></span><span class="ai-typing-dot"></span><span class="ai-typing-dot"></span>';
-    msg.appendChild(dots);
-    list.appendChild(msg);
-    aiNode = msg;
-    await sleep(900);
-    if (aiNode !== msg) return;
-    dots.remove();
-    const text = d.createElement('div');
-    text.className = 'ai-message-text';
-    msg.appendChild(text);
-    let i = 0;
-    const type = () => {
-      if (aiNode !== msg) return;
-      i = Math.min(AI_TEXT.length, i + 2);
-      text.textContent = AI_TEXT.slice(0, i);
-      if (i < AI_TEXT.length) aiTimer = setTimeout(type, 24);
-    };
-    type();
+    if (!d || run !== aiRun || !active || aiSent) return;
+    if (d.querySelector('.has-messages')) { aiSent = true; return; }
+    const w = d.defaultView, tb = d.getElementById('persistentChatbox');
+    if (!w || !tb || (tb.value || '').trim()) return;
+    tb.focus();
+    if (tb.tagName === 'TEXTAREA' || tb.tagName === 'INPUT') {
+      const proto = tb.tagName === 'TEXTAREA' ? w.HTMLTextAreaElement.prototype : w.HTMLInputElement.prototype;
+      Object.getOwnPropertyDescriptor(proto, 'value').set.call(tb, AI_HELLO);
+    } else {
+      tb.textContent = AI_HELLO;
+    }
+    tb.dispatchEvent(new w.Event('input', { bubbles: true }));
+    await sleep(350);
+    if (run !== aiRun || !active || aiSent) return;
+    aiSent = true;
+    const sub = d.getElementById('chatSubmitButton');
+    if (sub && !sub.disabled) { sub.click(); return; }
+    ['keydown', 'keypress', 'keyup'].forEach(t => {
+      tb.dispatchEvent(new w.KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }));
+    });
   };
 
-  // Idempotent per-step setup: opens/closes Settings, navigates, switches tabs, triggers the AI hello
   const prepare = async step => {
     if (step.settings) {
       await openSettings();
@@ -112,8 +99,8 @@ export function init(K) {
       await closeSettings();
     }
     if (step.page) await goPage(step.page);
-    if (step.id === 'ai') await aiWelcome();
-    else if (aiNode) clearAi();
+    if (step.id === 'ai') aiWelcome();
+    else aiRun++;
   };
 
   const STEPS = [
@@ -131,9 +118,9 @@ export function init(K) {
     { id: 'music', sel: portal, always: true, page: 'gradebook', title: 'Music', text: 'Search for songs, queue them up and build your own playlists.' },
     { id: 'tv', sel: portal, always: true, page: 'civics', title: 'TV', text: 'Browse movies and shows, search, or watch live TV.' },
     {
-      id: 'ai', sel: () => { const d = aiDoc(); return d && d.getElementById('aiComposer'); }, always: true,
+      id: 'ai', sel: () => { const d = aiInner(); return d && (d.querySelector('.persistent-compose-area') || d.getElementById('persistentChatbox')); }, always: true,
       page: 'lessonplanner', side: 'top', title: 'AI',
-      text: 'Chat with SingularityAI. Type your question down here, and pick a model from the dropdown. It even said hi!'
+      text: 'Chat with SingularityAI. Type your question down here. I just said hello to it, so you can watch it welcome you.'
     },
     { id: 'vms', sel: portal, always: true, page: 'vms', title: 'VMs', text: 'Virtual machines, right in your browser.' },
     { id: 'chat', sel: portal, always: true, page: 'studyhall', when: () => !!K.currentUser, title: 'Chat', text: 'Message other people and make group chats.' },
@@ -285,7 +272,6 @@ export function init(K) {
     let radius = 16;
     try { radius = (parseFloat(el.ownerDocument.defaultView.getComputedStyle(el).borderTopLeftRadius) || 10) + pad; } catch {}
 
-    // Card placement can be anchored to a different element than the spotlight
     let px = sx, py = sy, pw = sw, ph = sh;
     const an = step.anchor && document.querySelector(step.anchor);
     if (an) { const a = rect(an); if (a.width > 0 && a.height > 0) { px = a.left; py = a.top; pw = a.width; ph = a.height; } }
@@ -409,7 +395,7 @@ export function init(K) {
     markSeen();
     document.removeEventListener('keydown', onKey, true);
     window.removeEventListener('resize', onResize);
-    clearAi();
+    aiRun++;
     root.classList.remove('on');
     const closing = root;
     setTimeout(() => { closing.remove(); if (root === closing) root = null; }, 450);
@@ -431,6 +417,7 @@ export function init(K) {
     index = 0;
     shown = 0;
     navigated = false;
+    aiSent = false;
     prevFocus = document.activeElement;
     K.tooltipEl && (K.tooltipEl.style.display = 'none');
     document.addEventListener('keydown', onKey, true);
