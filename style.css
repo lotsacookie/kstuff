@@ -2435,9 +2435,9 @@ button:not(:disabled):hover svg[fill="none"],button:not(:disabled):hover svg.sg-
 .learning-footer .footer-left,.learning-footer .footer-right{gap:2px;align-items:center;height:100%;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}
 .learning-footer .footer-item,body.floating-on .learning-footer .footer-item{height:22px;padding:0 8px;gap:5px;font-size:.72rem;font-weight:500;font-variant-numeric:tabular-nums;opacity:.65;background:transparent!important;border:0!important;border-radius:6px!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .learning-footer .footer-item i{font-size:.95rem}
-.learning-footer .footer-item:hover{background:var(--tint)!important;opacity:1}
+.learning-footer .footer-item:hover,body.floating-on .learning-footer .footer-item:hover{background:var(--text-color)!important;color:var(--bg-color)!important;opacity:1}
+.learning-footer .footer-item:hover i,.learning-footer .footer-item:hover span{color:var(--bg-color)!important}
 .learning-footer .footer-item.footer-btn,body.floating-on .learning-footer .footer-item.footer-btn{width:24px;min-width:0;padding:0;gap:0;justify-content:center;aspect-ratio:auto}
-.learning-footer .footer-item.footer-btn:hover{background:var(--text-color)!important}
 .learning-footer .footer-btn span{display:none}
 .learning-footer .footer-btn i{font-size:1rem}
 .learning-footer .clock-item{letter-spacing:0}
