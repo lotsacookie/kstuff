@@ -69,9 +69,14 @@ export async function rewrite_stylesheet(link_element) {
   if (link_element.hasAttribute("integrity"))
     link_element.removeAttribute("integrity");
 
-  let link_href = link_element.getAttribute("href") || link_element.getAttribute("data-href");
+  let link_href = link_element.getAttribute("href") || link_element.getAttribute("__href") || link_element.getAttribute("data-href");
   if (!link_href) {
     return;
+  }
+
+  if (link_element.hasAttribute("href")) {
+    link_element.setAttribute("__href", link_href);
+    link_element.removeAttribute("href");
   }
 
   let css_url = convert_url(link_href, document_base());
