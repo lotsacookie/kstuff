@@ -386,25 +386,32 @@ function screenshareBoot() {
       if (Date.now() - since > 1500) return;
     }
   }
+  function preType() {
+    var tb = document.getElementById("persistentChatbox");
+    if (tb) { try { setText(tb, "Solve"); } catch (e) {} }
+  }
   async function send() {
     var tb = document.getElementById("persistentChatbox");
     if (!tb) throw new Error("Chat box not found");
     function val() { return String(tb.value !== undefined ? tb.value : tb.textContent || ""); }
-    var base0 = lastReply();
-    setText(tb, "Solve");
-    await sleep(150);
-    for (var i = 0; i < 20; i++) {
-      var cur = lastReply();
-      if (cur.n > base0.n || !val().trim()) return;
-      var sub = document.getElementById("chatSubmitButton");
-      if (sub && !sub.disabled) sub.click();
-      else {
-        tb.focus();
-        ["keydown", "keypress", "keyup"].forEach(function (t) {
-          tb.dispatchEvent(new KeyboardEvent(t, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }));
-        });
+    var base0 = lastReply(), lastAct = 0, end = Date.now() + 15000;
+    if (val().trim() !== "Solve") setText(tb, "Solve");
+    while (Date.now() < end) {
+      if (lastReply().n > base0.n) return;
+      if (!val().trim() && lastAct) return;
+      if (Date.now() - lastAct > 450) {
+        var sub = document.getElementById("chatSubmitButton");
+        if (!val().trim()) setText(tb, "Solve");
+        if (sub && !sub.disabled) { sub.click(); lastAct = Date.now(); }
+        else if (!sub) {
+          tb.focus();
+          ["keydown", "keypress", "keyup"].forEach(function (t) {
+            tb.dispatchEvent(new KeyboardEvent(t, { key: "Enter", code: "Enter", keyCode: 13, which: 13, bubbles: true, cancelable: true }));
+          });
+          lastAct = Date.now();
+        }
       }
-      await sleep(500);
+      await sleep(60);
     }
   }
 
@@ -489,12 +496,11 @@ function screenshareBoot() {
     sharing = true; ui.share.disabled = true;
     try {
       if (!live()) { status("Pick a screen…"); await ensureStream([pip, window]); }
+      preType();
       status("Capturing…");
       var file = await frameFile();
       status("Attaching…");
       if (!(await attach(file))) { status("Attach failed"); return; }
-      status("Uploading…");
-      await waitUploaded();
       ui.out.className = ""; ui.out.textContent = "";
       startWatch();
       status("Sending…");
@@ -530,12 +536,11 @@ function screenshareBoot() {
     var msg = "";
     try {
       try { await ensureStream([window]); } catch (e) { if (e && (e.name === "NotAllowedError" || e.name === "AbortError")) return; throw e; }
+      preType();
       setLabel("Capturing…");
       var file = await frameFile();
       setLabel("Attaching…");
       if (!(await attach(file))) { msg = "Attach failed"; return; }
-      setLabel("Uploading…");
-      await waitUploaded();
       if (ui && pip && !pip.closed) { ui.out.className = ""; ui.out.textContent = ""; startWatch(); }
       setLabel("Sending…");
       await send();
