@@ -1,6 +1,6 @@
 (function () {
   if (window.kAiDoc) return;
-  var JAR_KEY = "deepai.jar", DB_NAME = "kstuff-ai", STORE_NAME = "docs", DOC_ID = "chat-v3";
+  var JAR_KEY = "deepai.jar", DB_NAME = "kstuff-ai", STORE_NAME = "docs", DOC_ID = "chat";
   var FRESH_MS = 25 * 60 * 1000, MAX_AGE_MS = 12 * 3600 * 1000;
   var noop = function () {};
   var log = function () { try { console.log.apply(console, arguments); } catch (e) {} };
@@ -454,6 +454,14 @@ async function buildDocument() {
     } catch (e) {}
   }
 
+  var CODE_VER = (function () {
+    var str = RESTYLE + String(shim) + String(buildDocument), h = 5381;
+    for (var i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+  })();
+  DOC_ID = "chat-" + CODE_VER;
+  if (store.ver !== CODE_VER) { store.html = ""; store.at = 0; store.ver = CODE_VER; }
+
   var usable = function (rec) { return !!(rec && rec.html && Date.now() - rec.at < MAX_AGE_MS); };
   function peek() { return usable(store) ? { html: store.html, at: store.at } : null; }
   async function load() {
@@ -476,7 +484,7 @@ async function buildDocument() {
     return store.busy;
   }
 
-  window.kAiDoc = { px: px, peek: peek, load: load, ensure: ensure, build: buildDocument, age: function () { return store.at ? Date.now() - store.at : Infinity; } };
+  window.kAiDoc = { ver: CODE_VER, px: px, peek: peek, load: load, ensure: ensure, build: buildDocument, age: function () { return store.at ? Date.now() - store.at : Infinity; } };
 
   if (host === window) {
     var warm = function (n) {

@@ -4,6 +4,17 @@ export function init(K) {
   const REPO = (K && K.MAIN_REPO) || 'lotsacookie/kstuff';
   const PATH = 'Assets/pages/js/ai-doc.js';
   (async () => {
+    const sg = window.singularity;
+    if (sg && sg.has(PATH)) {
+      const code = sg.text(PATH);
+      if (code) {
+        const s = document.createElement('script');
+        s.textContent = code;
+        document.head.appendChild(s);
+        s.remove();
+        return;
+      }
+    }
     let sha = '';
     try { sha = (await window.kShaP) || ''; } catch {}
     const urls = [];
