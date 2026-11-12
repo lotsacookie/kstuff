@@ -57,21 +57,23 @@ export function init(K) {
   const aiPage = () => { try { const f = document.getElementById('lessonplanner-iframe'); return (f && f.contentDocument) || null; } catch { return null; } };
   const aiInner = () => { try { const p = aiPage(), f = p && p.getElementById('app'); return (f && f.contentDocument) || null; } catch { return null; } };
   const aiReady = d => !!(d && d.getElementById('persistentChatbox') && d.getElementById('chatSubmitButton'));
-  const aiWelcome = async () => {
-    if (aiSent) return;
-    const run = ++aiRun;
-    const t0 = Date.now();
-    let d = null;
-    while (Date.now() - t0 < 25000 && run === aiRun && active) {
-      d = aiInner();
-      if (aiReady(d)) break;
-      d = null;
-      await sleep(200);
-    }
-    if (!d || run !== aiRun || !active || aiSent) return;
-    if (d.querySelector('.has-messages')) { aiSent = true; return; }
-    const w = d.defaultView, tb = d.getElementById('persistentChatbox');
-    if (!w || !tb || (tb.value || '').trim()) return;
+  const aiStyle = d => {
+    if (d.getElementById('sg-hello-style')) return;
+    const s = d.createElement('style');
+    s.id = 'sg-hello-style';
+    s.textContent = '.chatbox-wrapper.sg-hello{display:none!important}body.sg-hello-pending .chatbox-wrapper:not(:has(#persistentChatbox)){display:none!important}body.sg-hello-pending #errorpopup{display:none!important}';
+    d.head.appendChild(s);
+  };
+  const aiTag = d => {
+    d.querySelectorAll('.chatbox-wrapper:not(.sg-hello)').forEach(wr => {
+      if (wr.querySelector('#persistentChatbox')) return;
+      const ta = wr.querySelector('textarea');
+      if (ta && ta.value.trim() === AI_HELLO) wr.classList.add('sg-hello');
+    });
+  };
+  const aiPost = async (d, w) => {
+    const tb = d.getElementById('persistentChatbox');
+    if (!tb) return false;
     tb.focus();
     if (tb.tagName === 'TEXTAREA' || tb.tagName === 'INPUT') {
       const proto = tb.tagName === 'TEXTAREA' ? w.HTMLTextAreaElement.prototype : w.HTMLInputElement.prototype;
@@ -81,13 +83,59 @@ export function init(K) {
     }
     tb.dispatchEvent(new w.Event('input', { bubbles: true }));
     await sleep(350);
-    if (run !== aiRun || !active || aiSent) return;
-    aiSent = true;
     const sub = d.getElementById('chatSubmitButton');
-    if (sub && !sub.disabled) { sub.click(); return; }
+    if (sub && !sub.disabled) { sub.click(); return true; }
     ['keydown', 'keypress', 'keyup'].forEach(t => {
       tb.dispatchEvent(new w.KeyboardEvent(t, { key: 'Enter', code: 'Enter', keyCode: 13, which: 13, bubbles: true, cancelable: true }));
     });
+    return true;
+  };
+  const aiWelcome = async () => {
+    if (aiSent) return;
+    const run = ++aiRun;
+    const alive = () => run === aiRun && active && !aiSent;
+    const t0 = Date.now();
+    let d = null;
+    while (Date.now() - t0 < 25000 && alive()) {
+      d = aiInner();
+      if (aiReady(d) && d.readyState === 'complete') break;
+      d = null;
+      await sleep(200);
+    }
+    if (!d || !alive()) return;
+    try {
+      const pw = aiPage().defaultView;
+      if (pw && pw.kNet && pw.kNet.ready) await Promise.race([pw.kNet.ready().catch(() => {}), sleep(20000)]);
+    } catch {}
+    await sleep(2500);
+    if (!alive()) return;
+    d = aiInner();
+    if (!aiReady(d)) return;
+    if (d.querySelector('.has-messages')) { aiSent = true; return; }
+    const w = d.defaultView, tb = d.getElementById('persistentChatbox');
+    if (!w || !tb || (tb.value || '').trim()) return;
+    aiSent = true;
+    aiStyle(d);
+    d.body.classList.add('sg-hello-pending');
+    const mo = new w.MutationObserver(() => aiTag(d));
+    mo.observe(d.body, { childList: true, subtree: true });
+    const settle = () => { mo.disconnect(); aiTag(d); d.body.classList.remove('sg-hello-pending'); };
+    try {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        if (!(await aiPost(d, w))) break;
+        let failed = false;
+        const t1 = Date.now();
+        while (Date.now() - t1 < 8000) {
+          await sleep(250);
+          if (d.querySelector('.outputBox')) { settle(); return; }
+          const e = d.getElementById('errorpopup');
+          if (e && e.classList.contains('show')) { failed = true; break; }
+        }
+        if (!failed) break;
+        await sleep(2500);
+      }
+    } catch {}
+    settle();
   };
 
   const prepare = async step => {
