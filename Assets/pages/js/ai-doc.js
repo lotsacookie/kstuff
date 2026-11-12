@@ -1,6 +1,6 @@
 (function () {
   if (window.kAiDoc) return;
-  var JAR_KEY = "deepai.jar", DB_NAME = "kstuff-ai", STORE_NAME = "docs", DOC_ID = "chat-v2";
+  var JAR_KEY = "deepai.jar", DB_NAME = "kstuff-ai", STORE_NAME = "docs", DOC_ID = "chat-v3";
   var FRESH_MS = 25 * 60 * 1000, MAX_AGE_MS = 12 * 3600 * 1000;
   var noop = function () {};
   var log = function () { try { console.log.apply(console, arguments); } catch (e) {} };
@@ -98,6 +98,15 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border
 .chat-main,.chat-layout-container,#layoutContainer,#convo,.outputBox{background:transparent!important}
 .new-chat-button-container{left:auto!important;right:12px!important}
 @media(max-width:720px){.chat-sidebar{width:170px!important}.chat-layout-container .chat-main{margin-left:182px!important}}
+.modal-root{background-color:rgba(0,0,0,.6)!important}
+.modal{background:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important}
+.confirm-desc{color:rgba(255,255,255,.6)!important}
+.confirm-input{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important}
+.confirm-input:focus{border-color:#fff!important;outline:none!important}
+.confirm-button,#confirm-yes-btn,#confirm-cancel-btn{background:#141414!important;background-color:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;transition:border-color .25s ease,background-color .25s ease,color .25s ease!important}
+.confirm-button:hover:not(:disabled),#confirm-yes-btn:hover:not(:disabled),#confirm-cancel-btn:hover:not(:disabled){background:#fff!important;background-color:#fff!important;color:#000!important;border-color:#fff!important}
+.history-delete-btn{color:#fff!important}
+.history-delete-btn:hover,.history-delete-btn.ctx-hl{background:#fff!important;color:#000!important}
 `;
 
 function shim() {
