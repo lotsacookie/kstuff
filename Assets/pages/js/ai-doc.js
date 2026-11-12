@@ -91,8 +91,11 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:var(--bg)!important;b
 .chat-layout-container .sidebar-toggle:hover,.chat-layout-container .new-chat-button:hover{background:var(--text)!important}
 .chat-layout-container:has(.has-messages) .sidebar-toggle,.chat-layout-container:has(.has-messages) .new-chat-button{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important}
 .chat-layout-container:has(.has-messages) .sidebar-toggle:hover,.chat-layout-container:has(.has-messages) .new-chat-button:hover{background:var(--text)!important;border-color:var(--text)!important}
-.sidebar-toggle-container,.sidebar-toggle,#sidebarToggle,.sidebar-close-btn,#sidebarCloseBtn,#sidebarOverlay{display:none!important}
-.chat-sidebar{transform:none!important;display:flex!important;background:color-mix(in srgb,var(--bg) 50%,transparent)!important;backdrop-filter:blur(8px)}
+#sidebarOverlay{display:none!important}
+.chat-sidebar{display:flex!important;background:color-mix(in srgb,var(--bg) 50%,transparent)!important;backdrop-filter:blur(8px)}
+.chat-layout-container.sidebar-open .chat-sidebar{transform:none!important}
+.chat-layout-container:not(.sidebar-open) .chat-sidebar{transform:translateX(calc(-100% - 24px))!important;pointer-events:none!important}
+@media(max-width:899px){.chat-layout-container.sidebar-open .chat-sidebar{background:var(--card)!important;z-index:8!important;box-shadow:0 0 40px color-mix(in srgb,var(--bg) 55%,transparent)!important}}
 .sidebar-footer,.sidebar-top-bar{background:transparent!important}
 .chat-layout-container .chat-main.has-messages{padding-top:56px!important}
 .chat-layout-container .chat-main{margin-left:284px!important;margin-top:0!important;margin-bottom:0!important;background:transparent!important}
@@ -186,11 +189,10 @@ function layoutFit() {
   }
   function fit() {
     raf = 0;
-    var sb = document.querySelector(".chat-sidebar"), left = 0;
+    var sb = document.querySelector(".chat-sidebar"), lc = document.querySelector(".chat-layout-container"), left = 0;
     try {
-      if (sb && getComputedStyle(sb).display !== "none") {
-        var r = sb.getBoundingClientRect();
-        if (r.width > 0) left = Math.min(Math.max(0, Math.round(r.right + 12)), Math.round(window.innerWidth * 0.6));
+      if (sb && lc && lc.classList.contains("sidebar-open") && window.innerWidth >= 900) {
+        left = Math.min(Math.max(0, Math.round(sb.offsetLeft + sb.offsetWidth + 12)), Math.round(window.innerWidth * 0.6));
       }
     } catch (e) {}
     root.style.setProperty("--k-left", left + "px");
@@ -207,6 +209,17 @@ function layoutFit() {
   function queue() { if (!raf) raf = requestAnimationFrame(fit); }
   window.addEventListener("resize", queue);
   window.addEventListener("load", queue);
+  root.style.setProperty("--k-left", (window.innerWidth >= 900 ? Math.round(Math.min(260, Math.max(150, window.innerWidth * 0.3))) + 24 : 0) + "px");
+  document.addEventListener("pointerdown", function (e) {
+    try {
+      if (window.innerWidth >= 900) return;
+      var lc = document.querySelector(".chat-layout-container");
+      if (!lc || !lc.classList.contains("sidebar-open")) return;
+      if (e.target.closest && e.target.closest(".chat-sidebar,.sidebar-toggle-container,[class*='modal']")) return;
+      var b = document.getElementById("sidebarCloseBtn");
+      if (b) b.click();
+    } catch (err) {}
+  }, true);
   function arm() {
     if (!document.body) return setTimeout(arm, 30);
     mo = new MutationObserver(queue);
@@ -886,9 +899,6 @@ async function buildDocument() {
     .split("menu.appendChild(moreBtn);}")
     .join("extendedModels.forEach((mode)=>{if(pinnedValues.includes(mode.value))return;const item=createMenuItem(mode,savedMode,canUseGenius);item.appendChild(createPinBtn(mode.value));menu.appendChild(item);});}");
   if (!/<head[\s>]/i.test(html) || !/chatMain/.test(html)) throw new Error("DeepAI returned an unexpected page");
-  html = html
-    .split("function setSidebarState(open){").join("function setSidebarState(open){open=true;")
-    .split("sidebarOverlay.classList.toggle('active',open)").join("sidebarOverlay.classList.toggle('active',false)");
   const tags = [...html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>\s*<\/script>/gi)];
   say("Loading scripts…");
   const swaps = await Promise.all(tags.map(async (m) => {
@@ -909,7 +919,14 @@ async function buildDocument() {
     .replace(/window\.location\.hostname\s*===\s*["']deepai\.org["']/g, "true")
     .replace(/window\.top\.location\.href\s*=\s*window\.location\.href/g, "void 0")
     .replace(/function applyStoredLanguage\(\)\s*\{/, (m) => m + "return false;")
-    .split("Message AI Chat").join("Message SingularityAI");
+    .split("Message AI Chat").join("Message SingularityAI")
+    .split("function getSavedSidebarState(){").join("function getSavedSidebarState(){return null;")
+    .split("function toggleSidebar(){").join("function toggleSidebar(){window.__kSbManual=true;")
+    .split("function initSidebar(){").join("function initSidebar(){window.__kSbSmall=window.innerWidth<900;")
+    .split('window.addEventListener("resize",function(){if(window.innerWidth<1260){setSidebarState(false);return;}').join('window.addEventListener("resize",function(){if(window.innerWidth<900){if(!window.__kSbSmall){window.__kSbSmall=true;setSidebarState(false);}return;}window.__kSbSmall=false;')
+    .split("else{setSidebarState(true);}});if(sidebarToggle)").join("else{if(!window.__kSbManual){setSidebarState(true);}}});if(sidebarToggle)")
+    .split("window.innerWidth<1260").join("window.innerWidth<900")
+    .split("window.innerWidth>=1260").join("window.innerWidth>=900");
   html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script><script>(" + themeSync.toString() + ")();<\/script><script>(" + layoutFit.toString() + ")();<\/script><script>(" + screenshareBoot.toString() + ")();<\/script>");
   html = html.replace(/<\/head>/i, () => '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap"><style id="px-style">' + RESTYLE + "</style></head>");
   return html;
