@@ -21,7 +21,9 @@ html, body {
   color: #fff;
   font: bold 14px/1.5 "Comfortaa", sans-serif;
 }
-#app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
+#app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; pointer-events: none; }
+#app.live { pointer-events: auto; }
+html.ai-live .kstuff-cursor { display: none !important; }
 #err {
   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 5;
   display: none; align-items: center; gap: 10px; max-width: calc(100vw - 24px);
@@ -51,11 +53,24 @@ html, body {
   function signal() { try { parent.postMessage({ type: 'kstuff-frame-ready' }, '*'); } catch (e) {} }
 
   window.__px = function (req) { return window.kAiDoc.px(req); };
-  window.__pxReady = function () { ready = true; signal(); };
+  var liveTimer = 0;
+  function goLive() {
+    clearTimeout(liveTimer);
+    frame.classList.add('live');
+    document.documentElement.classList.add('ai-live');
+  }
+  document.addEventListener('pointermove', function (e) {
+    if (e.pointerType !== 'touch') window.__kPtr = { x: e.clientX, y: e.clientY };
+  }, { passive: true, capture: true });
+  window.__pxReady = function () { ready = true; goLive(); signal(); };
 
   function show(html) {
     err.classList.remove('on');
     ready = false;
+    clearTimeout(liveTimer);
+    frame.classList.remove('live');
+    document.documentElement.classList.remove('ai-live');
+    liveTimer = setTimeout(goLive, 4000);
     frame.srcdoc = html;
     signal();
   }
