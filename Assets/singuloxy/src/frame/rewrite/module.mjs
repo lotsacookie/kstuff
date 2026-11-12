@@ -15,6 +15,76 @@ const MODULE_PARSE_OPTIONS = { ranges: true, webcompat: true, next: true, module
 export const pending_modules = [];
 let module_order = 0;
 
+const waiting_edges = new Map();
+const cycle_ids = new Map();
+const cycle_registered = new Set();
+let cycle_counter = 0;
+
+function cycles_supported() {
+  try {
+    return typeof HTMLScriptElement !== "undefined"
+      && typeof HTMLScriptElement.supports === "function"
+      && HTMLScriptElement.supports("importmap");
+  }
+  catch {
+    return false;
+  }
+}
+
+function add_edge(parent_key, child_key) {
+  if (typeof parent_key !== "string") return;
+  let edges = waiting_edges.get(parent_key);
+  if (!edges) return;
+  edges.set(child_key, (edges.get(child_key) || 0) + 1);
+}
+
+function remove_edge(parent_key, child_key) {
+  if (typeof parent_key !== "string") return;
+  let edges = waiting_edges.get(parent_key);
+  if (!edges) return;
+  let count = (edges.get(child_key) || 0) - 1;
+  if (count > 0) edges.set(child_key, count);
+  else edges.delete(child_key);
+}
+
+function waits_on(from_key, target_key, seen = new Set()) {
+  if (from_key === target_key) return true;
+  if (seen.has(from_key)) return false;
+  seen.add(from_key);
+  let edges = waiting_edges.get(from_key);
+  if (!edges) return false;
+  for (let next of edges.keys()) {
+    if (waits_on(next, target_key, seen)) return true;
+  }
+  return false;
+}
+
+function cycle_specifier(absolute) {
+  let id = cycle_ids.get(absolute);
+  if (id === undefined) {
+    id = "sandstone-cycle-" + (cycle_counter++);
+    cycle_ids.set(absolute, id);
+  }
+  return id;
+}
+
+function register_cycle_target(cache_key, blob_url) {
+  if (typeof cache_key !== "string") return;
+  let id = cycle_ids.get(cache_key);
+  if (id === undefined || cycle_registered.has(id)) return;
+  cycle_registered.add(id);
+  try {
+    let script = document.createElement("script");
+    script.__rewritten__ = true;
+    script.type = "importmap";
+    script.textContent = JSON.stringify({ imports: { [id]: blob_url } });
+    (document.head || document.documentElement).append(script);
+  }
+  catch (e) {
+    console.error("sandstone: failed to register circular module edge", cache_key, e);
+  }
+}
+
 function make_blob_url(js_text, mime = "text/javascript") {
   let blob = new Blob([js_text], { type: mime });
   return URL.createObjectURL(blob);
@@ -167,7 +237,7 @@ async function load_json_module(url) {
   return promise;
 }
 
-async function resolve_and_rewrite(js, base_url, chain) {
+async function resolve_and_rewrite(js, base_url, chain, parent_key) {
   let records = find_module_imports(js, base_url);
 
   let results = await Promise.all(records.map(async (record) => {
@@ -196,12 +266,23 @@ async function resolve_and_rewrite(js, base_url, chain) {
     }
 
     let blob_url;
-    if (chain.has(absolute)) {
+    let is_cycle = chain.has(absolute)
+      || (typeof parent_key === "string" && waits_on(absolute, parent_key));
+    if (is_cycle) {
+      if (cycles_supported()) {
+        return { start: record.start, end: record.end, replacement: JSON.stringify(cycle_specifier(absolute)) };
+      }
       console.warn("sandstone: circular ES module import detected, using an empty stub for this edge:", absolute);
       blob_url = make_blob_url(STUB_MODULE_SRC);
     }
     else {
-      blob_url = await load_module(absolute, absolute, null, chain);
+      add_edge(parent_key, absolute);
+      try {
+        blob_url = await load_module(absolute, absolute, null, chain);
+      }
+      finally {
+        remove_edge(parent_key, absolute);
+      }
     }
     return { start: record.start, end: record.end, replacement: JSON.stringify(blob_url) };
   }));
@@ -219,17 +300,26 @@ export async function load_module(cache_key, base_url, source_text = null, chain
   let next_chain = new Set(chain);
   if (typeof cache_key === "string") next_chain.add(cache_key);
 
+  if (typeof cache_key === "string") waiting_edges.set(cache_key, new Map());
+
   let promise = (async () => {
-    let js = source_text;
-    if (js === null) {
-      let response = await network.fetch(base_url);
-      if (response.ok === false) {
-        throw new Error("failed to fetch module " + base_url + " (status " + response.status + ")");
+    try {
+      let js = source_text;
+      if (js === null) {
+        let response = await network.fetch(base_url);
+        if (response.ok === false) {
+          throw new Error("failed to fetch module " + base_url + " (status " + response.status + ")");
+        }
+        js = await response.text();
       }
-      js = await response.text();
+      let rewritten = await resolve_and_rewrite(js, base_url, next_chain, cache_key);
+      let blob_url = make_blob_url(rewritten);
+      register_cycle_target(cache_key, blob_url);
+      return blob_url;
     }
-    let rewritten = await resolve_and_rewrite(js, base_url, next_chain);
-    return make_blob_url(rewritten);
+    finally {
+      if (typeof cache_key === "string") waiting_edges.delete(cache_key);
+    }
   })();
 
   module_cache.set(cache_key, promise);
