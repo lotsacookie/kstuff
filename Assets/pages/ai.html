@@ -87,6 +87,18 @@ html.ai-live .kstuff-cursor { display: none !important; }
     signal();
   }
 
+  // After an update the old cached chat is shown first; once the new one is built, switch to it
+  // as soon as nothing is in progress (empty chat, nothing typed).
+  function swapWhenIdle(html, n) {
+    var busy = false;
+    try {
+      var d = frame.contentDocument, tb = d && d.getElementById('persistentChatbox');
+      busy = Boolean(d && (d.querySelector('.has-messages') || (tb && tb.value)));
+    } catch (e) {}
+    if (!busy) { show(html); return; }
+    if (n < 120) setTimeout(function () { swapWhenIdle(html, n + 1); }, 5000);
+  }
+
   async function mount(force) {
     if (mounting) return;
     mounting = true;
@@ -94,7 +106,11 @@ html.ai-live .kstuff-cursor { display: none !important; }
       var rec = force ? null : await window.kAiDoc.load();
       if (rec) {
         show(rec.html);
-        if (Date.now() - rec.at > STALE_MS) window.kAiDoc.ensure(false).catch(noop);
+        if (rec.stale) {
+          window.kAiDoc.ensure(true).then(function (html) { swapWhenIdle(html, 0); }).catch(noop);
+        } else if (Date.now() - rec.at > STALE_MS) {
+          window.kAiDoc.ensure(false).catch(noop);
+        }
       } else {
         show(await window.kAiDoc.ensure(true));
       }

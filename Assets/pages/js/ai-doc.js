@@ -198,13 +198,13 @@ function layoutFit() {
 }
 
 function screenshareBoot() {
-  if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) return;
   var LABEL = "Screenshare", busy = false, btn = null;
   var ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="4" width="20" height="13" rx="2"></rect><path d="M8 21h8M12 17v4"></path><path d="M12 13V8M9.5 10.5 12 8l2.5 2.5"></path></svg>';
   function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
   function setLabel(t) { if (btn) { var sp = btn.querySelector("span"); if (sp) sp.textContent = t; btn.title = t; } }
 
   async function grab() {
+    if (!(navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia)) { var u = new Error("Screen sharing is not supported here"); u.name = "NotSupportedError"; throw u; }
     var stream = await navigator.mediaDevices.getDisplayMedia({ video: true, audio: false });
     try {
       var v = document.createElement("video");
@@ -313,7 +313,7 @@ function screenshareBoot() {
       await send();
     } catch (e) {
       try { console.error("screenshare", e); } catch (x) {}
-      msg = "Failed";
+      msg = (e && e.name === "NotSupportedError") ? "Not supported" : "Failed";
     } finally {
       setLabel(msg);
       busy = false; btn.disabled = false;
@@ -323,9 +323,11 @@ function screenshareBoot() {
 
   function place() {
     var plus = document.querySelector(".compose-plus-btn");
-    var area = document.querySelector(".persistent-compose-area");
+    var sub = document.getElementById("chatSubmitButton");
+    var tbx = document.getElementById("persistentChatbox");
+    var area = document.querySelector(".persistent-compose-area") || (tbx && tbx.parentElement) || (sub && sub.parentElement);
     if (!plus && !area) return;
-    if (btn && document.contains(btn) && (plus ? btn.previousElementSibling === plus : btn.parentElement === area)) return;
+    if (btn && document.contains(btn) && (plus ? btn.previousElementSibling === plus : btn.parentElement === area || (sub && btn.nextElementSibling === sub))) return;
     if (!btn) {
       btn = document.createElement("button");
       btn.type = "button";
@@ -335,6 +337,7 @@ function screenshareBoot() {
       btn.addEventListener("click", function (e) { e.preventDefault(); e.stopPropagation(); run(); });
     }
     if (plus && plus.parentNode) plus.parentNode.insertBefore(btn, plus.nextSibling);
+    else if (sub && sub.parentNode) sub.parentNode.insertBefore(btn, sub);
     else area.appendChild(btn);
   }
   var raf = 0;
