@@ -2417,23 +2417,6 @@ html.sg-flip body {
 .footer-btn:hover{background:var(--tint);opacity:1}
 
 
-/* ===== Footer declutter: one quiet bar per side,flat items with hairline dividers,icon-only buttons ===== */
-.learning-footer .footer-left,.learning-footer .footer-right{gap:0;align-items:stretch;height:calc(var(--footer-height) - 12px);border:1px solid var(--hairline);border-radius:10px;background:transparent;overflow:hidden}
-
-body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:100%;pointer-events:auto;background:color-mix(in srgb,var(--nav-bg) 40%,transparent);box-shadow:0 4px 12px rgba(0,0,0,.2)}
-
-.learning-footer .footer-item,body.floating-on .learning-footer .footer-item{background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;padding:0 12px;height:100%;align-items:center;opacity:.85}
-
-.learning-footer .footer-item:hover,body.floating-on .learning-footer .footer-item:hover{background:var(--tint)!important;opacity:1}
-
-.learning-footer .footer-item+.footer-item{border-left:1px solid var(--hairline)!important}
-
-.learning-footer .footer-item.footer-btn,body.floating-on .learning-footer .footer-item.footer-btn{padding:0;gap:0;justify-content:center;flex:none;height:100%;width:auto;aspect-ratio:1/1}
-
-.learning-footer .footer-btn span{display:none}
-
-.learning-footer .footer-btn i{font-size:1rem}
-
 @media(max-width:640px){#ping-indicator span,#weather-text,#conn-text,#clock-text,#coi-text{display:none}}
 
 
@@ -2446,25 +2429,20 @@ button:not(:disabled):hover svg[fill="none"],button:not(:disabled):hover svg.sg-
 .modal-actions button:hover i,.exam-modal-close:hover i{transform:none!important}
 
 
-/* ===== Bigger footer: taller bar,larger icons,text and buttons ===== */
-:root,body.floating-on{--footer-height:46px!important;--footer-space:46px!important}
-
-.learning-footer{font-size:.95rem}
-
-.learning-footer .footer-item{font-size:.95rem;gap:8px;padding:0 16px}
-
-.learning-footer .footer-item i{font-size:1.3rem}
-
-.learning-footer .footer-btn{padding:0 18px;min-width:52px;justify-content:center}
-
-.learning-footer .footer-btn i{font-size:1.35rem}
-
-.learning-footer .clock-item,.learning-footer #clock-indicator{font-size:1rem;letter-spacing:.04em}
-
-.learning-footer .footer-left,.learning-footer .footer-right{height:calc(var(--footer-height) - 12px)}
-
-body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:100%}
-
+/* ===== Footer: slim flat status strip ===== */
+:root,body.floating-on{--footer-height:30px!important;--footer-space:30px!important}
+.learning-footer{font-size:.72rem;padding:0 12px}
+.learning-footer .footer-left,.learning-footer .footer-right{gap:2px;align-items:center;height:100%;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}
+.learning-footer .footer-item,body.floating-on .learning-footer .footer-item{height:22px;padding:0 8px;gap:5px;font-size:.72rem;font-weight:500;font-variant-numeric:tabular-nums;opacity:.65;background:transparent!important;border:0!important;border-radius:6px!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.learning-footer .footer-item i{font-size:.95rem}
+.learning-footer .footer-item:hover{background:var(--tint)!important;opacity:1}
+.learning-footer .footer-item.footer-btn,body.floating-on .learning-footer .footer-item.footer-btn{width:24px;min-width:0;padding:0;gap:0;justify-content:center;aspect-ratio:auto}
+.learning-footer .footer-item.footer-btn:hover{background:var(--text-color)!important}
+.learning-footer .footer-btn span{display:none}
+.learning-footer .footer-btn i{font-size:1rem}
+.learning-footer .clock-item{letter-spacing:0}
+body.floating-on .learning-footer{align-items:center}
+body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:26px;padding:0 4px;border:1px solid var(--hairline);border-radius:999px;background:color-mix(in srgb,var(--nav-bg) 55%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:auto}
 
 .sg-tabbar .sg-newtab,body.floating-on .sg-tabbar .sg-newtab{
     align-self: center !important;
