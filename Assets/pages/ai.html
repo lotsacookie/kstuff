@@ -92,6 +92,13 @@ html, body {
 
   document.getElementById('retry').addEventListener('click', function () { mount(true); });
 
+  window.addEventListener('message', function (e) {
+    var d = e.data;
+    if (d && d.type === 'kstuff-cursor' && e.source === frame.contentWindow) {
+      try { parent.postMessage(d, '*'); } catch (err) {}
+    }
+  });
+
   mount(false);
 })();
 </script>

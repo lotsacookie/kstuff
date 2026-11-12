@@ -76,7 +76,7 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border
 .more-models-btn,.model-menu-divider,.pin-model-btn{display:none!important}
 #chatModeMenu{max-height:60vh!important;overflow-y:auto!important}
 .ai-disclaimer{display:none!important}
-.chat-main.has-messages{padding-top:0!important}
+.chat-main.has-messages{padding-top:56px!important}
 #recordButton{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important;transition:width .3s ease,color .25s ease,background-color .25s ease,border-color .25s ease!important}
 #recordButton:hover{background:#fff!important;color:#000!important;border-color:#fff!important}
 #recordButton:hover img{filter:invert(1)!important}
@@ -93,7 +93,8 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border
 .sidebar-toggle-container,.sidebar-toggle,#sidebarToggle,.sidebar-close-btn,#sidebarCloseBtn,#sidebarOverlay{display:none!important}
 .chat-sidebar{transform:none!important;display:flex!important;background:rgba(0,0,0,.5)!important;backdrop-filter:blur(8px)}
 .sidebar-footer,.sidebar-top-bar{background:transparent!important}
-.chat-layout-container .chat-main{margin-left:284px!important;padding-top:0!important;margin-top:0!important;margin-bottom:0!important;background:transparent!important}
+.chat-layout-container .chat-main.has-messages{padding-top:56px!important}
+.chat-layout-container .chat-main{margin-left:284px!important;margin-top:0!important;margin-bottom:0!important;background:transparent!important}
 .chat-main:not(.has-messages){height:100dvh!important}
 .chat-main,.chat-layout-container,#layoutContainer,#convo,.outputBox{background:transparent!important}
 .new-chat-button-container{left:auto!important;right:12px!important}
@@ -270,6 +271,50 @@ function shim() {
 }
 
 
+  function cursorBoot() {
+    if (!(window.matchMedia && matchMedia("(hover: hover) and (pointer: fine)").matches)) return;
+    var SIZE = 28, AO = [4 * SIZE / 24, 2.4 * SIZE / 24], HO = [10.5 * SIZE / 24, 2 * SIZE / 24];
+    var SEL = "a[href],button:not(:disabled),[role='button'],[onclick],select,summary,label[for],input[type='button']:not(:disabled),input[type='submit']:not(:disabled),input[type='checkbox'],input[type='radio'],input[type='range'],[data-act]:not(:disabled),[data-target],.chat-history-item,.chat-chip,.attach-dropdown-item,.presets-dropdown-item,.chat-mode-menu-item,.history-delete-btn,.history-rename-btn";
+    var SVG = '<svg class="k-arrow" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M4 2.4 19.8 9.9c.6.3.5 1.1-.1 1.3l-6.6 1.8-2.3 6.4c-.2.6-1 .6-1.3 0L4 2.4z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".7" stroke-linejoin="round"/></svg><svg class="k-hand" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M9 3.5a1.5 1.5 0 0 1 3 0V10h.5V8.5a1.3 1.3 0 0 1 2.6 0V10h.4V9.4a1.3 1.3 0 0 1 2.6 0V10.5h.3a1.3 1.3 0 0 1 1.3 1.3V15c0 3.3-2.2 6-5.5 6h-1.4c-1.8 0-3-.8-4-2.1L5.3 15.2a1.4 1.4 0 0 1 2.1-1.8L9 15V3.5z" fill="currentColor" stroke="rgba(0,0,0,.35)" stroke-width=".7" stroke-linejoin="round"/></svg>';
+    var root = document.documentElement, el = null, hand = false, lastT = null, announced = false;
+    function post(a) { try { window.parent.postMessage({ type: "kstuff-cursor", action: a }, "*"); } catch (e) {} }
+    function tint() {
+      var c = "";
+      try { c = window.parent.document.documentElement.style.getPropertyValue("--text") || ""; } catch (e) {}
+      return c.trim() || "#fff";
+    }
+    function build() {
+      var st = document.createElement("style");
+      st.textContent = "html.kstuff-cursor-active,html.kstuff-cursor-active *{cursor:none !important;}.kstuff-cursor{position:fixed;top:0;left:0;width:" + SIZE + "px;height:" + SIZE + "px;pointer-events:none;z-index:2147483647;opacity:0;transition:opacity .1s ease;will-change:transform;contain:layout style;}.kstuff-cursor.visible{opacity:1;}.kstuff-cursor svg{width:100%;height:100%;display:none;filter:drop-shadow(0 1px 2px rgba(0,0,0,.4));}.kstuff-cursor .k-arrow{display:block;}.kstuff-cursor.pointer .k-arrow{display:none;}.kstuff-cursor.pointer .k-hand{display:block;}";
+      document.head.appendChild(st);
+      el = document.createElement("div");
+      el.className = "kstuff-cursor";
+      el.innerHTML = SVG;
+      document.body.appendChild(el);
+    }
+    document.addEventListener("pointermove", function (e) {
+      if (e.pointerType === "touch") return;
+      if (!el) { if (!document.body) return; build(); }
+      root.classList.add("kstuff-cursor-active");
+      var t = e.target;
+      if (t !== lastT) {
+        lastT = t;
+        var h = false;
+        try { h = !!(t && t.closest && t.closest(SEL)); } catch (x) {}
+        if (h !== hand) { hand = h; el.classList.toggle("pointer", h); }
+      }
+      var o = hand ? HO : AO;
+      el.style.transform = "translate(" + (e.clientX - o[0]) + "px," + (e.clientY - o[1]) + "px)";
+      if (!announced) { announced = true; el.style.color = tint(); el.classList.add("visible"); post("enter"); }
+      else el.classList.add("visible");
+    }, { passive: true });
+    root.addEventListener("mouseleave", function () {
+      if (el) el.classList.remove("visible");
+      announced = false;
+      post("leave");
+    });
+  }
+
   var host = (function () {
     try { if (window.parent && window.parent !== window && window.parent.kAiDoc && window.parent.__kAiDocStore) return window.parent; } catch (e) {}
     return window;
@@ -420,7 +465,7 @@ async function buildDocument() {
     .replace(/window\.location\.hostname\s*===\s*["']deepai\.org["']/g, "true")
     .replace(/window\.top\.location\.href\s*=\s*window\.location\.href/g, "void 0")
     .replace(/function applyStoredLanguage\(\)\s*\{/, (m) => m + "return false;");
-  html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script>");
+  html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script>");
   html = html.replace(/<\/head>/i, () => '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap"><style id="px-style">' + RESTYLE + "</style></head>");
   return html;
 }
