@@ -108,6 +108,9 @@ function initApp() {
       loadModule('welcome-tour')
         .then(mod => mod.init(K))
         .catch(err => console.warn('welcome tour unavailable', err));
+      loadModule('ai-preload')
+        .then(mod => mod.init(K))
+        .catch(err => console.warn('ai preload unavailable', err));
     } catch (err) {
       console.error('singularity module load failed', err);
       const loader = document.querySelector('.section-loader');
