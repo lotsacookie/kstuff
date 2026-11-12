@@ -97,6 +97,13 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:var(--bg)!important;b
 .chat-layout-container .chat-main.has-messages{padding-top:56px!important}
 .chat-layout-container .chat-main{margin-left:284px!important;margin-top:0!important;margin-bottom:0!important;background:transparent!important}
 .chat-main:not(.has-messages){height:100dvh!important}
+.chat-main:not(.has-messages) .persistent-compose-area{position:fixed!important;bottom:10px!important;top:auto!important;left:0!important;right:0!important;margin:0 auto!important;width:calc(min(100vw - 18px,862px))!important;order:0!important}
+.chat-main:not(.has-messages) .ai-disclaimer{margin-bottom:68px!important}
+.chat-main:not(.has-messages) .attach-dropdown-menu{bottom:calc(100% + 8px)!important;top:auto!important;max-height:calc(75dvh - 170px)!important}
+.chat-main:not(.has-messages) .presets-dropdown-menu{bottom:calc(100% + 8px)!important;top:auto!important;transform:translateX(-50%)!important}
+.chat-main:not(.has-messages) .chat-mode-dropdown-menu{bottom:calc(100% + 5px)!important;top:auto!important}
+.chat-main:not(.has-messages) .dropdown-caret{transform:translateY(-50%) rotate(180deg)!important}
+.chat-main:not(.has-messages) .chat-mode-dropdown-trigger.open .dropdown-caret{transform:translateY(-50%) rotate(0deg)!important}
 .chat-main,.chat-layout-container,#layoutContainer,#convo,.outputBox{background:transparent!important}
 .new-chat-button-container{left:auto!important;right:12px!important}
 @media(max-width:720px){.chat-sidebar{width:170px!important}.chat-layout-container .chat-main{margin-left:182px!important}}
