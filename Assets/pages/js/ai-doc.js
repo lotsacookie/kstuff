@@ -120,6 +120,17 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:var(--bg)!important;b
 .chat-history-context-menu,.chat-move-submenu{background:var(--nav)!important;background-color:var(--nav)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;box-shadow:none!important}
 .chat-history-context-menu button,.chat-move-submenu button{background:transparent!important;color:var(--text)!important;transition:background-color .25s ease,color .25s ease!important}
 .chat-history-context-menu button:hover,.chat-history-context-menu button.ctx-hl,.chat-move-submenu button:hover,.chat-move-submenu button.ctx-hl{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important}
+html .chat-sidebar{width:clamp(150px,30vw,260px)!important;max-width:calc(100vw - 24px)!important}
+html .chat-layout-container .chat-main,html .chat-layout-container.sidebar-open .chat-main{margin-left:var(--k-left,284px)!important;width:calc(100% - var(--k-left,284px))!important;max-width:calc(100% - var(--k-left,284px))!important;min-width:0!important;box-sizing:border-box!important;overflow-x:clip!important}
+.chat-main *{min-width:0}
+#convo,.outputBox,.chatbox-wrapper{max-width:100%!important;min-width:0!important;box-sizing:border-box!important}
+.outputBox,.outputBox *,.chatbox-wrapper .chatbox,.chatbox-wrapper .chatbox *{overflow-wrap:anywhere;word-break:break-word}
+.chatbox-wrapper .chatbox{max-width:100%!important;box-sizing:border-box!important}
+.outputBox img,.outputBox video,.outputBox canvas,.outputBox svg:not(.k-arrow):not(.k-hand),.chatbox-wrapper img{max-width:100%!important;height:auto}
+.outputBox pre,.outputBox .code-block-wrapper,.outputBox table{max-width:100%!important;overflow-x:auto!important}
+.outputBox pre{white-space:pre-wrap!important;word-break:normal;overflow-wrap:anywhere}
+.persistent-compose-area{max-width:100%!important;box-sizing:border-box!important}
+.k-fit{left:var(--k-left,0px)!important;right:0!important;margin-left:auto!important;margin-right:auto!important;transform:none!important;width:min(var(--k-cw,720px),calc(100vw - var(--k-left,0px) - 24px))!important;box-sizing:border-box!important}
 `;
 
 function themeSync() {
@@ -134,6 +145,51 @@ function themeSync() {
   }
   s();
   window.addEventListener("message", function (e) { if (e.data === "theme-updated") s(); });
+}
+
+function layoutFit() {
+  var root = document.documentElement, raf = 0, cw = 0, lastTarget = null, mo = null;
+  function target() {
+    var c = document.querySelector(".persistent-compose-area");
+    for (var n = c; n && n !== document.body && n !== root; n = n.parentElement) {
+      try { if (getComputedStyle(n).position === "fixed") return n; } catch (e) {}
+    }
+    return null;
+  }
+  function fit() {
+    raf = 0;
+    var sb = document.querySelector(".chat-sidebar"), left = 0;
+    try {
+      if (sb && getComputedStyle(sb).display !== "none") {
+        var r = sb.getBoundingClientRect();
+        if (r.width > 0) left = Math.min(Math.max(0, Math.round(r.right + 12)), Math.round(window.innerWidth * 0.6));
+      }
+    } catch (e) {}
+    root.style.setProperty("--k-left", left + "px");
+    var t = target();
+    if (lastTarget && lastTarget !== t) lastTarget.classList.remove("k-fit");
+    lastTarget = t;
+    if (!t) { if (mo) mo.takeRecords(); return; }
+    t.classList.remove("k-fit");
+    var w = t.getBoundingClientRect().width;
+    if (w > cw) { cw = w; root.style.setProperty("--k-cw", Math.round(cw) + "px"); }
+    t.classList.add("k-fit");
+    if (mo) mo.takeRecords();
+  }
+  function queue() { if (!raf) raf = requestAnimationFrame(fit); }
+  window.addEventListener("resize", queue);
+  window.addEventListener("load", queue);
+  function arm() {
+    if (!document.body) return setTimeout(arm, 30);
+    mo = new MutationObserver(queue);
+    mo.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["class"] });
+    var sb = document.querySelector(".chat-sidebar");
+    if (sb && window.ResizeObserver) new ResizeObserver(queue).observe(sb);
+    queue();
+    setTimeout(queue, 500);
+    setTimeout(queue, 1500);
+  }
+  arm();
 }
 
 function shim() {
@@ -504,7 +560,7 @@ async function buildDocument() {
     .replace(/window\.location\.hostname\s*===\s*["']deepai\.org["']/g, "true")
     .replace(/window\.top\.location\.href\s*=\s*window\.location\.href/g, "void 0")
     .replace(/function applyStoredLanguage\(\)\s*\{/, (m) => m + "return false;");
-  html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script><script>(" + themeSync.toString() + ")();<\/script>");
+  html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script><script>(" + themeSync.toString() + ")();<\/script><script>(" + layoutFit.toString() + ")();<\/script>");
   html = html.replace(/<\/head>/i, () => '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap"><style id="px-style">' + RESTYLE + "</style></head>");
   return html;
 }
