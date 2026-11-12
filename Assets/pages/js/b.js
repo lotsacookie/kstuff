@@ -18,7 +18,6 @@ function encode(str) {
 }
 
 const defaultShortcuts = [
-    ['emoH', 'kstuff://ho' + 'me', 'ph-house'],
     ['semaG', 'kstuff://ga' + 'mes', 'ph-game-controller'],
     ['sppA', 'kstuff://ap' + 'ps', 'ph-app-window'],
     ['cisuM', 'kstuff://mu' + 'sic', 'ph-music-notes'],
