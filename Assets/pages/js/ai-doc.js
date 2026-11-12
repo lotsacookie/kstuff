@@ -1,6 +1,6 @@
 (function () {
   if (window.kAiDoc) return;
-  var JAR_KEY = "deepai.jar", DB_NAME = "kstuff-ai", STORE_NAME = "docs", DOC_ID = "chat";
+  var JAR_KEY = "deepai.jar", DB_NAME = "kstuff-ai", STORE_NAME = "docs", DOC_ID = "chat-v2";
   var FRESH_MS = 25 * 60 * 1000, MAX_AGE_MS = 12 * 3600 * 1000;
   var noop = function () {};
   var log = function () { try { console.log.apply(console, arguments); } catch (e) {} };
@@ -15,7 +15,7 @@ body>header,body>footer,#language-banner,#announcement-banner,.language-banner,.
 #voicePillButton,#websiteBuilderPillButton,#chatMemoryPillButton,#chatMemorySettingsButton,.pro-only-pill,#chat-memory-modal-root,.chat-memory-modal{display:none!important}
 .landing-title-group>h1,.landing-title-group .landing-description-group>h3{display:none!important}
 .chat-model-chip:has(.model-chip-lock),.chat-mode-menu-item.chat-mode-locked,.chat-mode-menu-item:has(.chat-mode-lock-icon),.slash-cmd-item:has(img[src*="lock-icon"]),.cmd-palette-item:has(.cmd-palette-item-lock),.presets-dropdown-item:has(img[src*="lock-icon"]),.attach-dropdown-item:has(img[src*="lock-icon"]),.attach-dropdown-item:has(.pro-lock-icon),.chat-chip:has(img[src*="lock-icon"]){display:none!important}
-html,body{background-color:#000!important;background-image:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(255,255,255,.07),transparent 70%),linear-gradient(to right,rgba(255,255,255,.13) 1px,transparent 1px),linear-gradient(to bottom,rgba(255,255,255,.13) 1px,transparent 1px)!important;background-size:100% 100%,44px 44px,44px 44px!important;background-attachment:fixed!important;color:#fff!important}
+html,body{background:transparent!important;background-image:none!important;color:#fff!important}
 *,*::before,*::after{border-radius:0!important;font-family:"Comfortaa",sans-serif!important;font-weight:700!important;-webkit-tap-highlight-color:transparent}
 pre,pre *,code,code *,.code-block-wrapper *{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important}
 .katex,.katex *{font-family:KaTeX_Main,"Times New Roman",serif!important}
@@ -76,8 +76,7 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border
 .more-models-btn,.model-menu-divider,.pin-model-btn{display:none!important}
 #chatModeMenu{max-height:60vh!important;overflow-y:auto!important}
 .ai-disclaimer{display:none!important}
-.chat-main.has-messages{padding-top:64px!important}
-.chat-layout-container:has(.has-messages)::before{content:"";position:fixed;top:0;left:0;right:0;height:60px;background:#000;border-bottom:1px solid rgba(255,255,255,.14);z-index:2;pointer-events:none}
+.chat-main.has-messages{padding-top:0!important}
 #recordButton{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important;transition:width .3s ease,color .25s ease,background-color .25s ease,border-color .25s ease!important}
 #recordButton:hover{background:#fff!important;color:#000!important;border-color:#fff!important}
 #recordButton:hover img{filter:invert(1)!important}
@@ -91,6 +90,14 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border
 .chat-layout-container .sidebar-toggle:hover,.chat-layout-container .new-chat-button:hover{background:#fff!important}
 .chat-layout-container:has(.has-messages) .sidebar-toggle,.chat-layout-container:has(.has-messages) .new-chat-button{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important}
 .chat-layout-container:has(.has-messages) .sidebar-toggle:hover,.chat-layout-container:has(.has-messages) .new-chat-button:hover{background:#fff!important;border-color:#fff!important}
+.sidebar-toggle-container,.sidebar-toggle,#sidebarToggle,.sidebar-close-btn,#sidebarCloseBtn,#sidebarOverlay{display:none!important}
+.chat-sidebar{transform:none!important;display:flex!important;background:rgba(0,0,0,.5)!important;backdrop-filter:blur(8px)}
+.sidebar-footer,.sidebar-top-bar{background:transparent!important}
+.chat-layout-container .chat-main{margin-left:284px!important;padding-top:0!important;margin-top:0!important;margin-bottom:0!important;background:transparent!important}
+.chat-main:not(.has-messages){height:100dvh!important}
+.chat-main,.chat-layout-container,#layoutContainer,#convo,.outputBox{background:transparent!important}
+.new-chat-button-container{left:auto!important;right:12px!important}
+@media(max-width:720px){.chat-sidebar{width:170px!important}.chat-layout-container .chat-main{margin-left:182px!important}}
 `;
 
 function shim() {
@@ -381,6 +388,9 @@ async function buildDocument() {
     .split("menu.appendChild(moreBtn);}")
     .join("extendedModels.forEach((mode)=>{if(pinnedValues.includes(mode.value))return;const item=createMenuItem(mode,savedMode,canUseGenius);item.appendChild(createPinBtn(mode.value));menu.appendChild(item);});}");
   if (!/<head[\s>]/i.test(html) || !/chatMain/.test(html)) throw new Error("DeepAI returned an unexpected page");
+  html = html
+    .split("function setSidebarState(open){").join("function setSidebarState(open){open=true;")
+    .split("sidebarOverlay.classList.toggle('active',open)").join("sidebarOverlay.classList.toggle('active',false)");
   const tags = [...html.matchAll(/<script\b[^>]*\bsrc\s*=\s*["']([^"']+)["'][^>]*>\s*<\/script>/gi)];
   say("Loading scripts…");
   const swaps = await Promise.all(tags.map(async (m) => {
