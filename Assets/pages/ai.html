@@ -8,17 +8,18 @@
 <script>try{if(top!==self)document.documentElement.classList.add("sg-embedded")}catch(e){document.documentElement.classList.add("sg-embedded")}</script>
 <style>
 html.sg-embedded,html.sg-embedded body{background:transparent!important;background-image:none!important}
+:root { --bg: #000; --text: #fff; --card: #141414; }
 * { box-sizing: border-box; }
 html, body {
   height: 100%;
   margin: 0;
-  background-color: #000;
+  background-color: var(--bg);
   background-image:
-    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255, 255, 255, 0.07), transparent 70%),
-    linear-gradient(to right, rgba(255, 255, 255, 0.13) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.13) 1px, transparent 1px);
+    radial-gradient(ellipse 80% 60% at 50% -10%, color-mix(in srgb, var(--text) 7%, transparent), transparent 70%),
+    linear-gradient(to right, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1px),
+    linear-gradient(to bottom, color-mix(in srgb, var(--text) 13%, transparent) 1px, transparent 1px);
   background-size: 100% 100%, 44px 44px, 44px 44px;
-  color: #fff;
+  color: var(--text);
   font: bold 14px/1.5 "Comfortaa", sans-serif;
 }
 #app { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; pointer-events: none; }
@@ -27,13 +28,13 @@ html.ai-live .kstuff-cursor { display: none !important; }
 #err {
   position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 5;
   display: none; align-items: center; gap: 10px; max-width: calc(100vw - 24px);
-  padding: 8px 12px; background: #141414; border: 1px solid #ff5d6c;
+  padding: 8px 12px; background: var(--card); border: 1px solid #ff5d6c;
 }
 #err.on { display: flex; }
 #err button {
-  font: inherit; color: #000; background: #fff; border: 1px solid #fff; padding: 4px 12px; cursor: pointer;
+  font: inherit; color: var(--bg); background: var(--text); border: 1px solid var(--text); padding: 4px 12px; cursor: pointer;
 }
-#err button:hover { background: #000; color: #fff; }
+#err button:hover { background: var(--bg); color: var(--text); }
 </style>
 </head>
 <body>
@@ -111,6 +112,11 @@ html.ai-live .kstuff-cursor { display: none !important; }
     var d = e.data;
     if (d && d.type === 'kstuff-cursor' && e.source === frame.contentWindow) {
       try { parent.postMessage(d, '*'); } catch (err) {}
+    }
+    if (d === 'theme-updated' && e.source !== frame.contentWindow) {
+      setTimeout(function () {
+        try { frame.contentWindow.postMessage('theme-updated', '*'); } catch (err) {}
+      }, 60);
     }
   });
 

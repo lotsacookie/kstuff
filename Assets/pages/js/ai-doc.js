@@ -10,12 +10,13 @@
   const OWN_RE = /(^|\.)deepai\.org$/i;
   const BLOCK_RE = /googletagmanager|google-analytics|googlesyndication|doubleclick|sentry|koah|twitter|facebook|reddit|linkedin|stripe|clarity|hotjar|zeroclick|taboola|outbrain/i;
   const PAGE_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
-  const RESTYLE = `
+  const RESTYLE = `:root{--bg:#000;--text:#fff;--card:#141414;--nav:#0a0a0a}
+
 body>header,body>footer,#language-banner,#announcement-banner,.language-banner,.announcement-banner,.sidebar-ad,.permanent-announcement-banner,.dyn-content-block,#modelPageProNotice,.model-page-pro-notice{display:none!important}
 #voicePillButton,#websiteBuilderPillButton,#chatMemoryPillButton,#chatMemorySettingsButton,.pro-only-pill,#chat-memory-modal-root,.chat-memory-modal{display:none!important}
 .landing-title-group>h1,.landing-title-group .landing-description-group>h3{display:none!important}
 .chat-model-chip:has(.model-chip-lock),.chat-mode-menu-item.chat-mode-locked,.chat-mode-menu-item:has(.chat-mode-lock-icon),.slash-cmd-item:has(img[src*="lock-icon"]),.cmd-palette-item:has(.cmd-palette-item-lock),.presets-dropdown-item:has(img[src*="lock-icon"]),.attach-dropdown-item:has(img[src*="lock-icon"]),.attach-dropdown-item:has(.pro-lock-icon),.chat-chip:has(img[src*="lock-icon"]){display:none!important}
-html,body{background:transparent!important;background-image:none!important;color:#fff!important}
+html,body{background:transparent!important;background-image:none!important;color:var(--text)!important}
 *,*::before,*::after{border-radius:0!important;font-family:"Comfortaa",sans-serif!important;font-weight:700!important;-webkit-tap-highlight-color:transparent}
 pre,pre *,code,code *,.code-block-wrapper *{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace!important}
 .katex,.katex *{font-family:KaTeX_Main,"Times New Roman",serif!important}
@@ -23,75 +24,75 @@ pre,pre *,code,code *,.code-block-wrapper *{font-family:ui-monospace,SFMono-Regu
 .outputBox,.outputBox *,.chatbox-wrapper,.chatbox-wrapper *,textarea,input{-webkit-user-select:text!important;user-select:text!important}
 body{min-height:100dvh!important;padding-top:0!important}
 .chat-main{min-height:100dvh!important}
-.chat-sidebar{top:12px!important;bottom:12px!important;left:12px!important;width:260px!important;background:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important;backdrop-filter:blur(12px)}
+.chat-sidebar{top:12px!important;bottom:12px!important;left:12px!important;width:260px!important;background:var(--nav)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;box-shadow:none!important;backdrop-filter:blur(12px)}
 .chat-layout-container.sidebar-open .chat-main{margin-left:284px!important}
-@media(max-width:720px){.chat-sidebar{top:0!important;bottom:0!important;left:0!important;width:min(300px,85vw)!important;box-shadow:0 0 40px rgba(0,0,0,.55)!important}.chat-layout-container.sidebar-open .chat-main{margin-left:0!important}}
-.sidebar-top-bar{border-bottom:1px solid rgba(255,255,255,.14)!important}
+@media(max-width:720px){.chat-sidebar{top:0!important;bottom:0!important;left:0!important;width:min(300px,85vw)!important;box-shadow:0 0 40px color-mix(in srgb,var(--bg) 55%,transparent)!important}.chat-layout-container.sidebar-open .chat-main{margin-left:0!important}}
+.sidebar-top-bar{border-bottom:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important}
 .sidebar-toggle-container{top:10px!important;left:12px!important}
 .new-chat-button-container{top:10px!important}
-.sidebar-new-chat-btn,.sidebar-close-btn,.new-chat-button,.compose-plus-btn,.chat-chip,.delete-all-history-button,.sidebar-toggle,.chat-mode-dropdown-trigger{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important;opacity:1!important;transition:border-color .25s ease,background-color .25s ease,color .25s ease!important}
-.sidebar-new-chat-btn:hover,.sidebar-close-btn:hover,.new-chat-button:hover,.compose-plus-btn:hover,.chat-chip:hover,.delete-all-history-button:hover,.sidebar-toggle:hover,.chat-mode-dropdown-trigger:hover,.chatoptionsBox button:hover,.optionsBox button:hover,.attach-dropdown-item:hover,.presets-dropdown-item:hover,.chat-mode-menu-item:hover{background:#fff!important;color:#000!important;border-color:#fff!important}
-.compose-plus-btn.open,.compose-plus-btn.open:hover{background:#fff!important;color:#000!important;border-color:#fff!important;transform:none!important}
+.sidebar-new-chat-btn,.sidebar-close-btn,.new-chat-button,.compose-plus-btn,.chat-chip,.delete-all-history-button,.sidebar-toggle,.chat-mode-dropdown-trigger{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;box-shadow:none!important;opacity:1!important;transition:border-color .25s ease,background-color .25s ease,color .25s ease!important}
+.sidebar-new-chat-btn:hover,.sidebar-close-btn:hover,.new-chat-button:hover,.compose-plus-btn:hover,.chat-chip:hover,.delete-all-history-button:hover,.sidebar-toggle:hover,.chat-mode-dropdown-trigger:hover,.chatoptionsBox button:hover,.optionsBox button:hover,.attach-dropdown-item:hover,.presets-dropdown-item:hover,.chat-mode-menu-item:hover{background:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
+.compose-plus-btn.open,.compose-plus-btn.open:hover{background:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important;transform:none!important}
 .compose-plus-btn,.compose-plus-btn.open{transform:none!important}
-.sidebar-new-chat-btn:hover svg [stroke="white"],.sidebar-close-btn:hover svg [stroke="white"],.new-chat-button:hover svg [stroke="white"],.sidebar-toggle:hover svg [stroke="white"],.chatoptionsBox button:hover svg [stroke="white"],.optionsBox button:hover svg [stroke="white"]{stroke:#000!important}
-.sidebar-new-chat-btn:hover svg [fill="white"],.sidebar-close-btn:hover svg [fill="white"],.new-chat-button:hover svg [fill="white"],.sidebar-toggle:hover svg [fill="white"],.chatoptionsBox button:hover svg [fill="white"],.optionsBox button:hover svg [fill="white"]{fill:#000!important}
-.sidebar-new-chat-btn:hover svg,.sidebar-close-btn:hover svg,.new-chat-button:hover svg,.compose-plus-btn:hover svg,.compose-plus-btn.open svg,.delete-all-history-button:hover svg,.sidebar-toggle:hover svg,.chat-mode-dropdown-trigger:hover svg,.chatoptionsBox button:hover svg,.optionsBox button:hover svg,.attach-dropdown-item:hover svg,.presets-dropdown-item:hover svg{color:#000!important}
+.sidebar-new-chat-btn:hover svg [stroke="white"],.sidebar-close-btn:hover svg [stroke="white"],.new-chat-button:hover svg [stroke="white"],.sidebar-toggle:hover svg [stroke="white"],.chatoptionsBox button:hover svg [stroke="white"],.optionsBox button:hover svg [stroke="white"]{stroke:var(--bg)!important}
+.sidebar-new-chat-btn:hover svg [fill="white"],.sidebar-close-btn:hover svg [fill="white"],.new-chat-button:hover svg [fill="white"],.sidebar-toggle:hover svg [fill="white"],.chatoptionsBox button:hover svg [fill="white"],.optionsBox button:hover svg [fill="white"]{fill:var(--bg)!important}
+.sidebar-new-chat-btn:hover svg,.sidebar-close-btn:hover svg,.new-chat-button:hover svg,.compose-plus-btn:hover svg,.compose-plus-btn.open svg,.delete-all-history-button:hover svg,.sidebar-toggle:hover svg,.chat-mode-dropdown-trigger:hover svg,.chatoptionsBox button:hover svg,.optionsBox button:hover svg,.attach-dropdown-item:hover svg,.presets-dropdown-item:hover svg{color:var(--bg)!important}
 .chat-chip:hover img,.attach-dropdown-item:hover img,.presets-dropdown-item:hover img{filter:invert(1)!important}
-.attach-dropdown-item:hover *,.presets-dropdown-item:hover *,.chat-mode-menu-item:hover *{color:#000!important}
-.chat-history-search-input{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important}
-.chat-history-search-input:focus{border-color:#fff!important;outline:none!important}
+.attach-dropdown-item:hover *,.presets-dropdown-item:hover *,.chat-mode-menu-item:hover *{color:var(--bg)!important}
+.chat-history-search-input{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important}
+.chat-history-search-input:focus{border-color:var(--text)!important;outline:none!important}
 #chatHistoryList>*{border:1px solid transparent!important;opacity:.85}
-#chatHistoryList>*:hover{background:rgba(255,255,255,.09)!important;border-color:rgba(255,255,255,.14)!important;opacity:1}
-.sidebar-footer{border-top:1px solid rgba(255,255,255,.14)!important}
-#attachDropdownMenu,#chatModeMenu,#presetsDropdownMenu,.presets-dropdown-menu{background:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important}
-.persistent-compose-area{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important;transition:border-color .3s ease,box-shadow .3s ease!important}
-.persistent-compose-area:focus-within{border-color:#fff!important;box-shadow:0 0 0 3px rgba(255,255,255,.3)!important}
-#persistentChatbox{font-size:.9rem!important;color:#fff!important}
-#persistentChatbox::placeholder{color:#fff!important;opacity:.4!important}
-#chatSubmitButton{background:#fff!important;border:none!important;color:#000!important}
+#chatHistoryList>*:hover{background:color-mix(in srgb,var(--text) 9%,transparent)!important;border-color:color-mix(in srgb,var(--text) 14%,transparent)!important;opacity:1}
+.sidebar-footer{border-top:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important}
+#attachDropdownMenu,#chatModeMenu,#presetsDropdownMenu,.presets-dropdown-menu{background:var(--nav)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;box-shadow:none!important}
+.persistent-compose-area{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;box-shadow:none!important;transition:border-color .3s ease,box-shadow .3s ease!important}
+.persistent-compose-area:focus-within{border-color:var(--text)!important;box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 30%,transparent)!important}
+#persistentChatbox{font-size:.9rem!important;color:var(--text)!important}
+#persistentChatbox::placeholder{color:var(--text)!important;opacity:.4!important}
+#chatSubmitButton{background:var(--text)!important;border:none!important;color:var(--bg)!important}
 #chatSubmitButton img,#chatSubmitButton svg{filter:invert(1)!important}
-#chatSubmitButton:hover{background:#fff!important;transform:translateY(-1px)}
-.chatbox-wrapper .chatbox{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;font-size:.95rem!important;line-height:1.6!important}
+#chatSubmitButton:hover{background:var(--text)!important;transform:translateY(-1px)}
+.chatbox-wrapper .chatbox{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;font-size:.95rem!important;line-height:1.6!important}
 .outputBox{font-size:.95rem!important;line-height:1.6!important}
-pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border:1px solid rgba(255,255,255,.14)!important}
+pre,.code-block-wrapper,.code-block-wrapper pre{background:var(--bg)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important}
 .ai-disclaimer{opacity:.4!important}
-::selection{background:rgba(255,255,255,.28)}
-*{scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.28) transparent}
+::selection{background:color-mix(in srgb,var(--text) 28%,transparent)}
+*{scrollbar-width:thin;scrollbar-color:color-mix(in srgb,var(--text) 28%,transparent) transparent}
 .chat-history-search-container::after{display:none!important}
-.sidebar-footer{background:#0a0a0a!important;border-top:1px solid rgba(255,255,255,.14)!important}
-.sidebar-scroll-wrapper{scrollbar-color:rgba(255,255,255,.28) transparent!important}
+.sidebar-footer{background:var(--nav)!important;border-top:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important}
+.sidebar-scroll-wrapper{scrollbar-color:color-mix(in srgb,var(--text) 28%,transparent) transparent!important}
 .chat-history-items{padding-top:8px!important}
-.chat-mode-menu-item.selected,.chat-mode-menu-item.selected:hover,.chat-mode-menu-item.menu-arrow-hl,.chat-mode-menu-item.menu-arrow-hl.selected,.presets-dropdown-item.selected,.presets-dropdown-item.selected:hover,.active-mode-chip,.active-mode-chip:hover,.attach-dropdown-toggle.active,.attach-dropdown-toggle.active:hover,.attach-dropdown-toggle.active.plus-menu-hl{background:rgba(255,255,255,.16)!important;color:#fff!important;border-color:rgba(255,255,255,.14)!important}
-.presets-dropdown-item.selected svg,.attach-dropdown-toggle.active svg,.active-mode-chip svg{color:#fff!important}
-.pro-badge,.beta-badge,.model-page-pro-badge,.sources-badge,.thinking-badge{background:rgba(255,255,255,.14)!important;color:#fff!important;border-color:rgba(255,255,255,.14)!important}
-[role="switch"][aria-checked="true"] .attach-dropdown-switch,.oc-toggle input[type="checkbox"]:checked + .oc-toggle-slider{background:#fff!important}
-[role="switch"][aria-checked="true"] .attach-dropdown-switch::after{background:#000!important}
-#deepaiProgressBar{background:#fff!important}
-.results-tab.active{background:rgba(255,255,255,.16)!important;color:#fff!important;border-color:#fff!important}
-.cmd-palette-match,.cmd-palette-current-dot{color:#fff!important;background-color:transparent!important}
-.chatEditSubmitButton{background:#fff!important;color:#000!important;border-color:#fff!important}
-.optionsBox button:focus-visible,.chatoptionsBox button:focus-visible{outline:1px solid #fff!important;box-shadow:none!important}
-#upload-successful{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important}
-:root{--purple:#fff;--pink:#fff}
+.chat-mode-menu-item.selected,.chat-mode-menu-item.selected:hover,.chat-mode-menu-item.menu-arrow-hl,.chat-mode-menu-item.menu-arrow-hl.selected,.presets-dropdown-item.selected,.presets-dropdown-item.selected:hover,.active-mode-chip,.active-mode-chip:hover,.attach-dropdown-toggle.active,.attach-dropdown-toggle.active:hover,.attach-dropdown-toggle.active.plus-menu-hl{background:color-mix(in srgb,var(--text) 16%,transparent)!important;color:var(--text)!important;border-color:color-mix(in srgb,var(--text) 14%,transparent)!important}
+.presets-dropdown-item.selected svg,.attach-dropdown-toggle.active svg,.active-mode-chip svg{color:var(--text)!important}
+.pro-badge,.beta-badge,.model-page-pro-badge,.sources-badge,.thinking-badge{background:color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;border-color:color-mix(in srgb,var(--text) 14%,transparent)!important}
+[role="switch"][aria-checked="true"] .attach-dropdown-switch,.oc-toggle input[type="checkbox"]:checked + .oc-toggle-slider{background:var(--text)!important}
+[role="switch"][aria-checked="true"] .attach-dropdown-switch::after{background:var(--bg)!important}
+#deepaiProgressBar{background:var(--text)!important}
+.results-tab.active{background:color-mix(in srgb,var(--text) 16%,transparent)!important;color:var(--text)!important;border-color:var(--text)!important}
+.cmd-palette-match,.cmd-palette-current-dot{color:var(--text)!important;background-color:transparent!important}
+.chatEditSubmitButton{background:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
+.optionsBox button:focus-visible,.chatoptionsBox button:focus-visible{outline:1px solid var(--text)!important;box-shadow:none!important}
+#upload-successful{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important}
+:root{--purple:var(--text);--pink:var(--text)}
 .more-models-btn,.model-menu-divider,.pin-model-btn{display:none!important}
 #chatModeMenu{max-height:60vh!important;overflow-y:auto!important}
 .ai-disclaimer{display:none!important}
 .chat-main.has-messages{padding-top:56px!important}
-#recordButton{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important;transition:width .3s ease,color .25s ease,background-color .25s ease,border-color .25s ease!important}
-#recordButton:hover{background:#fff!important;color:#000!important;border-color:#fff!important}
+#recordButton{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;box-shadow:none!important;transition:width .3s ease,color .25s ease,background-color .25s ease,border-color .25s ease!important}
+#recordButton:hover{background:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
 #recordButton:hover img{filter:invert(1)!important}
 #recordButton.recording,#recordButton.recording:hover{color:#ee7a7a!important}
 #recordButton.recording{border-color:rgba(238,122,122,.4)!important}
-#recordButton.recording:hover{background:#141414!important;border-color:#ee7a7a!important}
-#errorpopup,#summarypopup,#copypopup,#successpopup,#upload-successful,#upload-unsuccessful,#upload-too-many,#big-file-type,#bad-file-type{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important;backdrop-filter:none!important}
+#recordButton.recording:hover{background:var(--card)!important;border-color:#ee7a7a!important}
+#errorpopup,#summarypopup,#copypopup,#successpopup,#upload-successful,#upload-unsuccessful,#upload-too-many,#big-file-type,#bad-file-type{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;box-shadow:none!important;backdrop-filter:none!important}
 #errorpopup,#upload-unsuccessful,#upload-too-many,#big-file-type,#bad-file-type{color:#ee7a7a!important;border-color:rgba(238,122,122,.4)!important}
 .sidebar-toggle::before,.new-chat-button::before{content:none!important;display:none!important;background:none!important}
 .chat-layout-container .sidebar-toggle,.chat-layout-container .new-chat-button{width:40px!important;height:40px!important;filter:none!important}
-.chat-layout-container .sidebar-toggle:hover,.chat-layout-container .new-chat-button:hover{background:#fff!important}
-.chat-layout-container:has(.has-messages) .sidebar-toggle,.chat-layout-container:has(.has-messages) .new-chat-button{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important}
-.chat-layout-container:has(.has-messages) .sidebar-toggle:hover,.chat-layout-container:has(.has-messages) .new-chat-button:hover{background:#fff!important;border-color:#fff!important}
+.chat-layout-container .sidebar-toggle:hover,.chat-layout-container .new-chat-button:hover{background:var(--text)!important}
+.chat-layout-container:has(.has-messages) .sidebar-toggle,.chat-layout-container:has(.has-messages) .new-chat-button{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important}
+.chat-layout-container:has(.has-messages) .sidebar-toggle:hover,.chat-layout-container:has(.has-messages) .new-chat-button:hover{background:var(--text)!important;border-color:var(--text)!important}
 .sidebar-toggle-container,.sidebar-toggle,#sidebarToggle,.sidebar-close-btn,#sidebarCloseBtn,#sidebarOverlay{display:none!important}
-.chat-sidebar{transform:none!important;display:flex!important;background:rgba(0,0,0,.5)!important;backdrop-filter:blur(8px)}
+.chat-sidebar{transform:none!important;display:flex!important;background:color-mix(in srgb,var(--bg) 50%,transparent)!important;backdrop-filter:blur(8px)}
 .sidebar-footer,.sidebar-top-bar{background:transparent!important}
 .chat-layout-container .chat-main.has-messages{padding-top:56px!important}
 .chat-layout-container .chat-main{margin-left:284px!important;margin-top:0!important;margin-bottom:0!important;background:transparent!important}
@@ -99,27 +100,41 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:#000!important;border
 .chat-main,.chat-layout-container,#layoutContainer,#convo,.outputBox{background:transparent!important}
 .new-chat-button-container{left:auto!important;right:12px!important}
 @media(max-width:720px){.chat-sidebar{width:170px!important}.chat-layout-container .chat-main{margin-left:182px!important}}
-.modal-root{background-color:rgba(0,0,0,.6)!important}
-.modal{background:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important}
-.confirm-desc{color:rgba(255,255,255,.6)!important}
-.confirm-input{background:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important}
-.confirm-input:focus{border-color:#fff!important;outline:none!important}
-.confirm-button,#confirm-yes-btn,#confirm-cancel-btn{background:#141414!important;background-color:#141414!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;transition:border-color .25s ease,background-color .25s ease,color .25s ease!important}
-.confirm-button:hover:not(:disabled),#confirm-yes-btn:hover:not(:disabled),#confirm-cancel-btn:hover:not(:disabled){background:#fff!important;background-color:#fff!important;color:#000!important;border-color:#fff!important}
-.history-delete-btn{color:#fff!important}
-.history-delete-btn:hover,.history-delete-btn.ctx-hl{background:#fff!important;color:#000!important}
-.chat-history-item.current-chat,.chat-history-item.current-chat.menu-open,.chat-history-item.current-chat.rename-open,.chat-history-item.current-chat:hover{background:#fff!important;background-color:#fff!important;color:#000!important;border-color:#fff!important}
-.chat-history-item.current-chat *{color:#000!important}
-.chat-history-item.current-chat svg [stroke="white"]{stroke:#000!important}
-.chat-history-item.current-chat svg [fill="white"]{fill:#000!important}
+.modal-root{background-color:color-mix(in srgb,var(--bg) 60%,transparent)!important}
+.modal{background:var(--nav)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;box-shadow:none!important}
+.confirm-desc{color:color-mix(in srgb,var(--text) 60%,transparent)!important}
+.confirm-input{background:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important}
+.confirm-input:focus{border-color:var(--text)!important;outline:none!important}
+.confirm-button,#confirm-yes-btn,#confirm-cancel-btn{background:var(--card)!important;background-color:var(--card)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;transition:border-color .25s ease,background-color .25s ease,color .25s ease!important}
+.confirm-button:hover:not(:disabled),#confirm-yes-btn:hover:not(:disabled),#confirm-cancel-btn:hover:not(:disabled){background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
+.history-delete-btn{color:var(--text)!important}
+.history-delete-btn:hover,.history-delete-btn.ctx-hl{background:var(--text)!important;color:var(--bg)!important}
+.chat-history-item.current-chat,.chat-history-item.current-chat.menu-open,.chat-history-item.current-chat.rename-open,.chat-history-item.current-chat:hover{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important}
+.chat-history-item.current-chat *{color:var(--bg)!important}
+.chat-history-item.current-chat svg [stroke="white"]{stroke:var(--bg)!important}
+.chat-history-item.current-chat svg [fill="white"]{fill:var(--bg)!important}
 #chatHistoryList>*:has(.current-chat){opacity:1!important}
-[data-tooltip]::after,[data-hint]::after,.keybind-tooltip{background:#0a0a0a!important;background-color:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;color:#fff!important;box-shadow:none!important}
-.keybind-tooltip-label{color:#fff!important}
-.keybind-tooltip-key{color:rgba(255,255,255,.5)!important}
-.chat-history-context-menu,.chat-move-submenu{background:#0a0a0a!important;background-color:#0a0a0a!important;border:1px solid rgba(255,255,255,.14)!important;box-shadow:none!important}
-.chat-history-context-menu button,.chat-move-submenu button{background:transparent!important;color:#fff!important;transition:background-color .25s ease,color .25s ease!important}
-.chat-history-context-menu button:hover,.chat-history-context-menu button.ctx-hl,.chat-move-submenu button:hover,.chat-move-submenu button.ctx-hl{background:#fff!important;background-color:#fff!important;color:#000!important}
+[data-tooltip]::after,[data-hint]::after,.keybind-tooltip{background:var(--nav)!important;background-color:var(--nav)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;color:var(--text)!important;box-shadow:none!important}
+.keybind-tooltip-label{color:var(--text)!important}
+.keybind-tooltip-key{color:color-mix(in srgb,var(--text) 50%,transparent)!important}
+.chat-history-context-menu,.chat-move-submenu{background:var(--nav)!important;background-color:var(--nav)!important;border:1px solid color-mix(in srgb,var(--text) 14%,transparent)!important;box-shadow:none!important}
+.chat-history-context-menu button,.chat-move-submenu button{background:transparent!important;color:var(--text)!important;transition:background-color .25s ease,color .25s ease!important}
+.chat-history-context-menu button:hover,.chat-history-context-menu button.ctx-hl,.chat-move-submenu button:hover,.chat-move-submenu button.ctx-hl{background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important}
 `;
+
+function themeSync() {
+  function s() {
+    try {
+      var cs = window.parent.getComputedStyle(window.parent.document.documentElement), d = document.documentElement.style;
+      ["--bg", "--text", "--card", "--nav"].forEach(function (k) {
+        var v = (cs.getPropertyValue(k) || "").trim();
+        if (v) d.setProperty(k, v); else d.removeProperty(k);
+      });
+    } catch (e) {}
+  }
+  s();
+  window.addEventListener("message", function (e) { if (e.data === "theme-updated") s(); });
+}
 
 function shim() {
   const SITE = "https://deepai.org";
@@ -489,7 +504,7 @@ async function buildDocument() {
     .replace(/window\.location\.hostname\s*===\s*["']deepai\.org["']/g, "true")
     .replace(/window\.top\.location\.href\s*=\s*window\.location\.href/g, "void 0")
     .replace(/function applyStoredLanguage\(\)\s*\{/, (m) => m + "return false;");
-  html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script>");
+  html = html.replace(/<head[^>]*>/i, (h) => h + '<base href="' + SITE + '/"><script>(' + shim.toString() + ")();<\/script><script>(" + cursorBoot.toString() + ")();<\/script><script>(" + themeSync.toString() + ")();<\/script>");
   html = html.replace(/<\/head>/i, () => '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Comfortaa:wght@300..700&display=swap"><style id="px-style">' + RESTYLE + "</style></head>");
   return html;
 }
