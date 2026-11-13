@@ -65,7 +65,7 @@ body.app{display:block;padding:0}body.app main{width:100%}
 #lib-status{margin:0 0 8px;font-size:.9rem;min-height:1px}
 #lib-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(clamp(180px,22vw,260px),1fr));gap:16px;margin:0}
 .game{position:relative;border-radius:12px;overflow:hidden;background:#12161b;border:1px solid var(--line);aspect-ratio:16/10;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s;animation:fade .35s both}
-.game:hover,.game:focus-visible{transform:translateY(-4px) scale(1.02);border-color:var(--green);box-shadow:0 14px 34px rgba(0,0,0,.55),0 0 0 1px var(--green);outline:none;z-index:2}
+.game:hover,.game:focus-visible{border-color:var(--green);box-shadow:0 14px 34px rgba(0,0,0,.55),0 0 0 1px var(--green);outline:none;z-index:2}
 .game img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block}
 .game:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(0,0,0,.88) 0%,rgba(0,0,0,.1) 55%,transparent)}
 .game .meta{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:10px 12px;font-size:.88rem;font-weight:700;line-height:1.25;display:flex;flex-direction:column;gap:3px}
@@ -152,6 +152,12 @@ body.embed #player:not(.live) #pv,body.embed #pstatus{visibility:hidden}
 body.embed #settings{background:rgba(0,0,0,.45);backdrop-filter:none}
 body.embed #settings .panel{background:var(--nav,var(--e-bg));border:1px solid var(--e-line);color:var(--e-text);box-shadow:none}
 body.embed #settings label{color:var(--e-dim)}
+:is(button,[role="button"],.btn,.sf-btn):not(.game):not(.gear):is(:hover,:focus-visible):not(:disabled):not([disabled]){background:var(--e-text,var(--ink,#fff))!important;background-color:var(--e-text,var(--ink,#fff))!important;color:var(--e-bg,var(--bg,#0b0d10))!important;border-color:var(--e-text,var(--ink,#fff))!important;opacity:1!important;filter:none!important;box-shadow:none!important;text-shadow:none!important;transform:none!important;scale:none!important;translate:none!important}
+:is(.gear):is(:hover,:focus-visible):not(:disabled):not([disabled]){background:var(--e-text,var(--ink,#fff))!important;background-color:var(--e-text,var(--ink,#fff))!important;color:var(--e-bg,var(--bg,#0b0d10))!important;border-color:var(--e-text,var(--ink,#fff))!important;opacity:1!important;filter:none!important;box-shadow:none!important;text-shadow:none!important}
+:is(button,[role="button"],.btn,.sf-btn):not(.game):is(:hover,:focus-visible):not(:disabled):not([disabled]) :is(i,span,b,strong,small,svg,svg *){color:var(--e-bg,var(--bg,#0b0d10))!important}
+:is(button,[role="button"],.btn,.sf-btn):not(.game):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg [fill]:not([fill="none"]):not([fill="currentColor"]),:is(button,[role="button"],.btn,.sf-btn):not(.game):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg[fill]:not([fill="none"]):not([fill="currentColor"]){fill:var(--e-bg,var(--bg,#0b0d10))!important}
+:is(button,[role="button"],.btn,.sf-btn):not(.game):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg [stroke]:not([stroke="none"]):not([stroke="currentColor"]),:is(button,[role="button"],.btn,.sf-btn):not(.game):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg[stroke]:not([stroke="none"]):not([stroke="currentColor"]){stroke:var(--e-bg,var(--bg,#0b0d10))!important}
+:is(button,[role="button"],.btn,.sf-btn):not(.game):is(:hover,:focus-visible):not(:disabled):not([disabled]) img{filter:invert(1)!important}
 </style>
 </head>
 <body>

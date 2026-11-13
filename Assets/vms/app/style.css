@@ -21,7 +21,7 @@
   border: 1px solid var(--line); border-radius: 14px; padding: 22px 20px 18px;
   transition: border-color .2s, background .2s, transform .2s;
 }
-.game-card:hover { border-color: var(--line-hi); background: color-mix(in srgb, var(--ink) 11%, transparent); transform: translateY(-2px); }
+.game-card:hover { border-color: var(--line-hi); background: color-mix(in srgb, var(--ink) 11%, transparent); }
 .card-icon { width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center; border: 1px solid var(--line-hi); margin-bottom: 16px; }
 .game-card h3 { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
 .pkg-name { font-size: .72rem; color: var(--faint); word-break: break-all; }
@@ -99,3 +99,8 @@
 }
 
 #astra-video { width: 100%; height: 100%; object-fit: contain; background: #000; display: block; touch-action: none; }
+:is(button,[role="button"],.sf-btn):not(.game-card):is(:hover,:focus-visible):not(:disabled):not([disabled]){background:var(--ink)!important;background-color:var(--ink)!important;color:var(--bg,#000)!important;border-color:var(--ink)!important;opacity:1!important;filter:none!important;box-shadow:none!important;text-shadow:none!important;transform:none!important;scale:none!important;translate:none!important}
+:is(button,[role="button"],.sf-btn):not(.game-card):is(:hover,:focus-visible):not(:disabled):not([disabled]) :is(i,span,b,strong,small,svg,svg *){color:var(--bg,#000)!important}
+:is(button,[role="button"],.sf-btn):not(.game-card):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg [fill]:not([fill="none"]):not([fill="currentColor"]),:is(button,[role="button"],.sf-btn):not(.game-card):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg[fill]:not([fill="none"]):not([fill="currentColor"]){fill:var(--bg,#000)!important}
+:is(button,[role="button"],.sf-btn):not(.game-card):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg [stroke]:not([stroke="none"]):not([stroke="currentColor"]),:is(button,[role="button"],.sf-btn):not(.game-card):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg[stroke]:not([stroke="none"]):not([stroke="currentColor"]){stroke:var(--bg,#000)!important}
+:is(button,[role="button"],.sf-btn):not(.game-card):is(:hover,:focus-visible):not(:disabled):not([disabled]) img{filter:invert(1)!important}

@@ -640,14 +640,12 @@ body {
 
 
 .round-btn:hover {
-    scale: 1.1;
     z-index: 2;
     box-shadow: 0 0 0 3px var(--text-color), 0 18px 36px rgba(0,0,0,0.42);
 }
 
 
 .round-btn:active {
-    scale: 0.96;
     z-index: 2;
     box-shadow: 0 0 0 3px var(--text-color), 0 10px 20px rgba(0,0,0,0.4);
 }
@@ -1421,8 +1419,7 @@ body.floating-on #studymaterial-area {
 
 
 #profile-modal-pic:hover {
-    transform: scale(1.04);
-}
+    }
 
 
 #do-login-btn {
@@ -1930,8 +1927,9 @@ body.floating-on .learning-footer .footer-item {
 
 
 .round-btn .fav-btn:hover {
-    background: rgba(0, 0, 0, 0.75);
-    transform: scale(1.12);
+    background: var(--text-color);
+    color: var(--bg-color);
+    transform: none;
 }
 
 
@@ -2424,13 +2422,12 @@ html.sg-flip body {
 @media(max-width:640px){#ping-indicator span,#weather-text,#conn-text,#clock-text,#coi-text{display:none}}
 
 
-/* ===== Buttons: theme-matched inverse on hover/focus,.modal-actions button:hover,.modal-actions button[id$="close-btn"]:hover{background:var(--text-color)!important;background-color:var(--text-color)!important;color:var(--bg-color)!important;border-color:var(--text-color)!important;opacity:1!important;transform:none!important}
-
-button:not(:disabled):hover i,button:not(:disabled):focus-visible i,button:not(:disabled):hover span,button:not(:disabled):focus-visible span{color:var(--bg-color)!important}
-
-button:not(:disabled):hover svg[fill="none"],button:not(:disabled):hover svg.sg-ico,.sg-ico:not(:disabled):hover svg,.sg-ico:not(:disabled):focus-visible svg{fill:none!important;stroke:var(--bg-color)!important}
-
-.modal-actions button:hover i,.exam-modal-close:hover i{transform:none!important}
+:is(button,.page-btn,.refresh-btn,.study-nav-btn,.subject-action-btn,.study-action-btn,.modal-primary-btn,.screen-exit,.sg-newtab,.footer-btn,.settings-tab):is(:hover,:focus-visible):not(:disabled):not([disabled]){background:var(--text-color)!important;background-color:var(--text-color)!important;color:var(--bg-color)!important;border-color:var(--text-color)!important;opacity:1!important;filter:none!important;box-shadow:none!important;text-shadow:none!important;transform:none!important;scale:none!important;translate:none!important}
+:is(button,.page-btn,.refresh-btn,.study-nav-btn,.subject-action-btn,.study-action-btn,.modal-primary-btn,.screen-exit,.sg-newtab,.footer-btn,.settings-tab):is(:hover,:focus-visible):not(:disabled):not([disabled]) :is(i,span,b,strong,small,svg,svg *){color:var(--bg-color)!important}
+:is(button,.page-btn,.refresh-btn,.study-nav-btn,.subject-action-btn,.study-action-btn,.modal-primary-btn,.screen-exit,.sg-newtab,.footer-btn,.settings-tab):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg [fill]:not([fill="none"]):not([fill="currentColor"]),:is(button,.page-btn,.refresh-btn,.study-nav-btn,.subject-action-btn,.study-action-btn,.modal-primary-btn,.screen-exit,.sg-newtab,.footer-btn,.settings-tab):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg[fill]:not([fill="none"]):not([fill="currentColor"]){fill:var(--bg-color)!important}
+:is(button,.page-btn,.refresh-btn,.study-nav-btn,.subject-action-btn,.study-action-btn,.modal-primary-btn,.screen-exit,.sg-newtab,.footer-btn,.settings-tab):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg [stroke]:not([stroke="none"]):not([stroke="currentColor"]),:is(button,.page-btn,.refresh-btn,.study-nav-btn,.subject-action-btn,.study-action-btn,.modal-primary-btn,.screen-exit,.sg-newtab,.footer-btn,.settings-tab):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg[stroke]:not([stroke="none"]):not([stroke="currentColor"]){stroke:var(--bg-color)!important}
+:is(button,.page-btn,.refresh-btn,.study-nav-btn,.subject-action-btn,.study-action-btn,.modal-primary-btn,.screen-exit,.sg-newtab,.footer-btn,.settings-tab):is(:hover,:focus-visible):not(:disabled):not([disabled]) img{filter:invert(1)!important}
+.modal-actions button:hover i{transform:none!important}
 
 
 /* ===== Footer: slim flat status strip ===== */

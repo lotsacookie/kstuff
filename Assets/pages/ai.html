@@ -42,6 +42,11 @@ html.ai-live .kstuff-cursor { display: none !important; }
   font: inherit; color: var(--bg); background: var(--text); border: 1px solid var(--text); padding: 4px 12px; cursor: pointer;
 }
 #err button:hover { background: var(--bg); color: var(--text); }
+:is(button,[role="button"]):is(:hover,:focus-visible):not(:disabled):not([disabled]){background:var(--text)!important;background-color:var(--text)!important;color:var(--bg)!important;border-color:var(--text)!important;opacity:1!important;filter:none!important;box-shadow:none!important;text-shadow:none!important;transform:none!important;scale:none!important;translate:none!important}
+:is(button,[role="button"]):is(:hover,:focus-visible):not(:disabled):not([disabled]) :is(i,span,b,strong,small,svg,svg *){color:var(--bg)!important}
+:is(button,[role="button"]):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg [fill]:not([fill="none"]):not([fill="currentColor"]),:is(button,[role="button"]):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg[fill]:not([fill="none"]):not([fill="currentColor"]){fill:var(--bg)!important}
+:is(button,[role="button"]):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg [stroke]:not([stroke="none"]):not([stroke="currentColor"]),:is(button,[role="button"]):is(:hover,:focus-visible):not(:disabled):not([disabled]) svg[stroke]:not([stroke="none"]):not([stroke="currentColor"]){stroke:var(--bg)!important}
+:is(button,[role="button"]):is(:hover,:focus-visible):not(:disabled):not([disabled]) img{filter:invert(1)!important}
 </style>
 </head>
 <body>
