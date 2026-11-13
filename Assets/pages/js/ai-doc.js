@@ -95,6 +95,7 @@ pre,.code-block-wrapper,.code-block-wrapper pre{background:var(--bg)!important;b
 #sidebarOverlay{display:none!important}
 .chat-sidebar{display:flex!important;background:color-mix(in srgb,var(--bg) 50%,transparent)!important;backdrop-filter:blur(8px)}
 .chat-layout-container.sidebar-open .chat-sidebar{transform:none!important}
+@media(min-width:900px) and (orientation:landscape){.chat-layout-container.sidebar-open #sidebarCloseBtn,.chat-layout-container.sidebar-open .sidebar-toggle-container{display:none!important}.chat-layout-container.sidebar-open .sidebar-new-chat-btn{flex:1 1 auto!important}}
 .chat-layout-container:not(.sidebar-open) .chat-sidebar{transform:translateX(calc(-100% - 24px))!important;pointer-events:none!important}
 @media(max-width:899px){.chat-layout-container.sidebar-open .chat-sidebar{background:var(--card)!important;z-index:8!important;box-shadow:0 0 40px color-mix(in srgb,var(--bg) 55%,transparent)!important}}
 .sidebar-footer,.sidebar-top-bar{background:transparent!important}
