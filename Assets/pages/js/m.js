@@ -116,7 +116,7 @@ const ITUNES_SEARCH_API = "https://itunes.apple.com/search";
 const CATALOG_SEARCH_LIMIT = 100;
 const CATALOG_STREAM_LIMIT = 40;
 
-const HOME_SHELVES = [
+const FALLBACK_SHELVES = [
     { id: "trending", title: "Trending Now", genre: 0 },
     { id: "pop", title: "Pop", genre: 132 },
     { id: "hiphop", title: "Hip-Hop", genre: 116 },
@@ -128,6 +128,7 @@ const HOME_SHELVES = [
     { id: "country", title: "Country", genre: 84 },
     { id: "alternative", title: "Alternative", genre: 85 }
 ];
+let HOME_SHELVES = FALLBACK_SHELVES;
 const SHELF_SIZE = 30;
 const SHELF_SKELETONS = 8;
 const SHELF_CACHE_KEY = "shelfCacheV3";
@@ -1974,7 +1975,9 @@ async function getShelfTracks(shelf) {
     }
 
     const sources = [
-        async () => (await window.SC.shelf(shelf.id, shelf.title)).map(songFromSC)
+        async () => shelf.sel
+            ? (await window.SC.selectionTracks(shelf.sel, SHELF_SIZE)).map(songFromSC)
+            : (await window.SC.shelf(shelf.id, shelf.title)).map(songFromSC)
     ];
 
     let songs = [];
@@ -2001,10 +2004,27 @@ function shelfSkeletonHTML() {
     return Array.from({ length: SHELF_SKELETONS }, () => `<div class="tile skeleton"></div>`).join("");
 }
 
-function buildHomeSkeleton() {
+let homeBuildToken = 0;
+
+// Categories come from SoundCloud's real homepage; the static genre list is only a fallback.
+async function fetchHomeShelves() {
+    try {
+        const cats = await withTimeout(window.SC.home(), 20000, "home categories");
+        const shelves = cats.slice(0, 12).map(c => ({ id: c.id, title: c.title, sel: c }));
+        if (shelves.length) return shelves;
+    } catch (e) {
+        console.warn("Home categories unavailable, using genre charts:", e.message);
+    }
+    return FALLBACK_SHELVES;
+}
+
+async function buildHomeSkeleton() {
+    const token = ++homeBuildToken;
     if (shelfObserver) shelfObserver.disconnect();
     homeStatus.hidden = true;
     homeSections.innerHTML = "";
+    HOME_SHELVES = await fetchHomeShelves();
+    if (token !== homeBuildToken) return;
 
     const sections = HOME_SHELVES.map(shelf => {
         const section = document.createElement("section");

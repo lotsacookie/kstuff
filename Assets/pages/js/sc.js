@@ -4,7 +4,7 @@
   var SEED_CID = "qLcgHhXgeEFFaSolTB9I71LBsqncsD93";
   var CID_RE = /client_id["']?\s*[:=]\s*\\?["']([A-Za-z0-9]{20,40})\\?["']/;
   var HLS_SRC = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
-  var GENRES = { trending: "all-music", pop: "pop", hiphop: "hiphoprap", rock: "rock", dance: "danceedm", rnb: "rbsoul", latin: "latin", electro: "electronic" };
+  var GENRES = { trending: "all-music", pop: "pop", hiphop: "hiphoprap", rock: "rock", dance: "danceedm", rnb: "rbsoul", latin: "latin", electro: "electronic", country: "country", alternative: "alternativerock" };
   var cid = null, cidP = null, hls = null, hlsLib = null;
   try { cid = localStorage.getItem("sc_cid"); } catch (e) {}
   cid = cid || SEED_CID;
@@ -96,6 +96,44 @@
     return search(title, 30);
   }
 
+  // SoundCloud's real homepage ("mixed selections"): returns the actual category titles it shows
+  // plus the playlists inside each one. Tracks are hydrated lazily per category.
+  async function home() {
+    var d = await api(API + "/mixed-selections?limit=20&offset=0&linked_partitioning=1&app_locale=en");
+    var seenTitles = {};
+    return (d.collection || []).map(function (sel) {
+      var items = ((sel.items && sel.items.collection) || []).filter(function (it) { return it && it.kind !== "user"; });
+      return { id: "sel:" + (sel.id || sel.urn || sel.title), title: (sel.title || "").trim(), items: items };
+    }).filter(function (sel) {
+      if (!sel.title || !sel.items.length || seenTitles[sel.title]) return false;
+      seenTitles[sel.title] = 1;
+      return true;
+    });
+  }
+
+  async function selectionTracks(sel, limit) {
+    limit = limit || 30;
+    var per = sel.items.length > 1 ? Math.max(3, Math.ceil(limit / sel.items.length)) : limit;
+    var seen = {}, ordered = [];
+    sel.items.forEach(function (it) {
+      var list = it.kind === "track" ? [it] : (it.tracks || []);
+      var n = 0;
+      list.forEach(function (t) {
+        if (!t || !t.id || seen[t.id] || n >= per || ordered.length >= limit + 10) return;
+        seen[t.id] = 1; n++; ordered.push(t);
+      });
+    });
+    var stubs = ordered.filter(function (t) { return !t.title; }).map(function (t) { return t.id; });
+    var full = {};
+    for (var i = 0; i < stubs.length; i += 40) {
+      try {
+        var arr = await api(API + "/tracks?ids=" + stubs.slice(i, i + 40).join(",") + "&app_locale=en");
+        (Array.isArray(arr) ? arr : (arr.collection || [])).forEach(function (o) { if (o && o.id) full[o.id] = o; });
+      } catch (e) {}
+    }
+    return ordered.map(function (t) { return t.title ? t : full[t.id]; }).filter(usable).map(toSong).slice(0, limit);
+  }
+
   async function findMatch(track) {
     var list = await search(((track.artist || "") + " " + (track.titleShort || track.title || "")).trim(), 10);
     return list[0] || null;
@@ -153,5 +191,5 @@
     return hls;
   }
 
-  window.SC = { search: search, shelf: shelf, findMatch: findMatch, resolve: resolve, attachHls: attachHls, stop: stop, _t: { rank: rank, isDrm: isDrm, toSong: toSong, usable: usable } };
+  window.SC = { search: search, shelf: shelf, home: home, selectionTracks: selectionTracks, findMatch: findMatch, resolve: resolve, attachHls: attachHls, stop: stop, _t: { rank: rank, isDrm: isDrm, toSong: toSong, usable: usable } };
 })();
