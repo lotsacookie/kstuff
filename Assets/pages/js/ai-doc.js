@@ -8,6 +8,15 @@
   const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
   const SITE = "https://deepai.org";
   const OWN_RE = /(^|\.)deepai\.org$/i;
+  // Sidebar re-renders (new chat saved, title arriving) rebuild every row. That killed an open 3-dots menu
+  // or swallowed the click on the dots. Keep the menu on the rebuilt row, and hold a re-render while the pointer is down.
+  const RENDER_GUARD = "var _kD=0,_kP=null;document.addEventListener('pointerdown',function(e){_kD=(e.target&&e.target.closest&&e.target.closest('.chat-history-item'))?1:0;},true);" +
+    "function _kUp(){if(!_kD)return;_kD=0;setTimeout(function(){if(_kP){var p=_kP;_kP=null;renderMyChatSessions(p);}},80);}" +
+    "document.addEventListener('pointerup',_kUp,true);document.addEventListener('pointercancel',_kUp,true);" +
+    "function renderMyChatSessions(sessions){if(_kD){_kP=sessions;return;}var o=document.querySelector('.chat-history-item.menu-open'),w=o&&o.closest('.chat-history-item-wrapper'),id=w&&w.dataset.sessionId;" +
+    "var r=_kRenderReal(sessions);if(id){try{var nw=document.querySelector('.chat-history-item-wrapper[data-session-id=\"'+(window.CSS&&CSS.escape?CSS.escape(id):id)+'\"]'),ni=nw&&nw.querySelector('.chat-history-item'),nd=ni&&ni.querySelector('.chat-history-dots'),m=window.__globalContextMenu;" +
+    "if(ni&&nd){ni.classList.add('menu-open');if(m&&m.style.display!=='none'){var rc=nd.getBoundingClientRect();m.style.top=rc.top+'px';m.style.left=rc.left+'px';}}else if(typeof closeGlobalContextMenu==='function'){closeGlobalContextMenu();}}catch(e){}}return r;}" +
+    "function _kRenderReal(sessions){";
   const BLOCK_RE = /googletagmanager|google-analytics|googlesyndication|doubleclick|sentry|koah|twitter|facebook|reddit|linkedin|stripe|clarity|hotjar|zeroclick|taboola|outbrain/i;
   const PAGE_ACCEPT = "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8";
   const RESTYLE = `:root{--bg:#000;--text:#fff;--card:#141414;--nav:#0a0a0a}
@@ -1004,6 +1013,7 @@ async function buildDocument() {
     .split("Message AI Chat").join("Message SingularityAI")
     .split("function getSavedSidebarState(){").join("function getSavedSidebarState(){return null;")
     .split("function toggleSidebar(){").join("function toggleSidebar(){window.__kSbManual=true;")
+    .split("function renderMyChatSessions(sessions){").join(RENDER_GUARD)
     .split("function initSidebar(){").join("function initSidebar(){window.__kSbSmall=window.innerWidth<900;")
     .split('window.addEventListener("resize",function(){if(window.innerWidth<1260){setSidebarState(false);return;}').join('window.addEventListener("resize",function(){if(window.innerWidth<900){if(!window.__kSbSmall){window.__kSbSmall=true;setSidebarState(false);}return;}window.__kSbSmall=false;')
     .split("else{setSidebarState(true);}});if(sidebarToggle)").join("else{if(!window.__kSbManual){setSidebarState(true);}}});if(sidebarToggle)")
