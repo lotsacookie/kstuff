@@ -4,6 +4,7 @@ import { iframes } from "./controller.mjs";
 import { rpc_handlers } from "../rpc.mjs";
 import { libcurl } from "libcurl.js/bundled";
 import { load_jar, create_jar_saver } from "./jar_store.mjs";
+import { discord_fetch_options, discord_ws_options } from "./discord_profile.mjs";
 
 export const ws_connections = {};
 export let session = null;
@@ -1105,6 +1106,7 @@ async function fetch_with_retry_inner(url, options, ignore_block = false, use_se
   let csrf_retries = 0;
   let identity_forced = false;
   if (roblox_cdn) options = with_roblox_referer(options);
+  options = discord_fetch_options(url, options);
 
   while (true) {
     if (!ignore_block && is_host_blocked(url)) {
@@ -2410,7 +2412,7 @@ rpc_handlers["ws_new"] = function (frame_id, url, protocols, options) {
   let ws;
 
   try {
-    ws = new libcurl.CurlWebSocket(url, protocols, options);
+    ws = new libcurl.CurlWebSocket(url, protocols, discord_ws_options(url, options));
   }
   catch (e) {
     log_throttled("ws_new", host_of(url), "sandstone host: websocket creation failed:", url, error_message(e));
