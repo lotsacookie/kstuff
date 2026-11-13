@@ -117,16 +117,26 @@ const CATALOG_SEARCH_LIMIT = 100;
 const CATALOG_STREAM_LIMIT = 40;
 
 const FALLBACK_SHELVES = [
-    { id: "trending", title: "Trending Now", genre: 0 },
-    { id: "pop", title: "Pop", genre: 132 },
-    { id: "hiphop", title: "Hip-Hop", genre: 116 },
-    { id: "rock", title: "Rock", genre: 152 },
-    { id: "dance", title: "Dance", genre: 113 },
-    { id: "rnb", title: "R&B", genre: 165 },
-    { id: "latin", title: "Latin", genre: 197 },
-    { id: "electro", title: "Electronic", genre: 106 },
-    { id: "country", title: "Country", genre: 84 },
-    { id: "alternative", title: "Alternative", genre: 85 }
+    { id: "trending", title: "Trending Now" },
+    { id: "pop", title: "Pop" },
+    { id: "hiphop", title: "Hip-Hop & Rap" },
+    { id: "rock", title: "Rock" },
+    { id: "dance", title: "Dance & EDM" },
+    { id: "rnb", title: "R&B & Soul" },
+    { id: "latin", title: "Latin" },
+    { id: "electro", title: "Electronic" },
+    { id: "country", title: "Country" },
+    { id: "alternative", title: "Alternative Rock" },
+    { id: "house", title: "House" },
+    { id: "techno", title: "Techno" },
+    { id: "trap", title: "Trap" },
+    { id: "reggaeton", title: "Reggaeton" },
+    { id: "indie", title: "Indie" },
+    { id: "metal", title: "Metal" },
+    { id: "jazz", title: "Jazz & Blues" },
+    { id: "ambient", title: "Ambient" },
+    { id: "classical", title: "Classical" },
+    { id: "reggae", title: "Reggae" }
 ];
 let HOME_SHELVES = FALLBACK_SHELVES;
 const SHELF_SIZE = 30;
@@ -2006,16 +2016,21 @@ function shelfSkeletonHTML() {
 
 let homeBuildToken = 0;
 
-// Categories come from SoundCloud's real homepage; the static genre list is only a fallback.
+// Genre rows come from SoundCloud's real charts API (always shown). The homepage's own
+// curated selections are added on top when the API returns them.
 async function fetchHomeShelves() {
+    let selections = [];
     try {
-        const cats = await withTimeout(window.SC.home(), 20000, "home categories");
-        const shelves = cats.slice(0, 12).map(c => ({ id: c.id, title: c.title, sel: c }));
-        if (shelves.length) return shelves;
+        const cats = await withTimeout(window.SC.home(), 15000, "home categories");
+        const known = new Set(FALLBACK_SHELVES.map(s => s.title.toLowerCase()));
+        selections = cats
+            .filter(c => !known.has(c.title.toLowerCase()))
+            .slice(0, 4)
+            .map(c => ({ id: c.id, title: c.title, sel: c }));
     } catch (e) {
-        console.warn("Home categories unavailable, using genre charts:", e.message);
+        console.warn("Home selections unavailable:", e.message);
     }
-    return FALLBACK_SHELVES;
+    return [...selections, ...FALLBACK_SHELVES];
 }
 
 async function buildHomeSkeleton() {

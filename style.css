@@ -1942,7 +1942,6 @@ body.floating-on .learning-footer .footer-item {
 .round-btn.is-fav .fav-btn svg {
     fill: var(--text-color);
     stroke: var(--text-color);
-    filter: drop-shadow(0 0 3px var(--text-color)) drop-shadow(0 0 8px color-mix(in srgb, var(--text-color) 60%, transparent));
 }
 
 

@@ -4,7 +4,7 @@
   var SEED_CID = "qLcgHhXgeEFFaSolTB9I71LBsqncsD93";
   var CID_RE = /client_id["']?\s*[:=]\s*\\?["']([A-Za-z0-9]{20,40})\\?["']/;
   var HLS_SRC = "https://cdn.jsdelivr.net/npm/hls.js@1.5.17/dist/hls.min.js";
-  var GENRES = { trending: "all-music", pop: "pop", hiphop: "hiphoprap", rock: "rock", dance: "danceedm", rnb: "rbsoul", latin: "latin", electro: "electronic", country: "country", alternative: "alternativerock" };
+  var GENRES = { trending: "all-music", pop: "pop", hiphop: "hiphoprap", rock: "rock", dance: "danceedm", rnb: "rbsoul", latin: "latin", electro: "electronic", country: "country", alternative: "alternativerock", house: "house", techno: "techno", trap: "trap", reggaeton: "reggaeton", indie: "indie", metal: "metal", jazz: "jazzblues", ambient: "ambient", classical: "classical", reggae: "reggae" };
   var cid = null, cidP = null, hls = null, hlsLib = null;
   try { cid = localStorage.getItem("sc_cid"); } catch (e) {}
   cid = cid || SEED_CID;
@@ -92,6 +92,7 @@
         var list = (d.collection || []).map(function (x) { return x.track; }).filter(usable).map(toSong);
         if (list.length) return list;
       } catch (e) {}
+      throw new Error("empty chart: " + slug);
     }
     return search(title, 30);
   }
