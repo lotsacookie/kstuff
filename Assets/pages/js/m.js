@@ -2517,9 +2517,16 @@ function onPlaybackStarted(track, via) {
 
 // SoundCloud sometimes only serves a ~30s preview. When that happens, look the song up on audio.com by title only.
 async function upgradePreviewFromAudioCom(track, myToken) {
+    if (!isFinite(audioPlayer.duration)) {
+        await new Promise(r => {
+            const done = () => { audioPlayer.removeEventListener("durationchange", done); clearTimeout(t); r(); };
+            const t = setTimeout(done, 1500);
+            audioPlayer.addEventListener("durationchange", done);
+        });
+    }
     const d = audioPlayer.duration;
+    console.log("[preview-check] audio duration:", d);
     if (!isFinite(d) || d < 20 || d > 40) return "keep";
-    if (track.duration && track.duration <= d + 15) return "keep";
     let url = "";
     try {
         setLoadingHint(track, "preview only, trying audio.com");

@@ -94,7 +94,7 @@
       var score = t === want ? 100 : (want.length >= 4 && t.indexOf(want) === 0 ? 50 : -1);
       if (score < 0) return;
       if (wantArtist && norm(song.artist) === wantArtist) score += 20;
-      if (wantDur) score -= Math.min(30, Math.abs(song.duration - wantDur) / 10);
+      if (wantDur > 45) score -= Math.min(30, Math.abs(song.duration - wantDur) / 10);
       if (score > bestScore) { bestScore = score; best = item; }
     });
     if (!best) return "";
