@@ -1060,6 +1060,26 @@ async function fetchDeezerChart(genreId) {
     return dedupeSongs(((data && data.data) || []).map(songFromDeezer).filter(Boolean));
 }
 
+// Genre charts: proxy only (no direct fallback), real Deezer genre chart rather than a keyword search.
+async function fetchDeezerGenreChartProxied(genreId) {
+    let lastErr = null;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+            const res = await wispFetch(`${DEEZER_API}/chart/${genreId}/tracks?limit=${SHELF_SIZE}`, 12000);
+            if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+            const data = await res.json();
+            if (data && data.error) throw new Error(`API error: ${JSON.stringify(data.error).slice(0, 120)}`);
+            const songs = dedupeSongs(((data && data.data) || []).map(songFromDeezer).filter(Boolean));
+            if (songs.length) return songs;
+            throw new Error("Empty genre chart");
+        } catch (e) {
+            lastErr = e;
+            await sleep(700);
+        }
+    }
+    throw lastErr;
+}
+
 async function fetchDeezerChartAlt(genreId) {
     const data = await fetchExternalJSON(`${DEEZER_API}/chart/${genreId}`);
     const tracks = (data && data.tracks && data.tracks.data) || [];
@@ -1984,11 +2004,12 @@ async function getShelfTracks(shelf) {
         return hydrate(cached.tracks);
     }
 
-    const sources = [
-        async () => shelf.sel
-            ? (await window.SC.selectionTracks(shelf.sel, SHELF_SIZE)).map(songFromSC)
-            : (await window.SC.shelf(shelf.id, shelf.title)).map(songFromSC)
-    ];
+    const sources = shelf.sel
+        ? [async () => (await window.SC.selectionTracks(shelf.sel, SHELF_SIZE)).map(songFromSC)]
+        : [
+            async () => fetchDeezerGenreChartProxied(shelf.genre),
+            async () => (await window.SC.shelf(shelf.id, shelf.title)).map(songFromSC)
+        ];
 
     let songs = [];
     let lastError = null;
