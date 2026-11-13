@@ -1031,8 +1031,17 @@ function searchSoundCloudCatalog(query) {
     return cachedCatalogSearch(`soundcloud|${query.toLowerCase()}`, () => searchLimiter(async () => dedupeSongs((await window.SC.search(query, CATALOG_SEARCH_LIMIT)).map(songFromSC))));
 }
 
+function songFromAC(t) {
+    return makeSong({ source: "audiocom", id: t.id, title: t.title, artist: t.artist, cover: t.cover, duration: t.duration });
+}
+
+function searchAudioComCatalog(query) {
+    return cachedCatalogSearch(`audiocom|${query.toLowerCase()}`, () => searchLimiter(async () => dedupeSongs((await window.AC.search(query, CATALOG_SEARCH_LIMIT)).map(songFromAC))));
+}
+
 const CATALOG_SEARCH_SOURCES = [
-    { name: "SoundCloud", tier: 0, run: searchSoundCloudCatalog }
+    { name: "SoundCloud", tier: 0, run: searchSoundCloudCatalog },
+    { name: "audio.com", tier: 1, run: searchAudioComCatalog }
 ];
 
 async function fetchDeezerChart(genreId) {
@@ -2489,7 +2498,38 @@ async function playViaSoundCloud(track, myToken) {
     }
 }
 
+async function playViaAudioCom(track, myToken) {
+    window.SC.stop();
+    setLoadingHint(track, "loading stream");
+    try {
+        const url = await window.AC.resolve(track);
+        if (myToken !== playRequestToken) return "stale";
+        audioPlayer.volume = volumeBar.value;
+        try {
+            audioPlayer.src = url;
+            await attemptToPlay(audioPlayer, 9000);
+        } catch (directErr) {
+            if (myToken !== playRequestToken) return "stale";
+            setLoadingHint(track, "downloading via proxy");
+            const blob = await fetchBlobViaWisp(url, "audio/mpeg", 90000);
+            if (myToken !== playRequestToken) return "stale";
+            audioPlayer.src = URL.createObjectURL(blob);
+            await attemptToPlay(audioPlayer, 10000);
+        }
+        if (myToken !== playRequestToken) return "stale";
+        onPlaybackStarted(track, { type: "audiocom", id: String(track.id) });
+        return "ok";
+    } catch (err) {
+        console.warn("audio.com playback failed:", err && err.message ? err.message : err);
+        return myToken !== playRequestToken ? "stale" : "fail";
+    }
+}
+
 async function resolveAndPlay(track, myToken) {
+    if (track.source === "audiocom") {
+        const result = await playViaAudioCom(track, myToken);
+        if (result !== "fail") return result;
+    }
     return playViaSoundCloud(track, myToken);
 }
 
