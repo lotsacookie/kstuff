@@ -249,6 +249,21 @@ function filterBarScale(natural, available, margin = 16, min = 0.4) {
     });
     window.addEventListener('resize', init);
     document.addEventListener('DOMContentLoaded', init);
-    new MutationObserver(init).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
+    let initQueued = false;
+    const queueInit = () => {
+        if (initQueued) return;
+        initQueued = true;
+        requestAnimationFrame(() => { initQueued = false; init(); });
+    };
+    const relevant = n => n.nodeType === 1 && (n.classList.contains('filter-bar') || !!n.querySelector('.filter-bar'));
+    new MutationObserver(list => {
+        for (const m of list) {
+            if (m.type === 'childList') {
+                for (const n of m.addedNodes) if (relevant(n)) return queueInit();
+            } else if (m.target.classList && m.target.classList.contains('page')) {
+                return queueInit();
+            }
+        }
+    }).observe(document.documentElement, { subtree: true, childList: true, attributes: true, attributeFilter: ['class'] });
     init();
 })();

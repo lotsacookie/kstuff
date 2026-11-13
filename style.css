@@ -2447,7 +2447,7 @@ button:not(:disabled):hover svg[fill="none"],button:not(:disabled):hover svg.sg-
 .learning-footer .footer-btn i{font-size:1rem}
 .learning-footer .clock-item{letter-spacing:0}
 body.floating-on .learning-footer{align-items:center}
-body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:32px;padding:0 4px;border:1px solid var(--hairline);border-radius:999px;background:color-mix(in srgb,var(--nav-bg) 55%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:auto}
+body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:32px;padding:0 4px;border:1px solid var(--hairline);border-radius:999px;background:color-mix(in srgb,var(--nav-bg) 88%,transparent);pointer-events:auto}
 
 .sg-tabbar .sg-newtab,body.floating-on .sg-tabbar .sg-newtab{
     align-self: center !important;
@@ -2562,6 +2562,9 @@ html .modal-overlay.modal-overlay .modal-content.modal-content {
     opacity: 1;
     transition: none;
     animation: none;
+}
+
+html .modal-overlay.modal-overlay.active .modal-content.modal-content {
     will-change: transform, clip-path;
 }
 

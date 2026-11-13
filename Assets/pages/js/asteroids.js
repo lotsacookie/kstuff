@@ -40,7 +40,7 @@
     var MAX_ROCKS = Math.round(9 * Math.min(SPEED, 2));
 
     function resize() {
-        dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+        dpr = 1;
         W = hosted ? host.clientWidth : window.innerWidth;
         H = hosted ? host.clientHeight : window.innerHeight;
         canvas.width = Math.round(W * dpr);
@@ -209,7 +209,8 @@
             }
         }
         if (!shown) {
-            requestAnimationFrame(step);
+            last = 0;
+            setTimeout(function () { requestAnimationFrame(step); }, 250);
             return;
         }
 
