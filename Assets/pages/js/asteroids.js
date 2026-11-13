@@ -5,10 +5,14 @@
     var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (reduce) return;
 
+    var tag = document.currentScript || document.querySelector('script[src*="asteroids.js"]');
+    var SPEED = parseFloat(tag && tag.getAttribute('data-speed')) || 1;
+    var LAYER = tag && tag.getAttribute('data-z') !== null ? tag.getAttribute('data-z') : '0';
+
     var canvas = document.createElement('canvas');
     canvas.id = 'asteroid-field';
     canvas.setAttribute('aria-hidden', 'true');
-    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;';
+    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:' + LAYER + ';';
     var host = document.body;
     host.insertBefore(canvas, host.firstChild);
 
@@ -17,10 +21,10 @@
     var rocks = [];
     var sparks = [];
     var lastSpawn = 0;
-    var nextGap = 700;
+    var nextGap = 700 / SPEED;
     var last = 0;
     var running = true;
-    var MAX_ROCKS = 9;
+    var MAX_ROCKS = Math.round(9 * Math.min(SPEED, 2));
 
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, 1.5);
@@ -65,16 +69,16 @@
 
     function spawn() {
         var radius = 5 + Math.random() * 15;
-        var speed = 55 + Math.random() * 110;
+        var speed = (55 + Math.random() * 110) * SPEED;
         var angle = (Math.random() * 40 - 20) * Math.PI / 180;
         var burns = Math.random() < 0.55;
         rocks.push({
             x: Math.random() * (W + 160) - 80,
             y: -radius * 2 - 10,
-            vx: Math.sin(angle) * speed * 0.6 + (Math.random() * 30 - 15),
+            vx: Math.sin(angle) * speed * 0.6 + (Math.random() * 30 - 15) * SPEED,
             vy: Math.cos(angle) * speed,
             rot: Math.random() * Math.PI * 2,
-            spin: (Math.random() - 0.5) * 1.4,
+            spin: (Math.random() - 0.5) * 1.4 * SPEED,
             radius: radius,
             shape: makeShape(radius),
             alpha: 0.22 + Math.random() * 0.3,
@@ -82,8 +86,8 @@
             burnY: H * (0.2 + Math.random() * 0.6),
             burning: false,
             burn: 0,
-            burnRate: 0.7 + Math.random() * 0.9,
-            tail: 14 + Math.random() * 26
+            burnRate: (0.7 + Math.random() * 0.9) * SPEED,
+            tail: (14 + Math.random() * 26) * Math.sqrt(SPEED)
         });
     }
 
@@ -175,7 +179,7 @@
         if (ts - lastSpawn > nextGap && rocks.length < MAX_ROCKS) {
             spawn();
             lastSpawn = ts;
-            nextGap = 450 + Math.random() * 1500;
+            nextGap = (450 + Math.random() * 1500) / SPEED;
         }
 
         ctx.clearRect(0, 0, W, H);
