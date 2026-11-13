@@ -562,6 +562,16 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
   Promise.all([wait,Promise.all(['index.html','os.css','os.js'].map(get))]).then(enter).catch(err=>{console.error(err);window.__osLaunching=false;f.classList.remove('on');setTimeout(()=>f.remove(),800)});
 },true);
 })();</script>
-<script src="Assets/pages/js/asteroids.js" data-only="readingcorner,sciencequiz,vms" data-speed="2.4" data-alpha="0.6" data-z="0" defer></script>
+<script id="asteroid-loader">window.addEventListener('load',async()=>{
+try{await Promise.race([window.kAssetsP,new Promise(r=>setTimeout(r,8000))])}catch(e){}
+const F='Assets/pages/js/asteroids.js',R='lotsacookie/kstuff';
+let t=null;
+try{t=window.singularity&&window.singularity.text(F)}catch(e){}
+if(!t){for(const u of ['https://cdn.jsdelivr.net/gh/'+R+'@main/'+F,'https://raw.githubusercontent.com/'+R+'/main/'+F,F]){try{const r=await fetch(u);if(r.ok){t=await r.text();break}}catch(e){}}}
+if(!t)return;
+const el=document.createElement('script');
+el.dataset.only='readingcorner,sciencequiz,vms';el.dataset.speed='2.4';el.dataset.alpha='0.6';el.dataset.z='0';
+el.textContent=t;document.body.appendChild(el);
+});</script>
 </body>
 </html>
