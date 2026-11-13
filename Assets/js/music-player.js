@@ -12,7 +12,7 @@ export function init(K) {
     textContent: `
       .mini-player{display:flex;align-items:center;gap:6px;flex-shrink:0;max-width:340px;margin-left:8px;}
       .mini-player[hidden]{display:none;}
-      .mini-player-cover{width:30px;height:30px;border-radius:6px;object-fit:cover;flex-shrink:0;background:rgba(128,128,128,.25);}
+      .mini-player-cover{width:34px;height:34px;border-radius:6px;object-fit:cover;flex-shrink:0;background:rgba(128,128,128,.25);}
       .mini-player-cover.no-art{display:none;}
       .mini-player-text{display:flex;flex-direction:column;min-width:0;max-width:170px;line-height:1.15;}
       .mini-player-title,.mini-player-artist{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

@@ -214,8 +214,10 @@ body {
     background-color: var(--card-bg);
     border: 1px solid var(--hairline);
     border-radius: 999px;
-    padding: 4px 6px 4px 18px;
-    min-height: 36px;
+    box-sizing: border-box;
+    padding: 0 6px 0 18px;
+    height: 34px;
+    min-height: 34px;
     transition: all 0.25s var(--ease);
 }
 
@@ -2203,6 +2205,8 @@ body{
 .learning-header.hdr-tight .textbook-bar-container {
     min-width: 160px;
     padding-left: 12px;
+    height: 30px;
+    min-height: 30px;
 }
 
 
@@ -2430,19 +2434,20 @@ button:not(:disabled):hover svg[fill="none"],button:not(:disabled):hover svg.sg-
 
 
 /* ===== Footer: slim flat status strip ===== */
-:root,body.floating-on{--footer-height:30px!important;--footer-space:30px!important}
+:root,body.floating-on{--footer-height:36px!important;--footer-space:36px!important}
 .learning-footer{font-size:.72rem;padding:0 12px}
 .learning-footer .footer-left,.learning-footer .footer-right{gap:2px;align-items:center;height:100%;margin:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}
-.learning-footer .footer-item,body.floating-on .learning-footer .footer-item{height:22px;padding:0 8px;gap:5px;font-size:.72rem;font-weight:500;font-variant-numeric:tabular-nums;opacity:.65;background:transparent!important;border:0!important;border-radius:6px!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+.learning-footer .footer-item,body.floating-on .learning-footer .footer-item{height:26px;padding:0 8px;gap:5px;font-size:.72rem;font-weight:500;font-variant-numeric:tabular-nums;opacity:.65;background:transparent!important;border:0!important;border-radius:0!important;box-shadow:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
 .learning-footer .footer-item i{font-size:.95rem}
-.learning-footer .footer-item:hover,body.floating-on .learning-footer .footer-item:hover{background:var(--text-color)!important;color:var(--bg-color)!important;opacity:1}
+.learning-footer .footer-item:hover,body.floating-on .learning-footer .footer-item:hover{background:var(--text-color)!important;color:var(--bg-color)!important;opacity:1;border-radius:0!important}
+.learning-footer .footer-btn,.learning-footer .footer-btn:hover,.learning-footer .footer-btn:focus-visible{border-radius:0!important}
 .learning-footer .footer-item:hover i,.learning-footer .footer-item:hover span{color:var(--bg-color)!important}
 .learning-footer .footer-item.footer-btn,body.floating-on .learning-footer .footer-item.footer-btn{width:24px;min-width:0;padding:0;gap:0;justify-content:center;aspect-ratio:auto}
 .learning-footer .footer-btn span{display:none}
 .learning-footer .footer-btn i{font-size:1rem}
 .learning-footer .clock-item{letter-spacing:0}
 body.floating-on .learning-footer{align-items:center}
-body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:26px;padding:0 4px;border:1px solid var(--hairline);border-radius:999px;background:color-mix(in srgb,var(--nav-bg) 55%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:auto}
+body.floating-on .learning-footer .footer-left,body.floating-on .learning-footer .footer-right{height:32px;padding:0 4px;border:1px solid var(--hairline);border-radius:999px;background:color-mix(in srgb,var(--nav-bg) 55%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);pointer-events:auto}
 
 .sg-tabbar .sg-newtab,body.floating-on .sg-tabbar .sg-newtab{
     align-self: center !important;
