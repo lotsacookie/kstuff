@@ -83,23 +83,28 @@
   // Match by song title only (artist names often differ on audio.com). Returns a stream url or "".
   async function resolveByTitle(track, minSec) {
     var raw = track.titleShort || track.title || "";
+    var cleaned = raw.replace(/\(.*?\)|\[.*?\]/g, " ").replace(/\s+/g, " ").trim();
+    var queries = [raw];
+    if (cleaned && cleaned !== raw) queries.push(cleaned); // retry without (...) / [...] and what is inside
     var want = norm(raw);
     if (!want) return "";
-    var d = JSON.parse(await get(API + "/search?q=" + encodeURIComponent(raw)));
-    var wantDur = Number(track.duration) || 0, wantArtist = norm(track.artist), best = null, bestScore = -1;
-    (d.items || []).forEach(function (item) {
-      if (!usable(item)) return;
-      var song = toSong(item), t = norm(song.title);
-      if (song.duration < (minSec || 0)) return;
-      var score = t === want ? 100 : (want.length >= 4 && t.indexOf(want) === 0 ? 50 : -1);
-      if (score < 0) return;
-      if (wantArtist && norm(song.artist) === wantArtist) score += 20;
-      if (wantDur > 45) score -= Math.min(30, Math.abs(song.duration - wantDur) / 10);
-      if (score > bestScore) { bestScore = score; best = item; }
-    });
-    if (!best) return "";
-    remember(best);
-    return pickUrl(best.model);
+    var wantDur = Number(track.duration) || 0, wantArtist = norm(track.artist);
+    for (var qi = 0; qi < queries.length; qi++) {
+      var d = JSON.parse(await get(API + "/search?q=" + encodeURIComponent(queries[qi])));
+      var best = null, bestScore = -1;
+      (d.items || []).forEach(function (item) {
+        if (!usable(item)) return;
+        var song = toSong(item), t = norm(song.title);
+        if (song.duration < (minSec || 0)) return;
+        var score = t === want ? 100 : (want.length >= 4 && t.indexOf(want) === 0 ? 50 : -1);
+        if (score < 0) return;
+        if (wantArtist && norm(song.artist) === wantArtist) score += 20;
+        if (wantDur > 45) score -= Math.min(30, Math.abs(song.duration - wantDur) / 10);
+        if (score > bestScore) { bestScore = score; best = item; }
+      });
+      if (best) { remember(best); return pickUrl(best.model); }
+    }
+    return "";
   }
 
   window.AC = { search: search, resolve: resolve, resolveByTitle: resolveByTitle };

@@ -1152,6 +1152,12 @@ button:not(:disabled):not(.fav-tile):hover svg,button:not(:disabled):not(.fav-ti
 button:not(:disabled):not(.fav-tile):hover svg:not([fill="none"]),button:not(:disabled):not(.fav-tile):focus-visible svg:not([fill="none"]){fill:var(--bg)!important}
 button:not(:disabled):not(.fav-tile):hover svg[fill="none"],button:not(:disabled):not(.fav-tile):focus-visible svg[fill="none"]{stroke:var(--bg)!important}
 </style>
+<style>
+/* perf: skip rendering offscreen shelves/cards, only animate skeletons that are loading */
+.shelf { content-visibility: auto; contain-intrinsic-size: auto 300px; }
+.results-list > .card { content-visibility: auto; contain-intrinsic-size: auto 240px; }
+.shelf:not([data-state="loading"]) .tile.skeleton::after { animation: none; }
+</style>
 </head>
 <body>
 <script>document.body.classList.toggle('mobile', window.matchMedia('(max-width: 760px)').matches);</script>
@@ -1374,6 +1380,6 @@ if(t&&t.tagName==="IMG"&&e.animationName==="mfade")t.classList.remove("sg-in");
 <script src="js/ac.js"></script>
 <script src="js/m.js"></script>
 <script src="js/m-app.js"></script>
-<script src="js/asteroids.js" data-speed="2.4" data-alpha="0.5" data-z="-1" defer></script>
+<script src="js/asteroids.js" data-speed="2.4" data-alpha="0.5" data-z="-1" data-fps="30" defer></script>
 </body>
 </html>

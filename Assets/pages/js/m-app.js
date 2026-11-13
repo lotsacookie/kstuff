@@ -498,7 +498,7 @@
         card.querySelector(".card-title").textContent = track.title;
         card.querySelector(".card-artist").textContent = track.artist;
         card.setAttribute("aria-label", `${track.title} by ${track.artist}`);
-        setImageDirect(card.querySelector("img"), trackCoverUrls(track), track);
+        setImage(card.querySelector("img"), trackCoverUrls(track), true, track);
         card.addEventListener("click", onClick);
         card.addEventListener("keydown", e => { if (e.key === "Enter") onClick(); });
         card.querySelector(".card-add").addEventListener("click", e => {

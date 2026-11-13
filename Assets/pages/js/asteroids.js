@@ -9,6 +9,7 @@
     var SPEED = parseFloat(tag && tag.getAttribute('data-speed')) || 1;
     var ALPHA = parseFloat(tag && tag.getAttribute('data-alpha')) || 1;
     var HOST_SEL = tag && tag.getAttribute('data-host');
+    var FPS_GAP = 1000 / (parseFloat(tag && tag.getAttribute('data-fps')) || 0 || 1000);
     var ONLY = tag && tag.getAttribute('data-only');
     ONLY = ONLY ? ONLY.split(',') : null;
     var LAYER = tag && tag.getAttribute('data-z') !== null ? tag.getAttribute('data-z') : '0';
@@ -193,6 +194,7 @@
 
     function step(ts) {
         if (!running) return;
+        if (last && ts - last < FPS_GAP - 2) { requestAnimationFrame(step); return; }
         if (!last) last = ts;
         var dt = Math.min((ts - last) / 1000, 0.05);
         last = ts;
