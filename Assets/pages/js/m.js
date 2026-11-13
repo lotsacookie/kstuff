@@ -1941,7 +1941,7 @@ function fillTile(button, track) {
     button.querySelector(".tile-title").textContent = track.title;
     button.querySelector(".tile-artist").textContent = track.artist;
     button.setAttribute("aria-label", `${track.title} by ${track.artist}`);
-    setImageDirect(button.querySelector("img"), trackCoverUrls(track), track);
+    setImage(button.querySelector("img"), trackCoverUrls(track), true, track);
 }
 
 function createTile(track, onClick) {
