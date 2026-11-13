@@ -2612,6 +2612,6 @@ html .filter-bar.filter-bar {
     .js-custom-tooltip { white-space: normal !important; max-width: min(80vw, 280px); text-align: center; }
 }
 
-html:has(.gfn-running,.moon-running,.vm-running,#gfn-frame.on,#moon-frame.on) :is(.kstuff-cursor,.js-custom-tooltip,.footer-tip){display:none!important}
-html:has(.gfn-running,.moon-running,.vm-running,#gfn-frame.on,#moon-frame.on).kstuff-cursor-active,html:has(.gfn-running,.moon-running,.vm-running,#gfn-frame.on,#moon-frame.on).kstuff-cursor-active *{cursor:auto!important}
-html:has(.gfn-running,.moon-running,.vm-running,#gfn-frame.on,#moon-frame.on).kstuff-cursor-active :is(button,a,select,summary,label,[role="button"],[onclick],.round-btn,.footer-item):not(#x){cursor:pointer!important}
+html:has(.page.active:is(.gfn-running,.moon-running,.vm-running),.page.active #gfn-frame.on,.page.active #moon-frame.on) :is(.kstuff-cursor,.js-custom-tooltip,.footer-tip){display:none!important}
+html:has(.page.active:is(.gfn-running,.moon-running,.vm-running),.page.active #gfn-frame.on,.page.active #moon-frame.on).kstuff-cursor-active,html:has(.page.active:is(.gfn-running,.moon-running,.vm-running),.page.active #gfn-frame.on,.page.active #moon-frame.on).kstuff-cursor-active *{cursor:auto!important}
+html:has(.page.active:is(.gfn-running,.moon-running,.vm-running),.page.active #gfn-frame.on,.page.active #moon-frame.on).kstuff-cursor-active :is(button,a,select,summary,label,[role="button"],[onclick],.round-btn,.footer-item):not(#x){cursor:pointer!important}
