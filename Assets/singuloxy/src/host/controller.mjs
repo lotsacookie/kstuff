@@ -207,6 +207,14 @@ export class ProxyFrame {
       let source = await this.get_favicon();
       if (!source) return;
       if (source === this.icon_source && this.icon) return;
+      if (/^data:image\//i.test(source)) {
+        if (source.length > 512 * 1024) return;
+        this.icon_source = source;
+        this.icon = source;
+        this.emit_info();
+        return;
+      }
+      if (!/^https?:/i.test(source)) return;
       let response = await network.fetch_page(source, {});
       let blob = await response.blob();
       if (!blob || !blob.size || blob.size > 512 * 1024) return;
