@@ -7,14 +7,27 @@
 
     var tag = document.currentScript || document.querySelector('script[src*="asteroids.js"]');
     var SPEED = parseFloat(tag && tag.getAttribute('data-speed')) || 1;
+    var ALPHA = parseFloat(tag && tag.getAttribute('data-alpha')) || 1;
+    var HOST_SEL = tag && tag.getAttribute('data-host');
+    var ONLY = tag && tag.getAttribute('data-only');
+    ONLY = ONLY ? ONLY.split(',') : null;
     var LAYER = tag && tag.getAttribute('data-z') !== null ? tag.getAttribute('data-z') : '0';
 
     var canvas = document.createElement('canvas');
     canvas.id = 'asteroid-field';
     canvas.setAttribute('aria-hidden', 'true');
-    canvas.style.cssText = 'position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:' + LAYER + ';';
-    var host = document.body;
+    var host = (HOST_SEL && document.querySelector(HOST_SEL)) || document.body;
+    var hosted = host !== document.body;
+    canvas.style.cssText = 'position:' + (hosted ? 'absolute' : 'fixed') + ';inset:0;width:100%;height:100%;pointer-events:none;z-index:' + LAYER + ';';
     host.insertBefore(canvas, host.firstChild);
+    var shown = true;
+    var lastShowCheck = 0;
+
+    function pageAllowed() {
+        if (!ONLY) return true;
+        var p = document.querySelector('.page.active');
+        return !!p && ONLY.indexOf(p.id) !== -1;
+    }
 
     var ctx = canvas.getContext('2d');
     var W = 0, H = 0, dpr = 1;
@@ -28,8 +41,8 @@
 
     function resize() {
         dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-        W = window.innerWidth;
-        H = window.innerHeight;
+        W = hosted ? host.clientWidth : window.innerWidth;
+        H = hosted ? host.clientHeight : window.innerHeight;
         canvas.width = Math.round(W * dpr);
         canvas.height = Math.round(H * dpr);
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -37,7 +50,7 @@
 
     var probe = document.createElement('span');
     probe.style.cssText = 'position:fixed;left:-9999px;top:0;width:0;height:0;pointer-events:none;color:var(--text);';
-    host.appendChild(probe);
+    document.body.appendChild(probe);
     var theme = [255, 255, 255];
     var lastThemeRead = 0;
 
@@ -109,7 +122,7 @@
 
     function drawRock(r) {
         var fade = r.burning ? Math.max(0, 1 - r.burn) : 1;
-        var a = r.alpha * fade;
+        var a = r.alpha * fade * ALPHA;
         if (a <= 0.01) return;
 
         var speed = Math.sqrt(r.vx * r.vx + r.vy * r.vy) || 1;
@@ -182,6 +195,24 @@
             nextGap = (450 + Math.random() * 1500) / SPEED;
         }
 
+        if (ts - lastShowCheck > 200) {
+            lastShowCheck = ts;
+            var allowed = pageAllowed();
+            if (allowed !== shown) {
+                shown = allowed;
+                canvas.style.display = shown ? '' : 'none';
+                if (shown) resize();
+                else {
+                    rocks.length = 0;
+                    sparks.length = 0;
+                }
+            }
+        }
+        if (!shown) {
+            requestAnimationFrame(step);
+            return;
+        }
+
         ctx.clearRect(0, 0, W, H);
 
         for (var i = rocks.length - 1; i >= 0; i--) {
@@ -222,7 +253,7 @@
             s.y += s.vy * dt;
             s.vy += 30 * dt;
             var k = 1 - s.life / s.max;
-            ctx.fillStyle = 'rgba(' + theme[0] + ',' + theme[1] + ',' + theme[2] + ',' + (k * 0.5).toFixed(3) + ')';
+            ctx.fillStyle = 'rgba(' + theme[0] + ',' + theme[1] + ',' + theme[2] + ',' + (k * 0.5 * ALPHA).toFixed(3) + ')';
             ctx.beginPath();
             ctx.arc(s.x, s.y, s.size * (0.5 + k * 0.5), 0, Math.PI * 2);
             ctx.fill();
@@ -242,6 +273,7 @@
     });
 
     window.addEventListener('resize', resize);
+    if (hosted && window.ResizeObserver) new ResizeObserver(resize).observe(host);
     resize();
     readTheme(performance.now());
     requestAnimationFrame(step);

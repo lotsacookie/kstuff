@@ -561,5 +561,6 @@ document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest
   Promise.all([wait,Promise.all(['index.html','os.css','os.js'].map(get))]).then(enter).catch(err=>{console.error(err);window.__osLaunching=false;f.classList.remove('on');setTimeout(()=>f.remove(),800)});
 },true);
 })();</script>
+<script src="Assets/pages/js/asteroids.js" data-host="#studymaterial-area" data-only="readingcorner,sciencequiz,vms" data-speed="2.4" data-alpha="0.5" data-z="-1" defer></script>
 </body>
 </html>
