@@ -28,6 +28,7 @@
 
     function pageAllowed() {
         if (!enabled) return false;
+        if (document.querySelector('.gfn-running,.moon-running,.vm-running,#gfn-frame.on,#moon-frame.on')) return false;
         if (!ONLY) return true;
         var p = document.querySelector('.page.active');
         return !!p && ONLY.indexOf(p.id) !== -1;
@@ -197,7 +198,7 @@
         last = ts;
         if (ts - lastThemeRead > 1000) readTheme(ts);
 
-        if (ts - lastSpawn > nextGap && rocks.length < MAX_ROCKS) {
+        if (shown && ts - lastSpawn > nextGap && rocks.length < MAX_ROCKS) {
             spawn();
             lastSpawn = ts;
             nextGap = (450 + Math.random() * 1500) / SPEED;
