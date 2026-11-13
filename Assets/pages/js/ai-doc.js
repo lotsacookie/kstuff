@@ -13,7 +13,7 @@
   const RESTYLE = `:root{--bg:#000;--text:#fff;--card:#141414;--nav:#0a0a0a}
 
 body>header,body>footer,#language-banner,#announcement-banner,.language-banner,.announcement-banner,.sidebar-ad,.permanent-announcement-banner,.dyn-content-block,#modelPageProNotice,.model-page-pro-notice{display:none!important}
-ins.adsbygoogle,[id^="google_ads"],[id^="aswift"],[id^="div-gpt-ad"],[data-ad-slot],[data-ad-client],[class*="adsbox" i],[class*="ad-slot" i],[class*="ad-container" i],[class*="ad-wrapper" i],[class*="advert" i],[id*="advert" i],[class*="sponsored" i],[id*="sponsored" i],[id*="koah" i],[class*="koah" i],[id*="zeroclick" i],[class*="zeroclick" i],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],iframe[src*="adservice"],iframe[src*="taboola"],iframe[src*="outbrain"]{display:none!important;visibility:hidden!important;height:0!important;min-height:0!important;pointer-events:none!important}
+ins.adsbygoogle,[id^="google_ads"],[id^="aswift"],[id^="div-gpt-ad"],[data-ad-slot],[data-ad-client],[class*="adsbox" i],[class*="ad-slot" i],[class*="ad-container" i],[class*="ad-wrapper" i],[class*="advert" i],[id*="advert" i],[class*="sponsor" i],[id*="sponsor" i],[id*="koah" i],[class*="koah" i],[id*="zeroclick" i],[class*="zeroclick" i],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],iframe[src*="adservice"],iframe[src*="taboola"],iframe[src*="outbrain"]{display:none!important;visibility:hidden!important;height:0!important;min-height:0!important;pointer-events:none!important}
 #voicePillButton,#websiteBuilderPillButton,#chatMemoryPillButton,#chatMemorySettingsButton,.pro-only-pill,#chat-memory-modal-root,.chat-memory-modal{display:none!important}
 .landing-title-group>h1,.landing-title-group .landing-description-group>h3{display:none!important}
 .chat-model-chip:has(.model-chip-lock),.chat-mode-menu-item.chat-mode-locked,.chat-mode-menu-item:has(.chat-mode-lock-icon),.slash-cmd-item:has(img[src*="lock-icon"]),.cmd-palette-item:has(.cmd-palette-item-lock),.presets-dropdown-item:has(img[src*="lock-icon"]),.attach-dropdown-item:has(img[src*="lock-icon"]),.attach-dropdown-item:has(.pro-lock-icon),.chat-chip:has(img[src*="lock-icon"]){display:none!important}
@@ -209,10 +209,24 @@ function layoutFit() {
   }
   var fitTimer = 0;
   function queue() { if (fitTimer || document.hidden) return; fitTimer = setTimeout(function () { fitTimer = 0; raf = requestAnimationFrame(fit); }, 200); }
-  var AD_SEL = 'ins.adsbygoogle,[id^="google_ads"],[id^="aswift"],[id^="div-gpt-ad"],[data-ad-slot],[data-ad-client],[id*="koah" i],[class*="koah" i],[id*="zeroclick" i],[class*="zeroclick" i],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],iframe[src*="adservice"],iframe[src*="taboola"],iframe[src*="outbrain"]';
+  var AD_SEL = 'ins.adsbygoogle,[id^="google_ads"],[id^="aswift"],[id^="div-gpt-ad"],[data-ad-slot],[data-ad-client],[class*="sponsor" i],[id*="sponsor" i],[id*="koah" i],[class*="koah" i],[id*="zeroclick" i],[class*="zeroclick" i],iframe[src*="doubleclick"],iframe[src*="googlesyndication"],iframe[src*="adservice"],iframe[src*="taboola"],iframe[src*="outbrain"]';
   function sweepAds() {
     try { document.querySelectorAll(AD_SEL).forEach(function (n) { n.remove(); }); } catch (e) {}
+    try {
+      if (!document.body) return;
+      var tw = document.createTreeWalker(document.body, 4, null), hits = [], t;
+      while ((t = tw.nextNode())) {
+        var v = t.nodeValue;
+        if (v && v.length < 24 && /^\s*(sponsored|ad|advertisement)\s*$/i.test(v) && t.parentElement && !t.parentElement.closest("textarea,#persistentChatbox")) hits.push(t.parentElement);
+      }
+      hits.forEach(function (el) {
+        var box = el, up = el.parentElement, n = 0;
+        while (up && n < 4 && up !== document.body && (up.textContent || "").length < 700 && !up.querySelector("textarea,#persistentChatbox,.persistent-compose-area") && !/chat-layout-container|chat-sidebar|chatMain/.test(up.className + " " + up.id)) { box = up; up = up.parentElement; n++; }
+        if (box && box !== document.body) box.remove();
+      });
+    } catch (e) {}
   }
+  setTimeout(sweepAds, 800);
   setInterval(function () { if (!document.hidden) sweepAds(); }, 4000);
   function relevant(recs) {
     var c = document.querySelector(".persistent-compose-area");
