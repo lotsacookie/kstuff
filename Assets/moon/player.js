@@ -20,9 +20,19 @@ const AK = { Enter: 66, NumpadEnter: 66, Backspace: 67, Delete: 112, Space: 62, 
 for (let n = 0; n < 26; n++) AK["Key" + String.fromCharCode(65 + n)] = 29 + n;
 for (let n = 0; n < 10; n++) { AK["Digit" + n] = 7 + n; AK["Numpad" + n] = 144 + n; }
 const _dpr = Math.max(1, window.devicePixelRatio || 1);
-let SCREEN_W = Math.round((screen.width || 1920) * _dpr), SCREEN_H = Math.round((screen.height || 1080) * _dpr);
-if ((window.innerWidth || 1) >= (window.innerHeight || 1) && SCREEN_W < SCREEN_H) [SCREEN_W, SCREEN_H] = [SCREEN_H, SCREEN_W];
-SCREEN_W -= SCREEN_W % 2; SCREEN_H -= SCREEN_H % 2;
+let SCREEN_W = 0, SCREEN_H = 0;
+const QUALITY_CAPS = { medium: 1920, low: 1280, fastest: 854 };
+function refreshScreen() {
+  let w = Math.round((screen.width || 1920) * _dpr), h = Math.round((screen.height || 1080) * _dpr);
+  if ((window.innerWidth || 1) >= (window.innerHeight || 1) && w < h) [w, h] = [h, w];
+  let q = "auto";
+  try { q = localStorage.getItem("sg_stream_quality") || "auto"; } catch {}
+  const cap = QUALITY_CAPS[q];
+  if (cap) { const k = Math.min(1, cap / Math.max(w, h)); w = Math.round(w * k); h = Math.round(h * k); }
+  w -= w % 2; h -= h % 2;
+  SCREEN_W = w; SCREEN_H = h;
+}
+refreshScreen();
 for (let i = 0; i < 26; i++) AK["Key" + String.fromCharCode(65 + i)] = 29 + i;
 for (let i = 0; i < 10; i++) AK["Digit" + i] = 7 + i;
 
@@ -106,6 +116,7 @@ export class Player {
   say(t, cls = "") { this.onStatus && this.onStatus(t, cls); }
 
   async start() {
+    refreshScreen();
     try {
       await this._connect();
       if (this.stopped) return;
