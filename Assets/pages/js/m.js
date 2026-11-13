@@ -117,31 +117,31 @@ const CATALOG_SEARCH_LIMIT = 100;
 const CATALOG_STREAM_LIMIT = 40;
 
 const FALLBACK_SHELVES = [
-    { id: "trending", title: "Trending Now" },
-    { id: "pop", title: "Pop" },
-    { id: "hiphop", title: "Hip-Hop & Rap" },
-    { id: "rock", title: "Rock" },
-    { id: "dance", title: "Dance & EDM" },
-    { id: "rnb", title: "R&B & Soul" },
-    { id: "latin", title: "Latin" },
-    { id: "electro", title: "Electronic" },
-    { id: "country", title: "Country" },
-    { id: "alternative", title: "Alternative Rock" },
+    { id: "trending", genre: 0, title: "Trending Now" },
+    { id: "pop", genre: 132, title: "Pop" },
+    { id: "hiphop", genre: 116, title: "Hip-Hop & Rap" },
+    { id: "rock", genre: 152, title: "Rock" },
+    { id: "dance", genre: 113, title: "Dance & EDM" },
+    { id: "rnb", genre: 165, title: "R&B & Soul" },
+    { id: "latin", genre: 197, title: "Latin" },
+    { id: "electro", genre: 106, title: "Electronic" },
+    { id: "country", genre: 84, title: "Country" },
+    { id: "alternative", genre: 85, title: "Alternative Rock" },
     { id: "house", title: "House" },
     { id: "techno", title: "Techno" },
     { id: "trap", title: "Trap" },
     { id: "reggaeton", title: "Reggaeton" },
     { id: "indie", title: "Indie" },
-    { id: "metal", title: "Metal" },
-    { id: "jazz", title: "Jazz & Blues" },
+    { id: "metal", genre: 464, title: "Metal" },
+    { id: "jazz", genre: 129, title: "Jazz & Blues" },
     { id: "ambient", title: "Ambient" },
-    { id: "classical", title: "Classical" },
-    { id: "reggae", title: "Reggae" }
+    { id: "classical", genre: 98, title: "Classical" },
+    { id: "reggae", genre: 144, title: "Reggae" }
 ];
 let HOME_SHELVES = FALLBACK_SHELVES;
 const SHELF_SIZE = 30;
 const SHELF_SKELETONS = 8;
-const SHELF_CACHE_KEY = "shelfCacheV3";
+const SHELF_CACHE_KEY = "shelfCacheV4";
 const SHELF_TTL_MS = 30 * 60 * 1000;
 
 const DEFAULT_ART_DATA_URI = "data:image/svg+xml;utf8," + encodeURIComponent(
@@ -2007,7 +2007,7 @@ async function getShelfTracks(shelf) {
     const sources = shelf.sel
         ? [async () => (await window.SC.selectionTracks(shelf.sel, SHELF_SIZE)).map(songFromSC)]
         : [
-            async () => fetchDeezerGenreChartProxied(shelf.genre),
+            async () => { if (shelf.genre == null) throw new Error("No Deezer genre"); return fetchDeezerGenreChartProxied(shelf.genre); },
             async () => (await window.SC.shelf(shelf.id, shelf.title)).map(songFromSC)
         ];
 
