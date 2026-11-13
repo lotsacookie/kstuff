@@ -127,6 +127,22 @@ export function init(K) {
     });
   }
 
+  const asteroidsSelect = K.$('layout-asteroids-select');
+  if (asteroidsSelect) {
+    const broadcastAsteroids = v => {
+      try { window.postMessage(v, '*'); } catch {}
+      Object.values(K.iframePages).forEach(p => {
+        try { K.$(p.id)?.contentWindow?.postMessage(v, '*'); } catch {}
+      });
+    };
+    asteroidsSelect.value = K.getStorage('kstuff_asteroids') || 'asteroids-on';
+    K.applyCustomDropdown(asteroidsSelect);
+    asteroidsSelect.addEventListener('change', e => {
+      K.setStorage('kstuff_asteroids', e.target.value);
+      broadcastAsteroids(e.target.value);
+    });
+  }
+
   K.applyCloudSettings = s => {
     if (!s) return;
     if (s.theme) K.setStorage('kstuff_theme', s.theme);

@@ -23,7 +23,11 @@
     var shown = true;
     var lastShowCheck = 0;
 
+    var enabled = true;
+    try { enabled = localStorage.getItem('kstuff_asteroids') !== 'asteroids-off'; } catch (e) {}
+
     function pageAllowed() {
+        if (!enabled) return false;
         if (!ONLY) return true;
         var p = document.querySelector('.page.active');
         return !!p && ONLY.indexOf(p.id) !== -1;
@@ -66,6 +70,10 @@
     }
 
     window.addEventListener('message', function (e) {
+        if (e.data === 'asteroids-on' || e.data === 'asteroids-off') {
+            enabled = e.data === 'asteroids-on';
+            lastShowCheck = 0;
+        }
         if (e.data === 'theme-updated') setTimeout(function () { readTheme(performance.now()); }, 60);
     });
 
@@ -270,6 +278,13 @@
             running = true;
             last = 0;
             requestAnimationFrame(step);
+        }
+    });
+
+    window.addEventListener('storage', function (e) {
+        if (e.key === 'kstuff_asteroids') {
+            enabled = e.newValue !== 'asteroids-off';
+            lastShowCheck = 0;
         }
     });
 
