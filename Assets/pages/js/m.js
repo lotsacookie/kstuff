@@ -2515,6 +2515,39 @@ function onPlaybackStarted(track, via) {
     updateMediaSessionMetadata(track);
 }
 
+// SoundCloud sometimes only serves a ~30s preview. When that happens, look the song up on audio.com by title only.
+async function upgradePreviewFromAudioCom(track, myToken) {
+    const d = audioPlayer.duration;
+    if (!isFinite(d) || d < 20 || d > 40) return "keep";
+    if (track.duration && track.duration <= d + 15) return "keep";
+    let url = "";
+    try {
+        setLoadingHint(track, "preview only, trying audio.com");
+        url = await window.AC.resolveByTitle(track, 60);
+    } catch (e) {
+        console.warn("audio.com title lookup failed:", e && e.message ? e.message : e);
+    }
+    if (myToken !== playRequestToken) return "stale";
+    if (!url) return "keep";
+    try {
+        window.SC.stop();
+        audioPlayer.src = url;
+        try {
+            await attemptToPlay(audioPlayer, 9000);
+        } catch (directErr) {
+            if (myToken !== playRequestToken) return "stale";
+            const blob = await fetchBlobViaWisp(url, "audio/mpeg", 90000);
+            if (myToken !== playRequestToken) return "stale";
+            audioPlayer.src = URL.createObjectURL(blob);
+            await attemptToPlay(audioPlayer, 10000);
+        }
+        return myToken !== playRequestToken ? "stale" : "ok";
+    } catch (e) {
+        console.warn("audio.com preview upgrade failed:", e && e.message ? e.message : e);
+        return myToken !== playRequestToken ? "stale" : "fail";
+    }
+}
+
 async function playViaSoundCloud(track, myToken) {
     window.SC.stop();
     setLoadingHint(track, "loading stream");
@@ -2546,6 +2579,9 @@ async function playViaSoundCloud(track, myToken) {
             }
         }
         if (myToken !== playRequestToken) return "stale";
+        const upgraded = await upgradePreviewFromAudioCom(track, myToken);
+        if (upgraded === "stale") return "stale";
+        if (upgraded === "fail") return "fail";
         onPlaybackStarted(track, { type: "soundcloud", id: String(id) });
         return "ok";
     } catch (err) {
