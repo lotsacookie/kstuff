@@ -28,9 +28,9 @@
 
     function pageAllowed() {
         if (!enabled) return false;
-        if (document.querySelector('.gfn-running,.moon-running,.vm-running,#gfn-frame.on,#moon-frame.on')) return false;
-        if (!ONLY) return true;
         var p = document.querySelector('.page.active');
+        if (p && (p.matches('.gfn-running,.moon-running,.vm-running') || p.querySelector('#gfn-frame.on,#moon-frame.on'))) return false;
+        if (!ONLY) return true;
         return !!p && ONLY.indexOf(p.id) !== -1;
     }
 
