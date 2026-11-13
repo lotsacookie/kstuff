@@ -965,6 +965,7 @@ function hiResArtwork(url) {
 
 function upscaleCover(url, px = 500) {
     return String(url || "")
+        .replace(/-t\d+x\d+(\.\w+)/, `-t${px}x${px}$1`)
         .replace(/\/\d+x\d+-/, `/${px}x${px}-`)
         .replace(/\/\d+x\d+(bb)?\./, `/${px}x${px}bb.`);
 }
@@ -1022,11 +1023,16 @@ function searchCherrionCatalog(query) {
     return searchCherrionApi(query, CATALOG_STREAM_LIMIT);
 }
 
+function songFromSC(t) {
+    return makeSong({ source: "soundcloud", id: t.id, title: t.title, artist: t.artist, cover: t.cover, duration: t.duration });
+}
+
+function searchSoundCloudCatalog(query) {
+    return cachedCatalogSearch(`soundcloud|${query.toLowerCase()}`, () => searchLimiter(async () => dedupeSongs((await window.SC.search(query, CATALOG_SEARCH_LIMIT)).map(songFromSC))));
+}
+
 const CATALOG_SEARCH_SOURCES = [
-    { name: "iTunes", tier: 0, run: searchItunesCatalog },
-    { name: "Deezer", tier: 0, run: searchDeezerCatalog },
-    { name: "Ripple", tier: 1, run: searchRippleCatalog },
-    { name: "Cherrion", tier: 1, run: searchCherrionCatalog }
+    { name: "SoundCloud", tier: 0, run: searchSoundCloudCatalog }
 ];
 
 async function fetchDeezerChart(genreId) {
@@ -1319,6 +1325,10 @@ function trackCoverUrls(track, big = false) {
 const artworkLookupCache = new Map();
 
 function lookupArtworkUrl(track) {
+    return Promise.resolve(null);
+}
+
+function lookupArtworkUrlUnused(track) {
     const cacheKey = `${track.artist || ""}|${track.titleShort || track.title || ""}`.toLowerCase();
     if (artworkLookupCache.has(cacheKey)) return artworkLookupCache.get(cacheKey);
 
@@ -1955,10 +1965,7 @@ async function getShelfTracks(shelf) {
     }
 
     const sources = [
-        () => fetchDeezerChart(shelf.genre),
-        () => fetchDeezerChartAlt(shelf.genre),
-        () => fetchAppleTrending(),
-        () => fetchItunesSearchChart(shelf.title)
+        async () => (await window.SC.shelf(shelf.id, shelf.title)).map(songFromSC)
     ];
 
     let songs = [];
@@ -2443,8 +2450,47 @@ function onPlaybackStarted(track, via) {
     updateMediaSessionMetadata(track);
 }
 
+async function playViaSoundCloud(track, myToken) {
+    window.SC.stop();
+    setLoadingHint(track, "loading stream");
+    try {
+        let id = track.source === "soundcloud" ? track.id : null;
+        if (!id) {
+            const match = await window.SC.findMatch(track);
+            if (!match) return "fail";
+            id = match.id;
+        }
+        if (myToken !== playRequestToken) return "stale";
+        const stream = await window.SC.resolve(id);
+        if (myToken !== playRequestToken) return "stale";
+        audioPlayer.volume = volumeBar.value;
+        if (stream.protocol === "hls") {
+            await window.SC.attachHls(audioPlayer, stream.url);
+            await attemptToPlay(audioPlayer, 20000);
+        } else {
+            try {
+                audioPlayer.src = stream.url;
+                await attemptToPlay(audioPlayer, 9000);
+            } catch (directErr) {
+                if (myToken !== playRequestToken) return "stale";
+                setLoadingHint(track, "downloading via proxy");
+                const blob = await fetchBlobViaWisp(stream.url, "audio/mpeg", 90000);
+                if (myToken !== playRequestToken) return "stale";
+                audioPlayer.src = URL.createObjectURL(blob);
+                await attemptToPlay(audioPlayer, 10000);
+            }
+        }
+        if (myToken !== playRequestToken) return "stale";
+        onPlaybackStarted(track, { type: "soundcloud", id: String(id) });
+        return "ok";
+    } catch (err) {
+        console.warn("SoundCloud playback failed:", err && err.message ? err.message : err);
+        return myToken !== playRequestToken ? "stale" : "fail";
+    }
+}
+
 async function resolveAndPlay(track, myToken) {
-    return playViaStreamApi(track, myToken);
+    return playViaSoundCloud(track, myToken);
 }
 
 async function playTrack(track) {
