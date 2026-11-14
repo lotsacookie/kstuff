@@ -966,7 +966,7 @@
         tryStream(0, gen, [], resume);
     }
 
-    async function tryStream(index, gen, reasons, resume, viaHub) {
+    async function tryStream(index, gen, reasons, resume, viaHub, vi) {
         if (gen !== playGen || !player) return;
         var p = player;
         reasons = reasons || [];
@@ -988,18 +988,20 @@
         var isFile = stream.type === 'file' || /\.(mp4|m4v|webm)(\?|$)/i.test(stream.url);
         if (!isFile && window.kNet) viaHub = true;
         // Normal route first. The net hub (wisp) is only a fallback for HLS streams that failed.
-        var url = stream.url;
+        vi = vi || 0;
+        var variants = TV.streamVariants(stream, isFile);
+        var vr = variants[Math.min(vi, variants.length - 1)];
+        var url = vr.url;
+        if (vi) setStatus('Trying ' + label + ' (' + vr.name + ')...', true);
         var started = false;
         var cur = function () { return p.video.currentTime > 1 ? p.video.currentTime : at; };
         var moveOn = function (why) {
             if (gen !== playGen || player !== p) return;
             var where = cur();
             console.warn('[tv] ' + label + (viaHub ? ' (net hub)' : '') + ' failed: ' + why);
-            if (!viaHub && !isFile && window.kNet && !(p.hubTried && p.hubTried[stream.url])) {
-                if (!p.hubTried) p.hubTried = {};
-                p.hubTried[stream.url] = 1;
+            if (vi + 1 < variants.length) {
                 teardownMedia();
-                tryStream(index, gen, reasons, where, true);
+                tryStream(index, gen, reasons, where, viaHub, vi + 1);
                 return;
             }
             markFailed(p, stream);
@@ -1009,12 +1011,12 @@
             if (gen !== playGen || player !== p) return;
             var where = cur();
             teardownMedia();
-            tryStream(index, gen, reasons, where, viaHub);
+            tryStream(index, gen, reasons, where, viaHub, vi);
         };
         try {
             p.video.preload = 'auto';
             if (isFile) {
-                p.video.src = (stream.headers && Object.keys(stream.headers).length) ? await TV.hubBlob(url, stream.headers) : url;
+                p.video.src = vr.blob ? await TV.hubBlob(url, vr.headers) : url;
                 await waitMedia(p.video, 25000);
                 if (gen !== playGen) return;
                 if (at > 1) p.video.currentTime = at;
@@ -1023,7 +1025,7 @@
                 if (gen !== playGen) return;
                 if (Hls && Hls.isSupported()) {
                     var h = new Hls({
-                        loader: TV.hubLoaderWith(stream.headers),
+                        loader: TV.hubLoaderWith(vr.headers),
                         autoStartLoad: false,
                         startPosition: at > 1 ? at : -1,
                         capLevelToPlayerSize: true,

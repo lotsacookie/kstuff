@@ -146,4 +146,25 @@
         var buf = await res.arrayBuffer();
         return URL.createObjectURL(new Blob([buf], { type: 'video/mp4' }));
     };
+
+    // Aether's playback order: its stream proxy first (rewrites the playlist, so playback starts at once and
+    // buffers as it goes), then the raw url with the stream's own headers. HLS always loads through the net hub.
+    var STREAM_PROXIES = ['https://just.raccoonunbutteredbagel.zip', 'https://justice.raccoonunbutteredbagel.zip'];
+    function viaProxy(host, u, hd) {
+        return host + '/m3u8-proxy?url=' + encodeURIComponent(u) + (hd && Object.keys(hd).length ? '&headers=' + encodeURIComponent(JSON.stringify(hd)) : '');
+    }
+    TV.streamVariants = function (stream, isFile) {
+        var hd = stream.headers || {};
+        var has = Object.keys(hd).length > 0;
+        var out = [];
+        if (isFile) {
+            if (!has) out.push({ url: stream.url, headers: {}, name: 'direct' });
+            STREAM_PROXIES.forEach(function (h) { out.push({ url: viaProxy(h, stream.url, hd), headers: {}, name: 'proxy' }); });
+            out.push({ url: stream.url, headers: hd, blob: true, name: 'hub download' });
+        } else {
+            STREAM_PROXIES.forEach(function (h) { out.push({ url: viaProxy(h, stream.url, hd), headers: {}, name: 'proxy' }); });
+            out.push({ url: stream.url, headers: hd, name: 'direct' });
+        }
+        return out;
+    };
 })();
