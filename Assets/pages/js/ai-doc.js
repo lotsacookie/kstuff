@@ -8,6 +8,8 @@
   const withTimeout = (p, ms, label) => { let t; return Promise.race([p, new Promise((_, rej) => { t = setTimeout(() => rej(new Error(label + " timed out")), ms); })]).finally(() => clearTimeout(t)); };
   const SITE = "https://deepai.org";
   const OWN_RE = /(^|\.)deepai\.org$/i;
+  const NT_SITE = "https://nottrack.com";
+  const NT_RE = /(^|\.)nottrack\.com$/i;
   // Sidebar re-renders (new chat saved, title arriving) rebuild every row. That killed an open 3-dots menu
   // or swallowed the click on the dots. Keep the menu on the rebuilt row, and hold a re-render while the pointer is down.
   const RENDER_GUARD = "var _kD=0,_kP=null;document.addEventListener('pointerdown',function(e){_kD=(e.target&&e.target.closest&&e.target.closest('.chat-history-item'))?1:0;},true);" +
@@ -697,6 +699,245 @@ function shim() {
     return out;
   };
 
+  const nt = (() => {
+    const ID = "nottrack", HOST = "https://nottrack.com";
+    const CHATS = "nt.chats", MAP = "nt.map";
+    const mem = {};
+    const read = (k) => {
+      try { const v = JSON.parse(localStorage.getItem(k)); if (v && typeof v === "object") return v; } catch (e) {}
+      return mem[k] || {};
+    };
+    const write = (k, v) => {
+      mem[k] = v;
+      try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {}
+    };
+    const json = (obj, status) => new Response(JSON.stringify(obj), { status: status || 200, headers: { "content-type": "application/json" } });
+    const now = () => new Date().toISOString();
+    const titleOf = (messages) => {
+      const m = (messages || []).find((x) => x && x.role === "user" && typeof x.content === "string" && x.content.trim());
+      const t = m ? m.content.replace(/\s+/g, " ").trim() : "";
+      return t.length > 50 ? t.slice(0, 50).trim() + "…" : t || "NotTrack chat";
+    };
+    const item = (c) => ({ uuid: c.uuid, title: c.title || "", chat_style: "chat", chat_model: ID, updated_at: c.updated_at, created_at: c.created_at, pinned_at: c.pinned_at || null, folder_uuid: c.folder_uuid || null });
+    const dropMap = (sid) => { const map = read(MAP); if (map[sid]) { delete map[sid]; write(MAP, map); } };
+
+    let warmed = false;
+    const warm = async (signal) => {
+      let have = false;
+      try { have = !!parent.kAiDoc.cookieFor(HOST + "/"); } catch (e) {}
+      if (have || warmed) return;
+      warmed = true;
+      try {
+        const r = await parent.__px({ url: HOST + "/chat", method: "GET", headers: { accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8" }, signal });
+        try { await r.arrayBuffer(); } catch (e) {}
+      } catch (e) { warmed = false; }
+    };
+
+    async function* events(reader) {
+      const d = new TextDecoder();
+      let buf = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        buf += d.decode(value, { stream: true });
+        let i;
+        while ((i = buf.indexOf("\n\n")) !== -1) {
+          const block = buf.slice(0, i);
+          buf = buf.slice(i + 2);
+          const line = block.split("\n").find((l) => l.startsWith("data: "));
+          if (!line) continue;
+          let ev;
+          try { ev = JSON.parse(line.slice(6)); } catch (e) { continue; }
+          yield ev;
+        }
+      }
+    }
+
+    async function chat(form, signal) {
+      let history = [];
+      try { history = JSON.parse(form.get("chatHistory") || "[]"); } catch (e) {}
+      const sid = String(form.get("session_uuid") || "");
+      const msgs = (Array.isArray(history) ? history : []).filter((m) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string");
+      let lastUser = -1;
+      for (let i = msgs.length - 1; i >= 0; i--) if (msgs[i].role === "user") { lastUser = i; break; }
+      if (lastUser < 0) return json({ status: "NotTrack: nothing to send" }, 400);
+      const text = msgs[lastUser].content;
+      const prior = msgs.slice(0, lastUser);
+      const known = read(MAP)[sid];
+      const cont = !!(known && known.chat_id && known.count === prior.length && lastUser === msgs.length - 1);
+      let input = text;
+      if (!cont && prior.length) {
+        let transcript = prior.map((m) => (m.role === "user" ? "User: " : "Assistant: ") + m.content).join("\n\n");
+        if (transcript.length > 12000) transcript = transcript.slice(-12000);
+        input = "Earlier in this conversation:\n\n" + transcript + "\n\nContinue the conversation and answer the latest message from the user:\n\n" + text;
+      }
+      await warm(signal);
+      const res = await parent.__px({
+        url: HOST + "/api/dispatch",
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ user_input: input, mode: "usual", model: "C", persona: "normal", max_turns: 3, chat_id: cont ? known.chat_id : null, attachments: [], regenerate: false, edit: false, via: "typed" }),
+        signal,
+      });
+      if (!res.ok || !res.body) {
+        let t = "";
+        try { t = (await res.text()).replace(/\s+/g, " ").slice(0, 200); } catch (e) {}
+        dropMap(sid);
+        return json({ status: "NotTrack: HTTP " + res.status + (t ? " " + t : "") }, res.status === 429 ? 429 : 502);
+      }
+      const reader = res.body.getReader();
+      const it = events(reader);
+      const st = { saw: false, think: false, pend: "", chatId: cont ? known.chat_id : null, err: "", closed: false };
+      const strip = (s, final) => {
+        st.pend += s;
+        let o = "";
+        while (st.pend) {
+          if (st.think) {
+            const i = st.pend.indexOf("</think>");
+            if (i < 0) { st.pend = st.pend.slice(-8); break; }
+            st.pend = st.pend.slice(i + 8);
+            st.think = false;
+            continue;
+          }
+          const i = st.pend.indexOf("<think>");
+          if (i >= 0) { o += st.pend.slice(0, i); st.pend = st.pend.slice(i + 7); st.think = true; continue; }
+          let keep = 0;
+          for (let k = Math.min(6, st.pend.length); k > 0; k--) if ("<think>".startsWith(st.pend.slice(-k))) { keep = k; break; }
+          o += st.pend.slice(0, st.pend.length - keep);
+          st.pend = st.pend.slice(st.pend.length - keep);
+          break;
+        }
+        if (final) { if (!st.think) o += st.pend; st.pend = ""; }
+        return o;
+      };
+      const take = (ev) => {
+        if (ev.type === "chat_meta" && ev.chat_id) st.chatId = ev.chat_id;
+        else if (ev.type === "delta") { st.saw = true; return strip(String(ev.chunk || "")); }
+        else if ((ev.type === "message" || ev.type === "consensus") && !st.saw) { st.saw = true; return strip(String(ev.content || "")); }
+        else if (ev.type === "error") { st.err = String(ev.message || ev.error || ev.code || "error"); st.code = String(ev.code || ""); }
+        return "";
+      };
+      const finish = () => {
+        if (st.closed) return;
+        st.closed = true;
+        if (st.chatId && st.saw && !st.err) { const map = read(MAP); map[sid] = { chat_id: st.chatId, count: lastUser + 2 }; write(MAP, map); }
+        else dropMap(sid);
+      };
+      const queue = [];
+      try {
+        while (true) {
+          const n = await it.next();
+          if (n.done) break;
+          queue.push(n.value);
+          if (["delta", "message", "consensus", "error", "done"].indexOf(n.value.type) >= 0) break;
+        }
+      } catch (e) { dropMap(sid); throw e; }
+      let head = "";
+      for (const ev of queue) head += take(ev);
+      if (!head && (st.err || !st.saw)) {
+        try { reader.cancel(); } catch (e) {}
+        dropMap(sid);
+        const msg = st.err || "no answer";
+        return json({ status: "NotTrack: " + msg }, /rate|limit/i.test(st.code + " " + msg) ? 429 : 502);
+      }
+      const enc = new TextEncoder();
+      const out = new ReadableStream({
+        start(c) { if (head) c.enqueue(enc.encode(head)); },
+        async pull(c) {
+          try {
+            while (true) {
+              const n = await it.next();
+              if (n.done) {
+                let tail = strip("", true);
+                if (st.err) tail += "\n\n(NotTrack: " + st.err + ")";
+                finish();
+                if (tail) c.enqueue(enc.encode(tail));
+                c.close();
+                return;
+              }
+              const t = take(n.value);
+              if (t) { c.enqueue(enc.encode(t)); return; }
+            }
+          } catch (e) {
+            finish();
+            try { c.error(e); } catch (x) {}
+          }
+        },
+        cancel() { st.err = st.err || "stopped"; finish(); try { reader.cancel(); } catch (e) {} },
+      });
+      return new Response(out, { status: 200, headers: { "content-type": "text/plain; charset=utf-8" } });
+    }
+
+    async function route(path, url, method, body, signal, forward) {
+      if (method === "GET" && /\/get_chat_session$/.test(path)) {
+        const c = read(CHATS)[new URL(url).searchParams.get("uuid") || ""];
+        if (!c) return null;
+        return json({ success: true, uuid: c.uuid, title: c.title || "", chat_style: "chat", chat_model: ID, messages: c.messages || [], created_at: c.created_at, updated_at: c.updated_at, pinned_at: c.pinned_at || null, folder_uuid: c.folder_uuid || null });
+      }
+      if (method !== "POST" || !(body instanceof FormData)) return null;
+      if (/\/hacking_is_a_serious_crime$/.test(path)) return body.get("model") === ID ? chat(body, signal) : null;
+      const uuid = String(body.get("uuid") || "");
+      const chats = read(CHATS);
+      if (/\/save_chat_session$/.test(path)) {
+        if (body.get("meta_only") === "1") {
+          const c = chats[uuid];
+          if (!c) return null;
+          if (body.has("pinned")) c.pinned_at = body.get("pinned") === "1" ? now() : null;
+          if (body.has("folder_uuid")) c.folder_uuid = body.get("folder_uuid") || null;
+          write(CHATS, chats);
+          return json({ success: true });
+        }
+        if (body.get("chat_model") === ID) {
+          let messages = [];
+          try { messages = JSON.parse(body.get("messages") || "[]"); } catch (e) {}
+          const old = chats[uuid];
+          chats[uuid] = { uuid, title: (old && old.title) || titleOf(messages), messages, created_at: (old && old.created_at) || now(), updated_at: now(), pinned_at: old && old.pinned_at || null, folder_uuid: old && old.folder_uuid || null };
+          write(CHATS, chats);
+          return json({ success: true, uuid, title: chats[uuid].title });
+        }
+        if (chats[uuid]) { delete chats[uuid]; write(CHATS, chats); }
+        return null;
+      }
+      if (/\/delete_chat_session$/.test(path)) {
+        if (!chats[uuid]) return null;
+        delete chats[uuid];
+        write(CHATS, chats);
+        dropMap(uuid);
+        return json({ success: true });
+      }
+      if (/\/rename_chat_session$/.test(path)) {
+        if (!chats[uuid]) return null;
+        chats[uuid].title = String(body.get("title") || "").trim() || chats[uuid].title;
+        write(CHATS, chats);
+        return json({ success: true });
+      }
+      if (/\/delete_all_chat_history$/.test(path)) {
+        write(CHATS, {});
+        write(MAP, {});
+        return null;
+      }
+      if (/\/get_my_chat_sessions_and_convert_anonymous_sessions$/.test(path)) {
+        const mine = Object.values(chats).map(item);
+        if (!mine.length) return null;
+        let known = [];
+        try { known = JSON.parse(body.get("my_known_uuids") || "[]"); } catch (e) {}
+        const form = new FormData();
+        form.append("my_known_uuids", JSON.stringify((Array.isArray(known) ? known : []).filter((id) => !chats[id])));
+        let data = null;
+        try {
+          const r = await forward(form);
+          if (r.ok) data = await r.json();
+        } catch (e) { if (signal && signal.aborted) throw e; }
+        if (!data || !Array.isArray(data.sessions)) data = { success: true, sessions: [] };
+        data.sessions = data.sessions.filter((s) => !chats[s.uuid]).concat(mine);
+        if (Array.isArray(data.session_uuids_to_forget)) data.session_uuids_to_forget = data.session_uuids_to_forget.filter((id) => !chats[id]);
+        return json(data);
+      }
+      return null;
+    }
+    return { route };
+  })();
+
   const realFetch = window.fetch.bind(window);
   window.fetch = async (input, init) => {
     const raw = typeof input === "string" ? input : input && input.url ? input.url : String(input);
@@ -718,15 +959,23 @@ function shim() {
     }
     if (signal && signal.aborted) throw aborted();
     const url = new URL(raw, SITE + "/").href;
-    if (body instanceof FormData && /\/hacking_is_a_serious_crime$/.test(new URL(url).pathname)) body = withSingularity(body);
-    const payload = reads.test(method) ? undefined : await encode(body, headers);
-    const call = parent.__px({ url, method, headers, body: payload, signal });
-    if (!signal) return call;
-    const res = await Promise.race([
-      call,
-      new Promise((_, reject) => signal.addEventListener("abort", () => reject(aborted()), { once: true })),
-    ]);
-    return follow(res, signal);
+    const path = new URL(url).pathname;
+    const forward = async (b) => {
+      const payload = reads.test(method) ? undefined : await encode(b, headers);
+      const call = parent.__px({ url, method, headers, body: payload, signal });
+      if (!signal) return call;
+      const res = await Promise.race([
+        call,
+        new Promise((_, reject) => signal.addEventListener("abort", () => reject(aborted()), { once: true })),
+      ]);
+      return follow(res, signal);
+    };
+    if (own(url)) {
+      const mine = await nt.route(path, url, method, body, signal, forward);
+      if (mine) return signal && mine.body ? follow(mine, signal) : mine;
+    }
+    if (body instanceof FormData && /\/hacking_is_a_serious_crime$/.test(path)) body = withSingularity(body);
+    return forward(body);
   };
 
   const seen = new WeakMap();
@@ -953,6 +1202,12 @@ function shim() {
         headers.Referer = SITE + "/chat";
         var ck = cookieFor(u.href);
         if (ck) headers.Cookie = ck;
+      } else if (NT_RE.test(u.hostname)) {
+        headers["User-Agent"] = navigator.userAgent;
+        headers.Origin = NT_SITE;
+        headers.Referer = NT_SITE + "/chat";
+        var nck = cookieFor(u.href);
+        if (nck) headers.Cookie = nck;
       }
       var init = { method: method, headers: headers, redirect: "follow" };
       if (req.body != null && !isRead(method)) init.body = toBody(req.body);
@@ -986,6 +1241,8 @@ function shim() {
 async function buildDocument() {
     let html = await fetchText(SITE + "/chat");
   html = html
+    .split("const additionalModels=[")
+    .join('const additionalModels=[{"value":"nottrack","label":"NotTrack","locked":false,"superGenius":false},')
     .split('const divider=document.createElement("div");divider.className="model-menu-divider";menu.appendChild(divider);const moreBtn=document.createElement("div");')
     .join('const moreBtn=document.createElement("div");')
     .split("menu.appendChild(moreBtn);}")
@@ -1110,7 +1367,7 @@ async function buildDocument() {
     return store.busy;
   }
 
-  window.kAiDoc = { ver: CODE_VER, px: px, peek: peek, load: load, ensure: ensure, build: buildDocument, age: function () { return store.at ? Date.now() - store.at : Infinity; } };
+  window.kAiDoc = { ver: CODE_VER, px: px, cookieFor: function (u) { try { return cookieFor(u); } catch (e) { return ""; } }, peek: peek, load: load, ensure: ensure, build: buildDocument, age: function () { return store.at ? Date.now() - store.at : Infinity; } };
 
   if (host === window) {
     var warm = function (n) {
