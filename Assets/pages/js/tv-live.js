@@ -45,12 +45,11 @@
 
 
     function tvFetch(url, init) {
-        return fetch(url, init).catch(function (err) {
-            if (!window.kNet || (init.signal && init.signal.aborted)) throw err;
-            return window.kNet.available().then(function (ok) {
-                if (!ok) throw err;
-                return window.kNet.fetch(url, init);
-            });
+        init = init || {};
+        if (!window.kNet) return Promise.reject(new Error('net hub missing'));
+        return window.kNet.waitAvailable(20000).then(function (ok) {
+            if (!ok) throw new Error('net hub unavailable');
+            return window.kNet.fetch(url, init);
         });
     }
 

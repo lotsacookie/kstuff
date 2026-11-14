@@ -88,15 +88,16 @@
     }
 
 
+    // Every request goes through the net hub (kNet). No direct fetches.
     function tvFetch(url, init) {
-        return fetch(url, init).catch(function (err) {
-            if (!window.kNet || (init.signal && init.signal.aborted)) throw err;
-            return window.kNet.available().then(function (ok) {
-                if (!ok) throw err;
-                return window.kNet.fetch(url, init);
-            });
+        init = init || {};
+        if (!window.kNet) return Promise.reject(new Error('net hub missing'));
+        return window.kNet.waitAvailable(20000).then(function (ok) {
+            if (!ok) throw new Error('net hub unavailable');
+            return window.kNet.fetch(url, init);
         });
     }
+    TV.fetch = tvFetch;
 
     function timedFetch(url, ms) {
         var controller = new AbortController();
@@ -165,7 +166,7 @@
         return hostPromise;
     };
 
-    TV.api = async function (path, timeout) {
+    TV.hostApi = async function (path, timeout) {
         var limit = timeout || 15000;
         var host = await TV.resolveHost();
         for (var attempt = 0; attempt < 3; attempt++) {
@@ -197,6 +198,104 @@
         throw new Error('request failed');
     };
 
+
+    // ---- Aether catalog: TMDB through the net hub ----
+    var SITE = 'https://aether.cx';
+    var TMDB_BASES = ['https://api.themoviedb.org/3', 'https://api.tmdb.org/3'];
+    var tmdbToken = '';
+    var tmdbMem = {};
+    var tmdbBusy = 0;
+    var tmdbWait = [];
+
+    function tmdbSlot() {
+        if (tmdbBusy < 6) { tmdbBusy++; return Promise.resolve(); }
+        return new Promise(function (r) { tmdbWait.push(r); }).then(function () { tmdbBusy++; });
+    }
+    function tmdbFree() { tmdbBusy--; var w = tmdbWait.shift(); if (w) w(); }
+
+    async function hubText(url, ms) {
+        var res = await timedFetch(url, ms || 20000);
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return res.text();
+    }
+
+    TV.getToken = async function () {
+        if (tmdbToken) return tmdbToken;
+        var own = TV.store.get('AE_TMDB');
+        if (own && own.trim()) return (tmdbToken = own.trim());
+        var auto = TV.store.json('AE_TMDB_AUTO');
+        if (auto && auto.v && Date.now() - auto.ts < 7 * 86400000) return (tmdbToken = auto.v);
+        var page = await hubText(SITE + '/', 25000);
+        var m = page.match(/<script[^>]*\ssrc=["']([^"']*\/assets\/index-[^"']+\.js)["']/i) || page.match(/<script[^>]+type=["']module["'][^>]*\ssrc=["']([^"']+)["']/i);
+        if (!m) throw new Error('could not find the catalog script');
+        var js = await hubText(new URL(m[1], SITE + '/').href, 120000);
+        var k = js.match(/TMDB_READ_API_KEY\s*:\s*"(eyJ[\w.\-]+)"/);
+        if (!k) throw new Error('could not read a catalog token');
+        TV.store.set('AE_TMDB_AUTO', JSON.stringify({ v: k[1], ts: Date.now() }));
+        return (tmdbToken = k[1]);
+    };
+
+    TV.tmdb = function (path, params) {
+        var qs = new URLSearchParams(Object.assign({ language: 'en-US' }, params || {})).toString();
+        var key = path + '?' + qs;
+        if (tmdbMem[key]) return tmdbMem[key];
+        var p = (async function () {
+            await tmdbSlot();
+            try {
+                var t = await TV.getToken();
+                var err;
+                for (var i = 0; i < TMDB_BASES.length; i++) {
+                    try {
+                        var res = await tvFetch(TMDB_BASES[i] + path + '?' + qs, { headers: { Accept: 'application/json', Authorization: 'Bearer ' + t } });
+                        if (res.status === 401) { tmdbToken = ''; TV.store.set('AE_TMDB_AUTO', 'null'); throw new Error('catalog token rejected'); }
+                        if (!res.ok) throw new Error('TMDB HTTP ' + res.status);
+                        return await res.json();
+                    } catch (e) { err = e; if (/rejected/.test(String(e.message))) break; }
+                }
+                throw err;
+            } finally { tmdbFree(); }
+        })();
+        tmdbMem[key] = p;
+        p.catch(function () { delete tmdbMem[key]; });
+        return p;
+    };
+
+    function tag(list, type) {
+        return (list || []).filter(function (r) { return r && r.poster_path; }).map(function (r) {
+            r.media_type = r.media_type || type;
+            return r;
+        });
+    }
+
+    // list of items for a type, optionally several pages
+    TV.list = async function (type, path, params, pages) {
+        var jobs = [];
+        for (var i = 1; i <= (pages || 1); i++) jobs.push(TV.tmdb(path, Object.assign({}, params || {}, { page: String(i) })));
+        var all = await Promise.all(jobs);
+        var seen = {};
+        var out = [];
+        all.forEach(function (d) {
+            tag(d.results, type).forEach(function (r) { if (!seen[r.id]) { seen[r.id] = 1; out.push(r); } });
+        });
+        return out;
+    };
+
+    TV.api = async function (path, timeout) {
+        if (path.indexOf('/stream/') === 0) return TV.hostApi(path, timeout);
+        var m;
+        var url = new URL('http://x' + path);
+        var q = {};
+        url.searchParams.forEach(function (v, k) { q[k] = v; });
+        if ((m = url.pathname.match(/^\/search\/multi$/))) {
+            var d = await TV.tmdb('/search/multi', { query: q.query, page: q.page || '1', include_adult: 'false' });
+            d.results = (d.results || []).filter(function (r) { return (r.media_type === 'movie' || r.media_type === 'tv') && r.poster_path; });
+            return d;
+        }
+        if ((m = url.pathname.match(/^\/(movie|tv)\/(\d+)\/season\/(\d+)$/))) return TV.tmdb('/tv/' + m[2] + '/season/' + m[3]);
+        if ((m = url.pathname.match(/^\/(movie|tv)\/(\d+)$/))) return TV.tmdb('/' + m[1] + '/' + m[2]);
+        return TV.hostApi(path, timeout);
+    };
+
     TV.proxyUrl = function (path) {
         var host = (TV.store.json(HOST_KEY) || {}).host || hostList[0] || FALLBACK_HOSTS[1];
         return host + '/movies/proxy?url=' + encodeURIComponent(path);
@@ -205,8 +304,7 @@
     TV.img = function (path, size) {
         if (!path) return '';
         var full = IMG_BASE + (size || 'w342') + path;
-        var host = (TV.store.json(HOST_KEY) || {}).host || hostList[0] || FALLBACK_HOSTS[1];
-        try { return host + '/img?' + btoa(full); } catch (e) { return full; }
+        return full;
     };
 
     // Fallback images: if an image fails to load on its own, fetch it through the
@@ -214,10 +312,7 @@
     TV.imgFallbacks = function (path, size) {
         if (!path) return [];
         var full = IMG_BASE + (size || 'w342') + path;
-        var list = [full];
-        var host = (TV.store.json(HOST_KEY) || {}).host || hostList[0] || FALLBACK_HOSTS[1];
-        try { list.push(host + '/img?' + btoa(full)); } catch (e) {}
-        return list;
+        return [full];
     };
 
     var hubImgCache = {};

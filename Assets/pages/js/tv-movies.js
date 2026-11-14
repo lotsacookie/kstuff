@@ -50,21 +50,23 @@
     }
 
     function loadImg(holder, path, size, cls) {
-        var src = TV.img(path, size);
-        if (!src) return;
+        if (!path) return;
         var img = document.createElement('img');
         img.alt = '';
-        img.loading = 'lazy';
         img.referrerPolicy = 'no-referrer';
         img.onload = function () { img.classList.add('in'); };
-        img.onerror = function () {
-            // Fallback only: the image did not load on its own, so pull it through the net hub.
-            img.onerror = function () { img.remove(); };
-            TV.hubImage(TV.imgFallbacks(path, size)).then(function (blobUrl) { img.src = blobUrl; }, function () { img.remove(); });
-        };
+        img.onerror = function () { img.remove(); };
         if (cls) img.className = cls;
-        img.src = src;
         holder.appendChild(img);
+        // lazy: only pull through the net hub once the holder is near the viewport
+        var go = function () {
+            TV.hubImage(TV.imgFallbacks(path, size)).then(function (u) { img.src = u; }, function () { img.remove(); });
+        };
+        if (!('IntersectionObserver' in window)) return go();
+        var io = new IntersectionObserver(function (es) {
+            if (es.some(function (e) { return e.isIntersecting; })) { io.disconnect(); go(); }
+        }, { rootMargin: '400px 600px' });
+        io.observe(holder);
     }
 
     function makeCard(entry, rank) {
@@ -154,24 +156,148 @@
         if (!secs.childNodes.length) secs.appendChild(make('div', 'message', 'Nothing to show right now.'));
     }
 
+    // ---- Aether layout: Movies / TV Shows / Editor Picks, rows with chip pickers ----
+    var PROVIDERS = {
+        movie: [['Netflix', '8'], ['Apple TV+', '2'], ['Amazon Prime Video', '10'], ['Hulu', '15'], ['Disney Plus', '337'], ['Max', '1899'], ['Paramount Plus', '531'], ['Shudder', '99'], ['Crunchyroll', '283'], ['fuboTV', '257'], ['AMC+', '526'], ['Starz', '43']],
+        tv: [['Netflix', '8'], ['Apple TV+', '350'], ['Amazon Prime Video', '10'], ['Paramount Plus', '531'], ['Hulu', '15'], ['Max', '1899'], ['Adult Swim', '318'], ['Disney Plus', '337'], ['Crunchyroll', '283'], ['Shudder', '99'], ['Fox', '328']]
+    };
+    var EDITOR = {
+        movie: [9342, 293, 370172, 661374, 207, 378785, 335984, 13353, 27205, 106646, 334533, 693134, 765245, 264660, 92591, 976893, 13187, 11527, 120, 157336, 762, 666243, 545611, 329, 330459, 279, 823219, 22, 18971, 26388, 152601, 11886, 1362, 578, 78, 348],
+        tv: [456, 73021, 1434, 1695, 1408, 93740, 60625, 1396, 44217, 90228, 13916, 71912, 61222, 93405, 87108, 105248, 82738, 615, 4625, 513, 110948, 110492, 125988, 87917, 42009, 86831, 261579]
+    };
+    var homeTab = 'movie';
+    var tabBar = null;
+
+    function shuffled(list) {
+        var a = list.slice();
+        for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)); var t = a[i]; a[i] = a[j]; a[j] = t; }
+        return a;
+    }
+
+    function rowDefs(tab) {
+        if (tab === 'editor') {
+            return ['movie', 'tv'].map(function (type) {
+                return { title: 'Editor Picks ' + (type === 'movie' ? 'Movies' : 'Shows'), load: function () {
+                    var ids = shuffled(EDITOR[type]).slice(0, 22);
+                    return Promise.all(ids.map(function (id) { return TV.tmdb('/' + type + '/' + id).then(function (d) { d.media_type = type; return d; }, function () { return null; }); }))
+                        .then(function (l) { return l.filter(function (d) { return d && d.poster_path; }).slice(0, 18); });
+                } };
+            });
+        }
+        var type = tab;
+        var label = type === 'movie' ? 'Movies' : 'Shows';
+        var rows = type === 'movie' ? [
+            { title: 'Trending', load: function () { return TV.list('movie', '/trending/movie/week', {}, 3); } },
+            { title: 'Most Popular', load: function () { return TV.list('movie', '/discover/movie', { sort_by: 'popularity.desc' }); } },
+            { title: 'Top Rated', load: function () { return TV.list('movie', '/discover/movie', { sort_by: 'vote_average.desc', 'vote_count.gte': '1000' }); } }
+        ] : [
+            { title: 'Trending', load: function () { return TV.list('tv', '/trending/tv/week', {}, 3); } },
+            { title: 'Top Rated', load: function () { return TV.list('tv', '/discover/tv', { sort_by: 'vote_average.desc', 'vote_count.gte': '500' }); } },
+            { title: 'Most Popular', load: function () { return TV.list('tv', '/discover/tv', { sort_by: 'popularity.desc' }); } },
+            { title: 'K-Drama', load: function () { return TV.list('tv', '/discover/tv', { with_origin_country: 'KR', with_original_language: 'ko' }); } }
+        ];
+        rows.push({
+            title: function (c) { return label + ' on ' + (c ? c.name : '...'); },
+            chips: function () { return Promise.resolve(PROVIDERS[type].map(function (p) { return { name: p[0], id: p[1] }; })); },
+            load: function (c) { return TV.list(type, '/discover/' + type, { with_watch_providers: c.id, watch_region: 'US' }); }
+        });
+        rows.push({
+            title: function (c) { return c ? c.name + ' ' + label : label + ' by genre'; },
+            chips: function () { return TV.tmdb('/genre/' + type + '/list').then(function (d) { return (d.genres || []).map(function (g) { return { id: String(g.id), name: g.name }; }); }); },
+            load: function (c) { return TV.list(type, '/discover/' + type, { with_genres: c.id }); }
+        });
+        return rows;
+    }
+
+    function buildRow(def, gen) {
+        var sec = make('div', 'sec');
+        var head = make('div', 'sec-head');
+        var title = make('h2', 'sec-title', '');
+        head.appendChild(title);
+        sec.appendChild(head);
+        var chipBar = def.chips ? make('div', 'chipbar') : null;
+        if (chipBar) sec.appendChild(chipBar);
+        var rowEl = make('div', 'row');
+        sec.appendChild(rowEl);
+        var selected = null, serial = 0, started = false;
+        var setTitle = function () { title.textContent = typeof def.title === 'function' ? def.title(selected) : def.title; };
+        var fill = async function () {
+            var mine = ++serial;
+            setTitle();
+            rowEl.textContent = '';
+            skeletonRow().childNodes.forEach(function (c) { rowEl.appendChild(c.cloneNode(true)); });
+            try {
+                var items = normList(await def.load(selected), homeTab === 'tv' ? 'tv' : 'movie');
+                if (gen !== homeGen || mine !== serial) return;
+                if (!items.length) throw new Error('nothing to show');
+                rowEl.textContent = '';
+                items.forEach(function (e, i) { rowEl.appendChild(makeCard(e, /^Trending$/.test(def.title) && i < 10 ? i + 1 : 0)); });
+                if (!feat.dataset.set && items.some(function (e) { return e.backdrop; })) {
+                    feat.dataset.set = '1';
+                    paintFeatured(items.filter(function (e) { return e.backdrop; })[Math.floor(Math.random() * Math.min(8, items.length))] || items[0]);
+                }
+            } catch (e) {
+                if (gen !== homeGen || mine !== serial) return;
+                rowEl.textContent = '';
+                rowEl.appendChild(errorBlock(e, fill));
+            }
+        };
+        var start = async function () {
+            if (started) return;
+            started = true;
+            setTitle();
+            if (def.chips) {
+                try {
+                    var list = await def.chips();
+                    selected = list[0] || null;
+                    list.forEach(function (c) {
+                        var b = make('button', 'sn' + (c === selected ? ' on' : ''), c.name);
+                        b.type = 'button';
+                        b.addEventListener('click', function () {
+                            if (selected === c) return;
+                            selected = c;
+                            Array.prototype.forEach.call(chipBar.children, function (x) { x.classList.toggle('on', x === b); });
+                            fill();
+                        });
+                        chipBar.appendChild(b);
+                    });
+                } catch (e) { rowEl.textContent = ''; rowEl.appendChild(errorBlock(e, function () { started = false; start(); })); return; }
+            }
+            await fill();
+        };
+        if ('IntersectionObserver' in window) {
+            var io = new IntersectionObserver(function (es) {
+                if (es.some(function (x) { return x.isIntersecting; })) { io.disconnect(); if (gen === homeGen) start(); }
+            }, { rootMargin: '700px 0px' });
+            io.observe(sec);
+        } else start();
+        return sec;
+    }
+
+    function paintTabs() {
+        if (!tabBar) {
+            tabBar = make('div', 'tabs');
+            [['movie', 'Movies'], ['tv', 'TV Shows'], ['editor', 'Editor Picks']].forEach(function (t) {
+                var b = make('button', 'sn', t[1]);
+                b.type = 'button';
+                b.dataset.tab = t[0];
+                b.addEventListener('click', function () { if (homeTab !== t[0]) { homeTab = t[0]; loadHome(); } });
+                tabBar.appendChild(b);
+            });
+            home.insertBefore(tabBar, home.firstChild);
+        }
+        Array.prototype.forEach.call(tabBar.children, function (b) { b.classList.toggle('on', b.dataset.tab === homeTab); });
+    }
+
     async function loadHome() {
         var gen = ++homeGen;
+        paintTabs();
         feat.hidden = true;
+        feat.textContent = '';
+        delete feat.dataset.set;
         secs.textContent = '';
-        secs.appendChild(skeletonRow());
-        secs.appendChild(skeletonRow());
-        try {
-            await TV.resolveHost();
-            var data = TV.homeData;
-            if (!data || !Array.isArray(data.rows)) data = await TV.api('/home');
-            if (gen !== homeGen) return;
-            homeLoaded = true;
-            paintHome(data);
-        } catch (e) {
-            if (gen !== homeGen) return;
-            secs.textContent = '';
-            secs.appendChild(errorBlock(e, function () { TV.homeData = null; loadHome(); }));
-        }
+        homeLoaded = true;
+        rowDefs(homeTab).forEach(function (def) { secs.appendChild(buildRow(def, gen)); });
     }
 
     var resultState = { q: '', page: 1, total: 1, seen: {} };
@@ -858,9 +984,9 @@
         setStatus((index ? 'Trying ' : 'Loading ') + label + ' (' + (index + 1) + '/' + p.streams.length + ')...', true);
         teardownMedia();
         var isFile = stream.type === 'file' || /\.(mp4|m4v|webm)(\?|$)/i.test(stream.url);
+        if (!isFile && window.kNet) viaHub = true;
         // Normal route first. The net hub (wisp) is only a fallback for HLS streams that failed.
         var url = viaHub ? stream.url : TV.proxyUrl(stream.url);
-        if (viaHub) setStatus('Retrying ' + label + ' through the net hub...', true);
         var started = false;
         var cur = function () { return p.video.currentTime > 1 ? p.video.currentTime : at; };
         var moveOn = function (why) {

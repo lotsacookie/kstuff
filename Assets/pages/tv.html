@@ -313,6 +313,10 @@ svg { display: block; flex-shrink: 0; }
 }
 .x:hover { background: var(--hover-strong); }
 .body { padding: 4px 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; padding: 14px 2px 6px; }
+.chipbar { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 10px; scrollbar-width: none; }
+.chipbar::-webkit-scrollbar { display: none; }
+.chipbar .sn { flex: none; white-space: nowrap; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .chip { padding: 4px 12px; border-radius: 500px; background: var(--hover); font-size: 0.78rem; }
 .tag { font-style: italic; color: var(--muted); }
