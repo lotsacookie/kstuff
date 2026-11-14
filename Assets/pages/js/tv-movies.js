@@ -889,9 +889,11 @@
     }
 
     async function fetchSources(entry, s, e, fresh) {
-        var path = entry.type === 'tv' ? '/stream/tv/' + entry.tid + '/' + s + '/' + e : '/stream/movie/' + entry.tid;
-        if (fresh) path += '?fresh=' + Date.now();
-        return sortStreams(await TV.api(path, 25000));
+        var list = await TV.scrapeStreams(entry, s, e, fresh, function (v) {
+            if (v.status) setStatus('Source ' + v.id + ': ' + v.status + '...', true);
+            else if (v.total) setStatus('Scraping ' + v.left + ' of ' + v.total + ' sources...', true);
+        });
+        return sortStreams({ streams: list });
     }
 
     function goodKey(entry, s, e) {
@@ -986,7 +988,7 @@
         var isFile = stream.type === 'file' || /\.(mp4|m4v|webm)(\?|$)/i.test(stream.url);
         if (!isFile && window.kNet) viaHub = true;
         // Normal route first. The net hub (wisp) is only a fallback for HLS streams that failed.
-        var url = viaHub ? stream.url : TV.proxyUrl(stream.url);
+        var url = stream.url;
         var started = false;
         var cur = function () { return p.video.currentTime > 1 ? p.video.currentTime : at; };
         var moveOn = function (why) {
@@ -1012,7 +1014,7 @@
         try {
             p.video.preload = 'auto';
             if (isFile) {
-                p.video.src = url;
+                p.video.src = (stream.headers && Object.keys(stream.headers).length) ? await TV.hubBlob(url, stream.headers) : url;
                 await waitMedia(p.video, 25000);
                 if (gen !== playGen) return;
                 if (at > 1) p.video.currentTime = at;
@@ -1021,7 +1023,7 @@
                 if (gen !== playGen) return;
                 if (Hls && Hls.isSupported()) {
                     var h = new Hls({
-                        loader: viaHub ? TV.HubLoader : Hls.DefaultConfig.loader,
+                        loader: TV.hubLoaderWith(stream.headers),
                         autoStartLoad: false,
                         startPosition: at > 1 ? at : -1,
                         capLevelToPlayerSize: true,
@@ -1137,7 +1139,7 @@
                 setStatus('No sources have this one yet. Still looking...', true);
             } catch (err) {
                 if (gen !== playGen || !player) return;
-                setStatus('Still trying to reach the movie server...', true);
+                setStatus('Still looking for sources...', true);
             }
             round++;
             await TV.sleep(Math.min(8000, 2000 * round));
