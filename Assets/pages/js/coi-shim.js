@@ -147,7 +147,7 @@
   };
 
   /* ---- Net hub: same surface as net-hub.js's window.kNetDirect, but every call goes to the parent ---- */
-  var cur = cfg.wisp || null, mode = cfg.transport || 'epoxy';
+  var cur = cfg.wisp || null, mode = cfg.transport || 'libcurl';
   window.kTransportMode = mode;
   window.kNetDirect = {
     fetch: function (url, init) { return window.kNet.fetch(String(url), init); },
@@ -163,7 +163,7 @@
     wisp: function () { return cur; },
     transport: function () { return mode; },
     setTransport: function (m) {
-      mode = m === 'libcurl' ? 'libcurl' : 'epoxy';
+      mode = m === 'epoxy' ? 'epoxy' : 'libcurl';
       window.kTransportMode = mode;
       window.__coiCall('set-transport', { mode: mode }).catch(function () {});
       return mode;
@@ -244,7 +244,7 @@
 
     // Net hub for page frames (NOW, VMs, Singuloxy, ...): they look for window.parent.kNetDirect, so the stand-in
     // parent carries one. Every call is relayed (postMessage) through the isolated page to the real parent hub.
-    var nseq = 0, npend = {}, wsm = {}, curWisp = null, tmode = 'epoxy';
+    var nseq = 0, npend = {}, wsm = {}, curWisp = null, tmode = 'libcurl';
     function nOk(d) { if (d && d.wisp) curWisp = d.wisp; return d; }
     function nfetch(url, init) {
       init = init || {};
@@ -331,7 +331,7 @@
       libcurl: function () { return Promise.resolve({ fetch: nfetch, WebSocket: ChildWS }); },
       wisp: function () { return curWisp; },
       transport: function () { return tmode; },
-      setTransport: function (m) { tmode = m === 'libcurl' ? 'libcurl' : 'epoxy'; return tmode; }
+      setTransport: function (m) { tmode = m === 'epoxy' ? 'epoxy' : 'libcurl'; return tmode; }
     };
     fake.kNetDirect = hubApi;
     try { if (!window.kNetDirect) window.kNetDirect = hubApi; } catch (e) {}

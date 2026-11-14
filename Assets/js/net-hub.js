@@ -58,7 +58,7 @@ export function init(K) {
   };
 
   const readTransport = () => {
-    try { return localStorage.getItem(TRANSPORT_KEY) === 'libcurl' ? 'libcurl' : 'epoxy'; } catch { return 'epoxy'; }
+    try { return localStorage.getItem(TRANSPORT_KEY) === 'epoxy' ? 'epoxy' : 'libcurl'; } catch { return 'libcurl'; }
   };
   let transportMode = readTransport();
   const useEpoxy = () => transportMode === 'epoxy';
