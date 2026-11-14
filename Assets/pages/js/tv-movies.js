@@ -1139,7 +1139,8 @@
                 setStatus('No sources have this one yet. Still looking...', true);
             } catch (err) {
                 if (gen !== playGen || !player) return;
-                setStatus('Still looking for sources...', true);
+                console.warn('[tv] sources:', err && err.message);
+                setStatus('Still looking... ' + ((err && err.message) || ''), true);
             }
             round++;
             await TV.sleep(Math.min(8000, 2000 * round));

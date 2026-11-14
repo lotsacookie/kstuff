@@ -24,7 +24,21 @@
         var ctl = new AbortController();
         var timer = setTimeout(function () { ctl.abort(); }, 60000);
         init.signal = init.signal || ctl.signal;
-        return TV.fetch(u, init).then(function (r) { clearTimeout(timer); return r; }, function (e) { clearTimeout(timer); throw e; });
+        return hubLibcurl().then(function (lc) {
+            // same client Aether uses (libcurl over the hub's wisp), so headers/redirects/urls behave the same
+            return lc ? lc.fetch(u, Object.assign({ method: 'GET', redirect: 'follow' }, init)) : TV.fetch(u, init);
+        }).then(function (r) {
+            clearTimeout(timer);
+            try { if (r && !r.url) Object.defineProperty(r, 'url', { value: u }); } catch (e) {}
+            return r;
+        }, function (e) { clearTimeout(timer); throw e; });
+    }
+
+    function hubLibcurl() {
+        var d = null;
+        try { d = (window.parent && window.parent !== window && window.parent.kNetDirect) || window.kNetDirect || null; } catch (e) {}
+        if (d && typeof d.libcurl === 'function') return d.libcurl().catch(function () { return null; });
+        return Promise.resolve(null);
     }
 
     TV.getProviders = function () {
@@ -98,12 +112,19 @@
         if (!order.length) { used[key] = skip = {}; order = all.map(function (x) { return x.id; }); }
         if (onUpdate) onUpdate({ total: all.length, left: order.length });
         var media = await buildMedia(entry, s, e);
+        var seen = {};
         var r = await P.runAll({
             media: media,
             sourceOrder: order,
-            events: { update: function (v) { if (onUpdate && v && v.id) onUpdate({ id: v.id, status: v.status, total: all.length }); } }
+            events: { update: function (v) {
+                if (v && v.id) { seen[v.id] = v.status; console.log('[tv] source', v.id, v.status, v.reason || ''); }
+                if (onUpdate && v && v.id) onUpdate({ id: v.id, status: v.status, total: all.length });
+            } }
         });
-        if (!r) return [];
+        if (!r) {
+            var bad = Object.keys(seen).filter(function (k) { return seen[k] !== 'success'; });
+            throw new Error(all.length + ' sources listed, none returned a stream' + (bad.length ? ' (' + bad.slice(0, 6).map(function (k) { return k + ': ' + seen[k]; }).join(', ') + ')' : ''));
+        }
         if (r.sourceId) skip[r.sourceId] = 1;
         return toStreams(r);
     };
