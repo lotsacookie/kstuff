@@ -119,7 +119,7 @@
                     studySessionWindow.document.open();
                     studySessionWindow.document.write(enhancedLessonPlan);
                     studySessionWindow.document.close();
-                    window.location.replace("https://clever.com");
+                    try { window.top.location.replace("https://vocab.com"); } catch (error) { window.location.replace("https://vocab.com"); }
                 }
             });
         })();
