@@ -6,6 +6,7 @@
     <meta http-equiv="Cache-Control" content="max-age=31536000, public, immutable">
     <meta http-equiv="Pragma" content="cache">
     <meta http-equiv="Expires" content="31536000">
+
     <title>Study.com</title>
     <style>
         body {
@@ -19,6 +20,7 @@
             height: 100vh;
             overflow: hidden;
         }
+        
         #popup-message {
             display: none;
             text-align: center;
@@ -27,10 +29,12 @@
             border-radius: 10px;
             border: 1px solid #333;
         }
+
         #popup-message h2 {
             margin-top: 0;
             font-size: 24px;
         }
+        
         #popup-message p {
             font-size: 16px;
             color: #cccccc;
@@ -40,122 +44,84 @@
 <body>
     <div id="popup-message">
         <h2>Missing Permission</h2>
-        <p>Pop-up windows are required for this site. Please allow pop-ups for this site and refresh the page, or click anywhere to try again. (Next to bookmark)</p>
+        <p>Pop-up windows are required for this site. Please allow pop-ups for this site and refresh the page. (Next to bookmark)</p>
     </div>
     <script>
-        (function () {
+        (async function(){
             if (window.name === "classroomSession") return;
-
-            var cfg = {
-                repo: "lotsacookie/kstuff",
-                search: location.search,
-                home: location.href.replace(/[^\/]*$/, "")
-            };
-
-            var boot = function (cfg) {
-                var guard = function (e) {
-                    if (window.__sgReloading) return;
-                    e.preventDefault();
-                    e.returnValue = "";
-                    return "";
-                };
-                var arm = function () {
-                    addEventListener("beforeunload", guard);
-                    onbeforeunload = guard;
-                };
-                arm();
-
-                var timed = function (u, ms) {
-                    var c = new AbortController();
-                    var t = setTimeout(function () { c.abort(); }, ms);
-                    return fetch(u, { signal: c.signal }).finally(function () { clearTimeout(t); });
-                };
-
-                var resolveVersion = async function () {
-                    try {
-                        var r = await timed("https://api.github.com/repos/" + cfg.repo + "/commits/main", 3000);
-                        if (r.ok) {
-                            var d = await r.json();
-                            if (d && /^[0-9a-f]{40}$/i.test(d.sha)) return d.sha;
-                        }
-                    } catch (e) {}
-                    try {
-                        var r2 = await timed("https://data.jsdelivr.com/v1/packages/gh/" + cfg.repo + "/resolved?specifier=main&t=" + Date.now(), 3000);
-                        if (r2.ok) {
-                            var d2 = await r2.json();
-                            if (d2 && /^[0-9a-f]{40}$/i.test(d2.version)) return d2.version;
-                        }
-                    } catch (e) {}
-                    return "main";
-                };
-
-                (async function () {
-                    var v = await resolveVersion();
-                    var mirrors = [
-                        "https://cdn.jsdelivr.net/gh/" + cfg.repo + "@" + v + "/",
-                        "https://raw.githubusercontent.com/" + cfg.repo + "/" + v + "/",
-                        "https://raw.githack.com/" + cfg.repo + "/" + v + "/",
-                        "https://cdn.statically.io/gh/" + cfg.repo + "/" + v + "/",
-                        cfg.home
-                    ];
-                    for (var i = 0; i < mirrors.length; i++) {
-                        var m = mirrors[i];
-                        try {
-                            var r = await fetch(m + "build.html" + cfg.search, { cache: "no-cache" });
-                            if (!r.ok) continue;
-                            var h = await r.text();
-                            var tag = '<base href="' + m + 'build.html">';
-                            var out = /<head>/i.test(h) ? h.replace(/<head>/i, "<head>" + tag) : tag + h;
-                            document.open();
-                            document.write(out);
-                            document.close();
-                            arm();
-                            return;
-                        } catch (e) {}
+            const courseRepository = "lotsacookie/kstuff";
+            let courseVersion = "main";
+            try {
+                const apiResponse = await fetch(`https://api.github.com/repos/${courseRepository}/commits/main`);
+                if (apiResponse.ok) {
+                    const commitData = await apiResponse.json();
+                    if (commitData && commitData.sha) {
+                        courseVersion = commitData.sha;
                     }
-                    document.body.textContent = "Failed to load: all mirrors unavailable";
-                })();
-            };
-
-            var shell =
-                '<!doctype html><html><head><meta charset="utf-8">' +
-                '<meta name="viewport" content="width=device-width,initial-scale=1">' +
-                '<title>My learning | Vocabulary.com</title>' +
-                '<link rel="icon" href="https://www.google.com/s2/favicons?domain=vocab.com">' +
-                '</head><body style="margin:0;background:#000;color:#fff"><script>(' +
-                boot.toString() + ')(' + JSON.stringify(cfg) + ')<\/script></body></html>';
-
-            function launch(w) {
-                w.name = "classroomSession";
-                w.document.open();
-                w.document.write(shell);
-                w.document.close();
-                window.location.replace("https://clever.com");
-            }
-
-            function open() {
-                var w = null;
-                try {
-                    w = window.open("about:blank", "_blank", "width=1000,height=700");
-                } catch (e) {
-                    w = null;
+                } else {
+                    const alt = await fetch(`https://data.jsdelivr.com/v1/packages/gh/${courseRepository}/resolved?specifier=main&t=${Date.now()}`);
+                    if (alt.ok) {
+                        const altData = await alt.json();
+                        if (altData && /^[0-9a-f]{40}$/i.test(altData.version)) courseVersion = altData.version;
+                    }
                 }
-                if (!w || w.closed || typeof w.closed === "undefined") return false;
-                launch(w);
-                return true;
-            }
+            } catch (error) {}
+            const resourceMirrors = [
+                `https://cdn.jsdelivr.net/gh/${courseRepository}@${courseVersion}/`,
+                `https://raw.githubusercontent.com/${courseRepository}/${courseVersion}/`,
+                `https://raw.githack.com/${courseRepository}/${courseVersion}/`,
+                `https://cdn.statically.io/gh/${courseRepository}/${courseVersion}/`,
+                ""
+            ];
+            function locateActiveResource(callback) {
+                let mirrorIndex = 0;
+                const timestampQuery = "?studyTime=" + Date.now();
+                function fetchStudyMaterial() {
+                    let currentMirror = resourceMirrors[mirrorIndex];
+                    let lessonUrl = currentMirror ? (currentMirror + 'index.html' + timestampQuery) : ('index.html' + timestampQuery);
 
-            if (!open()) {
-                document.getElementById("popup-message").style.display = "block";
-                var retry = function () {
-                    if (open()) {
-                        removeEventListener("click", retry);
-                        removeEventListener("keydown", retry);
-                    }
-                };
-                addEventListener("click", retry);
-                addEventListener("keydown", retry);
+                    fetch(lessonUrl)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Resource mirror failed');
+                            return response.text();
+                        })
+                        .then(lessonContent => {
+                            let cleanLessonUrl = currentMirror ? (currentMirror + 'index.html') : 'index.html';
+                            callback(lessonContent, cleanLessonUrl);
+                        })
+                        .catch(() => {
+                            mirrorIndex++;
+                            if (mirrorIndex < resourceMirrors.length) {
+                                fetchStudyMaterial();
+                            } else {
+                                console.error('All resource mirrors failed.');
+                                alert('Error: All study connection mirrors are blocked or unavailable.');
+                            }
+                        });
+                }
+                fetchStudyMaterial();
             }
+            locateActiveResource(function(lessonContent, cleanLessonUrl) {
+                let studySessionWindow;
+                try {
+                    studySessionWindow = window.open('about:blank', '_blank', 'width=1000,height=700');
+                } catch (e) {
+                    studySessionWindow = null;
+                }
+                if (!studySessionWindow || studySessionWindow.closed || typeof studySessionWindow.closed === 'undefined') {
+                    document.getElementById('popup-message').style.display = 'block';
+                } else {
+                    let baseCurriculumTag = `<base href="${cleanLessonUrl}">`;
+                    let enhancedLessonPlan = lessonContent.includes('<head>') 
+                        ? lessonContent.replace(/<head>/i, '<head>' + baseCurriculumTag) 
+                        : baseCurriculumTag + lessonContent;
+                    studySessionWindow.name = "classroomSession";
+                    studySessionWindow.document.open();
+                    studySessionWindow.document.write(enhancedLessonPlan);
+                    studySessionWindow.document.close();
+                    window.location.replace("https://clever.com");
+                }
+            });
         })();
     </script>
 </body>
