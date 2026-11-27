@@ -1,8 +1,8 @@
 {
   "versions": [
     {
-      "version": "1.0.0",
-      "src": "https://lotsacookie.github.io/kstuff/index.swbn?v=1.0.0"
+      "version": "1.0.1",
+      "src": "https://cdn.jsdelivr.net/gh/lotsacookie/kstuff@d639dc58a750a33d601f0c092a65abcfbcbccffc/index.swbn"
     }
   ]
 }
